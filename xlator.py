@@ -15,7 +15,7 @@ class Xlator(object):
     def getReqTagString(self, classes, tSpec):
         cdErr("In base class Xlator::getReqTagString.")
 
-    def xlateLangType(self, classes, tSpec, owner, langType, varMode):
+    def xlateLangType(self, tSpec, owner, langType, varMode):
         cdErr("In base class Xlator::xlateLangType.")
 
     def makePtrOpt(self, tSpec):
@@ -135,7 +135,7 @@ class Xlator(object):
     def variableDefaultValueString(self, fType, isTypeArg, owner):
         cdErr("In base class Xlator::variableDefaultValueString.")
 
-    def codeNewVarStr(self, classes, tags, lhsTypeSpec, varName, fieldDef, indent, actionOrField, genericArgs, localVarsAlloc):
+    def codeNewVarStr(self, LTSpec, varName, fieldDef, indent, genericArgs, localVarsAlloc):
         cdErr("In base class Xlator::codeNewVarStr.")
 
     def codeIncrement(self, varName):

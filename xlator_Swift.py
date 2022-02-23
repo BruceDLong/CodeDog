@@ -234,8 +234,8 @@ class Xlator_Swift(Xlator):
             reqTagStr += ">"
         return reqTagStr
 
-    def xlateLangType(self, classes, tSpec, owner, langType, varMode):
-        # varMode is 'var' or 'arg' or 'alloc'. Large items are passed as pointers
+    def xlateLangType(self, tSpec, owner, langType, varMode):
+        # varMode is 'var' or 'arg' or 'alloc'.
         langType = self.applyOwner(owner, langType)
         return langType
 
@@ -745,23 +745,25 @@ class Xlator_Swift(Xlator):
             else:fieldValueText = ' = ' + fType +'()'
         return fieldValueText
 
-    def codeNewVarStr(self, classes, tags, lhsTypeSpec, varName, fieldDef, indent, actionOrField, genericArgs, localVarsAlloc):
+    def codeNewVarStr(self, LTSpec, varName, fieldDef, indent, genericArgs, localVarsAlloc):
         varDeclareStr = ''
         assignValue   = ''
         isAllocated   = fieldDef['isAllocated']
-        owner         = progSpec.getOwner(lhsTypeSpec)
+        owner         = progSpec.getOwner(LTSpec)
         useCtor       = False
-        if fieldDef['paramList'] and fieldDef['paramList'][-1] == "^&useCtor//8":
+        paramList     = None
+        if fieldDef['paramList']: paramList = fieldDef['paramList']
+        if paramList and fieldDef['paramList'][-1] == "^&useCtor//8":
             del fieldDef['paramList'][-1]
             useCtor = True
-        cvrtType = self.codeGen.convertType(lhsTypeSpec, 'var', genericArgs)
-        localVarsAlloc.append([varName, lhsTypeSpec])  # Tracking local vars for scope
-        allocFieldType = self.codeGen.convertType(lhsTypeSpec, 'alloc', genericArgs)
+        cvrtType = self.codeGen.convertType(LTSpec, 'var', genericArgs)
+        localVarsAlloc.append([varName, LTSpec])  # Tracking local vars for scope
+        allocFieldType = self.codeGen.convertType(LTSpec, 'alloc', genericArgs)
         if(fieldDef['value']):
             [RHS, rhsTypeSpec]=self.codeGen.codeExpr(fieldDef['value'][0], None, None, 'RVAL', genericArgs)
-            [leftMod, rightMod]=self.chooseVirtualRValOwner(lhsTypeSpec, rhsTypeSpec)
+            [leftMod, rightMod]=self.chooseVirtualRValOwner(LTSpec, rhsTypeSpec)
             RHS = leftMod+RHS+rightMod
-            RHS = self.checkForTypeCastNeed(lhsTypeSpec, rhsTypeSpec, RHS)
+            RHS = self.checkForTypeCastNeed(LTSpec, rhsTypeSpec, RHS)
             assignValue = " = " + RHS
         else: # If no value was given:
             CPL=''
@@ -780,7 +782,7 @@ class Xlator_Swift(Xlator):
                 if(assignValue==''): assignValue = ' = ' + allocFieldType + CPL
             else:
                 assignValue = self.variableDefaultValueString(allocFieldType, False, owner)
-        fieldTypeMod = self.makePtrOpt(lhsTypeSpec)
+        fieldTypeMod = self.makePtrOpt(LTSpec)
         if (assignValue == ""):
             varDeclareStr= "var " + varName + ": "+ cvrtType + fieldTypeMod + " = " + allocFieldType + '()'
         else:

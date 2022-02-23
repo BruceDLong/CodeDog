@@ -261,8 +261,8 @@ class Xlator_Java(Xlator):
             reqTagStr += ">"
         return reqTagStr
 
-    def xlateLangType(self, classes, tSpec, owner, langType, varMode):
-        # varMode is 'var' or 'arg' or 'alloc'. Large items are passed as pointers
+    def xlateLangType(self, tSpec, owner, langType, varMode):
+        # varMode is 'var' or 'arg' or 'alloc'.
         langType = self.applyOwner(owner, langType)
         return langType
 
@@ -755,19 +755,21 @@ class Xlator_Java(Xlator):
         if fType=="int" or fType=="boolean" or fType=="float" or fType=="double" or fType=="long" or fType=="char": return True
         return False
 
-    def codeNewVarStr(self, classes, tags, lhsTypeSpec, varName, fieldDef, indent, actionOrField, genericArgs, localVarsAlloc):
+    def codeNewVarStr(self, LTSpec, varName, fieldDef, indent, genericArgs, localVarsAlloc):
         varDeclareStr = ''
         assignValue   = ''
         isAllocated   = fieldDef['isAllocated']
-        owner         = progSpec.getOwner(lhsTypeSpec)
+        owner         = progSpec.getOwner(LTSpec)
         useCtor       = False
-        if fieldDef['paramList'] and fieldDef['paramList'][-1] == "^&useCtor//8":
+        paramList     = None
+        if fieldDef['paramList']: paramList = fieldDef['paramList']
+        if paramList and fieldDef['paramList'][-1] == "^&useCtor//8":
             del fieldDef['paramList'][-1]
             useCtor = True
-        cvrtType = self.codeGen.convertType(lhsTypeSpec, 'var', genericArgs)
-        localVarsAlloc.append([varName, lhsTypeSpec])  # Tracking local vars for scope
-        ctnrTSpec = progSpec.getContainerSpec(lhsTypeSpec)
-        isCtnr=progSpec.isNewContainerTempFunc(lhsTypeSpec)
+        cvrtType = self.codeGen.convertType(LTSpec, 'var', genericArgs)
+        localVarsAlloc.append([varName, LTSpec])  # Tracking local vars for scope
+        ctnrTSpec = progSpec.getContainerSpec(LTSpec)
+        isCtnr=progSpec.isNewContainerTempFunc(LTSpec)
         fTypeKW = self.adjustBaseTypes(cvrtType, isCtnr)
         if isinstance(ctnrTSpec, str) and ctnrTSpec == None:
             if(fieldDef['value']):
@@ -777,7 +779,7 @@ class Xlator_Java(Xlator):
                 #TODO: make test case
             else: assignValue=''
         elif(fieldDef['value']):
-            [RHS, rhsTypeSpec]=self.codeGen.codeExpr(fieldDef['value'][0], lhsTypeSpec, None, 'RVAL', genericArgs)
+            [RHS, rhsTypeSpec]=self.codeGen.codeExpr(fieldDef['value'][0], LTSpec, None, 'RVAL', genericArgs)
             RHS = self.checkForTypeCastNeed(cvrtType, rhsTypeSpec, RHS)
             if fTypeKW=='BigInteger':
                 RTypeKW = progSpec.fieldTypeKeyword(rhsTypeSpec)
@@ -815,7 +817,7 @@ class Xlator_Java(Xlator):
                         if self.isJavaPrimativeType(fTypeKW): assignValue  = " =  " + CPL
                         else: assignValue  = " = new " + fTypeKW + CPL
                 if(assignValue==''):
-                    assignValue = ' = '+self.codeGen.codeAllocater(lhsTypeSpec, fieldDef['paramList'], genericArgs)
+                    assignValue = ' = '+self.codeGen.codeAllocater(LTSpec, fieldDef['paramList'], genericArgs)
             elif self.varTypeIsValueType(fTypeKW):
                 if fTypeKW == 'long' or fTypeKW == 'int' or fTypeKW == 'float'or fTypeKW == 'double': assignValue=' = 0'
                 elif fTypeKW == 'string':  assignValue=' = ""'

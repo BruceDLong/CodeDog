@@ -564,20 +564,19 @@ class CodeGenerator(object):
         ownerOut = self.xlator.getUnwrappedClassOwner(self.classStore, tSpec, fTypeKW, varMode, ownerIn)
         unwrappedKW = progSpec.getUnwrappedClassFieldTypeKeyWord(self.classStore, fTypeKW)
         reqTagList  = progSpec.getReqTagList(tSpec)
+        itrTagList  = None
         if ownerOut=='itr':
-            itrTSpec    = self.getDataStructItrTSpec(fTypeKW)
-            fTypeKW = progSpec.fieldTypeKeyword(itrTSpec)
+            itrTSpec   = self.getDataStructItrTSpec(fTypeKW)
+            fTypeKW    = progSpec.fieldTypeKeyword(itrTSpec)
             itrTagList = progSpec.getReqTagList(itrTSpec)
-            if itrTagList!=None:
-                unwrappedKW = fTypeKW
-        if reqTagList and self.xlator.renderGenerics=='True':
-            if not progSpec.isWrappedType(self.classStore, fTypeKW) and not progSpec.isAbstractStruct(self.classStore[0], fTypeKW):
-                unwrappedKW = self.generateGenericStructName(fTypeKW, reqTagList, genericArgs)
+            if itrTagList!=None: unwrappedKW = fTypeKW
+        if reqTagList:
+            if self.xlator.renderGenerics=='True' and not progSpec.isWrappedType(self.classStore, fTypeKW) and not progSpec.isAbstractStruct(self.classStore[0], fTypeKW):
+                    unwrappedKW = self.generateGenericStructName(fTypeKW, reqTagList, genericArgs)
             else:
-                reqTagStr   = self.xlator.getReqTagString(self.classStore, tSpec)
-                unwrappedKW = unwrappedKW + reqTagStr
+                unwrappedKW += self.xlator.getReqTagString(self.classStore, tSpec)
         langType = self.xlator.adjustBaseTypes(unwrappedKW, progSpec.isNewContainerTempFunc(tSpec))
-        langType = self.xlator.xlateLangType(self.classStore, tSpec, ownerOut, langType, varMode)
+        if itrTagList==None: langType = self.xlator.xlateLangType(tSpec, ownerOut, langType, varMode)
         return langType
 
     def codeAllocater(self, tSpec, paramList, genericArgs):
@@ -1244,7 +1243,7 @@ class CodeGenerator(object):
             progSpec.isOldContainerTempFuncErr(tSpec, 'codeAction '+self.currentObjName+' '+fieldName)
             self.applyStructImplemetation(tSpec,self.currentObjName,fieldName)
             cdlog(5, "Action newVar: {}".format(fieldName))
-            varDeclareStr = self.xlator.codeNewVarStr(self.classStore, self.tagStore, tSpec, fieldName, fieldDef, indent, 'action', genericArgs, self.localVarsAllocated)
+            varDeclareStr = self.xlator.codeNewVarStr(tSpec, fieldName, fieldDef, indent, genericArgs, self.localVarsAllocated)
             actionText = indent + varDeclareStr + ";\n"
         elif (typeOfAction =='assign'):
             cdlog(5, "PREASSIGN:" + str(action['LHS']))

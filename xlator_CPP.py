@@ -218,9 +218,8 @@ class Xlator_CPP(Xlator):
             reqTagStr += ">"
         return reqTagStr
 
-    def xlateLangType(self, classes, tSpec, owner, langType, varMode):
-        # varMode is 'var' or 'arg' or 'alloc'. Large items are passed as pointers
-        langType += self.getReqTagString(classes, tSpec)
+    def xlateLangType(self, tSpec, owner, langType, varMode):
+        # varMode is 'var' or 'arg' or 'alloc'
         if varMode != 'alloc': langType = self.applyOwner(owner, langType)
         return langType
 
@@ -730,7 +729,7 @@ void SetBits(CopyableAtomic<uint64_t>& target, uint64_t mask, uint64_t value) {
         """ % (specialCode)
         #codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE )
 
-    def codeNewVarStr(self, classes, tags, LTSpec, varName, fieldDef, indent, actionOrField, genericArgs, localVarsAlloc):
+    def codeNewVarStr(self, LTSpec, varName, fieldDef, indent, genericArgs, localVarsAlloc):
         varDeclareStr = ''
         assignValue   = ''
         isAllocated   = fieldDef['isAllocated']
