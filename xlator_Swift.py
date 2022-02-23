@@ -753,40 +753,38 @@ class Xlator_Swift(Xlator):
         useCtor       = False
         paramList     = None
         if fieldDef['paramList']: paramList = fieldDef['paramList']
-        if paramList and fieldDef['paramList'][-1] == "^&useCtor//8":
-            del fieldDef['paramList'][-1]
+        if paramList and paramList[-1] == "^&useCtor//8":
+            del paramList[-1]
             useCtor = True
         cvrtType = self.codeGen.convertType(LTSpec, 'var', genericArgs)
         localVarsAlloc.append([varName, LTSpec])  # Tracking local vars for scope
         allocFieldType = self.codeGen.convertType(LTSpec, 'alloc', genericArgs)
         if(fieldDef['value']):
-            [RHS, rhsTypeSpec]=self.codeGen.codeExpr(fieldDef['value'][0], None, None, 'RVAL', genericArgs)
-            [leftMod, rightMod]=self.chooseVirtualRValOwner(LTSpec, rhsTypeSpec)
+            [RHS, RTSpec]=self.codeGen.codeExpr(fieldDef['value'][0], None, None, 'RVAL', genericArgs)
+            [leftMod, rightMod]=self.chooseVirtualRValOwner(LTSpec, RTSpec)
             RHS = leftMod+RHS+rightMod
-            RHS = self.checkForTypeCastNeed(LTSpec, rhsTypeSpec, RHS)
+            RHS = self.checkForTypeCastNeed(LTSpec, RTSpec, RHS)
             assignValue = " = " + RHS
+        elif paramList!=None:       # call constructor  # curly bracket param list
+            # Code the constructor's arguments
+            modelParams = self.codeGen.chooseCtorModelParams(LTSpec, paramList, genericArgs)
+            [CPL, paramTypeList] = self.codeGen.codeParameterList(varName, paramList, modelParams, genericArgs)
+            if len(paramTypeList)==1:
+                if not isinstance(paramTypeList[0], dict):
+                    print("\nPROBLEM: The return type of the parameter '", CPL, "' of "+varName+"(...) cannot be found and is needed. Try to define it.\n",   paramTypeList)
+                    exit(1)
+                RTSpec  = paramTypeList[0]
+                rhsType = progSpec.getFieldType(RTSpec)
+                # TODO: Remove the 'True' and make this check object heirarchies or similar solution
+                if True or not isinstance(rhsType, str) and cvrtType==rhsType[0]:
+                    assignValue = " = " + CPL   # Act like a copy constructor
+            if(assignValue==''): assignValue = ' = ' + allocFieldType + CPL
         else: # If no value was given:
-            CPL=''
-            if fieldDef['paramList'] != None:       # call constructor  # curly bracket param list
-                # Code the constructor's arguments
-                [CPL, paramTypeList] = self.codeGen.codeParameterList(varName, fieldDef['paramList'], None, genericArgs)
-                if len(paramTypeList)==1:
-                    if not isinstance(paramTypeList[0], dict):
-                        print("\nPROBLEM: The return type of the parameter '", CPL, "' of "+varName+"(...) cannot be found and is needed. Try to define it.\n",   paramTypeList)
-                        exit(1)
-                    rhsTypeSpec = paramTypeList[0]
-                    rhsType     = progSpec.getFieldType(rhsTypeSpec)
-                    # TODO: Remove the 'True' and make this check object heirarchies or similar solution
-                    if True or not isinstance(rhsType, str) and cvrtType==rhsType[0]:
-                        assignValue = " = " + CPL   # Act like a copy constructor
-                if(assignValue==''): assignValue = ' = ' + allocFieldType + CPL
-            else:
-                assignValue = self.variableDefaultValueString(allocFieldType, False, owner)
+            assignValue = self.variableDefaultValueString(allocFieldType, False, owner)
+        if assignValue == "":
+            assignValue = " = " + allocFieldType + '()'
         fieldTypeMod = self.makePtrOpt(LTSpec)
-        if (assignValue == ""):
-            varDeclareStr= "var " + varName + ": "+ cvrtType + fieldTypeMod + " = " + allocFieldType + '()'
-        else:
-            varDeclareStr= "var " + varName + ": "+ cvrtType + fieldTypeMod + assignValue
+        varDeclareStr= "var " + varName + ": "+ cvrtType + fieldTypeMod + assignValue
         return(varDeclareStr)
 
     def codeIncrement(self, varName):

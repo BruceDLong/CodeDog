@@ -763,69 +763,59 @@ class Xlator_Java(Xlator):
         useCtor       = False
         paramList     = None
         if fieldDef['paramList']: paramList = fieldDef['paramList']
-        if paramList and fieldDef['paramList'][-1] == "^&useCtor//8":
-            del fieldDef['paramList'][-1]
+        if paramList and paramList[-1] == "^&useCtor//8":
+            del paramList[-1]
             useCtor = True
         cvrtType = self.codeGen.convertType(LTSpec, 'var', genericArgs)
         localVarsAlloc.append([varName, LTSpec])  # Tracking local vars for scope
-        ctnrTSpec = progSpec.getContainerSpec(LTSpec)
-        isCtnr=progSpec.isNewContainerTempFunc(LTSpec)
-        fTypeKW = self.adjustBaseTypes(cvrtType, isCtnr)
-        if isinstance(ctnrTSpec, str) and ctnrTSpec == None:
-            if(fieldDef['value']):
-                [S2, rhsTypeSpec]=self.codeGen.codeExpr(fieldDef['value'][0], None, None, 'RVAL', genericArgs)
-                RHS = S2
-                assignValue=' = '+ RHS
-                #TODO: make test case
-            else: assignValue=''
-        elif(fieldDef['value']):
-            [RHS, rhsTypeSpec]=self.codeGen.codeExpr(fieldDef['value'][0], LTSpec, None, 'RVAL', genericArgs)
-            RHS = self.checkForTypeCastNeed(cvrtType, rhsTypeSpec, RHS)
-            if fTypeKW=='BigInteger':
-                RTypeKW = progSpec.fieldTypeKeyword(rhsTypeSpec)
+        if(fieldDef['value']):
+            [RHS, RTSpec]=self.codeGen.codeExpr(fieldDef['value'][0], LTSpec, None, 'RVAL', genericArgs)
+            RHS = self.checkForTypeCastNeed(cvrtType, RTSpec, RHS)
+            if cvrtType=='BigInteger':
+                RTypeKW = progSpec.fieldTypeKeyword(RTSpec)
                 if RTypeKW=='numeric' or RTypeKW=='int64' or RTypeKW=='int':
                     assignValue=' = BigInteger.valueOf('+ RHS +')'
                 else:
                     assignValue=' = '+ RHS
-            elif self.varTypeIsValueType(fTypeKW):
+            elif self.varTypeIsValueType(cvrtType):
                 assignValue=' = '+ RHS
             else:
                 #TODO: make test case
                 constructorExists=False  # TODO: Use some logic to know if there is a constructor, or create one.
-                if fTypeKW=='BigDecimal' and progSpec.fieldTypeKeyword(rhsTypeSpec)=='BigFrac':
+                if cvrtType=='BigDecimal' and progSpec.fieldTypeKeyword(RTSpec)=='BigFrac':
                     assignValue=' = ' + RHS +'.bigDecimalValue()'
                 elif (constructorExists):
-                    assignValue=' = new ' + fTypeKW +'('+ RHS + ')'
+                    assignValue=' = new ' + cvrtType +'('+ RHS + ')'
                 else:
-                    assignValue= ' = '+ RHS   #' = new ' + fTypeKW +'();\n'+ indent + varName+' = '+RHS
+                    assignValue= ' = '+ RHS   #' = new ' + cvrtType +'();\n'+ indent + varName+' = '+RHS
+        elif paramList!=None:       # call constructor  # curly bracket param list
+            # Code the constructor's arguments
+            modelParams = self.codeGen.chooseCtorModelParams(LTSpec, paramList, genericArgs)
+            [CPL, paramTypeList] = self.codeGen.codeParameterList(varName, paramList, modelParams, genericArgs)
+            if len(paramTypeList)==1:
+                if not isinstance(paramTypeList[0], dict):
+                    print("\nPROBLEM: The return type of the parameter '", CPL, "' of "+varName+"(...) cannot be found and is needed. Try to define it.\n",   paramTypeList)
+                    exit(1)
+                RTSpec  = paramTypeList[0]
+                rhsType = progSpec.getFieldType(RTSpec)
+                if not isinstance(rhsType, str) and cvrtType==rhsType[0]:
+                    assignValue = " = " + CPL   # Act like a copy constructor
+                elif 'codeConverter' in paramTypeList[0]: #ktl 12.14.17
+                    assignValue = " = " + CPL
+                else:
+                    if self.isJavaPrimativeType(cvrtType): assignValue  = " =  " + CPL
+                    else: assignValue  = " = new " + cvrtType + CPL
+            if(assignValue==''):
+                assignValue = ' = '+self.codeGen.codeAllocater(LTSpec, fieldDef['paramList'], genericArgs)
         else: # If no value was given:
-            CPL=''
-            if fieldDef['paramList'] != None:       # call constructor  # curly bracket param list
-                # Code the constructor's arguments
-                [CPL, paramTypeList] = self.codeGen.codeParameterList(varName, fieldDef['paramList'], None, genericArgs)
-                if len(paramTypeList)==1:
-                    if not isinstance(paramTypeList[0], dict):
-                        print("\nPROBLEM: The return type of the parameter '", CPL, "' of "+varName+"(...) cannot be found and is needed. Try to define it.\n",   paramTypeList)
-                        exit(1)
-                    rhsTypeSpec = paramTypeList[0]
-                    rhsType     = progSpec.getFieldType(rhsTypeSpec)
-                    if not isinstance(rhsType, str) and fTypeKW==rhsType[0]:
-                        assignValue = " = " + CPL   # Act like a copy constructor
-                    elif 'codeConverter' in paramTypeList[0]: #ktl 12.14.17
-                        assignValue = " = " + CPL
-                    else:
-                        if self.isJavaPrimativeType(fTypeKW): assignValue  = " =  " + CPL
-                        else: assignValue  = " = new " + fTypeKW + CPL
-                if(assignValue==''):
-                    assignValue = ' = '+self.codeGen.codeAllocater(LTSpec, fieldDef['paramList'], genericArgs)
-            elif self.varTypeIsValueType(fTypeKW):
-                if fTypeKW == 'long' or fTypeKW == 'int' or fTypeKW == 'float'or fTypeKW == 'double': assignValue=' = 0'
-                elif fTypeKW == 'string':  assignValue=' = ""'
-                elif fTypeKW == 'boolean': assignValue=' = false'
-                elif fTypeKW == 'char':    assignValue=" = ' '"
+            if self.varTypeIsValueType(cvrtType):
+                if cvrtType == 'long' or cvrtType == 'int' or cvrtType == 'float'or cvrtType == 'double': assignValue=' = 0'
+                elif cvrtType == 'string':  assignValue=' = ""'
+                elif cvrtType == 'boolean': assignValue=' = false'
+                elif cvrtType == 'char':    assignValue=" = ' '"
                 else: assignValue=''
-            else:assignValue= " = new " + fTypeKW + "()"
-        varDeclareStr= fTypeKW + " " + varName + assignValue
+            else:assignValue= " = new " + cvrtType + "()"
+        varDeclareStr= cvrtType + " " + varName + assignValue
         return(varDeclareStr)
 
     def codeIncrement(self, varName):

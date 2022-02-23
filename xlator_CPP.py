@@ -737,8 +737,8 @@ void SetBits(CopyableAtomic<uint64_t>& target, uint64_t mask, uint64_t value) {
         useCtor       = False
         paramList     = None
         if fieldDef['paramList']: paramList = fieldDef['paramList']
-        if paramList and fieldDef['paramList'][-1] == "^&useCtor//8":
-            del fieldDef['paramList'][-1]
+        if paramList and paramList[-1] == "^&useCtor//8":
+            del paramList[-1]
             useCtor = True
         cvrtType = self.codeGen.convertType(LTSpec, 'var', genericArgs)
         localVarsAlloc.append([varName, LTSpec])  # Tracking local vars for scope
@@ -750,43 +750,41 @@ void SetBits(CopyableAtomic<uint64_t>& target, uint64_t mask, uint64_t value) {
             else: RHS = RHS_leftMod+RHS+RHS_rightMod
             if(isAllocated or useCtor==False): assignValue = " = " + RHS
             else: assignValue = RHS
+        elif paramList!=None:       # call constructor  # curly bracket param list
+            # Code the constructor's arguments
+            ### TODO: CHoose the best constructor and get modelParams to pass in instead of None.
+            modelParams = self.codeGen.chooseCtorModelParams(LTSpec, paramList, genericArgs)
+            [CPL, paramTypeList] = self.codeGen.codeParameterList(varName, paramList, modelParams, genericArgs)
+            if len(paramTypeList)==1:
+                if not isinstance(paramTypeList[0], dict):
+                    print("\nPROBLEM: The return type of the parameter '", CPL, "' of "+varName+"(...) cannot be found and is needed. Try to define it.\n",   paramTypeList)
+                    exit(1)
+                RTSpec  = paramTypeList[0]
+                rhsType = progSpec.getFieldType(RTSpec)
+                # TODO: Remove the 'True' and make this check object heirarchies or similar solution
+                if True or not isinstance(rhsType, str) and cvrtType==rhsType[0]:
+                    [leftMod, rightMod] = self.determinePtrConfigForNewVars(LTSpec, RTSpec, useCtor)
+                    if(not useCtor): assignValue += " = "    # Use a copy constructor
+                    if(isAllocated):
+                        assignValue += self.codeXlatorAllocater(LTSpec, genericArgs)
+                    assignValue += "(" + leftMod + CPL[1:-1] + rightMod + ")"
+            if(assignValue==''):
+                if(owner == 'their' or owner == 'our' or owner == 'my'): assignValue = ' = '+self.codeXlatorAllocater(LTSpec, genericArgs)+CPL
+                else: assignValue = CPL # add "(x, y, z...) to make this into a constructor call.
         else: # If no value was given:
-            CPL=''
-            if paramList!= None:       # call constructor  # curly bracket param list
-                # Code the constructor's arguments
-                ### TODO: CHoose the best constructor and get modelParams to pass in instead of None.
-                modelParams  = self.codeGen.chooseCtorModelParams(LTSpec, paramList, genericArgs)
-                [CPL, paramTypeList] = self.codeGen.codeParameterList(varName, paramList, modelParams, genericArgs)
-                if len(paramTypeList)==1:
-                    if not isinstance(paramTypeList[0], dict):
-                        print("\nPROBLEM: The return type of the parameter '", CPL, "' of "+varName+"(...) cannot be found and is needed. Try to define it.\n",   paramTypeList)
-                        exit(1)
-                    RTSpec = paramTypeList[0]
-                    rhsType     = progSpec.fieldTypeKeyword(RTSpec)
-                    # TODO: Remove the 'True' and make this check object heirarchies or similar solution
-                    if True or not isinstance(rhsType, str) and cvrtType==rhsType[0]:
-                        [leftMod, rightMod] = self.determinePtrConfigForNewVars(LTSpec, RTSpec, useCtor)
-                        if(not useCtor): assignValue += " = "    # Use a copy constructor
-                        if(isAllocated):
-                            assignValue += self.codeXlatorAllocater(LTSpec, genericArgs)
-                        assignValue += "(" + leftMod + CPL[1:-1] + rightMod + ")"
-                if(assignValue==''):
-                    if(owner == 'their' or owner == 'our' or owner == 'my'): assignValue = ' = '+self.codeXlatorAllocater(LTSpec, genericArgs)+CPL
-                    else: assignValue = CPL # add "(x, y, z...) to make this into a constructor call.
-            elif(progSpec.typeIsPointer(LTSpec)):
+            if(progSpec.typeIsPointer(LTSpec)):
                 if(isAllocated):
                     assignValue = " = " + self.codeGen.codeAllocater(LTSpec, paramList, genericArgs)
                 else:
                     assignValue = '= NULL'
             elif(progSpec.isNewContainerTempFunc(LTSpec)):
-                pass
+                assignValue = ''
             else:
                 fieldTypeCat= progSpec.fieldsTypeCategory(LTSpec)
                 if(fieldTypeCat=='int' or fieldTypeCat=='char' or fieldTypeCat=='double' or fieldTypeCat=='float'):
                     assignValue = ' = 0'
                 elif(fieldTypeCat=='bool'):
                     assignValue = '= false'
-
         varDeclareStr= cvrtType + " " + varName + assignValue
         return(varDeclareStr)
 
