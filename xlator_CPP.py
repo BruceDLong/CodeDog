@@ -760,7 +760,7 @@ void SetBits(CopyableAtomic<uint64_t>& target, uint64_t mask, uint64_t value) {
                     print("\nPROBLEM: The return type of the parameter '", CPL, "' of "+varName+"(...) cannot be found and is needed. Try to define it.\n",   paramTypeList)
                     exit(1)
                 RTSpec  = paramTypeList[0]
-                rhsType = progSpec.getFieldType(RTSpec)
+                rhsType = progSpec.fieldTypeKeyword(RTSpec)
                 # TODO: Remove the 'True' and make this check object heirarchies or similar solution
                 if True or not isinstance(rhsType, str) and cvrtType==rhsType[0]:
                     [leftMod, rightMod] = self.determinePtrConfigForNewVars(LTSpec, RTSpec, useCtor)

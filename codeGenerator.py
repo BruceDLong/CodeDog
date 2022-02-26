@@ -720,6 +720,8 @@ class CodeGenerator(object):
                                 tSpecOut['owner'] = innerTypeOwner
                             if(innerTypeKeyWord):
                                 tSpecOut['fieldType'][0] = innerTypeKeyWord
+                            if progSpec.isIteratorType(self.classStore, progSpec.fieldTypeKeyword(tSpecOut)):
+                                tSpecOut['owner']='itr'
                         tSpecOut = self.copyTypeSpec(tSpecOut)
                     else: print("tSpecOut = 0 for: "+previousSegName+"."+name, " fTypeKW:",fTypeKW)
 

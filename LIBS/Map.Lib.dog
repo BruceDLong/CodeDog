@@ -48,7 +48,7 @@ struct RBNode<keyType, valueType>: implements=MapNode{
     }
 }
 
-struct RBTreeItr<keyType, valueType>: implements=MapItr{
+struct RBTreeItr<keyType, valueType>: implements=MapItr ownerMe=itr{
     their RBNode<keyType, valueType>: node
     their RBTreeMap<keyType, valueType>: container
     their RBNode<keyType, valueType>: goNext() <- {

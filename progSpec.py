@@ -373,6 +373,13 @@ def markStructAuto(objSpecs, className):
     objSpecs[className]["autoGen"]='yes'
 
 ###############
+def getTagSpec(classStore, className, tagName):
+    if  className in classStore[1]:
+        objRef = classStore[0][className]
+        if 'tags' in objRef and tagName in objRef['tags']:
+            return objRef['tags'][tagName]
+    return None
+
 def extractMapFromTagMap(tagmap):
     tagRetMap={}
     #tagmap = tagmap.asList()
@@ -740,6 +747,11 @@ def getImplementationOptionsFor(fType):
         return classImplementationOptions[fType]
     return None
 ###############  Various Dynamic Type-handling functions
+def isIteratorType(classStore, className):
+    tagSpec = getTagSpec(classStore, className, "ownerMe")
+    if tagSpec=='itr': return True
+    return False
+
 def getGenericArgs(ObjectDef):
     if('genericArgs' in ObjectDef): return(ObjectDef['genericArgs'])
     else: return(None)
