@@ -23,96 +23,95 @@ def logFieldDef(s, loc, toks):
 # # # # # # # # # # # # #   BNF Parser Productions for CodeDog syntax   # # # # # # # # # # # # #
 ParserElement.enablePackrat()
 #######################################   T A G S   A N D   B U I L D - S P E C S
-identifier = Word(alphanums + "_")
-tagID = identifier("tagID")
-tagDefList = Forward()
-tagValue = Forward()
-fullFieldDef = Forward()
-tagMap  = Group('{' + tagDefList + '}')("tagMap")
-tagList = Group('[' + Group(Optional(delimitedList(Group(tagValue), ',')))("tagListContents") + ']')
-backTickString = Suppress("`") + SkipTo("`") + Suppress("`")
-tagValue <<= Group((Suppress('<') + Group(fullFieldDef)("tagType") + Suppress('>')) | quotedString | backTickString | Word(alphanums+'-*_./') | tagList | tagMap)("tagValue")
-tagDef = Group(tagID + Suppress("=") + tagValue)("tagDef*")
-tagDefList <<= Group(ZeroOrMore(tagDef))("tagDefList")
-
-buildID = identifier("buildID")
-buildDefList = Group(tagDefList)("buildDefList")
-buildSpec = Group(buildID + Suppress(":") + buildDefList + ";")("buildSpec")
+identifier    = Word(alphanums + "_")
+tagID         = identifier("tagID")
+tagDefList    = Forward()
+tagValue      = Forward()
+fullFieldDef  = Forward()
+tagMap        = Group('{' + tagDefList + '}')("tagMap")
+tagList       = Group('[' + Group(Optional(delimitedList(Group(tagValue), ',')))("tagListContents") + ']')
+backTickStr   = Suppress("`") + SkipTo("`") + Suppress("`")
+tagValue    <<= Group((Suppress('<') + Group(fullFieldDef)("tagType") + Suppress('>')) | quotedString | backTickStr | Word(alphanums+'-*_./') | tagList | tagMap)("tagValue")
+tagDef        = Group(tagID + Suppress("=") + tagValue)("tagDef*")
+tagDefList  <<= Group(ZeroOrMore(tagDef))("tagDefList")
+buildID       = identifier("buildID")
+buildDefList  = Group(tagDefList)("buildDefList")
+buildSpec     = Group(buildID + Suppress(":") + buildDefList + ";")("buildSpec")
 buildSpecList = Group(OneOrMore(buildSpec))("buildSpecList")
 
 #######################################   B A S I C   T Y P E S
-expr = Forward()
-CID = identifier("CID")
-CIDList = Group(delimitedList(CID, ','))("CIDList")
-objectName = CID("objectName")
+expr      = Forward()
+CID       = identifier("CID")
+CIDList   = Group(delimitedList(CID, ','))("CIDList")
+className = CID("className")
 classSpec = Forward()
-cppType = Keyword("void") | Keyword("bool") | Keyword("int32") | Keyword("int64") | Keyword("double") | Keyword("char") | Keyword("uint32") | Keyword("uint64") | Keyword("string") | Keyword("int")
-HexNums = Combine((Literal("0X") | Literal("0x")) + Word(hexnums))
-BinNums = Combine((Literal("0B") | Literal("0b")) + Word("01"))
-intNum = HexNums | BinNums | Word(nums)
-numRange = Group(intNum + ".." + intNum)("numRange")
-varType = classSpec | cppType | numRange
+cppType   = Keyword("void") | Keyword("bool") | Keyword("int32") | Keyword("int64") | Keyword("double") | Keyword("char") | Keyword("uint32") | Keyword("uint64") | Keyword("string") | Keyword("int")
+HexNums   = Combine((Literal("0X") | Literal("0x")) + Word(hexnums))
+BinNums   = Combine((Literal("0B") | Literal("0b")) + Word("01"))
+intNum    = HexNums | BinNums | Word(nums)
+numRange  = Group(intNum + ".." + intNum)("numRange")
+varType   = classSpec | cppType | numRange
 boolValue = Keyword("true") | Keyword("false")
-floatNum = Combine(intNum + "." + intNum)("floatNum")
-value = Forward()
-listVal = "[" + delimitedList(expr, ",") + "]"
+floatNum  = Combine(intNum + "." + intNum)("floatNum")
+value     = Forward()
+listVal   = "[" + delimitedList(expr, ",") + "]"
 strMapVal = "{" + delimitedList(quotedString + ":" + expr, ",")  + "}"
-value <<= boolValue | floatNum | intNum | quotedString | listVal | strMapVal
-comment = Suppress(r'//') + restOfLine('comment')
+value   <<= boolValue | floatNum | intNum | quotedString | listVal | strMapVal
+comment   = Suppress(r'//') + restOfLine('comment')
 
 #######################################   E X P R E S S I O N S
-parameters = Forward()
-owners = Forward()
-varSpec = Group(Optional(owners)("owner") + varType("varType") )("varSpec")
+parameters  = Forward()
+owners      = Forward()
+varSpec     = Group(Optional(owners)("owner") + varType("varType") )("varSpec")
 varSpecList = Group(Optional(delimitedList(varSpec, ',')))("varSpecList")
 typeArgList = Group(Literal("<") + CIDList + Literal(">"))("typeArgList")
-reqTagList = Group(Suppress(Literal("<")) + varSpecList + Optional(Literal(":")("optionalTag") + tagDefList) + Suppress(Literal(">")))("reqTagList")
-classSpec <<= Group(objectName + Optional(reqTagList('reqTagList')))("classSpec")
-classDef = Group(objectName + Optional(typeArgList))("classDef")
-arrayRef = Group('[' + expr('startOffset') + Optional(( ':' + expr('endOffset')) | ('..' + expr('itemLength'))) + ']')
-firstRefSegment = NotAny(owners) + Group((CID | arrayRef) + Optional(parameters))
-secondRefSegment = Group((Suppress('.') + CID | arrayRef) + Optional(parameters))
-varRef = Group(firstRefSegment + ZeroOrMore(secondRefSegment))
+reqTagList  = Group(Suppress(Literal("<")) + varSpecList + Optional(Literal(":")("optionalTag") + tagDefList) + Suppress(Literal(">")))("reqTagList")
+classSpec <<= Group(className + Optional(reqTagList('reqTagList')))("classSpec")
+classDefID  = Group(className + Optional(typeArgList))("classDefID")
+arrayRef    = Group('[' + expr('startOffset') + Optional(( ':' + expr('endOffset')) | ('..' + expr('itemLength'))) + ']')
+firstRefSeg = NotAny(owners) + Group((CID | arrayRef) + Optional(parameters))
+secondRefSeg= Group((Suppress('.') + CID | arrayRef) + Optional(parameters))
+varRef = Group(firstRefSeg + ZeroOrMore(secondRefSeg))
 lValue = varRef("lValue")
 factor = Group( value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varRef("varFuncRef"))
-term = Group( factor + Optional(Group(OneOrMore(Group(oneOf('* / %') + factor )))))
-plus = Group( term  + Optional(Group(OneOrMore(Group(oneOf('+ -') + term )))))
+term   = Group( factor + Optional(Group(OneOrMore(Group(oneOf('* / %') + factor )))))
+plus   = Group( term  + Optional(Group(OneOrMore(Group(oneOf('+ -') + term )))))
 comparison = Group( plus + Optional(Group(OneOrMore(Group(oneOf('< > <= >=') + ~FollowedBy("-") + plus )))))
-isEQ = Group( comparison  + Optional(Group(OneOrMore(Group(oneOf('== != === !==') + comparison )))))
-iOr = Group( isEQ  + Optional(Group(OneOrMore(Group('&' + isEQ )))))
-xOr = Group( iOr  + Optional(Group(OneOrMore(Group('^' + iOr )))))
-bar = Group( xOr  + Optional(Group(OneOrMore(Group('|' + xOr )))))
+isEQ   = Group( comparison  + Optional(Group(OneOrMore(Group(oneOf('== != === !==') + comparison )))))
+iOr    = Group( isEQ  + Optional(Group(OneOrMore(Group('&' + isEQ )))))
+xOr    = Group( iOr  + Optional(Group(OneOrMore(Group('^' + iOr )))))
+bar    = Group( xOr  + Optional(Group(OneOrMore(Group('|' + xOr )))))
 logAnd = Group( bar  + Optional(Group(OneOrMore(Group(Keyword('and') + bar )))))
-logOr = Group( logAnd + Optional(Group(OneOrMore(Group(Keyword('or') + logAnd )))))
+logOr  = Group( logAnd + Optional(Group(OneOrMore(Group(Keyword('or') + logAnd )))))
 expr <<= Group( logOr + Optional(Group(Group(Literal("<-")("assignAsExpr") + logOr ))))("expr")
 
-swap = Group(lValue + Literal("<->")("swapID") + lValue ("RightLValue"))("swap")
+swap   = Group(lValue + Literal("<->")("swapID") + lValue ("RightLValue"))("swap")
 rValue = Group(expr)("rValue")
 assign = lValue + Combine("<" + (Optional((Word(alphanums + '_') | '+' | ('-' + FollowedBy("-")) | '*' | '/' | '%' | '<<' | '>>' | '&' | '^' | '|')("assignTag"))) + "-")("assignID") + rValue
 parameters <<= "(" - Optional(Group(delimitedList(rValue, ','))) + Suppress(")")
-initParams = "{" + Optional(Group(delimitedList(rValue, ','))("initParams")) + Suppress("}")
+initParams   = "{" + Optional(Group(delimitedList(rValue, ','))("initParams")) + Suppress("}")
 
 ########################################   F U N C T I O N S
-verbatim = Group(Literal(r"<%") + SkipTo(r"%>", include=True))
-fieldDef = Forward()
-argList =  Group(verbatim | Optional(delimitedList(Group(fieldDef))))("argList")
-actionSeq = Forward()
+verbatim    = Group(Literal(r"<%") + SkipTo(r"%>", include=True))
+fieldDef    = Forward()
+argList     =  Group(verbatim | Optional(delimitedList(Group(fieldDef))))("argList")
+actionSeq   = Forward()
 defaultCase = Group(Keyword("default") + Suppress(":") + actionSeq("caseAction"))("defaultCase")
-switchCase= Group(Keyword("case") + OneOrMore(rValue + Suppress(":"))("caseValues") - actionSeq("caseAction"))
-switchStmt= Group(Keyword("switch")("switchStmt") - "(" - rValue("switchKey") - ")" - "{" - OneOrMore(switchCase)("switchCases") - Optional(defaultCase)("optionalDefaultCase") + "}")
-conditionalAction = Forward()
+switchCase  = Group(Keyword("case") + OneOrMore(rValue + Suppress(":"))("caseValues") - actionSeq("caseAction"))
+switchStmt  = Group(Keyword("switch")("switchStmt") - "(" - rValue("switchKey") - ")" - "{" - OneOrMore(switchCase)("switchCases") - Optional(defaultCase)("optionalDefaultCase") + "}")
+conditionalAction   = Forward()
 conditionalAction <<= Group(
             Group(Keyword("if") - "(" + rValue("ifCondition") + ")" + actionSeq("ifBody"))("ifStatement")
             + Optional(Group((Keyword("else") | Keyword("but")) + Group(actionSeq | conditionalAction)("elseBody"))("optionalElse"))
         )("conditionalAction")
-protectAction = Group(Keyword("protect")("protectStmt") - "(" + rValue("mutex") + ")" + actionSeq("criticalSection"))("protectAction")
+protectAction  = Group(Keyword("protect")("protectStmt") - "(" + rValue("mutex") + ")" + actionSeq("criticalSection"))("protectAction")
 traversalModes = Keyword("Forward") | Keyword("Backward") | Keyword("Preorder") | Keyword("Inorder") | Keyword("Postorder") | Keyword("BreadthFirst") | Keyword("DF_Iterative")
-rangeSpec = Group(Keyword("RANGE") - '(' + rValue + ".." + rValue + ')')
-whileSpec = Group(Keyword('WHILE') + '(' + expr + ')')
-newWhileSpec  = Group(Keyword('while') + '(' + expr + ')')
-whileAction = Group(newWhileSpec('newWhileSpec') + actionSeq)("whileAction")
-fileSpec  = Group(Keyword('FILE')  + '(' + expr + ')')
-keyRange  = Group(rValue("repList") + Keyword('from') + rValue('fromPart')  + Keyword('to') + rValue('toPart'))
+rangeSpec      = Group(Keyword("RANGE") - '(' + rValue + ".." + rValue + ')')
+whileSpec      = Group(Keyword('WHILE') + '(' + expr + ')')
+newWhileSpec   = Group(Keyword('while') + '(' + expr + ')')
+whileAction    = Group(newWhileSpec('newWhileSpec') + actionSeq)("whileAction")
+fileSpec       = Group(Keyword('FILE')  + '(' + expr + ')')
+keyRange       = Group(rValue("repList") + Keyword('from') + rValue('fromPart')  + Keyword('to') + rValue('toPart'))
 repeatedAction = Group(
             Keyword("withEach")("repeatedActionID") - CID("repName") + "in"
             + Optional(traversalModes("traversalMode"))
@@ -123,13 +122,13 @@ repeatedAction = Group(
             + actionSeq
         )("repeatedAction")
 
-action = Group((assign("assign") | swap('swap') | varRef("funcCall") | fieldDef('fieldDef') ) + Optional(comment)) + Optional(";").suppress()
-actionSeq <<=  Group(Literal("{")("actSeqID") - (ZeroOrMore(switchStmt | conditionalAction | repeatedAction | whileAction | protectAction | actionSeq | action))("actionList") + "}")("actionSeq")
+action         = Group((assign("assign") | swap('swap') | varRef("funcCall") | fieldDef('fieldDef') ) + Optional(comment)) + Optional(";").suppress()
+actionSeq    <<= Group(Literal("{")("actSeqID") - (ZeroOrMore(switchStmt | conditionalAction | repeatedAction | whileAction | protectAction | actionSeq | action))("actionList") + "}")("actionSeq")
 rValueVerbatim = Group("<%" + SkipTo("%>", include=True))("rValueVerbatim")
-funcBody = Group(actionSeq | rValueVerbatim)("funcBody")
+funcBody       = Group(actionSeq | rValueVerbatim)("funcBody")
 
 #########################################   F I E L D   D E S C R I P T I O N S
-nameAndVal = Group(
+nameAndVal   = Group(
           (":" + CID("fieldName") + "(" + argList + Literal(")")('argListTag') + Optional(Literal(":")("optionalTag") + tagDefList) + "<-" - funcBody )         # Function Definition
         | (":" + CID("fieldName") + Group(initParams)("parameters"))
         | (":" + CID("fieldName") + "<-" - (rValue("givenValue") | rValueVerbatim))
@@ -141,34 +140,34 @@ nameAndVal = Group(
         | (Literal("::")('allocDoubleColon') + CID("fieldName"))
     )("nameAndVal")
 datastructID = Group(Keyword("list") | Keyword("opt") | Keyword("map") | Keyword("multimap") | Keyword("tree") | Keyword("graph") | Keyword("iterableList"))('datastructID')
-arraySpec = Group('[' + Optional(owners)('owner') + datastructID + Optional(Group(intNum | Optional(Group(owners)('IDXowner')) + varType('idxBaseType'))('indexType')) + ']')("arraySpec")
-meOrMy = Keyword("me") | Keyword("my")
-modeSpec = Optional(meOrMy)('owner') + Keyword("mode")("modeIndicator") - "[" - CIDList("modeList") + "]" + nameAndVal
-altModeSpec = Keyword("mode")("altModeIndicator") - "[" - Group(delimitedList(CID, ','))("altModeList") + "]"
-flagDef  = Optional(meOrMy)('owner') + Keyword("flag")("flagIndicator") - nameAndVal
-baseType = cppType | numRange
+arraySpec    = Group('[' + Optional(owners)('owner') + datastructID + Optional(Group(intNum | Optional(Group(owners)('IDXowner')) + varType('idxBaseType'))('indexType')) + ']')("arraySpec")
+meOrMy       = Keyword("me") | Keyword("my")
+modeSpec     = Optional(meOrMy)('owner') + Keyword("mode")("modeIndicator") - "[" - CIDList("modeList") + "]" + nameAndVal
+altModeSpec  = Keyword("mode")("altModeIndicator") - "[" - Group(delimitedList(CID, ','))("altModeList") + "]"
+flagDef      = Optional(meOrMy)('owner') + Keyword("flag")("flagIndicator") - nameAndVal
+baseType     = cppType | numRange
 
 #########################################   O B J E C T   D E S C R I P T I O N S
-fieldDefs = ZeroOrMore(fieldDef)("fieldDefs")
+fieldDefs    = ZeroOrMore(fieldDef)("fieldDefs")
 SetFieldStmt = Group(Word(alphanums + "_.") + '=' + Word(alphanums + r"_. */+-(){}[]\|<>,./?`~@#$%^&*=:!'" + '"'))
 coFactualEl  = Group("(" + Group(fieldDef + "<=>" + Group(OneOrMore(SetFieldStmt + Suppress(';'))))  + ")")("coFactualEl")
-sequenceEl = "{" - fieldDefs + "}"
+sequenceEl   = "{" - fieldDefs + "}"
 alternateEl  = "[" - Group(OneOrMore((coFactualEl | fieldDef) + Optional("|").suppress()))("fieldDefs") + "]"
-anonModel = sequenceEl("sequenceEl") | alternateEl("alternateEl")
-owners <<= Keyword("const") | Keyword("me") | Keyword("my") | Keyword("our") | Keyword("their") | Keyword("we") | Keyword("itr") | Keyword("id_our") | Keyword("id_their")
+anonModel    = sequenceEl("sequenceEl") | alternateEl("alternateEl")
+owners     <<= Keyword("const") | Keyword("me") | Keyword("my") | Keyword("our") | Keyword("their") | Keyword("we") | Keyword("itr") | Keyword("id_our") | Keyword("id_their")
 fullFieldDef <<= Optional('>')('isNext') + Optional(owners)('owner') + Group(baseType | altModeSpec | classSpec | Group(anonModel) | datastructID)('fieldType') + Optional(arraySpec) + Optional(nameAndVal)
-fieldDef <<= Group(flagDef('flagDef') | modeSpec('modeDef') | (quotedString('constStr') + Optional("[opt]") + Optional(":"+CID)) | intNum('constNum') | nameAndVal('nameVal') | fullFieldDef('fullFieldDef'))("fieldDef")
-modelTypes = (Keyword("model") | Keyword("struct") | Keyword("string") | Keyword("stream"))
-objectDef = Group(modelTypes + classDef + Optional(Literal(":")("optionalTag") + tagDefList) + (Keyword('auto') | anonModel))("objectDef")
-doPattern = Group(Keyword("do") + classSpec + Suppress("(") + CIDList + Suppress(")"))("doPattern")
-macroDef  = Group(Keyword("#define") + CID('macroName') + Suppress("(") + Optional(CIDList('macroArgs')) + Suppress(")") + Group("<%" + SkipTo("%>", include=True))("macroBody"))
-objectList = Group(ZeroOrMore(objectDef | doPattern | macroDef))("objectList")
-objectDef.setParseAction(logObj)
+fieldDef   <<= Group(flagDef('flagDef') | modeSpec('modeDef') | (quotedString('constStr') + Optional("[opt]") + Optional(":"+CID)) | intNum('constNum') | nameAndVal('nameVal') | fullFieldDef('fullFieldDef'))("fieldDef")
+modelTypes   = (Keyword("model") | Keyword("struct") | Keyword("string") | Keyword("stream"))
+classDef     = Group(modelTypes + classDefID + Optional(Literal(":")("optionalTag") + tagDefList) + (Keyword('auto') | anonModel))("classDef")
+doPattern    = Group(Keyword("do") + classSpec + Suppress("(") + CIDList + Suppress(")"))("doPattern")
+macroDef     = Group(Keyword("#define") + CID('macroName') + Suppress("(") + Optional(CIDList('macroArgs')) + Suppress(")") + Group("<%" + SkipTo("%>", include=True))("macroBody"))
+classList    = Group(ZeroOrMore(classDef | doPattern | macroDef))("classList")
+classDef.setParseAction(logObj)
 fieldDef.setParseAction(logFieldDef)
 
 #########################################   P A R S E R   S T A R T   S Y M B O L
-progSpecParser = Group(Optional(buildSpecList.setParseAction(logBSL)) + tagDefList.setParseAction(logTags) + objectList)("progSpecParser")
-libTagParser = Group(Optional(buildSpecList.setParseAction(logBSL)) + tagDefList.setParseAction(logTags) + (modelTypes|Keyword("do")|Keyword("#define")|StringEnd()))("libTagParser")
+progSpecParser = Group(Optional(buildSpecList.setParseAction(logBSL)) + tagDefList.setParseAction(logTags) + classList)("progSpecParser")
+libTagParser   = Group(Optional(buildSpecList.setParseAction(logBSL)) + tagDefList.setParseAction(logTags) + (modelTypes|Keyword("do")|Keyword("#define")|StringEnd()))("libTagParser")
 
 # # # # # # # # # # # # #   E x t r a c t   P a r s e   R e s u l t s   # # # # # # # # # # # # #
 def parseInput(inputStr):
@@ -525,7 +524,7 @@ def extractBuildSpecs(buildSpecResults):    # buildSpecResults is sometimes a pa
     return resultOfExtractBuildSpecs
 
 def extractObjectSpecs(ProgSpec, classNames, spec, stateType,description):
-    className=spec.classDef[0]
+    className=spec.classDefID[0]
     configType="unknown"
     if(spec.sequenceEl): configType="SEQ"
     elif(spec.alternateEl):configType="ALT"
@@ -706,7 +705,7 @@ def parseCodeDogString(inputString, ProgSpec, clsNames, macroDefs, description):
     cdlog(LogLvl, "EXTRACTING: "+description+"...")
     tagStore = extractTagDefs(results.progSpecParser.tagDefList)
     buildSpecs = extractBuildSpecs(results.progSpecParser.buildSpecList)
-    newClasses = extractObjectsOrPatterns(ProgSpec, clsNames, macroDefs, results.progSpecParser.objectList,description)
+    newClasses = extractObjectsOrPatterns(ProgSpec, clsNames, macroDefs, results.progSpecParser.classList,description)
     classes = [ProgSpec, clsNames]
     return[tagStore, buildSpecs, classes, newClasses]
 
@@ -718,7 +717,7 @@ def AddToObjectFromText(ProgSpec, clsNames, inputStr, description):
     progSpec.saveTextToErrFile(inputStr)
     # (map of classes, array of objectNames, string to parse)
     try:
-        results = objectList.parseString(inputStr, parseAll = True)
+        results = classList.parseString(inputStr, parseAll = True)
     except ParseException as pe:
         cdErr("Error parsing generated class {}: {}".format(description, pe))
     cdlog(errLevl, 'Completed parsing: '+description)
