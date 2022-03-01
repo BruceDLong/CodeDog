@@ -1469,8 +1469,8 @@ class CodeGenerator(object):
         return defaultVal
 
     def getStructFieldsForCtor(self, className, typeArgList):
-        ObjectDef    = self.classStore[0][className]
-        genericArgs  = progSpec.getGenericArgs(ObjectDef)
+        objectDef    = self.classStore[0][className]
+        genericArgs  = progSpec.getGenericArgs(objectDef)
         ctorInit     = ""
         ctorArgs     = ""
         copyCtorArgs = ""
@@ -1523,180 +1523,185 @@ class CodeGenerator(object):
         return ctorCode
 
     #### STRUCT FIELDS #####################################################
+    def codeFunction(self, className, objectDef, field, typeArgList, genericArgs, cvrtType, indent):
+        structCode   = ""
+        funcDefCode  = ""
+        globalFuncs  = ""
+        tSpec        = progSpec.getTypeSpec(field)
+        fTypeKW      = progSpec.fieldTypeKeyword(tSpec)
+        fieldName    = field['fieldName']
+        fieldID      = field['fieldID']
+        overRideOper = False
+        if fieldName[0:2] == "__" and self.xlator.iteratorsUseOperators:
+            fieldName    = self.xlator.specialFunction(fieldName)
+            overRideOper = True
+        #### ARGLIST
+        argListText  = ""
+        argListCount = 0
+        argList      = field['typeSpec']['argList']
+        if len(argList)==0: argListText='' #'void'
+        elif argList[0]=='<%': argListText=argList[1][0]        # Verbatim.arguments
+        else:
+            for arg in argList:
+                if(argListCount>0): argListText+=", "
+                argListCount+=1
+                argTSpec     = progSpec.getTypeSpec(arg)
+                argOwner     = progSpec.getOwner(argTSpec)
+                argFieldName = arg['fieldName']
+                argFieldType = progSpec.fieldTypeKeyword(argTSpec)
+                if progSpec.typeIsPointer(argTSpec): arg
+                self.applyStructImplemetation(argTSpec,className,argFieldName)
+                argCvrtType  = self.convertType(argTSpec, 'arg', genericArgs)
+                argListText += self.xlator.codeArgText(argFieldName, argCvrtType, argOwner, argTSpec, overRideOper, typeArgList)
+                self.localArgsAllocated.append([argFieldName, argTSpec])  # localArgsAllocated is a global variable that keeps track of nested function arguments and local vars.
+        #### RETURN TYPE ###########################################
+        FirstReturnType = copy.copy(tSpec) # TODO: Un-Hardcode FirstReturnType, typeSpec?
+        if(fTypeKW[0] != '<%'): pass #self.registerType(className, fieldName, cvrtType, typeDefName)
+        if(cvrtType=='none'): cvrtType = ''
+
+        #### FUNC HEADER: for both decl and defn. ##################
+        inheritMode='normal'
+        # TODO: But it should NOT be virtual if there are no calls of the function from a pointer to the base class
+        if not progSpec.doesParentClassImplementFunc(self.classStore, className, fieldID) and progSpec.doesChildClassImplementFunc(self.classStore, className, fieldID):
+            inheritMode = 'virtual'
+        if self.currentObjName in progSpec.classHeirarchyInfo:
+            classRelationData = progSpec.classHeirarchyInfo[self.currentObjName]
+            if ('parentClass' in classRelationData and classRelationData['parentClass']!=None):
+                parentClassName = classRelationData['parentClass']
+                if progSpec.fieldNameInStructHierachy(self.classStore[0], parentClassName, fieldName):
+                    inheritMode = 'override'
+        abstractFunction = (not('value' in field) or field['value']==None)
+        if abstractFunction: # and not 'abstract' in self.classStore[0][className]['attrList']:
+            inheritMode = 'pure-virtual'
+            self.classStore[0][className]['attrList'].append('abstract')
+
+        # ####################################################################
+        if fTypeKW =='none': isCtor = True
+        else: isCtor = False
+        [structCode, funcDefCode, globalFuncs]=self.xlator.codeFuncHeaderStr(className, fieldName, cvrtType, argListText, self.localArgsAllocated, inheritMode, overRideOper, isCtor, typeArgList, tSpec, indent)
+
+        #### FUNC BODY #############################################
+        if abstractFunction: # i.e., if no function body is given.
+            cdlog(5, "Function "+fieldID+" has no implementation defined.")
+            funcText = self.xlator.getVirtualFuncText(field)
+            #cdErr("Function "+fieldID+" has no implementation defined.")
+        else:
+            extraCodeForTopOfFuntion = self.xlator.extraCodeForTopOfFuntion(argList)
+            if cvrtType=='' and 'flagsVarNeeded' in objectDef and objectDef['flagsVarNeeded']==True:
+                extraCodeForTopOfFuntion+="    flags=0;"
+            verbatimText=field['value'][1]
+            if (verbatimText!=''):                                      # This function body is 'verbatim'.
+                if(verbatimText[0]=='!'): # This is a code conversion pattern. Don't write a function decl or body.
+                    structCode  = ""
+                    funcText    = ""
+                    funcDefCode = ""
+                    globalFuncs = ""
+                else:
+                    funcText=verbatimText + "\n\n"
+                    if globalFuncs!='': self.ForwardDeclsForGlobalFuncs += globalFuncs+";       \t\t // Forward Decl\n"
+            elif field['value'][0]!='':
+                funcText =  self.codeActionSeq(field['value'][0], self.xlator.funcBodyIndent, FirstReturnType, genericArgs)
+                if extraCodeForTopOfFuntion!='':
+                    funcText = '{\n' + extraCodeForTopOfFuntion + funcText[1:]
+                if globalFuncs!='': self.ForwardDeclsForGlobalFuncs += globalFuncs+";       \t\t // Forward Decl\n"
+            else: cdErr("ERROR: In codeFields: no funcText or funcTextVerbatim found")
+
+        if self.xlator.funcsDefInClass: structCode += funcText
+        elif(className=='GLOBAL'):
+            if(fieldName=='main'): funcDefCode += funcText
+            else: globalFuncs += funcText
+        else: funcDefCode += funcText
+        return [structCode, funcDefCode, globalFuncs]
+
+    def codeSpaceSeq():
+        structCode        = ""
+        funcDefCode       = ""
+        globalFuncs       = ""
+        topFuncDefCode    = ""
+        return [structCode, funcDefCode, globalFuncs, topFuncDefCode]
+
+    def codeTimeSeq(self, className, objectDef, field, typeArgList, genericArgs, tags, indent):
+        funcDefCode    = ""
+        structCode     = ""
+        globalFuncs    = ""
+        topFuncDefCode = ""
+        funcText       = ""
+        tSpec          = progSpec.getTypeSpec(field)
+        fTypeKW        = progSpec.fieldTypeKeyword(tSpec)
+        fieldID        = field['fieldID']
+        fieldName      = field['fieldName']
+        isAllocated    = field['isAllocated']
+        fieldValue     = field['value']
+        fieldArglist   = tSpec['argList']
+        paramList      = field['paramList']
+        cdlog(4, "FieldName: {}".format(fieldName))
+
+        self.applyStructImplemetation(tSpec,className,fieldName)
+        if progSpec.doesClassHaveProperty(self.classStore, fTypeKW, 'metaClass'):
+            tagToFind       = "classOptions."+progSpec.flattenObjectName(fieldID)
+            classOptionsTag = progSpec.fetchTagValue(tags, tagToFind)
+            if classOptionsTag != None and "useClass" in classOptionsTag:
+                useClassTag = classOptionsTag["useClass"]
+                fTypeKW[0]  = useClassTag
+        cvrtType    = self.convertType(tSpec, 'var', genericArgs)
+        cvrtType    = progSpec.flattenObjectName(cvrtType)
+        tSpec       = self.getGenericTypeSpec(genericArgs, tSpec)
+        fieldOwner  = progSpec.getOwner(tSpec)
+        ## ASSIGNMENTS###############################################
+        if fieldName=='opAssign': fieldName='operator='
+
+        # CALCULATE RHS
+        if(fieldValue == None):
+            if className == "GLOBAL" and isAllocated==True: # Allocation for GLOBAL handled in appendGLOBALInitCode()
+                isAllocated = False
+                paramList   = None
+            RHS=self.xlator.codeVarFieldRHS_Str(fieldName, cvrtType, tSpec, paramList, isAllocated, typeArgList, genericArgs)
+            # print("    RHS none: ", RHS)
+        elif(fieldOwner=='const'):
+            if isinstance(fieldValue, str): RHS = ' = "'+ fieldValue + '"'       #TODO:  make test case
+            else: RHS = " = "+ self.codeExpr(fieldValue[0], tSpec, tSpec, 'RVAL', genericArgs)[0]
+            #print("    RHS const: ", RHS)
+        elif(fieldArglist==None):
+            RHS = " = " + self.codeExpr(fieldValue[0], tSpec, tSpec, 'RVAL', genericArgs)[0]
+            #print("    RHS var: ", RHS)
+        else:
+            RHS = " = "+ str(fieldValue)
+            #print("    RHS func or array")
+
+        ############ CODE MEMBER VARIABLE ##########################################################
+        if(fieldOwner=='const'):
+            [structCode, topFuncDefCode] = self.xlator.codeConstField_Str(cvrtType, fieldName, RHS, className, indent)
+        elif(fieldArglist==None):
+            [structCode, funcDefCode] = self.xlator.codeVarField_Str(cvrtType, tSpec, fieldName, RHS, className, tags, typeArgList, indent)
+        ###### ArgList exists so this is a FUNCTION###########
+        else: [structCode, funcDefCode, globalFuncs] = self.codeFunction(className, objectDef, field, typeArgList, genericArgs, cvrtType, indent)
+        return [structCode, funcDefCode, globalFuncs, topFuncDefCode]
+
     def codeStructFields(self, className, tags, indent):
         cdlog(3, "Coding fields for {}...".format(className))
         ####################################################################
-        funcBodyIndent   = self.xlator.funcBodyIndent
-        globalFuncsAcc=""
-        funcDefCodeAcc=""
-        structCodeAcc=""
-        topFuncDefCodeAcc="" # For defns that must appear first in the code. TODO: sort items instead
-        ObjectDef = self.classStore[0][className]
+        globalFuncsAcc   = ""
+        funcDefCodeAcc   = ""
+        structCodeAcc    = ""
+        topFuncDefCodeAcc= "" # For defns that must appear first in the code. TODO: sort items instead
+        objectDef   = self.classStore[0][className]
         typeArgList = progSpec.getTypeArgList(className)
-        genericArgs =  progSpec.getGenericArgs(ObjectDef)
+        genericArgs =  progSpec.getGenericArgs(objectDef)
         for field in progSpec.generateListOfFieldsToImplement(self.classStore, className):
             ################################################################
             ### extracting FIELD data
             ################################################################
-            self.localArgsAllocated= []
-            funcDefCode       = ""
-            structCode        = ""
-            globalFuncs       = ""
-            topFuncDefCode    = ""
-            funcText          = ""
-            fieldID           = field['fieldID']
-            tSpec             = progSpec.getTypeSpec(field)
-            fieldName         = field['fieldName']
-            self.applyStructImplemetation(tSpec,className,fieldName)
-            fType=progSpec.fieldTypeKeyword(tSpec)
-            if progSpec.doesClassHaveProperty(self.classStore, fType, 'metaClass'):
-                tagToFind       = "classOptions."+progSpec.flattenObjectName(fieldID)
-                classOptionsTag = progSpec.fetchTagValue(tags, tagToFind)
-                if classOptionsTag != None and "useClass" in classOptionsTag:
-                    useClassTag = classOptionsTag["useClass"]
-                    fType[0]    = useClassTag
-            if(fType=='flag' or fType=='mode'): continue
-            isAllocated = field['isAllocated']
-            cdlog(4, "FieldName: {}".format(fieldName))
-            fieldValue=field['value']
-            fieldArglist = tSpec['argList']
-            paramList = field['paramList']
-            cvrtType = self.convertType(tSpec, 'var', genericArgs)
-            cvrtType = progSpec.flattenObjectName(cvrtType)
-            tSpec = self.getGenericTypeSpec(genericArgs, tSpec)
-            fieldOwner=progSpec.getOwner(tSpec)
-            typeDefName = cvrtType # progSpec.createTypedefName(fType)
-            ## ASSIGNMENTS###############################################
-
+            self.localArgsAllocated = []
+            tSpec   = progSpec.getTypeSpec(field)
+            fTypeKW = progSpec.fieldTypeKeyword(tSpec)
+            if(fTypeKW=='flag' or fTypeKW=='mode'): continue
             if 'value' in field and field['value']!=None and len(field['value'])>1:
-                verbatimText=field['value'][1]
-                if (verbatimText!=''):                                      # This function body is 'verbatim'.
-                    if(verbatimText[0]=='!'): # This is a code conversion pattern. Don't write a function decl or body.
-                        structCode=""
-                        funcText=""
-                        funcDefCode=""
-                        globalFuncs=""
-                        continue
-
-            if fieldName=='opAssign':
-                fieldName='operator='
-
-            # CALCULATE RHS
-            if(fieldValue == None):
-                if className == "GLOBAL" and isAllocated==True: # Allocation for GLOBAL handled in appendGLOBALInitCode()
-                    isAllocated = False
-                    paramList = None
-                RHS=self.xlator.codeVarFieldRHS_Str(fieldName, cvrtType, tSpec, paramList, isAllocated, typeArgList, genericArgs)
-                # print("    RHS none: ", RHS)
-            elif(fieldOwner=='const'):
-                if isinstance(fieldValue, str): RHS = ' = "'+ fieldValue + '"'       #TODO:  make test case
-                else: RHS = " = "+ self.codeExpr(fieldValue[0], tSpec, tSpec, 'RVAL', genericArgs)[0]
-                #print("    RHS const: ", RHS)
-            elif(fieldArglist==None):
-                RHS = " = " + self.codeExpr(fieldValue[0], tSpec, tSpec, 'RVAL', genericArgs)[0]
-                #print("    RHS var: ", RHS)
+                verbatimText=field['value'][1]      # This function body is 'verbatim'.
+                if (verbatimText!='' and verbatimText[0]=='!'): continue  # This is a code conversion pattern. Don't write a function decl or body.
+            if(fTypeKW=='model' or fTypeKW=='struct'):
+                [structCode, funcDefCode, globalFuncs, topFuncDefCode] = self.codeSpaceSeq()
             else:
-                RHS = " = "+ str(fieldValue)
-                #print("    RHS func or array")
-
-            ############ CODE MEMBER VARIABLE ##########################################################
-            if(fieldOwner=='const'):
-                [structCode, topFuncDefCode] = self.xlator.codeConstField_Str(cvrtType, fieldName, RHS, className, indent)
-            elif(fieldArglist==None):
-                [structCode, funcDefCode] = self.xlator.codeVarField_Str(cvrtType, tSpec, fieldName, RHS, className, tags, typeArgList, indent)
-
-            ###### ArgList exists so this is a FUNCTION###########
-            else:
-                overRideOper = False
-                if fieldName[0:2] == "__" and self.xlator.iteratorsUseOperators:
-                    fieldName = self.xlator.specialFunction(fieldName)
-                    overRideOper = True
-                #### ARGLIST
-                argListText  = ""
-                argListCount = 0
-                argList      = field['typeSpec']['argList']
-                if len(argList)==0: argListText='' #'void'
-                elif argList[0]=='<%': argListText=argList[1][0]        # Verbatim.arguments
-                else:
-                    for arg in argList:
-                        if(argListCount>0): argListText+=", "
-                        argListCount+=1
-                        argTSpec     = progSpec.getTypeSpec(arg)
-                        argOwner     = progSpec.getOwner(argTSpec)
-                        argFieldName = arg['fieldName']
-                        argFieldType = progSpec.fieldTypeKeyword(argTSpec)
-                        if progSpec.typeIsPointer(argTSpec): arg
-                        self.applyStructImplemetation(argTSpec,className,argFieldName)
-                        argCvrtType = self.convertType(argTSpec, 'arg', genericArgs)
-                        argListText += self.xlator.codeArgText(argFieldName, argCvrtType, argOwner, argTSpec, overRideOper, typeArgList)
-                        self.localArgsAllocated.append([argFieldName, argTSpec])  # localArgsAllocated is a global variable that keeps track of nested function arguments and local vars.
-                #### RETURN TYPE ###########################################
-                FirstReturnType = copy.copy(tSpec) # TODO: Un-Hardcode FirstReturnType, typeSpec?
-                if(fType[0] != '<%'):
-                    pass #self.registerType(className, fieldName, cvrtType, typeDefName)
-                else: typeDefName=cvrtType
-                if(typeDefName=='none'):
-                    typeDefName=''
-
-                #### FUNC HEADER: for both decl and defn. ##################
-                inheritMode='normal'
-                # TODO: But it should NOT be virtual if there are no calls of the function from a pointer to the base class
-                if not progSpec.doesParentClassImplementFunc(self.classStore, className, fieldID) and progSpec.doesChildClassImplementFunc(self.classStore, className, fieldID):
-                    inheritMode = 'virtual'
-                if self.currentObjName in progSpec.classHeirarchyInfo:
-                    classRelationData = progSpec.classHeirarchyInfo[self.currentObjName]
-                    if ('parentClass' in classRelationData and classRelationData['parentClass']!=None):
-                        parentClassName = classRelationData['parentClass']
-                        if progSpec.fieldNameInStructHierachy(self.classStore[0], parentClassName, fieldName):
-                            inheritMode = 'override'
-                abstractFunction = (not('value' in field) or field['value']==None)
-                if abstractFunction: # and not 'abstract' in self.classStore[0][className]['attrList']:
-                    inheritMode = 'pure-virtual'
-                    self.classStore[0][className]['attrList'].append('abstract')
-
-                # ####################################################################
-                fTypeKW=progSpec.fieldTypeKeyword(tSpec)
-                if fTypeKW =='none': isCtor = True
-                else: isCtor = False
-                [structCode, funcDefCode, globalFuncs]=self.xlator.codeFuncHeaderStr(className, fieldName, typeDefName, argListText, self.localArgsAllocated, inheritMode, overRideOper, isCtor, typeArgList, tSpec, indent)
-
-                #### FUNC BODY #############################################
-                if abstractFunction: # i.e., if no function body is given.
-                    cdlog(5, "Function "+fieldID+" has no implementation defined.")
-                    funcText = self.xlator.getVirtualFuncText(field)
-                    #cdErr("Function "+fieldID+" has no implementation defined.")
-                else:
-                    extraCodeForTopOfFuntion = self.xlator.extraCodeForTopOfFuntion(argList)
-                    if typeDefName=='' and 'flagsVarNeeded' in ObjectDef and ObjectDef['flagsVarNeeded']==True:
-                        extraCodeForTopOfFuntion+="    flags=0;"
-                    verbatimText=field['value'][1]
-                    if (verbatimText!=''):                                      # This function body is 'verbatim'.
-                        if(verbatimText[0]=='!'): # This is a code conversion pattern. Don't write a function decl or body.
-                            structCode=""
-                            funcText=""
-                            funcDefCode=""
-                            globalFuncs=""
-                        else:
-                            funcText=verbatimText + "\n\n"
-                            if globalFuncs!='': self.ForwardDeclsForGlobalFuncs += globalFuncs+";       \t\t // Forward Decl\n"
-                    elif field['value'][0]!='':
-                        funcText =  self.codeActionSeq(field['value'][0], funcBodyIndent, FirstReturnType, genericArgs)
-                        if extraCodeForTopOfFuntion!='':
-                            funcText = '{\n' + extraCodeForTopOfFuntion + funcText[1:]
-                        if globalFuncs!='': self.ForwardDeclsForGlobalFuncs += globalFuncs+";       \t\t // Forward Decl\n"
-                    else:
-                        cdErr("ERROR: In codeFields: no funcText or funcTextVerbatim found")
-
-                if self.xlator.funcsDefInClass:
-                    structCode += funcText
-
-                elif(className=='GLOBAL'):
-                    if(fieldName=='main'):
-                        funcDefCode += funcText
-                    else:
-                        globalFuncs += funcText
-                else: funcDefCode += funcText
-
+                [structCode, funcDefCode, globalFuncs, topFuncDefCode] = self.codeTimeSeq(className, objectDef, field, typeArgList, genericArgs, tags, indent)
             ## Accumulate field code
             structCodeAcc     += structCode
             funcDefCodeAcc    += funcDefCode
@@ -1705,9 +1710,9 @@ class CodeGenerator(object):
 
         # TODO: Remove this Hard Coded widget. It should apply to any abstract class.
         if self.xlator.MakeConstructors and (className!='GLOBAL')  and (className!='widget'):
-            ctorCode=self.codeConstructor(className, tags, typeArgList, genericArgs)
-            structCodeAcc+= "\n"+ctorCode
-        funcDefCodeAcc = topFuncDefCodeAcc + funcDefCodeAcc
+            ctorCode       = self.codeConstructor(className, tags, typeArgList, genericArgs)
+            structCodeAcc += "\n"+ctorCode
+        funcDefCodeAcc     = topFuncDefCodeAcc + funcDefCodeAcc
         return [structCodeAcc, funcDefCodeAcc, globalFuncsAcc]
 
     def findIDX(self, classList, className):
@@ -1748,9 +1753,9 @@ class CodeGenerator(object):
             if progSpec.isWrappedType(self.classStore, className)!=None: continue
             if(className[0] == '!' or className[0] == '%' or className[0] == '$'): continue   # Filter out "Do Commands", models and strings
             # The next lines skip defining C that will already be defined by a library
-            ObjectDef = progSpec.findSpecOf(self.classStore[0], className, 'struct')
-            if(ObjectDef==None): continue
-            implMode=progSpec.searchATagStore(ObjectDef['tags'], 'implMode')
+            objectDef = progSpec.findSpecOf(self.classStore[0], className, 'struct')
+            if(objectDef==None): continue
+            implMode=progSpec.searchATagStore(objectDef['tags'], 'implMode')
             if(implMode): implMode=implMode[0]
             if(implMode!=None and not (implMode=="declare" or implMode[:7]=="inherit" or implMode[:9]=="implement")):  # "useLibrary"
                 cdlog(2, "SKIPPING: {} {}".format(className, implMode))

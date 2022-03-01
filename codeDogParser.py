@@ -94,7 +94,7 @@ initParams   = "{" + Optional(Group(delimitedList(rValue, ','))("initParams")) +
 ########################################   F U N C T I O N S
 verbatim    = Group(Literal(r"<%") + SkipTo(r"%>", include=True))
 fieldDef    = Forward()
-argList     =  Group(verbatim | Optional(delimitedList(Group(fieldDef))))("argList")
+argList     = Group(verbatim | Optional(delimitedList(Group(fieldDef))))("argList")
 actionSeq   = Forward()
 defaultCase = Group(Keyword("default") + Suppress(":") + actionSeq("caseAction"))("defaultCase")
 switchCase  = Group(Keyword("case") + OneOrMore(rValue + Suppress(":"))("caseValues") - actionSeq("caseAction"))
