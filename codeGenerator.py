@@ -763,8 +763,7 @@ class CodeGenerator(object):
 
         # Add parameters if this is a function call
         if(paramList != None):
-            modelParams=None
-            if tSpecOut and ('argList' in tSpecOut): modelParams=tSpecOut['argList'];
+            modelParams = progSpec.getArgList(tSpecOut)
             [CPL, paramTypeList] = self.codeParameterList(name, paramList, modelParams, genericArgs)
             if self.xlator.renameInitFuncs and name=='init':
                 if not 'dummyType' in tSpecIn:
@@ -1428,7 +1427,7 @@ class CodeGenerator(object):
         fTypeKW      = progSpec.fieldTypeKeyword(tSpec)
         [argListStr, fieldIDArgList] = self.getFieldIDArgList(fTypeKW, genericArgs)
         REF = self.CheckObjectVars(fTypeKW, fTypeKW, "")
-        if REF: modelParams = REF['typeSpec']['argList']
+        if REF: modelParams = progSpec.getArgList(REF)
         else: modelParams  = self.getCtorModelParams(fTypeKW)
         return modelParams
 
@@ -1538,7 +1537,7 @@ class CodeGenerator(object):
         #### ARGLIST
         argListText  = ""
         argListCount = 0
-        argList      = field['typeSpec']['argList']
+        argList      = progSpec.getArgList(field)
         if len(argList)==0: argListText='' #'void'
         elif argList[0]=='<%': argListText=argList[1][0]        # Verbatim.arguments
         else:
@@ -1613,7 +1612,7 @@ class CodeGenerator(object):
         else: funcDefCode += funcText
         return [structCode, funcDefCode, globalFuncs]
 
-    def codeSpaceSeq():
+    def codeSpaceSeq(self):
         structCode        = ""
         funcDefCode       = ""
         globalFuncs       = ""
@@ -1632,7 +1631,7 @@ class CodeGenerator(object):
         fieldName      = field['fieldName']
         isAllocated    = field['isAllocated']
         fieldValue     = field['value']
-        fieldArglist   = tSpec['argList']
+        fieldArglist   = progSpec.getArgList(tSpec)
         paramList      = field['paramList']
         cdlog(4, "FieldName: {}".format(fieldName))
 
@@ -1940,10 +1939,10 @@ class CodeGenerator(object):
                 cdlog(6, "{}\n failed dict lookup in codeOneStruct".format(e))
             self.currentObjName=className
             CodeDogAddendumsAcc=''
-            [needsFlagsVar, strOut, CodeDogAddendums]=self.codeFlagAndModeFields(className, tags)
+            [needsFlagsVar, structEnums, CodeDogAddendums]=self.codeFlagAndModeFields(className, tags)
             objectNameBase=progSpec.flattenObjectName(className) #progSpec.baseStructName(className)
             if not objectNameBase in self.constFieldAccs: self.constFieldAccs[objectNameBase]=""
-            self.constFieldAccs[objectNameBase]+=strOut
+            self.constFieldAccs[objectNameBase]+=structEnums
             CodeDogAddendumsAcc+=CodeDogAddendums
             if(needsFlagsVar):
                 CodeDogAddendumsAcc += 'me _atomic_uint64: flags\n'
@@ -2276,14 +2275,46 @@ class CodeGenerator(object):
         for toDel in reversed(itemsToDelete):
             del(classes[1][toDel])
 
+    def extractNestedClasses(self, fileClasses, newClassNames):
+        for className in newClassNames:
+            for field in fileClasses[0][className]['fields']:
+                tSpec        = progSpec.getTypeSpec(field)
+                fTypeKW      = progSpec.fieldTypeKeyword(tSpec)
+                if(fTypeKW=='model' or fTypeKW=='struct'):
+                    if tSpec['owner']!='const': cdErr("Non const classes are not currently supported.")
+                    fields       = []
+                    fieldName    = field['fieldName']
+                    structFields = field['value'][0]
+                    fieldTSpec   = progSpec.getTypeSpec(field)
+                    argList      = progSpec.getArgList(field)
+                    for fieldVal in structFields:
+                        if not 'fieldDef' in fieldVal: cdErr("No fieldDef in inner class.")
+                        newField = fieldVal['fieldDef']
+                        newField['fieldID'] = fieldName+newField['fieldID']
+                        fields.append(newField)
+                    if argList!=None:
+                        newArgList = []
+                        for arg in argList:
+                            argTypeKW = progSpec.fieldTypeKeyword(arg)
+                            newArgList.append(argTypeKW)
+                        progSpec.addTypeArgList(fieldName, newArgList)
+
+                    progSpec.addObject(fileClasses[0], fileClasses[1], fieldName, 'struct', 'SEQ',fileClasses[0][className]['libName'])
+                    fieldTags = []
+                    if 'tags' in field: fieldTags = field['tags']
+                    progSpec.addObjTags(fileClasses[0], fieldName, 'struct', fieldTags)
+                    fileClasses[0][fieldName]['fields']   = fields
+                    fileClasses[0][fieldName]['libLevel'] = fileClasses[0][className]['libLevel']
+
     def loadProgSpecFromDogFile(self, filename, ProgSpec, objNames, topLvlTags, macroDefs):
         codeDogStr = progSpec.stringFromFile(filename)
         codeDogStr = libraryMngr.processIncludedFiles(codeDogStr, filename)
-        [tagStore, buildSpecs, FileClasses, newClasses] = codeDogParser.parseCodeDogString(codeDogStr, ProgSpec, objNames, macroDefs, filename)
+        [tagStore, buildSpecs, fileClasses, newClassNames] = codeDogParser.parseCodeDogString(codeDogStr, ProgSpec, objNames, macroDefs, filename)
         self.GroomTags(tagStore)
-        self.ScanAndEnquePatterns(FileClasses, topLvlTags, tagStore)
-        stringStructs.CreateStructsForStringModels(FileClasses, newClasses, tagStore)
-        return [tagStore, buildSpecs, FileClasses,newClasses]
+        self.extractNestedClasses(fileClasses, newClassNames)
+        self.ScanAndEnquePatterns(fileClasses, topLvlTags, tagStore)
+        stringStructs.CreateStructsForStringModels(fileClasses, newClassNames, tagStore)
+        return [tagStore, buildSpecs, fileClasses,newClassNames]
 
     def __init_(self):
         print("INIT")

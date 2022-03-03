@@ -647,7 +647,8 @@ def doesChildImplementParentClass(classes, parentClassName, childClassName):
     if(parentClassDef == None):parentClassDef = findSpecOf(classes, parentClassName, 'struct')
     if(parentClassDef == None):cdErr("Struct to implement not found:"+parentClassName)
     for field in parentClassDef['fields']:
-        if(field['typeSpec'] and field['typeSpec']['argList'] and field['typeSpec']['argList'] != None): # ArgList exists so this is a FUNCTION
+        argList = getArgList(field)
+        if(argList != None): # ArgList exists so this is a FUNCTION
             parentFieldID = field['fieldID']
             childFieldID = parentFieldID.replace(parentClassName+"::", childClassName+"::")
             fieldExists = doesClassDirectlyImlementThisField(classes, childClassName, childFieldID)
@@ -953,6 +954,12 @@ def getOwner(tSpec):
     if 'typeSpec' in tSpec: tSpec = tSpec['typeSpec']
     return tSpec['owner']
 
+def getArgList(tSpec):
+    if tSpec==None: return None
+    if 'typeSpec' in tSpec: tSpec = tSpec['typeSpec']
+    if 'argList' in tSpec: return tSpec['argList']
+    return None
+
 def getCodeConverterByFieldID(classes, className, fieldName, prevNameSeg, connector):
     structSpec=findSpecOf(classes[0], className, 'struct')
     fieldID = className+ "::" +fieldName
@@ -999,10 +1006,8 @@ def typeIsPointer(tSpec):
     return ownerIsPointer(owner)
 
 def fieldIsFunction(tSpec):
-    if tSpec==None:
-        return False
-    if 'argList' in tSpec and tSpec['argList']!=None:
-        return True
+    if tSpec==None: return False
+    if getArgList(tSpec)!=None: return True
     return False
 
 def doesFieldDefHaveValue(fieldDef):
@@ -1035,7 +1040,7 @@ def isWrappedType(objMap, structname):
         return None
     if len(fieldListToSearch)>0:
         for field in fieldListToSearch:
-            if field['fieldName']==structname and field['typeSpec']['argList']==None:
+            if field['fieldName']==structname and getArgList(field)==None:
                 return getTypeSpec(field)
     return None
 
@@ -1207,7 +1212,7 @@ def varsTypeCategory(tSpec):
     return innerTypeCategory(fType)
 
 def fieldsTypeCategory(tSpec):
-    if 'argList' in tSpec and tSpec['argList']!=None: return 'func'
+    if getArgList(tSpec)!=None: return 'func'
     return varsTypeCategory(tSpec)
 
 def varTypeKeyWord(tSpec):

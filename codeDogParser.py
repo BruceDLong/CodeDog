@@ -348,15 +348,10 @@ def packFieldDef(fieldResult, className, indent):
         fieldTypeStr=str(fieldType)[:50]
         cdlog(3,"FULL FIELD: {}".format(str([isNext, owner, fieldTypeStr+'... ', arraySpec, packedTArgList, fieldName])))
         fieldDef=progSpec.packField(className, isNext, owner, fieldType, arraySpec, packedTArgList, fieldName, argList, paramList, givenValue, isAllocated, hasFuncBody)
-    else:
-        cdErr("Error in packing FieldDefs: {}".format(fieldResult))
-        exit(1)
-    if len(innerDefs)>0:
-        fieldDef['innerDefs']=innerDefs
-    if coFactuals!=None:
-        fieldDef['coFactuals']=coFactuals
-    if optionalTags!=None:
-        fieldDef['optionalTags']=optionalTags
+    else: cdErr("Error in packing FieldDefs: {}".format(fieldResult))
+    if len(innerDefs)>0:   fieldDef['innerDefs']  = innerDefs
+    if coFactuals!=None:   fieldDef['coFactuals'] = coFactuals
+    if optionalTags!=None: fieldDef['tags']       = optionalTags
     return fieldDef
 
 def parseResultsToListOfParseResults(parseSegment):
@@ -649,19 +644,19 @@ def doMacroSubstitutions(macros, inputString):
     return inputString
 
 def extractObjectsOrPatterns(ProgSpec, clsNames, macroDefs, objectSpecResults,description):
-    newClasses=[]
+    newClassNames = []
     for spec in objectSpecResults:
         s=spec[0]
         if s == "model" or s == "struct" or s == "string" or s == "stream":
             newName=extractObjectSpecs(ProgSpec, clsNames, spec, s,description)
-            if newName!=None: newClasses.append(newName)
+            if newName!=None: newClassNames.append(newName)
         elif s == "do":
             extractPatternSpecs(ProgSpec, clsNames, spec)
         elif s == "#define":
             extractMacroSpec(macroDefs, spec)
         else:
             cdErr("Error in extractObjectsOrPatterns; expected 'object' or 'do' and got '{}'".format(spec[0]))
-    return newClasses
+    return newClassNames
 
 
 # # # # # # # # # # # # #   P a r s e r   I n t e r f a c e   # # # # # # # # # # # # #
@@ -705,9 +700,9 @@ def parseCodeDogString(inputString, ProgSpec, clsNames, macroDefs, description):
     cdlog(LogLvl, "EXTRACTING: "+description+"...")
     tagStore = extractTagDefs(results.progSpecParser.tagDefList)
     buildSpecs = extractBuildSpecs(results.progSpecParser.buildSpecList)
-    newClasses = extractObjectsOrPatterns(ProgSpec, clsNames, macroDefs, results.progSpecParser.classList,description)
+    newClassNames = extractObjectsOrPatterns(ProgSpec, clsNames, macroDefs, results.progSpecParser.classList,description)
     classes = [ProgSpec, clsNames]
-    return[tagStore, buildSpecs, classes, newClasses]
+    return[tagStore, buildSpecs, classes, newClassNames]
 
 def AddToObjectFromText(ProgSpec, clsNames, inputStr, description):
     macroDefs = {} # This var is not used here. If needed, make it an argument.
