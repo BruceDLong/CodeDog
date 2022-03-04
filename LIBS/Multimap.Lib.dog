@@ -1,19 +1,19 @@
 // CodeDog Multimap
 requirements = [[require, Multimap_implementation]]
 
-model MultimapNode<keyType, valueType>{
-    keyType: key
-    valueType: value
-    their RBNode<keyType, valueType>: goNext()
-    their RBNode<keyType, valueType>: goPrev()
-}
-model MultimapItr<keyType, valueType>{
-    our MultimapNode<keyType, valueType>: node
-    our MultimapNode<keyType, valueType>: goNext()
-    //our MultimapNode<keyType, valueType>: goPrev()
-    valueType: val()
-}
 model Multimap<keyType, valueType>{
+    const model: MultimapNode(keyType: key, valueType: value) <- {
+        me keyType: key
+        me valueType: value
+        their RBNode<keyType, valueType>: goNext()
+        their RBNode<keyType, valueType>: goPrev()
+    }
+    const model: MultimapItr(keyType: key, valueType: value) <- {
+        our MultimapNode<keyType, valueType>: node
+        our MultimapNode<keyType, valueType>: goNext()
+        //our MultimapNode<keyType, valueType>: goPrev()
+        me valueType: val()
+    }
     valueType: at(keyType)
     void: clear()
     me bool: containsKey(keyType: key)
@@ -29,60 +29,60 @@ model Multimap<keyType, valueType>{
     me uint:  size()
 }
 
-struct RBMultimapItr<keyType, valueType>: implements=MapItr{
-    their RBNode<keyType, valueType>: node
-    their RBMultimap<keyType, valueType>: container
-    their RBNode<keyType, valueType>: goNext() <- {
-        if(node.right != NULL and !node.right.isLeaf){
-            node <- findSmallest(node.right)
-            if(node==NULL or node.isLeaf){node <- container.edge}
-            return(node)
-        }
-        their RBNode<keyType, valueType>: parentTemp <- node.parent
-        their RBNode<keyType, valueType>: nodeTemp   <- node
-        while(parentTemp!=NULL and nodeTemp===parentTemp.right){
-            nodeTemp   <- parentTemp
-            parentTemp <- parentTemp.parent
-        }
-        node <- parentTemp
-        if(node==NULL or node.isLeaf){node <- container.edge}
-        return(node)
-    }
-    their RBNode<keyType, valueType>: findSmallest(their RBNode<keyType, valueType>: crntNode) <- {
-        their RBNode<keyType, valueType>: prevNode <- NULL
-        while(!(crntNode == NULL or crntNode.isLeaf)){
-            prevNode <- crntNode
-            crntNode <- crntNode.left
-        }
-        if(prevNode != NULL){return(prevNode)}
-        return(crntNode)
-    }
-    their RBMultimapItr<keyType, valueType>: __opAssign(their RBMultimapItr<keyType, valueType>: RHS) <- {
-        node <- RHS.node
-        return(self)
-    }
-    their RBMultimapItr<keyType, valueType>: __inc() <- { // Prefix ++ overload
-        if(node){
-            node <- goNext()
-        }
-        return(self)
-    }
-    me bool: __notEqual(me RBMultimapItr<keyType, valueType>: RHS) <- {
-        return(node !== RHS.node)
-    }
-    valueType: __derefPtr() <- {return(node.value)}
-    me bool: __isEqual(me RBMultimapItr<keyType, valueType>: RHS) <- {
-        return(node === RHS.node)
-    }
-    valueType: val() <- {return(node.value)}
-    keyType: key() <- {return(node.key)}
-}
-
 struct RBMultimap<keyType, valueType>: implements=Multimap native=codeDog specs={insert=logarithmic find=logarithmic at=logarithmic}{ // constant
     their RBNode<keyType, valueType>: Root
     their RBNode<keyType, valueType>: Leaf
     their RBNode<keyType, valueType>: edge
     me uint: mapSize
+
+    const struct: RBMultimapItr(keyType: key, valueType: value): implements=MapItr <- {
+        their RBNode<keyType, valueType>: node
+        their RBMultimap<keyType, valueType>: container
+        their RBNode<keyType, valueType>: goNext() <- {
+            if(node.right != NULL and !node.right.isLeaf){
+                node <- findSmallest(node.right)
+                if(node==NULL or node.isLeaf){node <- container.edge}
+                return(node)
+            }
+            their RBNode<keyType, valueType>: parentTemp <- node.parent
+            their RBNode<keyType, valueType>: nodeTemp   <- node
+            while(parentTemp!=NULL and nodeTemp===parentTemp.right){
+                nodeTemp   <- parentTemp
+                parentTemp <- parentTemp.parent
+            }
+            node <- parentTemp
+            if(node==NULL or node.isLeaf){node <- container.edge}
+            return(node)
+        }
+        their RBNode<keyType, valueType>: findSmallest(their RBNode<keyType, valueType>: crntNode) <- {
+            their RBNode<keyType, valueType>: prevNode <- NULL
+            while(!(crntNode == NULL or crntNode.isLeaf)){
+                prevNode <- crntNode
+                crntNode <- crntNode.left
+            }
+            if(prevNode != NULL){return(prevNode)}
+            return(crntNode)
+        }
+        their RBMultimapItr<keyType, valueType>: __opAssign(their RBMultimapItr<keyType, valueType>: RHS) <- {
+            node <- RHS.node
+            return(self)
+        }
+        their RBMultimapItr<keyType, valueType>: __inc() <- { // Prefix ++ overload
+            if(node){
+                node <- goNext()
+            }
+            return(self)
+        }
+        me bool: __notEqual(me RBMultimapItr<keyType, valueType>: RHS) <- {
+            return(node !== RHS.node)
+        }
+        me valueType: __derefPtr() <- {return(node.value)}
+        me bool: __isEqual(me RBMultimapItr<keyType, valueType>: RHS) <- {
+            return(node === RHS.node)
+        }
+        me valueType: val() <- {return(node.value)}
+        me keyType: key() <- {return(node.key)}
+    }
 
     valueType: at(keyType: searchKey) <- {
         their RBNode<keyType, valueType>: node

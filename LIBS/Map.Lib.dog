@@ -4,19 +4,20 @@ requirements = [
     [require, Map_implementation]
 ]
 
-model MapNode<keyType, valueType>{
-    keyType: key
-    valueType: value
-    their RBNode<keyType, valueType>: goNext()
-    their RBNode<keyType, valueType>: goPrev()
-}
-model MapItr<keyType, valueType>{
-    our MapNode<keyType, valueType>: node
-    our MapNode<keyType, valueType>: goNext()
-    //our MapNode<keyType, valueType>: goPrev()
-    valueType: val()
-}
 model Map<keyType, valueType>{
+    const model: MapNode(keyType: key, valueType: value) <- {
+        me keyType: key
+        me valueType: value
+        their RBNode<keyType, valueType>: goNext()
+        their RBNode<keyType, valueType>: goPrev()
+    }
+    const model: MapItr(keyType: key, valueType: value) <- {
+        our MapNode<keyType, valueType>: node
+        our MapNode<keyType, valueType>: goNext()
+        //our MapNode<keyType, valueType>: goPrev()
+        me valueType: val()
+    }
+
     valueType: at(keyType)
     void: clear()
     me bool: containsKey(keyType: key)
@@ -33,75 +34,73 @@ model Map<keyType, valueType>{
 }
 
 ////////////////////////////////////////////////////////
-struct RBNode<keyType, valueType>: implements=MapNode{
-    keyType: key
-    valueType: value
-    me bool: isBlack
-    me bool: isLeaf
-    their RBNode<keyType, valueType>: left
-    their RBNode<keyType, valueType>: right
-    their RBNode<keyType, valueType>: parent
-    // CONSTRUCTORS
-    none: RBNode(keyType: _key, valueType: _val) <-{
-        key   <- _key
-        value <- _val
-    }
-}
-
-struct RBTreeItr<keyType, valueType>: implements=MapItr ownerMe=itr{
-    their RBNode<keyType, valueType>: node
-    their RBTreeMap<keyType, valueType>: container
-    their RBNode<keyType, valueType>: goNext() <- {
-        if(node.right != NULL and !node.right.isLeaf){
-            node <- findSmallest(node.right)
-            if(node==NULL or node.isLeaf){node <- container.edge}
-            return(node)
-        }
-        their RBNode<keyType, valueType>: parentTemp <- node.parent
-        their RBNode<keyType, valueType>: nodeTemp   <- node
-        while(parentTemp!=NULL and nodeTemp===parentTemp.right){
-            nodeTemp   <- parentTemp
-            parentTemp <- parentTemp.parent
-        }
-        node <- parentTemp
-        if(node==NULL or node.isLeaf){node <- container.edge}
-        return(node)
-    }
-    their RBNode<keyType, valueType>: findSmallest(their RBNode<keyType, valueType>: crntNode) <- {
-        their RBNode<keyType, valueType>: prevNode <- NULL
-        while(!(crntNode == NULL or crntNode.isLeaf)){
-            prevNode <- crntNode
-            crntNode <- crntNode.left
-        }
-        if(prevNode != NULL){return(prevNode)}
-        return(crntNode)
-    }
-    their RBTreeItr<keyType, valueType>: __opAssign(their RBTreeItr<keyType, valueType>: RHS) <- {
-        node <- RHS.node
-        return(self)
-    }
-    their RBTreeItr<keyType, valueType>: __inc() <- { // Prefix ++ overload
-        if(node){
-            node <- goNext()
-        }
-        return(self)
-    }
-    me bool: __notEqual(me RBTreeItr<keyType, valueType>: RHS) <- {
-        return(node !== RHS.node)
-    }
-    valueType: __derefPtr() <- {return(node.value)}
-    me bool: __isEqual(me RBTreeItr<keyType, valueType>: RHS) <- {
-        return(node === RHS.node)
-    }
-    valueType: val()                         <- <%!%0%>
-}
-
 struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={insert=logarithmic find=logarithmic at=logarithmic}{// find=logarithmic at=logarithmic}{  // constant
     their RBNode<keyType, valueType>: Root
     their RBNode<keyType, valueType>: Leaf
     their RBNode<keyType, valueType>: edge
     me uint: mapSize
 
+    const struct: RBNode(keyType: key, valueType: value): implements=MapNode <- {
+        me keyType: key
+        me valueType: value
+        me bool: isBlack
+        me bool: isLeaf
+        their RBNode<keyType, valueType>: left
+        their RBNode<keyType, valueType>: right
+        their RBNode<keyType, valueType>: parent
+        // CONSTRUCTORS
+        me none: RBNode(keyType: _key, valueType: _val) <-{
+            key   <- _key
+            value <- _val
+        }
+    }
+    const struct: RBTreeItr(keyType: key, valueType: value):  implements=MapItr ownerMe=itr <- {
+        their RBNode<keyType, valueType>: node
+        their RBTreeMap<keyType, valueType>: container
+        their RBNode<keyType, valueType>: goNext() <- {
+            if(node.right != NULL and !node.right.isLeaf){
+                node <- findSmallest(node.right)
+                if(node==NULL or node.isLeaf){node <- container.edge}
+                return(node)
+            }
+            their RBNode<keyType, valueType>: parentTemp <- node.parent
+            their RBNode<keyType, valueType>: nodeTemp   <- node
+            while(parentTemp!=NULL and nodeTemp===parentTemp.right){
+                nodeTemp   <- parentTemp
+                parentTemp <- parentTemp.parent
+            }
+            node <- parentTemp
+            if(node==NULL or node.isLeaf){node <- container.edge}
+            return(node)
+        }
+        their RBNode<keyType, valueType>: findSmallest(their RBNode<keyType, valueType>: crntNode) <- {
+            their RBNode<keyType, valueType>: prevNode <- NULL
+            while(!(crntNode == NULL or crntNode.isLeaf)){
+                prevNode <- crntNode
+                crntNode <- crntNode.left
+            }
+            if(prevNode != NULL){return(prevNode)}
+            return(crntNode)
+        }
+        their RBTreeItr<keyType, valueType>: __opAssign(their RBTreeItr<keyType, valueType>: RHS) <- {
+            node <- RHS.node
+            return(self)
+        }
+        their RBTreeItr<keyType, valueType>: __inc() <- { // Prefix ++ overload
+            if(node){
+                node <- goNext()
+            }
+            return(self)
+        }
+        me bool: __notEqual(me RBTreeItr<keyType, valueType>: RHS) <- {
+            return(node !== RHS.node)
+        }
+        me valueType: __derefPtr() <- {return(node.value)}
+        me bool: __isEqual(me RBTreeItr<keyType, valueType>: RHS) <- {
+            return(node === RHS.node)
+        }
+        me valueType: val()                         <- <%!%0%>
+    }
     valueType: at(keyType: searchKey) <- {
         their RBNode<keyType, valueType>: node
         node <- getNode(Root, searchKey)

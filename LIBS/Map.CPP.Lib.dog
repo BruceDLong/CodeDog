@@ -14,14 +14,15 @@ LibDescription ={
     description = 'Map in routines for CPP'
 }
 
-struct CPP_MapNode<keyType, valueType>: implements=MapNode{
-    keyType: key
-    valueType: value
-    our RBNode<keyType, valueType>: goNext() <- <%!++%0%>
-    our RBNode<keyType, valueType>: goPrev() <- <%!--%0%>
-    valueType: val()                         <- <%!%0.second%>
-}
 struct CPP_Map<keyType, valueType>: implements=Map wraps=map native=lang specs={insert=logarithmic find=logarithmic at=logarithmic}{
+    const struct: CPP_MapNode(keyType: key, valueType: value): implements=MapNode <- {
+        me keyType: key
+        me valueType: value
+        our RBNode<keyType, valueType>: goNext() <- <%!++%0%>
+        our RBNode<keyType, valueType>: goPrev() <- <%!--%0%>
+        me valueType: val()                      <- <%!%0.second%>
+    }
+
     valueType: at(keyType)                      <- <%!at(%1)%>
     void: clear()                               <- <%!clear()%>
     me bool: containsKey(keyType: key)          <- <%!count(%1)>0%>
