@@ -245,14 +245,6 @@ class Xlator_Swift(Xlator):
         if progSpec.typeIsPointer(tSpec) and (fTypeKW != 'string' or fTypeKW != 'String'): return('!')
         return('')
 
-    def codeIteratorOperation(self, itrCommand, fType):
-        result = ''
-        if itrCommand=='goNext':  result='%0.next()'
-        elif itrCommand=='goPrev':result='%0.Swift ERROR!'
-        elif itrCommand=='key':   result='%0.getKey()'
-        elif itrCommand=='val':   result='%0.getValue()'
-        return result
-
     def recodeStringFunctions(self, name, tSpec, lenParams):
         if name == "size":
             tSpec['codeConverter']='%0.count'

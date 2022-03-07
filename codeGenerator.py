@@ -565,18 +565,14 @@ class CodeGenerator(object):
         unwrappedKW = progSpec.getUnwrappedClassFieldTypeKeyWord(self.classStore, fTypeKW)
         reqTagList  = progSpec.getReqTagList(tSpec)
         itrTagList  = None
-        if ownerOut=='itr':
-            itrTSpec   = self.getDataStructItrTSpec(fTypeKW)
-            fTypeKW    = progSpec.fieldTypeKeyword(itrTSpec)
-            itrTagList = progSpec.getReqTagList(itrTSpec)
-            if itrTagList!=None: unwrappedKW = fTypeKW
+        itrTypeKW   = progSpec.convertItrType(self.classStore, ownerOut, fTypeKW)
+        if ownerIn=='itr' and itrTypeKW!=None: fTypeKW = itrTypeKW
         if reqTagList:
             if self.xlator.renderGenerics=='True' and not progSpec.isWrappedType(self.classStore, fTypeKW) and not progSpec.isAbstractStruct(self.classStore[0], fTypeKW):
                     unwrappedKW = self.generateGenericStructName(fTypeKW, reqTagList, genericArgs)
-            else:
-                unwrappedKW += self.xlator.getReqTagString(self.classStore, tSpec)
+            else: unwrappedKW += self.xlator.getReqTagString(self.classStore, tSpec)
         langType = self.xlator.adjustBaseTypes(unwrappedKW, progSpec.isNewContainerTempFunc(tSpec))
-        if itrTagList==None: langType = self.xlator.xlateLangType(tSpec, ownerOut, langType, varMode)
+        langType = self.xlator.xlateLangType(tSpec, ownerOut, langType, varMode)
         return langType
 
     def codeAllocater(self, tSpec, paramList, genericArgs):
@@ -612,7 +608,7 @@ class CodeGenerator(object):
         S = self.xlator.codeXlatorAllocater(tSpec, genericArgs) + CPL
         return S
 
-    def convertNameSeg(self, tSpecOut, name, paramList, genericArgs):
+    def convertNameSeg(self, tSpecOut, name, connector, paramList, genericArgs):
         newName = tSpecOut['codeConverter']
         if newName == "":
             cdErr("ERROR: empty codeConverter for: "+name)
@@ -627,6 +623,8 @@ class CodeGenerator(object):
                 else: exit(2)
                 count+=1
             paramList=None
+        if '%0.' in newName and connector==self.xlator.PtrConnector:
+            newName = newName.replace('%0.', '%0'+self.xlator.PtrConnector)
         return [newName, paramList]
 
     ################################  C o d e   E x p r e s s i o n s
@@ -643,6 +641,7 @@ class CodeGenerator(object):
         fTypeKW    = progSpec.fieldTypeKeyword(tSpecIn)
         progSpec.isOldContainerTempFuncErr(tSpecIn, 'codeNameSeg1 '+self.currentObjName+' ' +str(name))
         isCtnr     = progSpec.isNewContainerTempFunc(tSpecIn)
+        if(name=='allocate'): cdErr("Deprecated use of allocate()")
 
         paramList  = None
         if len(segSpec) > 1 and segSpec[1]=='(':
@@ -656,22 +655,7 @@ class CodeGenerator(object):
                 [name, tmpTypeSpec] = self.xlator.recodeStringFunctions(name, tSpecOut, lenParams)
                 tSpecOut = copy.copy(tmpTypeSpec)
 
-        if owner=='itr':
-            fieldTypeOut=progSpec.fieldTypeKeyword(tSpecIn)
-            codeCvrtText = self.xlator.codeIteratorOperation(name, fieldTypeOut)
-            # TODO: integrate with copyTypeSpec()
-            if codeCvrtText!='':
-                if name=='key':
-                    [valOwner, valFType] = progSpec.getContainerKeyOwnerAndType(tSpecIn)
-                    tSpecOut={'owner':valOwner, 'fieldType': valFType}
-                elif name=='val':
-                    [valOwner, valFType] = self.getContainerValueOwnerAndType(tSpecIn)
-                    tSpecOut={'owner':valOwner, 'fieldType': valFType}
-                else:
-                    tSpecOut = copy.copy(tSpecIn)
-                    if tSpecOut['owner']=='itr': tSpecOut['owner']='me'
-                tSpecOut['codeConverter'] = codeCvrtText
-        elif isCtnr and name[0]=='[':
+        if isCtnr and name[0]=='[':
             idxTSpec = self.xlator.getIdxType(tSpecIn)
             [valOwner, valFType] = self.getContainerValueOwnerAndType(tSpecIn)
             tSpecOut = {'owner':valOwner, 'fieldType': valFType}
@@ -694,8 +678,7 @@ class CodeGenerator(object):
                     elif name in self.modeStateNames and self.modeStateNames[name]=='modeStrings': namePrefix = self.xlator.GlobalVarPrefix+self.modeStateNames[name]+'.'
             if(SRC[:6]=='STATIC'): namePrefix = SRC[7:];
         else:
-            if(name=='allocate'): cdErr("Deprecated use of allocate()")
-            elif(name=='resetFlagsAndModes'):
+            if(name=='resetFlagsAndModes'):
                 tSpecOut={'owner':'me', 'fieldType': 'void', 'codeConverter':'flags=0'}
                 # TODO: if flags or modes have a non-zero default this should account for that.
             elif(name[0]=='[' and fTypeKW=='string'):
@@ -708,6 +691,8 @@ class CodeGenerator(object):
                 exit(2)
             else:
                 if fTypeKW!="string":
+                    itrTypeKW = progSpec.convertItrType(self.classStore, owner, fTypeKW)
+                    if itrTypeKW!=None: fTypeKW = itrTypeKW
                     [argListStr, fieldIDArgList] = self.getFieldIDArgList(segSpec, genericArgs)
                     tSpecOut = self.CheckObjectVars(fTypeKW, name, fieldIDArgList)
                     if tSpecOut!=0:
@@ -718,15 +703,12 @@ class CodeGenerator(object):
                             [innerTypeOwner, innerTypeKeyWord] = progSpec.queryTagFunction(self.classStore, fTypeKW, "__getAt", segTypeKeyWord, tSpecIn)
                             if(innerTypeOwner and segTypeOwner != 'itr'):
                                 tSpecOut['owner'] = innerTypeOwner
-                            if(innerTypeKeyWord):
-                                tSpecOut['fieldType'][0] = innerTypeKeyWord
-                            if progSpec.isIteratorType(self.classStore, progSpec.fieldTypeKeyword(tSpecOut)):
-                                tSpecOut['owner']='itr'
+                            if(innerTypeKeyWord): tSpecOut['fieldType'][0] = innerTypeKeyWord
                         tSpecOut = self.copyTypeSpec(tSpecOut)
                     else: print("tSpecOut = 0 for: "+previousSegName+"."+name, " fTypeKW:",fTypeKW)
 
         if tSpecOut and 'codeConverter' in tSpecOut and tSpecOut['codeConverter']!=None:
-            [convertedName, paramList]=self.convertNameSeg(tSpecOut, name, paramList, genericArgs)
+            [convertedName, paramList]=self.convertNameSeg(tSpecOut, name, connector, paramList, genericArgs)
             tSpecOutKeyWord = progSpec.fieldTypeKeyword(tSpecOut)
             reqTagList = progSpec.getReqTagList(tSpecIn)
             if tSpecOutKeyWord == "keyType":

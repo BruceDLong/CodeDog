@@ -276,14 +276,6 @@ class Xlator_Java(Xlator):
             return True
         return False
 
-    def codeIteratorOperation(self, itrCommand, fType):
-        result = ''
-        if itrCommand=='goNext':  result='%0.goNext()'
-        elif itrCommand=='goPrev':result='%0.JAVA ERROR!'
-        elif itrCommand=='key':   result='%0.node.key'
-        elif itrCommand=='val':   result='%0.node.value'
-        return result
-
     def recodeStringFunctions(self, name, tSpec, lenParams):
         if name == "size":
             name = "length"

@@ -21,9 +21,6 @@ class Xlator(object):
     def makePtrOpt(self, tSpec):
         cdErr("In base class Xlator::makePtrOpt.")
 
-    def codeIteratorOperation(self, itrCommand, fType):
-        cdErr("In base class Xlator::codeIteratorOperation.")
-
     def recodeStringFunctions(self, name, tSpec, lenParams):
         cdErr("In base class Xlator::recodeStringFunctions.")
 

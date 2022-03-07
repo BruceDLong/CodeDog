@@ -748,10 +748,17 @@ def getImplementationOptionsFor(fType):
         return classImplementationOptions[fType]
     return None
 ###############  Various Dynamic Type-handling functions
-def isIteratorType(classStore, className):
-    tagSpec = getTagSpec(classStore, className, "ownerMe")
-    if tagSpec=='itr': return True
-    return False
+def convertItrType(classStore, owner, fTypeKW):
+    # TODO: have this look for iterator sub class
+    if owner=='itr':
+        classDef  =  findSpecOf(classStore[0], fTypeKW, "struct")
+        for field in classDef['fields']:
+            KW = fieldTypeKeyword(field)
+            if KW=='struct' or KW=='model':
+                fieldName = field['fieldName']
+                if fieldName[:8]=='iterator':
+                    return fieldName
+    return None
 
 def getGenericArgs(ObjectDef):
     if('genericArgs' in ObjectDef): return(ObjectDef['genericArgs'])

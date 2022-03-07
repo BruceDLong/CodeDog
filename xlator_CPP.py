@@ -226,17 +226,6 @@ class Xlator_CPP(Xlator):
     def makePtrOpt(self, tSpec):
         return('')
 
-    def codeIteratorOperation(self, itrCommand, fType):
-        result = ''
-        if(fType[0]=='deque'): # TODO: this should be like "If this iterator doesn't return BOTH key and value  ...". 'deque' is just one case.
-            if itrCommand=='val':   result='*(%0)'
-        else:
-            if itrCommand=='goNext':  result='%0++'
-            elif itrCommand=='goPrev':result='--%0'
-            elif itrCommand=='key':   result='%0->first'
-            elif itrCommand=='val':   result='%0->second'
-        return result
-
     def recodeStringFunctions(self, name, tSpec, lenParams):
         if name == "size": name = "length"
         elif name == "subStr": name = "substr"
@@ -292,7 +281,7 @@ class Xlator_CPP(Xlator):
         if(LeftOwner=="id_their" and RightOwner=="id_their"): return ["&", ""]
         if LeftOwner == RightOwner: return ["", ""]
         if LeftOwner!='itr' and RightOwner=='itr':
-            # TODO: test this change.  This looks like code that handled codeDog 1.0 container iterators, which is now handled in codeIteratorOperation()
+            # TODO: test this change.  This looks like code that handled codeDog 1.0 container iterators, which is now handled in codeConverters
             #return ["", "->second"]
             return ["", ""]
         if LeftOwner=='me' and progSpec.typeIsPointer(RVAL):
