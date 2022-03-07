@@ -15,9 +15,6 @@ class Xlator(object):
     def getReqTagString(self, classes, tSpec):
         cdErr("In base class Xlator::getReqTagString.")
 
-    def xlateLangType(self, tSpec, owner, langType, varMode):
-        cdErr("In base class Xlator::xlateLangType.")
-
     def makePtrOpt(self, tSpec):
         cdErr("In base class Xlator::makePtrOpt.")
 

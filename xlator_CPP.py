@@ -53,7 +53,7 @@ class Xlator_CPP(Xlator):
                 if 'IDXowner' in ctnrTSpec['indexType']:
                     idxOwner = ctnrTSpec['indexType']['IDXowner'][0]
                     idxType  = ctnrTSpec['indexType']['idxBaseType'][0][0]
-                    idxType  = self.applyOwner(idxOwner, idxType)
+                    idxType  = self.applyOwner(idxOwner, idxType,'')
                 else: idxType=ctnrTSpec['indexType']['idxBaseType'][0][0]
             if idxType[0:4]=='uint': idxType+='_t'
         return idxType
@@ -177,18 +177,20 @@ class Xlator_CPP(Xlator):
         else: langType=progSpec.flattenObjectName(fType[0])
         return langType
 
-    def applyOwner(self, owner, langType):
-        if owner=='me':         langType = langType
-        elif owner=='my':       langType = "unique_ptr<"+langType + ' >'
-        elif owner=='our':      langType = "shared_ptr<"+langType + ' >'
-        elif owner=='their':    langType += '*'
-        elif owner=='itr':      langType += '::iterator'
-        elif owner=='const':    langType = "static const "+langType
-        elif owner=='we':       langType = 'static '+langType
-        elif owner=='id_our':   langType="shared_ptr<"+langType + '>*'
-        elif owner=='id_their': langType += '**'
-        elif owner=='dblTheir': langType += '**'
-        else: cdErr("ERROR: Owner of type not valid '" + owner + "'")
+    def applyOwner(self, owner, langType, varMode):
+        # varMode is 'var' or 'arg' or 'alloc'
+        if varMode!='alloc':
+            if owner=='me':         langType = langType
+            elif owner=='my':       langType = "unique_ptr<"+langType + ' >'
+            elif owner=='our':      langType = "shared_ptr<"+langType + ' >'
+            elif owner=='their':    langType += '*'
+            elif owner=='itr' :     langType += '::iterator'
+            elif owner=='const':    langType = "static const "+langType
+            elif owner=='we':       langType = 'static '+langType
+            elif owner=='id_our':   langType="shared_ptr<"+langType + '>*'
+            elif owner=='id_their': langType += '**'
+            elif owner=='dblTheir': langType += '**'
+            else: cdErr("ERROR: Owner of type not valid '" + owner + "'")
         return langType
 
     def getUnwrappedClassOwner(self, classes, tSpec, fType, varMode, ownerIn):
@@ -211,17 +213,12 @@ class Xlator_CPP(Xlator):
                 unwrappedOwner=self.getUnwrappedClassOwner(classes, tSpec, varTypeKW, 'alloc', reqOwnr)
                 unwrappedKW = progSpec.getUnwrappedClassFieldTypeKeyWord(classes, varTypeKW)
                 unwrappedKW = self.adjustBaseTypes(unwrappedKW, progSpec.isNewContainerTempFunc(tSpec))
-                reqType     = self.applyOwner(unwrappedOwner, unwrappedKW)
+                reqType     = self.applyOwner(unwrappedOwner, unwrappedKW, '')
                 if(count>0): reqTagStr += ", "
                 reqTagStr += reqType
                 count += 1
             reqTagStr += ">"
         return reqTagStr
-
-    def xlateLangType(self, tSpec, owner, langType, varMode):
-        # varMode is 'var' or 'arg' or 'alloc'
-        if varMode != 'alloc': langType = self.applyOwner(owner, langType)
-        return langType
 
     def makePtrOpt(self, tSpec):
         return('')

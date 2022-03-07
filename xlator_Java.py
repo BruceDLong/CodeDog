@@ -85,7 +85,7 @@ class Xlator_Java(Xlator):
                 if 'IDXowner' in ctnrTSpec['indexType']:
                     idxOwner = ctnrTSpec['indexType']['IDXowner'][0]
                     idxType  = ctnrTSpec['indexType']['idxBaseType'][0][0]
-                    idxType  = self.applyOwner(idxOwner, idxType)
+                    idxType  = self.applyOwner(idxOwner, idxType, '')
                 else: idxType=ctnrTSpec['indexType']['idxBaseType'][0][0]
             else: idxType = progSpec.getNewContainerFirstElementTypeTempFunc(tSpec)
         return idxType
@@ -224,7 +224,8 @@ class Xlator_Java(Xlator):
                 else: langType=progSpec.flattenObjectName(fType)
         return langType
 
-    def applyOwner(self, owner, langType):
+    def applyOwner(self, owner, langType, varMode):
+        # varMode is 'var' or 'arg' or 'alloc'.
         if owner=='me':         langType = langType
         elif owner=='my':       langType = langType
         elif owner=='our':      langType = langType
@@ -260,11 +261,6 @@ class Xlator_Java(Xlator):
                 count += 1
             reqTagStr += ">"
         return reqTagStr
-
-    def xlateLangType(self, tSpec, owner, langType, varMode):
-        # varMode is 'var' or 'arg' or 'alloc'.
-        langType = self.applyOwner(owner, langType)
-        return langType
 
     def makePtrOpt(self, tSpec):
         return('')
