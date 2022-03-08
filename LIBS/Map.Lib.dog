@@ -54,7 +54,7 @@ struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={inser
             value <- _val
         }
     }
-    const struct: RBTreeItr(keyType: key, valueType: value):  implements=MapItr ownerMe=itr <- {
+    const struct: iterator_RBTreeMap(keyType: key, valueType: value):  implements=MapItr native=codeDog <- {
         their RBNode<keyType, valueType>: node
         their RBTreeMap<keyType, valueType>: container
         their RBNode<keyType, valueType>: goNext() <- {
@@ -82,21 +82,21 @@ struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={inser
             if(prevNode != NULL){return(prevNode)}
             return(crntNode)
         }
-        their RBTreeItr<keyType, valueType>: __opAssign(their RBTreeItr<keyType, valueType>: RHS) <- {
+        itr iterator_RBTreeMap<keyType, valueType>: __opAssign(itr iterator_RBTreeMap<keyType, valueType>: RHS) <- {
             node <- RHS.node
             return(self)
         }
-        their RBTreeItr<keyType, valueType>: __inc() <- { // Prefix ++ overload
+        itr iterator_RBTreeMap<keyType, valueType>: __inc() <- { // Prefix ++ overload
             if(node){
                 node <- goNext()
             }
             return(self)
         }
-        me bool: __notEqual(me RBTreeItr<keyType, valueType>: RHS) <- {
+        me bool: __notEqual(itr iterator_RBTreeMap<keyType, valueType>: RHS) <- {
             return(node !== RHS.node)
         }
         me valueType: __derefPtr() <- {return(node.value)}
-        me bool: __isEqual(me RBTreeItr<keyType, valueType>: RHS) <- {
+        me bool: __isEqual(itr iterator_RBTreeMap<keyType, valueType>: RHS) <- {
             return(node === RHS.node)
         }
         me valueType: val()                         <- <%!%0%>
@@ -115,8 +115,9 @@ struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={inser
         if(getNode(Root, key)){return(true)}
         else{return(false)}
     }
-    me RBTreeItr<keyType, valueType>: end() <- {
-        me RBTreeItr<keyType, valueType>: retItr; retItr.node <- edge
+    itr iterator_RBTreeMap<keyType, valueType>: end() <- {
+        itr iterator_RBTreeMap<keyType, valueType>: retItr
+        retItr.node <- edge
         return(retItr)
     }
     me void: erase(keyType: key) <- {
@@ -124,18 +125,18 @@ struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={inser
         node <- getNode(Root, key)
         removeHelper(node, key)
     }
-    me RBTreeItr<keyType, valueType>: find(keyType: key) <- {
+    itr iterator_RBTreeMap<keyType, valueType>: find(keyType: key) <- {
         their RBNode<keyType, valueType>: retNode <- getNode(Root, key)
         if(retNode==NULL){retNode <- edge}
-        me RBTreeItr<keyType, valueType>: retItr; retItr.node <- retNode
+        itr iterator_RBTreeMap<keyType, valueType>: retItr; retItr.node <- retNode
         return(retItr)
     }
     valueType: first() <- {
         their RBNode<keyType, valueType>: smallestNode <- findSmallest(Root)
         return(smallestNode.value)
     }
-    me RBTreeItr<keyType, valueType>: front() <- {
-        me RBTreeItr<keyType, valueType>: retItr; retItr.node <- findSmallest(Root)
+    itr iterator_RBTreeMap<keyType, valueType>: front() <- {
+        itr iterator_RBTreeMap<keyType, valueType>: retItr; retItr.node <- findSmallest(Root)
         retItr.container <- self
         return(retItr)
     }
@@ -183,7 +184,7 @@ struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={inser
     }
     me uint:  size() <- {return(mapSize)}
     valueType: __index(keyType: searchKey) <- {
-        me RBTreeItr<keyType, valueType>: retItr <- find(searchKey)
+        itr iterator_RBTreeMap<keyType, valueType>: retItr <- find(searchKey)
         if(retItr.node == edge){
             me valueType: newVal
             retItr.node <- insert(searchKey, newVal)

@@ -748,6 +748,11 @@ def getImplementationOptionsFor(fType):
         return classImplementationOptions[fType]
     return None
 ###############  Various Dynamic Type-handling functions
+def isItrType(fTypeKW):
+    fTypeKW = fieldTypeKeyword(fTypeKW)
+    if fTypeKW[:8]=='iterator': return True
+    return False
+
 def convertItrType(classStore, owner, fTypeKW):
     # TODO: have this look for iterator sub class
     if owner=='itr':
@@ -756,7 +761,7 @@ def convertItrType(classStore, owner, fTypeKW):
             KW = fieldTypeKeyword(field)
             if KW=='struct' or KW=='model':
                 fieldName = field['fieldName']
-                if fieldName[:8]=='iterator':
+                if isItrType(fieldName):
                     return fieldName
     return None
 
