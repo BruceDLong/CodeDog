@@ -96,7 +96,7 @@ struct production{
     }
     me string: toStr(me int64: seqPos, me int64: originPos, me int64: CrntPos, their List<me string>: ruleNames) <- {
         me int: ProdType <- prodType
-        me string: S <- ""
+        me string: S <- nameToStr(ruleNames)+"::"
         me string: ProdStr <- ""
         S <+- "["
         if     (ProdType==parseALT) {ProdStr<-"ALT: "}
@@ -1161,20 +1161,7 @@ struct EParser{
     void: setSRecNextTo(our stateRec: from, our stateRec: next, me string: callLoc) <- {
         me MutexMngr: MtxMgr{streamingSRecNextMutex}
         ///xlog("ARROW: NEXT: from="+from.mySymbol() +";  to="+next.mySymbol()+";")
-        if(from.isREP){  // Set from.nextIsFinal
-            if(from.parseDone and from.child==NULL and next==NULL){from.nextIsFinal <- true}
-            else{
-                if(next!=NULL){
-                    if(next.child!=NULL){from.nextIsFinal <- true}
-                    else if(from.nextIsStarted){
-                         if(from.next!==next){from.nextIsFinal <- true}
-                         else{} // this is a repeat so change nothing.
-                     }
-                    else if(!from.nextIsStarted){from.nextIsFinal<-false}
-                } else if(!from.nextIsStarted){from.nextIsFinal<-false}
-            }
-            from.nextIsStarted<-true
-        } else{from.nextIsFinal <- true}
+        from.nextIsFinal <- true
         from.next <- next
         if(next==NULL and from.parseDone){from.nullIsOK<-true}
         if((next!=NULL or from.nullIsOK) and from.nextIsFinal){
@@ -1343,9 +1330,7 @@ struct EParser{
         withEach backLog3 in backLogStage2{
             our stateRec: newSRec <- prefilteredAdvanceCompletion(backLog3)
         }
-
         SRec.MARKer2<-true
-        itemsToResolve.append(SRec)
     }
 
     me bool: ruleIsDone(our stateRec: SRec)<-{
@@ -1372,41 +1357,39 @@ struct EParser{
             failed.failed <- true
             me int64: numItems <- failed.SeqPosition
             our stateRec: nextItem <- failed
-            our stateRec: topItem  <- nextItem
-            while(nextItem){
-                //log("NEXT_ITEM_R:"+nextItem.mySymbol())
+            our stateRec: topItem
+            while(nextItem){  // Find the top item
+                topItem<-nextItem
                 nextItem <- chosenPred(nextItem)
-                if(nextItem){topItem<-nextItem}
             }
-            if(!topItem.parseDone){
-                topItem.parseDone<-true
-                if(topItem.next==NULL){setSRecNextTo(topItem, NULL, "Notify:")}
+            topItem.parseDone<-true
+            failed.parseDone<-true
+            if(failed.next==NULL){
+                setSRecNextTo(failed, NULL, "Notify:")
             }
             if(numItems < prod.items[1]){
+                topItem.failed <- true
                 failed <- topItem
             } else {
-                our stateRec: myCause <- chosenCause(topItem)
-                if(myCause){
-                    setPredsNext(myCause)
-                    if(myCause.next != NULL){setSRecNextTo(myCause, myCause.next, "after");}
+                withEach cause in topItem.causes {
+                    setPredsNext(cause)
+                    if(cause.next != NULL){setSRecNextTo(cause, cause.next, "after");}
                 }
+                itemsToResolve.append(failed)
                 return()
             }
         }else if(ProdType==parseSEQ){
             failed.failed <- true
             our stateRec: nextItem <- failed
-            our stateRec: topItem  <- nextItem
+            our stateRec: topItem
             while(nextItem){
-                //log("NEXT_ITEM_S:"+nextItem.mySymbol())
+                topItem<-nextItem
                 nextItem <- chosenPred(nextItem)
-                if(nextItem){
-                    if(nextItem.next!=NULL){ // only continue if everything above is 'done'
-                        topItem<-nextItem
-                    } else {return()}
-                }
             }
+            topItem.failed <- true
             failed <- topItem
-            //log(indent+" FAIL-2:"+failed.mySymbol()+" : "+failed.stringify(self))
+        } else{
+            log(indent+"MARK_FAILED:OTHER:"+failed.mySymbol()+" = "+failed.stringify(this))
             failed.failed <- true
         }
 
@@ -1432,13 +1415,16 @@ struct EParser{
 
     our stateRec: addRepItemToStateSet(our stateRec: SRec, their production: prod) <- {
         our stateRec: newItm <- NULL
-        me int64: seqPos <- SRec.SeqPosition
-        me int: MIN_ITEMS <- prod.items[1]
-        me int: MAX_ITEMS <- prod.items[2]
+        me int64: seqPos   <- SRec.SeqPosition
+        me int: MIN_ITEMS  <- prod.items[1]
+        me int: MAX_ITEMS  <- prod.items[2]
         me bool: must_be   <- seqPos < MIN_ITEMS
-        me bool: cannot_be <- seqPos >= MAX_ITEMS and (MAX_ITEMS!=0)
+        me bool: cannot_be <- MAX_ITEMS!=0 and seqPos>=MAX_ITEMS
         if(!must_be){ // COMPLETER for REPetitions
             complete(SRec, crntParsePos)
+            if(MAX_ITEMS!=0 and seqPos==MAX_ITEMS){
+                itemsToResolve.append(SRec)
+            }
         }
         if(!cannot_be){ // PREDICTOR for REPetitions
             newItm <- addProductionToStateSet(crntParsePos, prod.items[0], 0, crntParsePos, NULL, SRec)
@@ -1457,6 +1443,7 @@ struct EParser{
             if(ruleIsDone(SRec) and ProdType!=parseREP){ // COMPLETER for non-REPetitions
                 SRec.processed <- true
                 complete(SRec, crntParsePos)
+                itemsToResolve.append(SRec)
             }else{
                 if(isTerminal){ // SCANNER: Scanning means Testing for a Matching terminal
                     if(waitForChar){
