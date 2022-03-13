@@ -366,12 +366,12 @@ struct EGrammar{
         if(EP.streamingMode){
             me MutexMngr: MtxMgr{EP.streamingSRecChildMutex}
             while((SRec.child==NULL and !SRec.childIsFilled) and !EP.parseTreeFinished){ //and !SRec.childIsFilled){
-                ///xlog("STATE: "+SRec.mySymbol() + ": CHILD_State=WAITING;")
+                xlog("STATE: "+SRec.mySymbol() + ": CHILD_State=WAITING;")
                 log(">>EXTRACT WAIT_CHILD_stateRec:" + SRec.mySymbol()+" = "+SRec.stringify(EP) +"  child:" + SRec.child.mySymbol() + "  childIsFilled:"+toString(SRec.childIsFilled))
                 EP.streamingSRecChildLock.wait(MtxMgr)
                 log("<<EXTRACT DONE_CHILD_stateRec:" + SRec.mySymbol()+" = "+SRec.stringify(EP))
-            }///xlog("STATE: "+SRec.mySymbol() + ": CHILD_State=RELEASED;")
-        }///xlog("STATE: "+SRec.mySymbol() + ": CHILD_State=RELEASED; child:"+SRec.child.mySymbol())
+            }xlog("STATE: "+SRec.mySymbol() + ": CHILD_State=RELEASED;")
+        }xlog("STATE: "+SRec.mySymbol() + ": CHILD_State=RELEASED; child:"+SRec.child.mySymbol())
       //  if(SRec.child){if(SRec.next==NULL and !SRec.child.isREP)){return(NULL)}}
         //if(SRec.child){log("GetSR_CHILD:"+SRec.stringify(EP)+"  "+SRec.mySymbol()  +  "  .CHILD:"+SRec.child.stringify(EP)+"  "+SRec.child.mySymbol());}else{log("GetSR_CHILD: NULL")}
         return(SRec.child)
@@ -382,12 +382,12 @@ struct EGrammar{
             me MutexMngr: MtxMgr{EP.streamingSRecNextMutex}
             while(((SRec.next==NULL and !SRec.nullIsOK) or !SRec.nextIsFinal) and !EP.parseTreeFinished){
                 log(">>EXTRACT WAIT_GNSR:" + SRec.mySymbol() + " = "+SRec.stringify(EP)+"   SRec.next:"+SRec.next.mySymbol()+" = "+SRec.next.stringify(EP)+"\n")
-                ///xlog("STATE: "+SRec.mySymbol() + ": NEXT_State=WAITING;")
+                xlog("STATE: "+SRec.mySymbol() + ": NEXT_State=WAITING;")
                 EP.streamingSRecNextLock.wait(MtxMgr)
                 //log("DONE_WAITING?(GetNExtStateRec)")
-            }///xlog("STATE: "+SRec.mySymbol() + ": NEXT_State=RELEASED;")
+            }xlog("STATE: "+SRec.mySymbol() + ": NEXT_State=RELEASED;")
             log("EXTRACT DONE_GNSR:"+ SRec.mySymbol()+ " = " +SRec.stringify(EP) +"  next:" + SRec.next.mySymbol() + "  nIsFilled:"+toString(SRec.nullIsOK))
-        }///xlog("STATE: "+SRec.mySymbol() + ": NEXT_State=RELEASED; next:"+SRec.next.mySymbol())
+        }xlog("STATE: "+SRec.mySymbol() + ": NEXT_State=RELEASED; next:"+SRec.next.mySymbol())
         //log("GetSR_NEXT:"+SRec.stringify(EP)+"  "+SRec.mySymbol()  +  "  .NEXT:"+SRec.next.stringify(EP)+"  "+SRec.next.mySymbol())
         return(SRec.next)
     }
@@ -1110,11 +1110,11 @@ struct EParser{
                     Duplicate <- true
                     if(cause!=NULL and item.causes.first()!==cause){
                         item.causes.append(cause)
-                        ///xlog("ARROW: CAUSE: from="+item.mySymbol() +";  to="+cause.mySymbol()+";")
+                        xlog("ARROW: CAUSE: from="+item.mySymbol() +";  to="+cause.mySymbol()+";")
                     }
                     if(pred!=NULL and item.preds.first()!==pred){
                         item.preds.append(pred)
-                        ///xlog("ARROW: PRED: from="+item.mySymbol() +";  to="+pred.mySymbol()+";")
+                        xlog("ARROW: PRED: from="+item.mySymbol() +";  to="+pred.mySymbol()+";")
                     }
                     return(newStateRecPtr)
                 }
@@ -1126,14 +1126,14 @@ struct EParser{
                 Allocate(newStateRecPtr, productionID, seqPos, origin, CrntPos)
                 newStateRecPtr.mySymbol() // This just help get the symbols numbered in order for debugging.
                 if(ProdType == parseREP){newStateRecPtr.isREP<-true}
-                ///xlog("ALLOC: SREC: "+newStateRecPtr.mySymbol() + ": "+grammar[productionID].nameToStr(syntax.ruleNames)+": "+cause.mySymbol()+": "+newStateRecPtr.stringify(self))
+                xlog("ALLOC: SREC: "+newStateRecPtr.mySymbol() + ": "+grammar[productionID].nameToStr(syntax.ruleNames)+": "+cause.mySymbol()+": "+newStateRecPtr.stringify(self))
                 if(cause!=NULL){
                     newStateRecPtr.causes.append(cause)
-                    ///xlog("ARROW: CAUSE: from="+newStateRecPtr.mySymbol() +";  to="+cause.mySymbol()+";")
+                    xlog("ARROW: CAUSE: from="+newStateRecPtr.mySymbol() +";  to="+cause.mySymbol()+";")
                 }
                 if(pred!=NULL){
                     newStateRecPtr.preds.append(pred)
-                    ///xlog("ARROW: PRED: from="+newStateRecPtr.mySymbol() +";  to="+pred.mySymbol()+";")
+                    xlog("ARROW: PRED: from="+newStateRecPtr.mySymbol() +";  to="+pred.mySymbol()+";")
                 }
                 if(productionID==syntax.startProduction and origin==0) {lastTopLevelItem <- newStateRecPtr}
                 //log("  AddToCol:"+toString(CrntPos)+" cause:"+cause.mySymbol()+" pred:"+ pred.mySymbol()+": "+newStateRecPtr.mySymbol() + ": "+newStateRecPtr.stringify(self))
@@ -1160,7 +1160,7 @@ struct EParser{
 
     void: setSRecNextTo(our stateRec: from, our stateRec: next, me string: callLoc) <- {
         me MutexMngr: MtxMgr{streamingSRecNextMutex}
-        ///xlog("ARROW: NEXT: from="+from.mySymbol() +";  to="+next.mySymbol()+";")
+        xlog("ARROW: NEXT: from="+from.mySymbol() +";  to="+next.mySymbol()+";")
         from.nextIsFinal <- true
         from.next <- next
         if(next==NULL and from.parseDone){from.nullIsOK<-true}
@@ -1172,7 +1172,7 @@ struct EParser{
     void: setSRecChildTo(our stateRec: from, our stateRec: child, me string: callLoc) <- {
         me MutexMngr: MtxMgr{streamingSRecChildMutex}
         //log(callLoc + "SET_CHILD of:"+from.stringify(self)+":"+from.mySymbol()+"  to:"+child.mySymbol())
-        ///xlog("ARROW: CHILD: from="+from.mySymbol() +";  to="+child.mySymbol()+";")
+        xlog("ARROW: CHILD: from="+from.mySymbol() +";  to="+child.mySymbol()+";")
         from.child <- child
         from.childIsFilled<-true
         streamingSRecChildLock.notifyOne()
@@ -1219,19 +1219,22 @@ struct EParser{
         me int: prodTypeFlag         <- backProd.prodType
         if(prodTypeFlag==parseREP){
             me int: MAX_ITEMS  <- backProd.items[2]
-            if((backSRecSeqPos < MAX_ITEMS-1 or MAX_ITEMS==0) and backProd.items[0] == SRec.productionID ){//log(" ADVANCING REP: "+SRec.mySymbol()+" as "+backSRec.mySymbol())
+            if((backSRecSeqPos < MAX_ITEMS-1 or MAX_ITEMS==0) and backProd.items[0] == SRec.productionID ){
                 newItem <- addProductionToStateSet(crntParsePos, backSRecProductionID, backSRecSeqPos+1, backSRecOriginPos, backSRec, NULL)
-               //log(" ADVANCING REP: "+SRec.mySymbol()+"  makes:"+newItem.mySymbol())
+                        log("ADD-COMPLETE-REP:"+newItem.mySymbol()+" = "+newItem.stringify(this) + "  ADDED_BY:"+SRec.mySymbol())
             }
         } else if(prodTypeFlag==parseSEQ){
-            if(backSRecSeqPos < backProd.items.size() and backProd.items[backSRecSeqPos] == SRec.productionID){//log(" ADVANCING SEQ: "+SRec.mySymbol()+" as "+backSRec.mySymbol())
+            if(backSRecSeqPos < backProd.items.size() and backProd.items[backSRecSeqPos] == SRec.productionID){
                 newItem <- addProductionToStateSet(crntParsePos, backSRecProductionID, backSRecSeqPos+1, backSRecOriginPos, backSRec, NULL)
+                        log("ADD-COMPLETE-SEQ:"+newItem.mySymbol()+" = "+newItem.stringify(this) + "  ADDED_BY:"+SRec.mySymbol())
             }
         } else if(prodTypeFlag==parseALT){
             if(backSRecSeqPos == 0){
                 withEach backAltProdID in backProd.items {
-                    if(backAltProdID==SRec.productionID){//log(" ADVANCING ALT: "+SRec.mySymbol()+" as "+backSRec.mySymbol())
-                        return(addProductionToStateSet(crntParsePos, backSRecProductionID, backSRecSeqPos+1, backSRecOriginPos, backSRec, NULL))
+                    if(backAltProdID==SRec.productionID){
+                        newItem <- addProductionToStateSet(crntParsePos, backSRecProductionID, backSRecSeqPos+1, backSRecOriginPos, backSRec, NULL)
+                        log("ADD-COMPLETE-ALT:"+newItem.mySymbol()+" = "+newItem.stringify(this) + "  ADDED_BY:"+SRec.mySymbol())
+                        return(newItem)
                     }
                 }
             }
@@ -1329,6 +1332,7 @@ struct EParser{
 
         withEach backLog3 in backLogStage2{
             our stateRec: newSRec <- prefilteredAdvanceCompletion(backLog3)
+            log("ADD-COMPLETE-TOP:"+SRec.mySymbol()+" = "+SRec.stringify(this)+"  ADDS:"+newSRec.mySymbol())
         }
         SRec.MARKer2<-true
     }
@@ -1349,10 +1353,11 @@ struct EParser{
     }
 
     void: notifyFailure(our stateRec: failed, me string: indent) <- {
+        if(failed.failed){return()}
         their production: prod <- grammar[failed.productionID]
         me int: ProdType <- prod.prodType
         //log(indent+" FAIL:"+failed.mySymbol()+" : "+failed.stringify(self))
-        ///xlog("STATE: "+failed.mySymbol() + ": RESOLVE_State=FAILED; ")
+        xlog("STATE: "+failed.mySymbol() + ": RESOLVE_State=FAILED; ")
         if(ProdType==parseREP) {
             log(indent+"MARK_FAILED:REP:"+failed.mySymbol()+" = "+failed.stringify(this))
             failed.failed <- true
@@ -1435,11 +1440,13 @@ struct EParser{
         if(!must_be){ // COMPLETER for REPetitions
             complete(SRec, crntParsePos)
             if(MAX_ITEMS!=0 and seqPos==MAX_ITEMS){
+                log("ToResolve-R1:"+SRec.mySymbol())
                 itemsToResolve.append(SRec)
             }
         }
         if(!cannot_be){ // PREDICTOR for REPetitions
             newItm <- addProductionToStateSet(crntParsePos, prod.items[0], 0, crntParsePos, NULL, SRec)
+            log("ADD-PREDICT-REP:"+SRec.mySymbol()+" = "+SRec.stringify(this)+"  ADDS:"+newItm.mySymbol())
         }
         return(newItm)
     }
@@ -1447,6 +1454,7 @@ struct EParser{
     void: processStateSet(their stateSets: SSet, me bool: waitForChar) <- {
         withEach SRec in SSet.stateRecs {
             if(SRec.processed){continue()}
+            log("PSS:"+SRec.mySymbol()+" = "+SRec.stringify(this))
             their production: prod <- grammar[SRec.productionID]
             me int: ProdType       <- prod.prodType
             me bool: isTerminal    <- prod.isTerm != 0
@@ -1455,6 +1463,7 @@ struct EParser{
             if(ruleIsDone(SRec) and ProdType!=parseREP){ // COMPLETER for non-REPetitions
                 SRec.processed <- true
                 complete(SRec, crntParsePos)
+                log("ToResolve-SA:"+SRec.mySymbol())
                 itemsToResolve.append(SRec)
             }else{
                 if(isTerminal){ // SCANNER: Scanning means Testing for a Matching terminal
@@ -1462,8 +1471,12 @@ struct EParser{
                         me int64: len <- textMatches(SRec.productionID, crntParsePos)
                         if(len>=0){ // if match succeeded
                             newItm <- addProductionToStateSet(crntParsePos+len, SRec.productionID, 1, crntParsePos, SRec, NULL)
+                            log("ADD-SCAN-Matched:"+SRec.mySymbol()+" = "+SRec.stringify(this)+"  ADDS:"+newItm.mySymbol())
                             //log("SCAN_TO_SLOT:"+toString(crntParsePos+len) + ": "+newItm.mySymbol())  // Possible chars that can go here
-                        } else {notifyFailure(SRec, ">")}
+                        } else {
+                            log("ADD-SCAN-FAIL:"+SRec.mySymbol()+" = "+SRec.stringify(this))
+                            notifyFailure(SRec, ">")
+                        }
                     }
                 }else{ // non-terminal
                     SRec.processed <- true
@@ -1472,9 +1485,11 @@ struct EParser{
                     } else if(ProdType==parseSEQ){ // Init a SEQ (PREDICTOR)
                         me int: prodID <- prod.items[SRec.SeqPosition]
                         newItm <- addProductionToStateSet(crntParsePos, prodID, 0, crntParsePos, NULL, SRec)
+                        log("ADD-PREDICT-SEQ:"+SRec.mySymbol()+" = "+SRec.stringify(this)+"  ADDS:"+newItm.mySymbol())
                     } else if(ProdType==parseALT){ // Init an ALT (PREDICTOR)
                         withEach AltProd in prod.items {
                             newItm <- addProductionToStateSet(crntParsePos, AltProd, 0, crntParsePos, NULL, SRec)
+                            log("ADD-PREDICT-ALT:"+SRec.mySymbol()+" = "+SRec.stringify(this)+"  ADDS:"+newItm.mySymbol())
                         }
                     }
                 }
@@ -1492,10 +1507,10 @@ struct EParser{
         while(crntParsePos<SSets.size()){
             their stateSets: SSet <- SSets[crntParsePos]
             resetCompletions(crntParsePos)
-      //      print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%   Finishing: '"+ch+"'\n")
+            log("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%   Finishing: '"+ch+"'")
             processStateSet(SSet, false)
             ch <- streamToParse.atSafe(crntParsePos)  // wait for the next char to arrive if needed.
-      //      print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%   PROCESSING CHAR: '"+ch+"'  slot: " + toString(crntParsePos)+"\n")
+            log("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%   PROCESSING CHAR: '"+ch+"'  slot: " + toString(crntParsePos))
             processStateSet(SSet, true)
             //log("GRAPHING after Slot:"+toString(crntParsePos)); dumpGraph("ProcessingSlot"+toString(crntParsePos), 1)
             crntParsePos <+- 1
@@ -1582,21 +1597,23 @@ struct EParser{
 
 
     our stateRec: setPredsNext(our stateRec: SRec) <- {
-        our stateRec: pred <- chosenPred(SRec)
-        if(pred!=NULL){
-            setSRecNextTo(pred, SRec, "R   ")
-            if(pred.child!=NULL and pred.child.isREP){
-                closeRepStateRec(pred.child)
+        //our stateRec: pred <- chosenPred(SRec)
+        withEach pred in SRec.preds{
+            if(pred!=NULL){
+                setSRecNextTo(pred, SRec, "R   ")
+                if(pred.child!=NULL and pred.child.isREP){
+                    closeRepStateRec(pred.child)
+                }
             }
         }
-        return(pred)
+        return(chosenPred(SRec))
     }
 
 //////////////////////////////// Streaming Bottom up Resolver
     our stateRec: bottomUpResolve(our stateRec: SRec, me int: level, me string: indent) <- {
         if(level<=0){return(NULL)}
-        //log(indent+"RESOLVE:"+SRec.mySymbol()+": "+SRec.stringify(self) + "  LEVEL:"+toString(level))
-        ///xlog("STATE: "+SRec.mySymbol() + ": RESOLVE_State=RESOLVED; ")
+        log(indent+"RESOLVE:"+SRec.mySymbol()+": "+SRec.stringify(self) + "  LEVEL:"+toString(level))
+        xlog("STATE: "+SRec.mySymbol() + ": RESOLVE_State=RESOLVED; ")
         our stateRec: crntRec <- SRec
         our stateRec: firstSRec <- NULL
         while(crntRec!=NULL){
@@ -1611,8 +1628,10 @@ struct EParser{
                     if(firstSRec.parseDone){
                         setPredsNext(cause)
                     } else if(firstSRec.isREP){
-                        our stateRec: pred <- chosenPred(cause)
-                        if(pred != NULL){pred.next <- cause}
+                        //our stateRec: pred <- chosenPred(cause)
+                        withEach pred in SRec.preds{
+                            if(pred != NULL){pred.next <- cause}
+                        }
                     }
                     if(level==1){
                         if(firstSRec.child!=NULL and firstSRec.isREP){cause.MARKer1<-true
