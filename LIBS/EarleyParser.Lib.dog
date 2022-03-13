@@ -1108,11 +1108,11 @@ struct EParser{
                 if(item.SeqPosition==seqPos){
                     newStateRecPtr <- item
                     Duplicate <- true
-                    if(cause!=NULL){
+                    if(cause!=NULL and item.causes.first()!==cause){
                         item.causes.append(cause)
                         ///xlog("ARROW: CAUSE: from="+item.mySymbol() +";  to="+cause.mySymbol()+";")
                     }
-                    if(pred!=NULL){
+                    if(pred!=NULL and item.preds.first()!==pred){
                         item.preds.append(pred)
                         ///xlog("ARROW: PRED: from="+item.mySymbol() +";  to="+pred.mySymbol()+";")
                     }
@@ -1354,6 +1354,7 @@ struct EParser{
         //log(indent+" FAIL:"+failed.mySymbol()+" : "+failed.stringify(self))
         ///xlog("STATE: "+failed.mySymbol() + ": RESOLVE_State=FAILED; ")
         if(ProdType==parseREP) {
+            log(indent+"MARK_FAILED:REP:"+failed.mySymbol()+" = "+failed.stringify(this))
             failed.failed <- true
             me int64: numItems <- failed.SeqPosition
             our stateRec: nextItem <- failed
@@ -1368,7 +1369,10 @@ struct EParser{
                 setSRecNextTo(failed, NULL, "Notify:")
             }
             if(numItems < prod.items[1]){
-                topItem.failed <- true
+                if(!topItem.failed){
+                    log(indent+"MARK_FAILED_TOP:REP:"+failed.mySymbol()+" = "+failed.stringify(this))
+                    topItem.failed <- true
+                }
                 failed <- topItem
             } else {
                 withEach cause in topItem.causes {
@@ -1379,30 +1383,38 @@ struct EParser{
                 return()
             }
         }else if(ProdType==parseSEQ){
+            log(indent+"MARK_FAILED:SEQ:"+failed.mySymbol()+" = "+failed.stringify(this))
             failed.failed <- true
             our stateRec: nextItem <- failed
             our stateRec: topItem
             while(nextItem){
                 topItem<-nextItem
                 nextItem <- chosenPred(nextItem)
+         /////       if(nextItem!=NULL and nextItem.next==NULL){return()} // Only continue if everything above is 'done'
             }
-            topItem.failed <- true
+            if(!topItem.failed){
+                log(indent+"MARK_FAILED_TOP:SEQ:"+failed.mySymbol()+" = "+failed.stringify(this))
+                topItem.failed <- true
+            }
             failed <- topItem
-        } else{
+        } else if(ProdType==parseALT){
+
+        } else {
             log(indent+"MARK_FAILED:OTHER:"+failed.mySymbol()+" = "+failed.stringify(this))
             failed.failed <- true
         }
 
         withEach cause in failed.causes {
             if(prod.isTerm){
-                failed.failed <- true
                 notifyFailure(cause, indent+"T   ")
             } else {
                 if(ProdType==parseSEQ){
                     notifyFailure(cause, indent+"S   ")
                 }else if(ProdType==parseALT) {
                     failed.altCount <+- 1
+                    log(indent+"PartialFail:ALT:"+failed.mySymbol()+" = "+failed.stringify(this)+" \t("+toString(failed.altCount)+"/" +toString(prod.items.size()))
                     if(failed.altCount >= prod.items.size()){
+                        log(indent+"MARK_FAILED:ALT:"+failed.mySymbol()+" = "+failed.stringify(this))
                         failed.failed <- true
                         notifyFailure(cause, indent+"A   ")
                     }
