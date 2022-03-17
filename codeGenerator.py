@@ -564,9 +564,11 @@ class CodeGenerator(object):
         ownerOut = self.xlator.getUnwrappedClassOwner(self.classStore, tSpec, fTypeKW, varMode, ownerIn)
         unwrappedKW = progSpec.getUnwrappedClassFieldTypeKeyWord(self.classStore, fTypeKW)
         reqTagList  = progSpec.getReqTagList(tSpec)
-        itrTagList  = None
-        itrTypeKW   = progSpec.convertItrType(self.classStore, ownerOut, fTypeKW)
-        if ownerOut=='itr' and itrTypeKW!=None: fTypeKW = itrTypeKW
+        if ownerOut=='itr':
+            if not progSpec.isItrType(fTypeKW):
+                itrTypeKW   = progSpec.convertItrType(self.classStore, ownerOut, fTypeKW)
+                if itrTypeKW!=None: fTypeKW = itrTypeKW
+            else: varMode='alloc'   # TODO: This is a hack: remove temporary code once CPP iterator subclasses are working
         if reqTagList:
             if self.xlator.renderGenerics=='True' and not progSpec.isWrappedType(self.classStore, fTypeKW) and not progSpec.isAbstractStruct(self.classStore[0], fTypeKW):
                 unwrappedKW = self.generateGenericStructName(fTypeKW, reqTagList, genericArgs)

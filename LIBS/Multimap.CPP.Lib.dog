@@ -36,8 +36,8 @@ struct CPP_Multimap<keyType, valueType>: implements=Multimap wraps=multimap nati
     me bool:  isEmpty()                         <- <%!empty()%>
     valueType: last()                           <- <%!rbegin()->second%>
     itr valueType: lower_bound(keyType: key)    <- <%!lower_bound(%1)%>
-    itr iterator_CPP_Multimap: popFirst()           <- <%!%0.erase(%0.begin())%>
-    //iterator_CPP_Multimap: popLast()          <- <%!%0.back(); %0.pop_back()%>
+    itr iterator_CPP_Multimap: popFirst()       <- <%!%0.begin()->second; %0.erase(%0.begin())%>
+    //iterator_CPP_Multimap: popLast()                    <- <%!%0.back(); %0.pop_back()%>
     me uint:  size()                            <- <%!size()%>
     /////////////////////////////////////////
     // TODO: need Reverse Iterators working first
