@@ -366,12 +366,12 @@ struct EGrammar{
         if(EP.streamingMode){
             me MutexMngr: MtxMgr{EP.streamingSRecChildMutex}
             while((SRec.child==NULL and !SRec.childIsFilled) and !EP.parseTreeFinished){ //and !SRec.childIsFilled){
-                xlog("STATE: "+SRec.mySymbol() + ": CHILD_State=WAITING;")
+                ///xlog("STATE: "+SRec.mySymbol() + ": CHILD_State=WAITING;")
                 log(">>EXTRACT WAIT_CHILD_stateRec:" + SRec.mySymbol()+" = "+SRec.stringify(EP) +"  child:" + SRec.child.mySymbol() + "  childIsFilled:"+toString(SRec.childIsFilled))
                 EP.streamingSRecChildLock.wait(MtxMgr)
                 log("<<EXTRACT DONE_CHILD_stateRec:" + SRec.mySymbol()+" = "+SRec.stringify(EP))
-            }xlog("STATE: "+SRec.mySymbol() + ": CHILD_State=RELEASED;")
-        }xlog("STATE: "+SRec.mySymbol() + ": CHILD_State=RELEASED; child:"+SRec.child.mySymbol())
+            }///xlog("STATE: "+SRec.mySymbol() + ": CHILD_State=RELEASED;")
+        }///xlog("STATE: "+SRec.mySymbol() + ": CHILD_State=RELEASED; child:"+SRec.child.mySymbol())
       //  if(SRec.child){if(SRec.next==NULL and !SRec.child.isREP)){return(NULL)}}
         //if(SRec.child){log("GetSR_CHILD:"+SRec.stringify(EP)+"  "+SRec.mySymbol()  +  "  .CHILD:"+SRec.child.stringify(EP)+"  "+SRec.child.mySymbol());}else{log("GetSR_CHILD: NULL")}
         return(SRec.child)
@@ -382,12 +382,12 @@ struct EGrammar{
             me MutexMngr: MtxMgr{EP.streamingSRecNextMutex}
             while(((SRec.next==NULL and !SRec.nullIsOK) or !SRec.nextIsFinal) and !EP.parseTreeFinished){
                 log(">>EXTRACT WAIT_GNSR:" + SRec.mySymbol() + " = "+SRec.stringify(EP)+"   SRec.next:"+SRec.next.mySymbol()+" = "+SRec.next.stringify(EP)+"\n")
-                xlog("STATE: "+SRec.mySymbol() + ": NEXT_State=WAITING;")
+                ///xlog("STATE: "+SRec.mySymbol() + ": NEXT_State=WAITING;")
                 EP.streamingSRecNextLock.wait(MtxMgr)
                 //log("DONE_WAITING?(GetNExtStateRec)")
-            }xlog("STATE: "+SRec.mySymbol() + ": NEXT_State=RELEASED;")
+            }///xlog("STATE: "+SRec.mySymbol() + ": NEXT_State=RELEASED;")
             log("EXTRACT DONE_GNSR:"+ SRec.mySymbol()+ " = " +SRec.stringify(EP) +"  next:" + SRec.next.mySymbol() + "  nIsFilled:"+toString(SRec.nullIsOK))
-        }xlog("STATE: "+SRec.mySymbol() + ": NEXT_State=RELEASED; next:"+SRec.next.mySymbol())
+        }///xlog("STATE: "+SRec.mySymbol() + ": NEXT_State=RELEASED; next:"+SRec.next.mySymbol())
         //log("GetSR_NEXT:"+SRec.stringify(EP)+"  "+SRec.mySymbol()  +  "  .NEXT:"+SRec.next.stringify(EP)+"  "+SRec.next.mySymbol())
         return(SRec.next)
     }
@@ -1110,11 +1110,11 @@ struct EParser{
                     Duplicate <- true
                     if(cause!=NULL and item.causes.first()!==cause){
                         item.causes.append(cause)
-                        xlog("ARROW: CAUSE: from="+item.mySymbol() +";  to="+cause.mySymbol()+";")
+                        ///xlog("ARROW: CAUSE: from="+item.mySymbol() +";  to="+cause.mySymbol()+";")
                     }
                     if(pred!=NULL and item.preds.first()!==pred){
                         item.preds.append(pred)
-                        xlog("ARROW: PRED: from="+item.mySymbol() +";  to="+pred.mySymbol()+";")
+                        ///xlog("ARROW: PRED: from="+item.mySymbol() +";  to="+pred.mySymbol()+";")
                     }
                     return(newStateRecPtr)
                 }
@@ -1126,14 +1126,14 @@ struct EParser{
                 Allocate(newStateRecPtr, productionID, seqPos, origin, CrntPos)
                 newStateRecPtr.mySymbol() // This just help get the symbols numbered in order for debugging.
                 if(ProdType == parseREP){newStateRecPtr.isREP<-true}
-                xlog("ALLOC: SREC: "+newStateRecPtr.mySymbol() + ": "+grammar[productionID].nameToStr(syntax.ruleNames)+": "+cause.mySymbol()+": "+newStateRecPtr.stringify(self))
+                ///xlog("ALLOC: SREC: "+newStateRecPtr.mySymbol() + ": "+grammar[productionID].nameToStr(syntax.ruleNames)+": "+cause.mySymbol()+": "+newStateRecPtr.stringify(self))
                 if(cause!=NULL){
                     newStateRecPtr.causes.append(cause)
-                    xlog("ARROW: CAUSE: from="+newStateRecPtr.mySymbol() +";  to="+cause.mySymbol()+";")
+                    ///xlog("ARROW: CAUSE: from="+newStateRecPtr.mySymbol() +";  to="+cause.mySymbol()+";")
                 }
                 if(pred!=NULL){
                     newStateRecPtr.preds.append(pred)
-                    xlog("ARROW: PRED: from="+newStateRecPtr.mySymbol() +";  to="+pred.mySymbol()+";")
+                    ///xlog("ARROW: PRED: from="+newStateRecPtr.mySymbol() +";  to="+pred.mySymbol()+";")
                 }
                 if(productionID==syntax.startProduction and origin==0) {lastTopLevelItem <- newStateRecPtr}
                 //log("  AddToCol:"+toString(CrntPos)+" cause:"+cause.mySymbol()+" pred:"+ pred.mySymbol()+": "+newStateRecPtr.mySymbol() + ": "+newStateRecPtr.stringify(self))
@@ -1160,7 +1160,7 @@ struct EParser{
 
     void: setSRecNextTo(our stateRec: from, our stateRec: next, me string: callLoc) <- {
         me MutexMngr: MtxMgr{streamingSRecNextMutex}
-        xlog("ARROW: NEXT: from="+from.mySymbol() +";  to="+next.mySymbol()+";")
+        ///xlog("ARROW: NEXT: from="+from.mySymbol() +";  to="+next.mySymbol()+";")
         from.nextIsFinal <- true
         from.next <- next
         if(next==NULL and from.parseDone){from.nullIsOK<-true}
@@ -1172,7 +1172,7 @@ struct EParser{
     void: setSRecChildTo(our stateRec: from, our stateRec: child, me string: callLoc) <- {
         me MutexMngr: MtxMgr{streamingSRecChildMutex}
         //log(callLoc + "SET_CHILD of:"+from.stringify(self)+":"+from.mySymbol()+"  to:"+child.mySymbol())
-        xlog("ARROW: CHILD: from="+from.mySymbol() +";  to="+child.mySymbol()+";")
+        ///xlog("ARROW: CHILD: from="+from.mySymbol() +";  to="+child.mySymbol()+";")
         from.child <- child
         from.childIsFilled<-true
         streamingSRecChildLock.notifyOne()
@@ -1352,15 +1352,19 @@ struct EParser{
         return(false)
     }
 
+    void: markAsFailed(our stateRec: failed) <- {
+        /////xlog("STATE: "+failed.mySymbol() + ": RESOLVE_State=FAILED; ")
+        failed.failed <- true
+    }
+
     void: notifyFailure(our stateRec: failed, me string: indent) <- {
         if(failed.failed){return()}
         their production: prod <- grammar[failed.productionID]
         me int: ProdType <- prod.prodType
         //log(indent+" FAIL:"+failed.mySymbol()+" : "+failed.stringify(self))
-        xlog("STATE: "+failed.mySymbol() + ": RESOLVE_State=FAILED; ")
         if(ProdType==parseREP) {
             log(indent+"MARK_FAILED:REP:"+failed.mySymbol()+" = "+failed.stringify(this))
-            failed.failed <- true
+            markAsFailed(failed)
             me int64: numItems <- failed.SeqPosition
             our stateRec: nextItem <- failed
             our stateRec: topItem
@@ -1376,7 +1380,7 @@ struct EParser{
             if(numItems < prod.items[1]){
                 if(!topItem.failed){
                     log(indent+"MARK_FAILED_TOP:REP:"+failed.mySymbol()+" = "+failed.stringify(this))
-                    topItem.failed <- true
+                    markAsFailed(topItem)
                 }
                 failed <- topItem
             } else {
@@ -1389,7 +1393,7 @@ struct EParser{
             }
         }else if(ProdType==parseSEQ){
             log(indent+"MARK_FAILED:SEQ:"+failed.mySymbol()+" = "+failed.stringify(this))
-            failed.failed <- true
+            markAsFailed(failed)
             our stateRec: nextItem <- failed
             our stateRec: topItem
             while(nextItem){
@@ -1399,14 +1403,14 @@ struct EParser{
             }
             if(!topItem.failed){
                 log(indent+"MARK_FAILED_TOP:SEQ:"+failed.mySymbol()+" = "+failed.stringify(this))
-                topItem.failed <- true
+                markAsFailed(topItem)
             }
             failed <- topItem
         } else if(ProdType==parseALT){
 
         } else {
             log(indent+"MARK_FAILED:OTHER:"+failed.mySymbol()+" = "+failed.stringify(this))
-            failed.failed <- true
+            markAsFailed(failed)
         }
 
         withEach cause in failed.causes {
@@ -1417,10 +1421,10 @@ struct EParser{
                     notifyFailure(cause, indent+"S   ")
                 }else if(ProdType==parseALT) {
                     failed.altCount <+- 1
-                    log(indent+"PartialFail:ALT:"+failed.mySymbol()+" = "+failed.stringify(this)+" \t("+toString(failed.altCount)+"/" +toString(prod.items.size()))
+                    log(indent+"PartialFail:ALT:"+failed.mySymbol()+" = "+failed.stringify(this)+" \t("+toString(failed.altCount)+"/" +toString(prod.items.size())+")")
                     if(failed.altCount >= prod.items.size()){
                         log(indent+"MARK_FAILED:ALT:"+failed.mySymbol()+" = "+failed.stringify(this))
-                        failed.failed <- true
+                        markAsFailed(failed)
                         notifyFailure(cause, indent+"A   ")
                     }
                 }else if(ProdType==parseREP) {
@@ -1613,7 +1617,7 @@ struct EParser{
     our stateRec: bottomUpResolve(our stateRec: SRec, me int: level, me string: indent) <- {
         if(level<=0){return(NULL)}
         log(indent+"RESOLVE:"+SRec.mySymbol()+": "+SRec.stringify(self) + "  LEVEL:"+toString(level))
-        xlog("STATE: "+SRec.mySymbol() + ": RESOLVE_State=RESOLVED; ")
+        ///xlog("STATE: "+SRec.mySymbol() + ": RESOLVE_State=RESOLVED; ")
         our stateRec: crntRec <- SRec
         our stateRec: firstSRec <- NULL
         while(crntRec!=NULL){
@@ -1633,12 +1637,7 @@ struct EParser{
                             if(pred != NULL){pred.next <- cause}
                         }
                     }
-                    if(level==1){
-                        if(firstSRec.child!=NULL and firstSRec.isREP){cause.MARKer1<-true
-                            SRec.parseDone <- true
-                            bottomUpResolve(cause, 2, indent+"|x  ") // TODO: This makes redundant calls. Improve it
-                        }
-                    }else {bottomUpResolve(cause, level-1, indent+"|   ")}
+                    bottomUpResolve(cause, level-1, indent+"|   ")
                 }
             }
         }
