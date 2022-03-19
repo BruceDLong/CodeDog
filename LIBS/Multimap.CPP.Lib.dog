@@ -28,7 +28,7 @@ struct CPP_Multimap<keyType, valueType>: implements=Multimap wraps=multimap nati
     me bool:  isEmpty()                         <- <%!empty()%>
     valueType: last()                           <- <%!rbegin()->second%>
     itr valueType: lower_bound(keyType: key)    <- <%!lower_bound(%1)%>
-    CPP_MapNode: popFirst()                     <- <%!%0.erase(%0.begin())%>
+    itr CPP_MapNode: popFirst()                 <- <%!%0.begin()->second; %0.erase(%0.begin())%>
     //CPP_MapNode: popLast()                    <- <%!%0.back(); %0.pop_back()%>
     me uint:  size()                            <- <%!size()%>
     /////////////////////////////////////////
