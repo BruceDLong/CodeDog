@@ -54,13 +54,7 @@ struct testClass{
 }''', 'PGBR: isEmpty:true7486513valAt:8firstItm:7lastItm:3firstPop:7lastPop:3Size:5   item:4   item:8   item:6   item:5   item:1Size after clear:0'],
 ###################################################################################################
 'maps1': ['''
-struct gloop<key, value>{
-    me int: i
-    me key: k
-    our value: val
-}
 struct testClass{
-    me gloop<me int, me string>: gloopList
     me void: runTest()<-{
         me Map<me int, me string>: mapIntString
         print(" isEmpty:"+toString(mapIntString.isEmpty()))
@@ -373,7 +367,7 @@ def getCPPTest():
     global workingDirectory
     xlatorLabel = 'TESTING: CPP'
     buildSpec = "LinuxBuild: Platform='Linux' Lang='CPP' LangVersion='GNU';\n"
-    buildSpec += "//SwingBuild: Platform='Swing' Lang='Java';\n"
+    buildSpec += "//JavaBuild: Platform='Swing' Lang='Java';\n"
     buildSpec += "//SwiftBuild: Platform='Swift' Lang='Swift';"
     runSpec = "./containerTests"
     runDirectory = workingDirectory + "/LinuxBuild"
@@ -386,11 +380,11 @@ def getJavaTest():
     global runDirectory
     global workingDirectory
     xlatorLabel = 'TESTING: JAVA'
-    buildSpec = "SwingBuild: Platform='Swing' Lang='Java';\n"
+    buildSpec = "JavaBuild: Platform='Swing' Lang='Java';\n"
     buildSpec += "//LinuxBuild: Platform='Linux' Lang='CPP' LangVersion='GNU';\n"
     buildSpec += "//SwiftBuild: Platform='Swift' Lang='Swift';"
     runSpec = "java GLOBAL"
-    runDirectory = workingDirectory + "/SwingBuild"
+    runDirectory = workingDirectory + "/JavaBuild"
     runListedTests(testsToRun)
 
 def getSwiftTest():
@@ -401,7 +395,7 @@ def getSwiftTest():
     global workingDirectory
     xlatorLabel = 'TESTING: SWIFT'
     buildSpec = "SwiftBuild: Platform='Swift' Lang='Swift';\n"
-    buildSpec += "//SwingBuild: Platform='Swing' Lang='Java';\n"
+    buildSpec += "//JavaBuild: Platform='Swing' Lang='Java';\n"
     buildSpec += "//LinuxBuild: Platform='Linux' Lang='CPP' LangVersion='GNU';"
     runSpec = "./containerTests"
     runDirectory = workingDirectory + "/SwiftBuild"
