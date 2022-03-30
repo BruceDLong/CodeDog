@@ -39,6 +39,7 @@ class CodeGenerator(object):
     inheritedEnums     = {}
     constFieldAccs     = {}
     modeStringsAcc     = ''
+    hasNestedClasses   = False
     genericStructsGenerated = [ {}, [] ]
     ForwardDeclsForGlobalFuncs = ''
     listOfFuncsWithUnknownArgTypes = {}
@@ -171,7 +172,7 @@ class CodeGenerator(object):
         searchFieldID = className+'::'+itemName
         fullSearchFieldID = className+'::'+itemName+fieldIDArgList
         #print("Searching",className,"for", itemName, fullSearchFieldID)
-        classDef =  progSpec.findSpecOf(self.classStore[0], className, "struct")
+        classDef = progSpec.findSpecOf(self.classStore[0], className, "struct")
         if classDef==None:
             message = "ERROR: definition not found for: "+ str(className) + " : " + str(itemName)
             progSpec.setCurrentCheckObjectVars(message)
@@ -235,7 +236,7 @@ class CodeGenerator(object):
         return 0 # Field not found in model
 
     def CheckClassStaticVars(self, className, itemName):
-        classDef =  progSpec.findSpecOf(self.classStore[0], itemName, "struct")
+        classDef = progSpec.findSpecOf(self.classStore[0], itemName, "struct")
         if classDef==None:
             return None
         return [{'owner':'me', 'fieldType':[itemName], 'StaticMode':'yes'}, "CLASS:"+itemName]
@@ -382,9 +383,9 @@ class CodeGenerator(object):
                 hiScoreVal = -1
                 hiScoreName = None
                 for option in implOptions:
-                    optionClassDef =  progSpec.findSpecOf(self.classStore[0], option, "struct")
-                    if 'tags' in optionClassDef and 'specs' in optionClassDef['tags']:
-                        optionTags  = optionClassDef['tags']
+                    classDef = progSpec.findSpecOf(self.classStore[0], option, "struct")
+                    if 'tags' in classDef and 'specs' in classDef['tags']:
+                        optionTags  = classDef['tags']
                         optionSpecs = optionTags['specs']
                         [implScore, errorMsg] = progSpec.scoreImplementation(optionSpecs, reqTags)
                         if 'native' in optionTags:
@@ -394,7 +395,7 @@ class CodeGenerator(object):
                         if(errorMsg != ""): cdErr(errorMsg)
                         if(implScore > hiScoreVal):
                             hiScoreVal = implScore
-                            hiScoreName = optionClassDef['name']
+                            hiScoreName = classDef['name']
                 if hiScoreName != None:
                     implTArgs = progSpec.getTypeArgList(hiScoreName)
                 else: implTArgs = None
@@ -583,8 +584,8 @@ class CodeGenerator(object):
             if isinstance(paramList, str): CPL = '('+paramList+')'
             elif len(paramList)>0:
                 fTypeKW      = progSpec.fieldTypeKeyword(tSpec)
-                objectDef    = self.classStore[0][fTypeKW]
-                genericArgs  = progSpec.getGenericArgs(objectDef)
+                classDef     = progSpec.findSpecOf(self.classStore[0], fTypeKW, "struct")
+                genericArgs  = progSpec.getGenericArgs(classDef)
                 modelParams  = self.getCtorModelParams(fTypeKW)
                 if len(paramList)>len(modelParams): modelParams  = []
                 [CPL, paramTypeList]  = self.codeParameterList('Allocate', paramList, modelParams, genericArgs)
@@ -1451,8 +1452,8 @@ class CodeGenerator(object):
         return defaultVal
 
     def getStructFieldsForCtor(self, className, typeArgList):
-        objectDef    = self.classStore[0][className]
-        genericArgs  = progSpec.getGenericArgs(objectDef)
+        classDef     = progSpec.findSpecOf(self.classStore[0], className, "struct")
+        genericArgs  = progSpec.getGenericArgs(classDef)
         ctorInit     = ""
         ctorArgs     = ""
         copyCtorArgs = ""
@@ -1505,7 +1506,7 @@ class CodeGenerator(object):
         return ctorCode
 
     #### STRUCT FIELDS #####################################################
-    def codeFunction(self, className, objectDef, field, typeArgList, genericArgs, cvrtType, indent):
+    def codeFunction(self, className, classDef, field, typeArgList, genericArgs, cvrtType, indent):
         structCode   = ""
         funcDefCode  = ""
         globalFuncs  = ""
@@ -1569,7 +1570,7 @@ class CodeGenerator(object):
             #cdErr("Function "+fieldID+" has no implementation defined.")
         else:
             extraCodeForTopOfFuntion = self.xlator.extraCodeForTopOfFuntion(argList)
-            if cvrtType=='' and 'flagsVarNeeded' in objectDef and objectDef['flagsVarNeeded']==True:
+            if cvrtType=='' and 'flagsVarNeeded' in classDef and classDef['flagsVarNeeded']==True:
                 extraCodeForTopOfFuntion+="    flags=0;"
             verbatimText=field['value'][1]
             if (verbatimText!=''):                                      # This function body is 'verbatim'.
@@ -1595,14 +1596,14 @@ class CodeGenerator(object):
         else: funcDefCode += funcText
         return [structCode, funcDefCode, globalFuncs]
 
-    def codeSpaceSeq(self):
-        structCode        = ""
-        funcDefCode       = ""
-        globalFuncs       = ""
-        topFuncDefCode    = ""
+    def codeSpaceSeq(self, className, field, indent):
+        structCode      = ""
+        funcDefCode     = ""
+        globalFuncs     = ""
+        topFuncDefCode  = ""
         return [structCode, funcDefCode, globalFuncs, topFuncDefCode]
 
-    def codeTimeSeq(self, className, objectDef, field, typeArgList, genericArgs, tags, indent):
+    def codeTimeSeq(self, className, classDef, field, typeArgList, genericArgs, tags, indent):
         funcDefCode    = ""
         structCode     = ""
         globalFuncs    = ""
@@ -1655,7 +1656,7 @@ class CodeGenerator(object):
         elif(fieldArglist==None):
             [structCode, funcDefCode] = self.xlator.codeVarField_Str(cvrtType, tSpec, fieldName, RHS, className, tags, typeArgList, indent)
         ###### ArgList exists so this is a FUNCTION###########
-        else: [structCode, funcDefCode, globalFuncs] = self.codeFunction(className, objectDef, field, typeArgList, genericArgs, cvrtType, indent)
+        else: [structCode, funcDefCode, globalFuncs] = self.codeFunction(className, classDef, field, typeArgList, genericArgs, cvrtType, indent)
         return [structCode, funcDefCode, globalFuncs, topFuncDefCode]
 
     def codeStructFields(self, className, tags, indent):
@@ -1665,9 +1666,9 @@ class CodeGenerator(object):
         funcDefCodeAcc   = ""
         structCodeAcc    = ""
         topFuncDefCodeAcc= "" # For defns that must appear first in the code. TODO: sort items instead
-        objectDef   = self.classStore[0][className]
+        classDef    = progSpec.findSpecOf(self.classStore[0], className, "struct")
         typeArgList = progSpec.getTypeArgList(className)
-        genericArgs =  progSpec.getGenericArgs(objectDef)
+        genericArgs = progSpec.getGenericArgs(classDef)
         for field in progSpec.generateListOfFieldsToImplement(self.classStore, className):
             ################################################################
             ### extracting FIELD data
@@ -1680,9 +1681,9 @@ class CodeGenerator(object):
                 verbatimText=field['value'][1]      # This function body is 'verbatim'.
                 if (verbatimText!='' and verbatimText[0]=='!'): continue  # This is a code conversion pattern. Don't write a function decl or body.
             if(fTypeKW=='model' or fTypeKW=='struct'):
-                [structCode, funcDefCode, globalFuncs, topFuncDefCode] = self.codeSpaceSeq()
+                [structCode, funcDefCode, globalFuncs, topFuncDefCode] = self.codeSpaceSeq(className, field, indent)
             else:
-                [structCode, funcDefCode, globalFuncs, topFuncDefCode] = self.codeTimeSeq(className, objectDef, field, typeArgList, genericArgs, tags, indent)
+                [structCode, funcDefCode, globalFuncs, topFuncDefCode] = self.codeTimeSeq(className, classDef, field, typeArgList, genericArgs, tags, indent)
             ## Accumulate field code
             structCodeAcc     += structCode
             funcDefCodeAcc    += funcDefCode
@@ -1734,9 +1735,9 @@ class CodeGenerator(object):
             if progSpec.isWrappedType(self.classStore, className)!=None: continue
             if(className[0] == '!' or className[0] == '%' or className[0] == '$'): continue   # Filter out "Do Commands", models and strings
             # The next lines skip defining C that will already be defined by a library
-            objectDef = progSpec.findSpecOf(self.classStore[0], className, 'struct')
-            if(objectDef==None): continue
-            implMode=progSpec.searchATagStore(objectDef['tags'], 'implMode')
+            classDef = progSpec.findSpecOf(self.classStore[0], className, 'struct')
+            if(classDef==None): continue
+            implMode=progSpec.searchATagStore(classDef['tags'], 'implMode')
             if(implMode): implMode=implMode[0]
             if(implMode!=None and not (implMode=="declare" or implMode[:7]=="inherit" or implMode[:9]=="implement")):  # "useLibrary"
                 cdlog(2, "SKIPPING: {} {}".format(className, implMode))
@@ -1826,7 +1827,7 @@ class CodeGenerator(object):
         bitCursor=0
         structEnums=""
         CodeDogAddendums = ""
-        classDef = self.classStore[0][className]
+        classDef = progSpec.findSpecOf(self.classStore[0], className, "struct")
         for field in progSpec.generateListOfFieldsToImplement(self.classStore, className):
             fTypeKW      = progSpec.fieldTypeKeyword(field)
             fieldName    = field['fieldName'];
@@ -2285,15 +2286,15 @@ class CodeGenerator(object):
                     fieldTags = []
                     if 'tags' in field: fieldTags = field['tags']
                     progSpec.addObjTags(fileClasses[0], fieldName, 'struct', fieldTags)
-                    fileClasses[0][fieldName]['fields']   = fields
-                    fileClasses[0][fieldName]['libLevel'] = fileClasses[0][className]['libLevel']
+                    fileClasses[0][fieldName]['fields']     = fields
+                    fileClasses[0][fieldName]['libLevel']   = fileClasses[0][className]['libLevel']
 
     def loadProgSpecFromDogFile(self, filename, ProgSpec, objNames, topLvlTags, macroDefs):
         codeDogStr = progSpec.stringFromFile(filename)
         codeDogStr = libraryMngr.processIncludedFiles(codeDogStr, filename)
         [tagStore, buildSpecs, fileClasses, newClassNames] = codeDogParser.parseCodeDogString(codeDogStr, ProgSpec, objNames, macroDefs, filename)
         self.GroomTags(tagStore)
-        self.extractNestedClasses(fileClasses, newClassNames)
+        if self.hasNestedClasses==False: self.extractNestedClasses(fileClasses, newClassNames)
         self.ScanAndEnquePatterns(fileClasses, topLvlTags, tagStore)
         stringStructs.CreateStructsForStringModels(fileClasses, newClassNames, tagStore)
         return [tagStore, buildSpecs, fileClasses,newClassNames]
