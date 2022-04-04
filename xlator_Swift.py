@@ -868,32 +868,36 @@ class Xlator_Swift(Xlator):
     def codeSuperConstructorCall(self, parentClassName):
         return '        super.init();\n'
 
-    def codeFuncHeaderStr(self, className, fieldName, returnType, argListText, localArgsAllocated, inheritMode, overRideOper, isConstructor, typeArgList, tSpec, indent):
-        #TODO: add \n before func
-        structCode=''; funcDefCode=''; globalFuncs='';
+    def codeFuncHeaderStr(self, className, field, cvrtType, argListText, localArgsAlloc, inheritMode, typeArgList, isNested, indent):
+        structCode='\n'; funcDefCode=''; globalFuncs='';
+        tSpec        = progSpec.getTypeSpec(field)
+        fTypeKW      = progSpec.fieldTypeKeyword(tSpec)
+        fieldName    = field['fieldName']
+        if fTypeKW =='none': isCtor = True
+        else: isCtor = False
         if typeArgList:
             for typeArg in typeArgList:
-                if returnType == typeArg: returnType = '['+returnType+']'
-        if returnType!='': returnType = '-> '+returnType
+                if cvrtType == typeArg: cvrtType = '['+cvrtType+']'
+        if cvrtType!='': cvrtType = '-> '+cvrtType
         if(className=='AppDelegate'):
             if fieldName=='application':
                 structCode += '    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplicationLaunchOptionsKey: Any]?) -> Bool '
-                localArgsAllocated.append(['application', {'owner':'me', 'fieldType':'UIApplication', 'arraySpec':None,'argList':None}])
-                localArgsAllocated.append(['launchOptions', {'owner':'their', 'fieldType':'int', 'arraySpec':None,'argList':None}])  # TODO: Wrong. launchOptions should be an array.
+                localArgsAlloc.append(['application', {'owner':'me', 'fieldType':'UIApplication', 'arraySpec':None,'argList':None}])
+                localArgsAlloc.append(['launchOptions', {'owner':'their', 'fieldType':'int', 'arraySpec':None,'argList':None}])  # TODO: Wrong. launchOptions should be an array.
             else:
-                structCode +="func " + fieldName +"("+argListText+") " + returnType
+                structCode +="func " + fieldName +"("+argListText+") " + cvrtType
         else:
             if fieldName=="init":
                 fieldName = "__INIT_"+className
-                structCode += indent + "func "  + fieldName +"("+argListText+")" + returnType
+                structCode += indent + "func "  + fieldName +"("+argListText+")" + cvrtType
             else:
-                if isConstructor:
-                    structCode += indent + "init "  +"("+argListText+") " + returnType
+                if isCtor:
+                    structCode += indent + "init "  +"("+argListText+") " + cvrtType
                 else:
                     fieldTypeMod = self.makePtrOpt(tSpec)
                     funcAttrs=''
                     if inheritMode=='override': funcAttrs='override '
-                    structCode += indent + funcAttrs + "func " + fieldName +"("+argListText+") " + returnType + fieldTypeMod
+                    structCode += indent + funcAttrs + "func " + fieldName +"("+argListText+") " + cvrtType + fieldTypeMod
         return [structCode, funcDefCode, globalFuncs]
 
     def getVirtualFuncText(self, field):

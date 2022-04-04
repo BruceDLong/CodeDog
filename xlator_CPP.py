@@ -879,15 +879,22 @@ void SetBits(CopyableAtomic<uint64_t>& target, uint64_t mask, uint64_t value) {
         else:  newFieldName = fieldName
         return newFieldName
 
-    def codeFuncHeaderStr(self, className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, overRideOper, isConstructor, typeArgList, tSpec, indent):
-        structCode=''; funcDefCode=''; globalFuncs='';
+    def codeFuncHeaderStr(self, className, field, cvrtType, argListText, localArgsAlloc, inheritMode, typeArgList, isNested, indent):
+        structCode='\n'; funcDefCode=''; globalFuncs='';
+        tSpec        = progSpec.getTypeSpec(field)
+        fTypeKW      = progSpec.fieldTypeKeyword(tSpec)
+        fieldName    = field['fieldName']
+        overRideOper = False
+        if fieldName[0:2] == "__" and self.iteratorsUseOperators:
+            fieldName    = self.specialFunction(fieldName)
+            overRideOper = True
         if(className=='GLOBAL'):
             if fieldName=='main':
-                funcDefCode += 'int main(int argc, char *argv[])'
-                localArgsAllocated.append(['argc', {'owner':'me', 'fieldType':'int', 'arraySpec':None, 'argList':None}])
-                localArgsAllocated.append(['argv', {'owner':'their', 'fieldType':'char', 'arraySpec':None,'argList':None}])  # TODO: Wrong. argv should be an array.
+                if not isNested:funcDefCode += 'int main(int argc, char *argv[])'
+                localArgsAlloc.append(['argc', {'owner':'me', 'fieldType':'int', 'arraySpec':None, 'argList':None}])
+                localArgsAlloc.append(['argv', {'owner':'their', 'fieldType':'char', 'arraySpec':None,'argList':None}])  # TODO: Wrong. argv should be an array.
             else:
-                globalFuncs += typeDefName +' ' + fieldName +"("+argListText+")"
+                if not isNested:globalFuncs += cvrtType +' ' + fieldName +"("+argListText+")"
         else:
             typeArgList = progSpec.getTypeArgList(className)
             if(typeArgList != None):
@@ -897,19 +904,20 @@ void SetBits(CopyableAtomic<uint64_t>& target, uint64_t mask, uint64_t value) {
                 templateHeader = ""
             if overRideOper:
                 if fieldName == "operator[]":
-                    typeDefName += "&"
+                    cvrtType += "&"
             if inheritMode=='normal' or inheritMode=='override':
-                structCode += indent + typeDefName +' ' + fieldName +"("+argListText+");\n";
+                structCode += indent + cvrtType +' ' + fieldName +"("+argListText+")";
                 objPrefix = progSpec.flattenObjectName(className) +'::'
-                funcDefCode += templateHeader + typeDefName +' ' + objPrefix + fieldName +"("+argListText+")"
+                if not isNested:funcDefCode += templateHeader + cvrtType +' ' + objPrefix + fieldName +"("+argListText+")"
             elif inheritMode=='virtual':
-                structCode += indent + 'virtual '+typeDefName +' ' + fieldName +"("+argListText +");\n";
+                structCode += indent + 'virtual '+cvrtType +' ' + fieldName +"("+argListText +")";
                 objPrefix = progSpec.flattenObjectName(className) +'::'
-                funcDefCode += templateHeader + typeDefName +' ' + objPrefix + fieldName +"("+argListText+")"
+                if not isNested:funcDefCode += templateHeader + cvrtType +' ' + objPrefix + fieldName +"("+argListText+")"
             elif inheritMode=='pure-virtual':
-                structCode +=  indent + 'virtual ' + typeDefName +' ' + fieldName +"("+argListText +") = 0;\n";
+                structCode +=  indent + 'virtual ' + cvrtType +' ' + fieldName +"("+argListText +") = 0";
             else: cdErr("Invalid inherit mode found: "+inheritMode)
             if funcDefCode[:7]=="static ": funcDefCode=funcDefCode[7:]
+            if not isNested:structCode += ';\n';
         return [structCode, funcDefCode, globalFuncs]
 
     def getVirtualFuncText(self, field):

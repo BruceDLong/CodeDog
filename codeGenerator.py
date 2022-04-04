@@ -40,6 +40,8 @@ class CodeGenerator(object):
     constFieldAccs     = {}
     modeStringsAcc     = ''
     hasNestedClasses   = False
+    nestedClasses      = {}
+    isNestedClass      = False
     genericStructsGenerated = [ {}, [] ]
     ForwardDeclsForGlobalFuncs = ''
     listOfFuncsWithUnknownArgTypes = {}
@@ -1564,9 +1566,7 @@ class CodeGenerator(object):
             self.classStore[0][className]['attrList'].append('abstract')
 
         # ####################################################################
-        if fTypeKW =='none': isCtor = True
-        else: isCtor = False
-        [structCode, funcDefCode, globalFuncs]=self.xlator.codeFuncHeaderStr(className, fieldName, cvrtType, argListText, self.localArgsAllocated, inheritMode, overRideOper, isCtor, typeArgList, tSpec, indent)
+        [structCode, funcDefCode, globalFuncs]=self.xlator.codeFuncHeaderStr(className, field, cvrtType, argListText, self.localArgsAllocated, inheritMode, typeArgList, self.isNestedClass, indent)
 
         #### FUNC BODY #############################################
         if abstractFunction: # i.e., if no function body is given.
@@ -2293,6 +2293,8 @@ class CodeGenerator(object):
                     progSpec.addObjTags(fileClasses[0], fieldName, 'struct', fieldTags)
                     fileClasses[0][fieldName]['fields']     = fields
                     fileClasses[0][fieldName]['libLevel']   = fileClasses[0][className]['libLevel']
+                    fileClasses[0][fieldName]['fromNested'] = className
+                    self.nestedClasses[fieldName] = className
 
     def loadProgSpecFromDogFile(self, filename, ProgSpec, objNames, topLvlTags, macroDefs):
         codeDogStr = progSpec.stringFromFile(filename)

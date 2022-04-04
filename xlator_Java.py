@@ -884,20 +884,21 @@ class Xlator_Java(Xlator):
     def codeSuperConstructorCall(self, parentClassName):
         return '        '+parentClassName+'();\n'
 
-    def codeFuncHeaderStr(self, className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, overRideOper, isConstructor, typeArgList, tSpec, indent):
-    #    if fieldName == 'init':
-    #        fieldName = fieldName+'_'+className
-        if inheritMode=='pure-virtual':
-            typeDefName = 'abstract '+typeDefName
+    def codeFuncHeaderStr(self, className, field, cvrtType, argListText, localArgsAlloc, inheritMode, typeArgList, isNested, indent):
         structCode='\n'; funcDefCode=''; globalFuncs='';
+        tSpec        = progSpec.getTypeSpec(field)
+        fTypeKW      = progSpec.fieldTypeKeyword(tSpec)
+        fieldName    = field['fieldName']
+        if inheritMode=='pure-virtual':
+            cvrtType = 'abstract '+cvrtType
         if(className=='GLOBAL'):
             if fieldName=='main':
                 structCode += indent + "public static void " + fieldName +" (String[] args)";
-                #localArgsAllocated.append(['args', {'owner':'me', 'fieldType':'String', 'argList':None}])
+                #localArgsAlloc.append(['args', {'owner':'me', 'fieldType':'String', 'argList':None}])
             else:
-                structCode += indent + "public " + typeDefName + ' ' + fieldName +"("+argListText+")"
+                structCode += indent + "public " + cvrtType + ' ' + fieldName +"("+argListText+")"
         else:
-            structCode += indent + "public " + typeDefName +' ' + fieldName +"("+argListText+")"
+            structCode += indent + "public " + cvrtType +' ' + fieldName +"("+argListText+")"
         if inheritMode=='pure-virtual':
             structCode += ";\n"
         elif inheritMode=='override': pass
