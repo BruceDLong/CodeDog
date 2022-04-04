@@ -177,6 +177,10 @@ class Xlator_CPP(Xlator):
         else: langType=progSpec.flattenObjectName(fType[0])
         return langType
 
+    def applyIterator(self, langType, itrTypeKW):
+        if itrTypeKW==None: return langType
+        return langType +'::' + itrTypeKW
+
     def applyOwner(self, owner, langType, varMode):
         # varMode is 'var' or 'arg' or 'alloc'
         if varMode!='alloc':
@@ -184,7 +188,7 @@ class Xlator_CPP(Xlator):
             elif owner=='my':       langType = "unique_ptr<"+langType + ' >'
             elif owner=='our':      langType = "shared_ptr<"+langType + ' >'
             elif owner=='their':    langType += '*'
-            elif owner=='itr' :     langType += '::iterator'
+            elif owner=='itr' :     langType
             elif owner=='const':    langType = "static const "+langType
             elif owner=='we':       langType = 'static '+langType
             elif owner=='id_our':   langType="shared_ptr<"+langType + '>*'

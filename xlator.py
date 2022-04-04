@@ -6,6 +6,9 @@ class Xlator(object):
     def adjustBaseTypes(self, fType, isContainer):
         cdErr("In base class Xlator::adjustBaseTypes.")
 
+    def applyIterator(self, langType, itrTypeKW):
+        cdErr("In base class Xlator::applyIterator.")
+
     def applyOwner(self, owner, langType):
         cdErr("In base class Xlator::applyOwner.")
 

@@ -15,7 +15,7 @@ LibDescription ={
 }
 
 struct CPP_Map<keyType, valueType>: implements=Map wraps=map native=lang specs={insert=logarithmic find=logarithmic at=logarithmic}{
-    const struct: iterator_CPP_Map(keyType: key, valueType: value): implements=MapItr native=lang <- {
+    const struct: iterator_CPP_Map(keyType: key, valueType: value): implements=MapItr wraps=iterator native=lang <- {
         me keyType: key
         me keyType: key()                        <- <%!%0.first%>
         me valueType: val()                      <- <%!%0.second%>

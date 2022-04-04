@@ -194,6 +194,9 @@ class Xlator_Swift(Xlator):
         else: langType=progSpec.flattenObjectName(fType[0])
         return langType
 
+    def applyIterator(self, langType, itrTypeKW):
+        return langType
+
     def applyOwner(self, owner, langType, varMode):
         # varMode is 'var' or 'arg' or 'alloc'.
         if owner=='me':         langType = langType

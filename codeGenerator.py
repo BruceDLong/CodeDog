@@ -556,6 +556,13 @@ class CodeGenerator(object):
         return[keyOwner, keyTypeKW]
 
     ########################################################################
+    def getUnwrappedIteratorTypeKW(self, owner, fTypeKW):
+        itrTypeKW   = None
+        if owner=='itr' and not progSpec.isItrType(fTypeKW):
+            itrTypeKW   = progSpec.convertItrType(self.classStore, owner, fTypeKW)
+            itrTypeKW   = progSpec.getUnwrappedClassFieldTypeKeyWord(self.classStore, itrTypeKW)
+        return itrTypeKW
+
     def convertType(self, tSpec, varMode, genericArgs):
         # varMode is 'var' or 'arg' or 'alloc'. Large items are passed as pointers
         progSpec.isOldContainerTempFuncErr(tSpec, "convertType")
@@ -565,17 +572,15 @@ class CodeGenerator(object):
         ownerOut = self.xlator.getUnwrappedClassOwner(self.classStore, tSpec, fTypeKW, varMode, ownerIn)
         unwrappedKW = progSpec.getUnwrappedClassFieldTypeKeyWord(self.classStore, fTypeKW)
         reqTagList  = progSpec.getReqTagList(tSpec)
-        if ownerOut=='itr':
-            if not progSpec.isItrType(fTypeKW):
-                itrTypeKW   = progSpec.convertItrType(self.classStore, ownerOut, fTypeKW)
-                if itrTypeKW!=None: fTypeKW = itrTypeKW
-            else: varMode='alloc'   # TODO: This is a hack: remove temporary code once CPP iterator subclasses are working
+        itrTypeKW   = self.getUnwrappedIteratorTypeKW(ownerOut, fTypeKW)
         if reqTagList:
             if self.xlator.renderGenerics=='True' and not progSpec.isWrappedType(self.classStore, fTypeKW) and not progSpec.isAbstractStruct(self.classStore[0], fTypeKW):
+                if itrTypeKW: fTypeKW = itrTypeKW
                 unwrappedKW = self.generateGenericStructName(fTypeKW, reqTagList, genericArgs)
             else: unwrappedKW += self.xlator.getReqTagString(self.classStore, tSpec)
         langType = self.xlator.adjustBaseTypes(unwrappedKW, progSpec.isNewContainerTempFunc(tSpec))
         langType = self.xlator.applyOwner(ownerOut, langType, varMode)
+        langType = self.xlator.applyIterator(langType, itrTypeKW)
         return langType
 
     def codeAllocater(self, tSpec, paramList, genericArgs):
