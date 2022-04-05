@@ -27,6 +27,7 @@ class Xlator_Java(Xlator):
     renameInitFuncs       = False
     useAllCtorArgs        = True
     hasMacros             = False
+    useNestedClasses      = False
     nullValue             = "null"
 
     ###################################################### CONTAINERS

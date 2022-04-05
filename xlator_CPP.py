@@ -27,6 +27,7 @@ class Xlator_CPP(Xlator):
     renameInitFuncs       = False
     useAllCtorArgs        = False
     hasMacros             = True
+    useNestedClasses      = True
     nullValue             = "nullptr"
 
     ###################################################### CONTAINERS
@@ -880,7 +881,7 @@ void SetBits(CopyableAtomic<uint64_t>& target, uint64_t mask, uint64_t value) {
         return newFieldName
 
     def codeFuncHeaderStr(self, className, field, cvrtType, argListText, localArgsAlloc, inheritMode, typeArgList, isNested, indent):
-        structCode='\n'; funcDefCode=''; globalFuncs='';
+        structCode=''; funcDefCode=''; globalFuncs='';
         tSpec        = progSpec.getTypeSpec(field)
         fTypeKW      = progSpec.fieldTypeKeyword(tSpec)
         fieldName    = field['fieldName']

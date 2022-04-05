@@ -27,6 +27,7 @@ class Xlator_Swift(Xlator):
     renameInitFuncs       = True
     useAllCtorArgs        = False
     hasMacros             = False
+    useNestedClasses      = False
     nullValue             = "nil"
 
     ###################################################### CONTAINERS

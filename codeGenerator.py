@@ -39,7 +39,6 @@ class CodeGenerator(object):
     inheritedEnums     = {}
     constFieldAccs     = {}
     modeStringsAcc     = ''
-    hasNestedClasses   = False
     nestedClasses      = {}
     isNestedClass      = False
     genericStructsGenerated = [ {}, [] ]
@@ -575,11 +574,13 @@ class CodeGenerator(object):
         unwrappedKW = progSpec.getUnwrappedClassFieldTypeKeyWord(self.classStore, fTypeKW)
         reqTagList  = progSpec.getReqTagList(tSpec)
         itrTypeKW   = self.getUnwrappedIteratorTypeKW(ownerOut, fTypeKW)
-        if reqTagList:
-            if self.xlator.renderGenerics=='True' and not progSpec.isWrappedType(self.classStore, fTypeKW) and not progSpec.isAbstractStruct(self.classStore[0], fTypeKW):
+        if self.xlator.renderGenerics=='True':
+            if reqTagList and not progSpec.isWrappedType(self.classStore, fTypeKW) and not progSpec.isAbstractStruct(self.classStore[0], fTypeKW):
                 if itrTypeKW: fTypeKW = itrTypeKW
                 unwrappedKW = self.generateGenericStructName(fTypeKW, reqTagList, genericArgs)
             else: unwrappedKW += self.xlator.getReqTagString(self.classStore, tSpec)
+        else:
+            unwrappedKW += self.xlator.getReqTagString(self.classStore, tSpec)
         langType = self.xlator.adjustBaseTypes(unwrappedKW, progSpec.isNewContainerTempFunc(tSpec))
         langType = self.xlator.applyOwner(ownerOut, langType, varMode)
         langType = self.xlator.applyIterator(langType, itrTypeKW)
@@ -2301,7 +2302,7 @@ class CodeGenerator(object):
         codeDogStr = libraryMngr.processIncludedFiles(codeDogStr, filename)
         [tagStore, buildSpecs, fileClasses, newClassNames] = codeDogParser.parseCodeDogString(codeDogStr, ProgSpec, objNames, macroDefs, filename)
         self.GroomTags(tagStore)
-        if self.hasNestedClasses==False: self.extractNestedClasses(fileClasses, newClassNames)
+        self.extractNestedClasses(fileClasses, newClassNames)
         self.ScanAndEnquePatterns(fileClasses, topLvlTags, tagStore)
         stringStructs.CreateStructsForStringModels(fileClasses, newClassNames, tagStore)
         return [tagStore, buildSpecs, fileClasses,newClassNames]
