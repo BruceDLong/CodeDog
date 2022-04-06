@@ -27,7 +27,7 @@ class Xlator_CPP(Xlator):
     renameInitFuncs       = False
     useAllCtorArgs        = False
     hasMacros             = True
-    useNestedClasses      = True
+    useNestedClasses      = False
     nullValue             = "nullptr"
 
     ###################################################### CONTAINERS

@@ -564,6 +564,12 @@ class CodeGenerator(object):
             itrTypeKW   = progSpec.getUnwrappedClassFieldTypeKeyWord(self.classStore, itrTypeKW)
         return itrTypeKW
 
+    def getNestedOutter(self, innerKW):
+        outerKW = None
+        if innerKW in self.nestedClasses:
+            outerKW = self.nestedClasses[innerKW]
+        return outerKW
+
     def convertType(self, tSpec, varMode, genericArgs):
         # varMode is 'var' or 'arg' or 'alloc'. Large items are passed as pointers
         progSpec.isOldContainerTempFuncErr(tSpec, "convertType")
@@ -574,13 +580,14 @@ class CodeGenerator(object):
         unwrappedKW = progSpec.getUnwrappedClassFieldTypeKeyWord(self.classStore, fTypeKW)
         reqTagList  = progSpec.getReqTagList(tSpec)
         itrTypeKW   = self.getUnwrappedIteratorTypeKW(ownerOut, fTypeKW)
+        reqTagStr = self.xlator.getReqTagString(self.classStore, tSpec)
         if self.xlator.renderGenerics=='True':
             if reqTagList and not progSpec.isWrappedType(self.classStore, fTypeKW) and not progSpec.isAbstractStruct(self.classStore[0], fTypeKW):
                 if itrTypeKW: fTypeKW = itrTypeKW
                 unwrappedKW = self.generateGenericStructName(fTypeKW, reqTagList, genericArgs)
-            else: unwrappedKW += self.xlator.getReqTagString(self.classStore, tSpec)
+            else: unwrappedKW += reqTagStr
         else:
-            unwrappedKW += self.xlator.getReqTagString(self.classStore, tSpec)
+            unwrappedKW += reqTagStr
         langType = self.xlator.adjustBaseTypes(unwrappedKW, progSpec.isNewContainerTempFunc(tSpec))
         langType = self.xlator.applyOwner(ownerOut, langType, varMode)
         langType = self.xlator.applyIterator(langType, itrTypeKW)
@@ -1595,7 +1602,7 @@ class CodeGenerator(object):
                 if globalFuncs!='': self.ForwardDeclsForGlobalFuncs += globalFuncs+";       \t\t // Forward Decl\n"
             else: cdErr("ERROR: In codeFields: no funcText or funcTextVerbatim found")
 
-        if self.xlator.funcsDefInClass: structCode += funcText
+        if self.xlator.funcsDefInClass or self.isNestedClass: structCode += funcText
         elif(className=='GLOBAL'):
             if(fieldName=='main'): funcDefCode += funcText
             else: globalFuncs += funcText
@@ -1607,6 +1614,16 @@ class CodeGenerator(object):
         funcDefCode     = ""
         globalFuncs     = ""
         topFuncDefCode  = ""
+        if self.xlator.useNestedClasses:
+            fieldName       = field['fieldName']
+            tags            = field['tags']
+            self.isNestedClass = True
+            self.currentObjName = fieldName
+            [innerStructCode, funcCode, globalCode]=self.codeStructFields(fieldName, tags, indent+'    ')
+            innerStructCode = indent + 'class ' + fieldName + '{\n' +innerStructCode + indent + '};\n'
+            structCode = innerStructCode
+            self.currentObjName = className
+            self.isNestedClass = False
         return [structCode, funcDefCode, globalFuncs, topFuncDefCode]
 
     def codeTimeSeq(self, className, classDef, field, typeArgList, genericArgs, tags, indent):
@@ -1945,7 +1962,9 @@ class CodeGenerator(object):
         for className in structsToImplement:
             typeArgList = progSpec.getTypeArgList(className)
             classDef = progSpec.findSpecOf(self.classStore[0], className, "struct")
-            if self.xlator.renderGenerics=='False' or typeArgList == None or progSpec.isWrappedType(self.classStore, className):
+            if self.xlator.useNestedClasses and 'fromNested' in classDef:
+                classRecords[className]='skip'
+            elif self.xlator.renderGenerics=='False' or typeArgList == None or progSpec.isWrappedType(self.classStore, className):
                 classRecord = self.codeOneStruct(tags, self.constFieldAccs[progSpec.flattenObjectName(className)], className)
                 if classRecord != None:
                     classRecords[className]=classRecord
@@ -2130,6 +2149,7 @@ class CodeGenerator(object):
             for className in structsToImplement:
                 typeArgList = progSpec.getTypeArgList(className)
                 if(not self.xlator.doesLangHaveGlobals or className != 'GLOBAL') and (self.xlator.renderGenerics=='False' or typeArgList == None):
+                    if not isinstance(classRecords[className],str): # if not 'skip'
                         classRecord    = classRecords[className]
                         constsEnums   += classRecord[0]
                         forwardDecls  += classRecord[1]
