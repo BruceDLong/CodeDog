@@ -35,11 +35,6 @@ model Map<keyType, valueType>{
 
 ////////////////////////////////////////////////////////
 struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={insert=logarithmic find=logarithmic at=logarithmic}{// find=logarithmic at=logarithmic}{  // constant
-    their Node_RBTree<keyType, valueType>: Root
-    their Node_RBTree<keyType, valueType>: Leaf
-    their Node_RBTree<keyType, valueType>: edge
-    me uint: mapSize
-
     const struct: Node_RBTree(keyType: key, valueType: value): implements=MapNode <- {
         me keyType: key
         me valueType: value
@@ -86,7 +81,7 @@ struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={inser
             node <- RHS.node
             return(self)
         }
-        itr iterator_RBTreeMap<keyType, valueType>: __inc() <- { // Prefix ++ overload
+        their iterator_RBTreeMap<keyType, valueType>: __inc() <- { // Prefix ++ overload
             if(node){
                 node <- goNext()
             }
@@ -99,8 +94,18 @@ struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={inser
         me bool: __isEqual(itr iterator_RBTreeMap<keyType, valueType>: RHS) <- {
             return(node === RHS.node)
         }
+        their iterator_RBTreeMap<keyType, valueType>: __opPtr() <- {
+            return(self)
+        }
         me valueType: val()                         <- <%!%0%>
+        me valueType: key()                         <- <%!.node->key%>
     }
+
+    their Node_RBTree<keyType, valueType>: Root
+    their Node_RBTree<keyType, valueType>: Leaf
+    their Node_RBTree<keyType, valueType>: edge
+    me uint: mapSize
+
     valueType: at(keyType: searchKey) <- {
         their Node_RBTree<keyType, valueType>: node
         node <- getNode(Root, searchKey)

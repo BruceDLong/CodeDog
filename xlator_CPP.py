@@ -877,6 +877,7 @@ void SetBits(CopyableAtomic<uint64_t>& target, uint64_t mask, uint64_t value) {
         elif fieldName == "__opAssign": newFieldName = "operator="
         elif fieldName == "__derefPtr": newFieldName = "operator*"
         elif fieldName == "__index": newFieldName = "operator[]"
+        elif fieldName == "__opPtr": newFieldName = "operator->"
         else:  newFieldName = fieldName
         return newFieldName
 

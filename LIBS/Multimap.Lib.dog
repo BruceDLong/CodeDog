@@ -30,11 +30,6 @@ model Multimap<keyType, valueType>{
 }
 
 struct RBMultimap<keyType, valueType>: implements=Multimap native=codeDog specs={insert=logarithmic find=logarithmic at=logarithmic}{ // constant
-    their Node_RBMultimap<keyType, valueType>: Root
-    their Node_RBMultimap<keyType, valueType>: Leaf
-    their Node_RBMultimap<keyType, valueType>: edge
-    me uint: mapSize
-
     const struct: Node_RBMultimap(keyType: key, valueType: value): implements=MapNode <- {
         me keyType: key
         me valueType: value
@@ -98,6 +93,11 @@ struct RBMultimap<keyType, valueType>: implements=Multimap native=codeDog specs=
         me valueType: val() <- {return(node.value)}
         me keyType: key() <- {return(node.key)}
     }
+
+    their Node_RBMultimap<keyType, valueType>: Root
+    their Node_RBMultimap<keyType, valueType>: Leaf
+    their Node_RBMultimap<keyType, valueType>: edge
+    me uint: mapSize
 
     valueType: at(keyType: searchKey) <- {
         their Node_RBMultimap<keyType, valueType>: node

@@ -589,8 +589,8 @@ class CodeGenerator(object):
         else:
             unwrappedKW += reqTagStr
         langType = self.xlator.adjustBaseTypes(unwrappedKW, progSpec.isNewContainerTempFunc(tSpec))
-        langType = self.xlator.applyOwner(ownerOut, langType, varMode)
         langType = self.xlator.applyIterator(langType, itrTypeKW)
+        langType = self.xlator.applyOwner(ownerOut, langType, varMode)
         return langType
 
     def codeAllocater(self, tSpec, paramList, genericArgs):
@@ -874,7 +874,6 @@ class CodeGenerator(object):
                 lenConnector = len(connector)
                 if S[:lenConnector]==connector: S=S[lenConnector:]
             else: S+=segStr
-
 
             # Language specific dereferencing of ->[...], etc.
             S = self.xlator.LanguageSpecificDecorations(S, segTSpec, owner, LorRorP_Val)
@@ -1596,7 +1595,9 @@ class CodeGenerator(object):
                     funcText=verbatimText + "\n\n"
                     if globalFuncs!='': self.ForwardDeclsForGlobalFuncs += globalFuncs+";       \t\t // Forward Decl\n"
             elif field['value'][0]!='':
-                funcText =  self.codeActionSeq(field['value'][0], self.xlator.funcBodyIndent, FirstReturnType, genericArgs)
+                funcBodyIndent = self.xlator.funcBodyIndent
+                if self.xlator.useNestedClasses and self.isNestedClass: funcBodyIndent = indent
+                funcText =  self.codeActionSeq(field['value'][0], funcBodyIndent, FirstReturnType, genericArgs)
                 if extraCodeForTopOfFuntion!='':
                     funcText = '{\n' + extraCodeForTopOfFuntion + funcText[1:]
                 if globalFuncs!='': self.ForwardDeclsForGlobalFuncs += globalFuncs+";       \t\t // Forward Decl\n"
@@ -1620,7 +1621,7 @@ class CodeGenerator(object):
             self.isNestedClass = True
             self.currentObjName = fieldName
             [innerStructCode, funcCode, globalCode]=self.codeStructFields(fieldName, tags, indent+'    ')
-            innerStructCode = indent + 'class ' + fieldName + '{\n' +innerStructCode + indent + '};\n'
+            innerStructCode = indent + 'struct ' + fieldName + '{\n' +innerStructCode + indent + '};\n'
             structCode = innerStructCode
             self.currentObjName = className
             self.isNestedClass = False
