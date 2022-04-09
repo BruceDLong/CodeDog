@@ -67,7 +67,6 @@ class Xlator_CPP(Xlator):
         firstOwner   = progSpec.getContainerFirstElementOwner(ctnrTSpec)
         firstType    = progSpec.fieldTypeKeyword(ctnrTSpec)
         firstTSpec   = {'owner':firstOwner, 'fieldType':firstType}
-        itrName      = repName + "Itr"
         reqTagList   = progSpec.getReqTagList(ctnrTSpec)
         containerCat = progSpec.getContaineCategory(ctnrTSpec)
         if progSpec.ownerIsPointer(ctnrOwner): connector="->"
@@ -78,11 +77,10 @@ class Xlator_CPP(Xlator):
                 firstTSpec['fieldType'] = progSpec.getTypeFromTemplateArg(reqTagList[1])
             keyVarSpec = {'owner':'itr', 'fieldType':firstType, 'codeConverter':(repName+'.first')}
             loopCntrName  = repName+'_key'
-            firstTSpec['codeConverter'] = (repName+'.second')
+            firstTSpec['codeConverter'] = (repName+'->second')
             localVarsAlloc.append([loopCntrName, keyVarSpec])  # Tracking local vars for scope
             localVarsAlloc.append([repName, firstTSpec]) # Tracking local vars for scope
-            actionText += (indent + "for( auto " + itrName+' ='+ ctnrName+connector+'lower_bound('+StartKey+')' + "; " + itrName + " !=" + ctnrName+connector+'upper_bound('+EndKey+')' +"; ++"+ repName + "Itr ){\n"
-                        + indent+"    "+"auto "+repName+" = *"+itrName+";\n")
+            actionText += indent+"for(auto "+repName+' ='+ctnrName+connector+'lower_bound('+StartKey+'); '+repName+'!='+ctnrName+connector+'upper_bound('+EndKey+'); ++'+repName+'){\n'
         elif datastructID=='List' and not willBeModifiedDuringTraversal: pass;
         elif datastructID=='List' and willBeModifiedDuringTraversal: pass;
         else: cdErr("DSID iterateRangeFromTo:"+datastructID+" "+containerCat)
@@ -119,15 +117,10 @@ class Xlator_CPP(Xlator):
             if(reqTagList != None):
                 firstTSpec['owner']     = progSpec.getOwnerFromTemplateArg(reqTagList[1])
                 firstTSpec['fieldType'] = progSpec.getTypeFromTemplateArg(reqTagList[1])
-            keyVarSpec  = {'owner':'me', 'fieldType':firstType, 'codeConverter':(repName+'.first')}
-            localVarsAlloc.append([loopCntrName, keyVarSpec])  # Tracking local vars for scope
-            getNodeVal  = progSpec.getCodeConverterByFieldID(classes, itrTypeKW, 'val', repName,RNodeP)
-            firstTSpec['codeConverter'] = (getNodeVal)
+            firstTSpec['codeConverter'] = progSpec.getCodeConverterByFieldID(classes, itrTypeKW, 'val', repName,RNodeP)
             localVarsAlloc.append([repName, firstTSpec]) # Tracking local vars for scope
-            localVarsAlloc.append([itrName, itrTSpec]) # Tracking local vars for scope
             frontItr    = progSpec.getCodeConverterByFieldID(classes, datastructID, "front" , ctnrName , RDeclP)
-            actionText += (indent + "for( auto " + itrName+' ='+frontItr + "; " + itrName + " !=" + ctnrName+RDeclP+'end()' +"; ++"+itrName  + " ){\n"
-                        + indent+"    "+"auto "+repName+" = *"+itrName+";\n")
+            actionText += indent + "for(auto "+repName+'='+frontItr + '; '+repName+'!='+ctnrName+RDeclP+'end(); ++'+repName+'){\n'
         elif containerCat=='List' or datastructID=='deque':
             if willBeModifiedDuringTraversal:
                 keyVarSpec = {'owner':'me', 'fieldType':'uint64_t'}

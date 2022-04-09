@@ -110,11 +110,8 @@ struct testClass{
         me Map<me string, me string>:testMap
         testMap["E"]<-"every"\ntestMap["G"]<-"good"\ntestMap["B"]<-"boy"\ntestMap["D"]<-"does"\ntestMap["F"]<-"fine"
         withEach M in testMap {print(M," ")}
-        me Map<me string, me string>:testMapKey
-        testMapKey["E"]<-"every"\ntestMapKey["G"]<-"good"\ntestMapKey["B"]<-"boy"\ntestMapKey["D"]<-"does"\ntestMapKey["F"]<-"fine"
-        withEach MK in testMapKey {print(MK_key,"-",MK," ")}
     }
-}''', 'PGBR:boy does every fine good B-boy D-does E-every F-fine G-good '],
+}''', 'PGBR:boy does every fine good '],
 ###################################################################################################
 'twoMaps': ['''
 struct testClass{
