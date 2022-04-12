@@ -462,18 +462,17 @@ class CodeGenerator(object):
             genericArgs = {}
             count = 0
             for reqTag in reqTagList:
-                genericType        = progSpec.getTypeFromTemplateArg(reqTag)
+                genericType        = progSpec.fieldTypeKeyword(reqTag)
                 unwrappedKW        = progSpec.getUnwrappedClassFieldTypeKeyWord(self.classStore, genericType)
                 genericStructName += "_"+unwrappedKW
                 genericArgs[typeArgList[count]]=reqTag
                 count += 1
         else:
             for gArg in genericArgs:
-                genericType        = progSpec.getTypeFromTemplateArg(genericArgs[gArg])
+                genericType        = progSpec.fieldTypeKeyword(genericArgs[gArg])
                 unwrappedKW        = progSpec.getUnwrappedClassFieldTypeKeyWord(self.classStore, genericType)
                 genericStructName += "_"+unwrappedKW
         if not genericStructName in self.genericStructsGenerated[1]:
-            print("ADD:",genericStructName)
             self.genericStructsGenerated[1].append(genericStructName)
             self.classStore[1].append(genericStructName)
             genericClassDef = self.copyClassDef(classDef)
@@ -502,12 +501,13 @@ class CodeGenerator(object):
 
     def getGenericFieldsTypeSpec(self, genericArgs, tSpec):
         if genericArgs == None: return tSpec
+        if genericArgs == {}:   return tSpec
         fTypeKW = progSpec.fieldTypeKeyword(tSpec)
         if fTypeKW in genericArgs:
             tSpec = self.copyTypeSpec(tSpec)
             genericType = genericArgs[fTypeKW]
-            fTypeOut    = progSpec.getTypeFromTemplateArg(genericType)
-            ownerOut    = progSpec.getOwnerFromTemplateArg(genericType)
+            fTypeOut    = progSpec.fieldTypeKeyword(genericType)
+            ownerOut    = progSpec.getOwner(genericType)
             tSpec['fieldType'] = fTypeOut
             tSpec['owner']     = ownerOut
             tSpec['generic']   = fTypeKW
@@ -644,26 +644,26 @@ class CodeGenerator(object):
         if '%0.' in newName and connector==self.xlator.PtrConnector:
             newName = newName.replace('%0.', '%0'+self.xlator.PtrConnector)
         if fTypeKW == "keyType":
-            if tSpecOut['owner']!="itr":tSpecOut['owner'] = progSpec.getOwnerFromTemplateArg(reqTagList[0])
-            tSpecOut['fieldType'] = progSpec.getTypeFromTemplateArg(reqTagList[0])
+            if tSpecOut['owner']!="itr":tSpecOut['owner'] = progSpec.getOwner(reqTagList[0])
+            tSpecOut['fieldType'] = progSpec.fieldTypeKeyword(reqTagList[0])
         elif fTypeKW == "valueType":
-            if tSpecOut['owner']!="itr":tSpecOut['owner'] = progSpec.getOwnerFromTemplateArg(reqTagList[1])
-            tSpecOut['fieldType'] = progSpec.getTypeFromTemplateArg(reqTagList[1])
+            if tSpecOut['owner']!="itr":tSpecOut['owner'] = progSpec.getOwner(reqTagList[1])
+            tSpecOut['fieldType'] = progSpec.fieldTypeKeyword(reqTagList[1])
         if "%T0Type" in newName:
             if(reqTagList != None):
-                T0Type  = progSpec.getTypeFromTemplateArg(reqTagList[0])
+                T0Type  = progSpec.fieldTypeKeyword(reqTagList[0])
                 T0Type  = progSpec.getUnwrappedClassFieldTypeKeyWord(self.classStore, T0Type)
                 T0Type  = self.xlator.adjustBaseTypes(T0Type,True)
-                T0Owner = progSpec.getOwnerFromTemplateArg(reqTagList[0])
+                T0Owner = progSpec.getOwner(reqTagList[0])
                 T0Type  = self.xlator.applyOwner(T0Owner, T0Type,'')
                 newName = newName.replace("%T0Type",T0Type)
             else: cdErr("ERROR: looking for T0Type in codeConverter but reqTagList found in TypeSpec.")
         if "%T1Type" in newName:
             if(reqTagList != None):
-                T1Type  = progSpec.getTypeFromTemplateArg(reqTagList[1])
+                T1Type  = progSpec.fieldTypeKeyword(reqTagList[1])
                 T1Type  = progSpec.getUnwrappedClassFieldTypeKeyWord(self.classStore, T1Type)
                 T1Type  = self.xlator.adjustBaseTypes(T1Type,True)
-                T1Owner = progSpec.getOwnerFromTemplateArg(reqTagList[1])
+                T1Owner = progSpec.getOwner(reqTagList[1])
                 T1Type  = self.xlator.applyOwner(T1Owner, T1Type,'')
                 newName = newName.replace("%T1Type",T1Type)
             else: cdErr("ERROR: looking for T1Type in codeConverter but reqTagList found in TypeSpec.")

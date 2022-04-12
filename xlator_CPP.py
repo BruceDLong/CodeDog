@@ -73,8 +73,8 @@ class Xlator_CPP(Xlator):
         else: connector = "."
         if containerCat=="Map" or containerCat=="Multimap":
             if(reqTagList != None):
-                firstTSpec['owner']     = progSpec.getOwnerFromTemplateArg(reqTagList[1])
-                firstTSpec['fieldType'] = progSpec.getTypeFromTemplateArg(reqTagList[1])
+                firstTSpec['owner']     = progSpec.getOwner(reqTagList[1])
+                firstTSpec['fieldType'] = progSpec.fieldTypeKeyword(reqTagList[1])
             keyVarSpec = {'owner':'itr', 'fieldType':firstType, 'codeConverter':(repName+'.first')}
             loopCntrName  = repName+'_key'
             firstTSpec['codeConverter'] = (repName+'->second')
@@ -115,8 +115,8 @@ class Xlator_CPP(Xlator):
             return [actionText, loopCntrName, itrIncStr]
         if containerCat=='Map'     or containerCat=="Multimap":
             if(reqTagList != None):
-                firstTSpec['owner']     = progSpec.getOwnerFromTemplateArg(reqTagList[1])
-                firstTSpec['fieldType'] = progSpec.getTypeFromTemplateArg(reqTagList[1])
+                firstTSpec['owner']     = progSpec.getOwner(reqTagList[1])
+                firstTSpec['fieldType'] = progSpec.fieldTypeKeyword(reqTagList[1])
             firstTSpec['codeConverter'] = progSpec.getCodeConverterByFieldID(classes, itrTypeKW, 'val', repName,RNodeP)
             localVarsAlloc.append([repName, firstTSpec]) # Tracking local vars for scope
             frontItr    = progSpec.getCodeConverterByFieldID(classes, datastructID, "front" , ctnrName , RDeclP)
@@ -206,8 +206,8 @@ class Xlator_CPP(Xlator):
             reqTagStr = "<"
             count = 0
             for reqTag in reqTagList:
-                reqOwnr     = progSpec.getOwnerFromTemplateArg(reqTag)
-                varTypeKW   = progSpec.getTypeFromTemplateArg(reqTag)
+                reqOwnr     = progSpec.getOwner(reqTag)
+                varTypeKW   = progSpec.fieldTypeKeyword(reqTag)
                 unwrappedOwner=self.getUnwrappedClassOwner(classes, tSpec, varTypeKW, 'alloc', reqOwnr)
                 unwrappedKW = progSpec.getUnwrappedClassFieldTypeKeyWord(classes, varTypeKW)
                 unwrappedKW = self.adjustBaseTypes(unwrappedKW, progSpec.isNewContainerTempFunc(tSpec))

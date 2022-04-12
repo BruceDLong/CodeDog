@@ -82,10 +82,10 @@ class Xlator_Swift(Xlator):
         if containerCat=="Map" or containerCat=="Multimap":
             valueFieldType = progSpec.fieldTypeKeyword(ctnrTSpec)
             if(reqTagList != None):
-                firstTSpec['owner']     = progSpec.getOwnerFromTemplateArg(reqTagList[1])
-                firstTSpec['fieldType'] = progSpec.getTypeFromTemplateArg(reqTagList[1])
-                idxTypeKW      = progSpec.getTypeFromTemplateArg(reqTagList[0])
-                valueFieldType = progSpec.getTypeFromTemplateArg(reqTagList[1])
+                firstTSpec['owner']     = progSpec.getOwner(reqTagList[1])
+                firstTSpec['fieldType'] = progSpec.fieldTypeKeyword(reqTagList[1])
+                idxTypeKW      = progSpec.fieldTypeKeyword(reqTagList[0])
+                valueFieldType = progSpec.fieldTypeKeyword(reqTagList[1])
             keyVarSpec = {'owner':ctnrTSpec['owner'], 'fieldType':firstType, 'codeConverter':(repName+'.first')}
             firstTSpec['codeConverter'] = (repName+'.value')
             localVarsAlloc.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
@@ -127,8 +127,8 @@ class Xlator_Swift(Xlator):
         if containerCat=='Map':
             reqTagStr    = self.getReqTagString(classes, ctnrTSpec)
             if(reqTagList != None):
-                firstTSpec['owner']     = progSpec.getOwnerFromTemplateArg(reqTagList[1])
-                firstTSpec['fieldType'] = progSpec.getTypeFromTemplateArg(reqTagList[1])
+                firstTSpec['owner']     = progSpec.getOwner(reqTagList[1])
+                firstTSpec['fieldType'] = progSpec.fieldTypeKeyword(reqTagList[1])
             keyVarSpec  = {'owner':firstOwner, 'fieldType':firstType, 'codeConverter':(repName+'!.key')}
             firstTSpec['codeConverter'] = (repName+'!.value')
             itrTypeKW    = self.codeGen.convertType(itrTSpec, 'var', genericArgs)+' '
@@ -228,8 +228,8 @@ class Xlator_Swift(Xlator):
             reqTagStr = "<"
             count = 0
             for reqTag in reqTagList:
-                reqOwnr     = progSpec.getOwnerFromTemplateArg(reqTag)
-                varTypeKW   = progSpec.getTypeFromTemplateArg(reqTag)
+                reqOwnr     = progSpec.getOwner(reqTag)
+                varTypeKW   = progSpec.fieldTypeKeyword(reqTag)
                 unwrappedOwner=self.getUnwrappedClassOwner(classes, tSpec, varTypeKW, 'alloc', reqOwnr)
                 unwrappedKW = progSpec.getUnwrappedClassFieldTypeKeyWord(classes, varTypeKW)
                 reqType     = self.adjustBaseTypes(unwrappedKW, True)

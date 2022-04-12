@@ -924,6 +924,7 @@ def fieldTypeKeyword(fType):
     # fType can be fType or typeSpec
     if fType==None:                         return None
     if 'dummyType' in fType:                return None
+    if 'tArgType' in fType:                 return fType['tArgType']
     if 'typeSpec' in fType:                 fType = fType['typeSpec']   # if var fType is fieldDef
     if 'fieldType' in fType:                fType = fType['fieldType']  # if var fType is typeSpec
     if 'owner' in fType and fType['owner']=='PTR': return None
@@ -953,7 +954,7 @@ def getContainerFirstElementOwner(tSpec):
     if isAContainer(tSpec):
         if isNewContainerTempFunc(tSpec):
             if(tSpec['fieldType'][0] == 'PovList'): return('our')
-            else: return (getOwnerFromTemplateArg(tSpec['reqTagList'][0]))
+            else: return (getOwner(tSpec['reqTagList'][0]))
         else: return(getOwner(tSpec))
     else:
         # TODO: This should throw error, no lists should reach this point.
@@ -963,6 +964,7 @@ def getOwner(tSpec):
     global currentCheckObjectVars
     if (tSpec == 0): cdErr(currentCheckObjectVars)
     if tSpec==None or isinstance(tSpec, str): return 'me'
+    if 'tArgOwner' in tSpec: return tSpec['tArgOwner']
     if 'typeSpec' in tSpec: tSpec = tSpec['typeSpec']
     return tSpec['owner']
 
@@ -989,17 +991,6 @@ def getCodeConverterByFieldID(classes, className, fieldName, prevNameSeg, connec
 def getTypeSpec(fieldDef):
     if 'typeSpec' in fieldDef: return fieldDef['typeSpec']
     cdErr("TypeSpec not found in progSpec.getTypeSpec()")
-
-#### Packed Template Arg Handling Functions ####
-def getOwnerFromTemplateArg(tArg):
-    global currentCheckObjectVars
-    if (tArg == 0): cdErr(currentCheckObjectVars)
-    return tArg['tArgOwner']
-
-def getTypeFromTemplateArg(tArg):
-    global currentCheckObjectVars
-    if (tArg == 0): cdErr(currentCheckObjectVars)
-    return tArg['tArgType']
 
 ################################################
 
@@ -1105,8 +1096,8 @@ def queryTagFunction(classes, className, funcName, matchName, tSpecIn):
             count = 0
             for item in typeArgList:
                 if(item == matchName):
-                    innerTypeOwner   = getOwnerFromTemplateArg(reqTagList[count])
-                    innerTypeKeyWord = getTypeFromTemplateArg(reqTagList[count])
+                    innerTypeOwner   = getOwner(reqTagList[count])
+                    innerTypeKeyWord = fieldTypeKeyword(reqTagList[count])
                     return([innerTypeOwner, innerTypeKeyWord])
                 count += 1
     return([None, None])
