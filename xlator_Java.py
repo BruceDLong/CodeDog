@@ -147,7 +147,6 @@ class Xlator_Java(Xlator):
         containerCat = progSpec.getContaineCategory(ctnrTSpec)
         [LDeclP, RDeclP, LDeclA, RDeclA] = self.ChoosePtrDecorationForSimpleCase(firstOwner)
         [LNodeP, RNodeP, LNodeA, RNodeA] = self.ChoosePtrDecorationForSimpleCase(itrOwner)
-        if containerCat=='PovList': cdErr("PovList: "+repName+"   "+ctnrName) # this should be called PovList
         if containerCat=='Map' or containerCat=="Multimap":
             reqTagStr    = self.getReqTagString(classes, ctnrTSpec)
             if(reqTagList != None):

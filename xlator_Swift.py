@@ -123,7 +123,6 @@ class Xlator_Swift(Xlator):
         containerCat = progSpec.getContaineCategory(ctnrTSpec)
         [LDeclP, RDeclP, LDeclA, RDeclA] = self.ChoosePtrDecorationForSimpleCase(firstOwner)
         [LNodeP, RNodeP, LNodeA, RNodeA] = self.ChoosePtrDecorationForSimpleCase(itrOwner)
-        if containerCat=='PovList': cdErr("TODO: handle PovList")
         if containerCat=='Map':
             reqTagStr    = self.getReqTagString(classes, ctnrTSpec)
             if(reqTagList != None):

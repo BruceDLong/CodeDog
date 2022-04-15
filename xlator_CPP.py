@@ -103,25 +103,18 @@ class Xlator_CPP(Xlator):
         itrName      = repName + "Itr"
         containerCat = progSpec.getContaineCategory(ctnrTSpec)
         [LDeclP, RDeclP, LDeclA, RDeclA] = self.ChoosePtrDecorationForSimpleCase(ctnrOwner)
-        [LNodeP, RNodeP, LNodeA, RNodeA] = self.ChoosePtrDecorationForSimpleCase(itrOwner)
-        if containerCat=='PovList':
-            firstTSpec = {'owner':'our', 'fieldType':['infon']}
-            keyVarSpec = {'owner':'me', 'fieldType':'uint64_t'}
-            localVarsAlloc.append([loopCntrName, keyVarSpec])  # Tracking local vars for scope
-            localVarsAlloc.append([repName, firstTSpec]) # Tracking local vars for scope
-            actionText += (indent + "for( auto " + itrName+' ='+ ctnrName+RDeclP+'begin()' + "; " + itrName + " !=" + ctnrName+RDeclP+'end()' +"; "+ itrName + " = " + itrName+"->next ){\n"
-                        + indent+"    "+"shared_ptr<infon> "+repName+" = "+itrName+"->pItem;\n")
-            cdErr("iterateContainerStr() found PovList: "+repName+"   "+ctnrName)
-            return [actionText, loopCntrName, itrIncStr]
-        if containerCat=='Map'     or containerCat=="Multimap":
-            if(reqTagList != None):
-                firstTSpec['owner']     = progSpec.getOwner(reqTagList[1])
-                firstTSpec['fieldType'] = progSpec.fieldTypeKeyword(reqTagList[1])
-            firstTSpec['codeConverter'] = progSpec.getCodeConverterByFieldID(classes, itrTypeKW, 'val', repName,RNodeP)
-            localVarsAlloc.append([repName, firstTSpec]) # Tracking local vars for scope
+        if containerCat=='Map' or containerCat=="Multimap":
+            if(reqTagList!=None):
+                valOwner  = progSpec.getOwner(reqTagList[1])
+                valTypeKW = progSpec.fieldTypeKeyword(reqTagList[1])
+            else: cdErr("TODO: handle value type owner and keyword in iterateContainerStr().")
+            valTSpec    = {'owner':valOwner, 'fieldType':valTypeKW}
+            [LNodeP, RNodeP, LNodeA, RNodeA] = self.ChoosePtrDecorationForSimpleCase(valOwner)
+            valTSpec['codeConverter'] = progSpec.getCodeConverterByFieldID(classes, itrTypeKW, 'val', repName,RNodeP)
+            localVarsAlloc.append([repName, valTSpec]) # Tracking local vars for scope
             frontItr    = progSpec.getCodeConverterByFieldID(classes, datastructID, "front" , ctnrName , RDeclP)
             actionText += indent + "for(auto "+repName+'='+frontItr + '; '+repName+'!='+ctnrName+RDeclP+'end(); ++'+repName+'){\n'
-        elif containerCat=='List' or datastructID=='deque':
+        elif containerCat=='List':
             if willBeModifiedDuringTraversal:
                 keyVarSpec = {'owner':'me', 'fieldType':'uint64_t'}
                 lvName=repName+"Idx"

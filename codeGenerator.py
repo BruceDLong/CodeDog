@@ -587,7 +587,24 @@ class CodeGenerator(object):
                 unwrappedKW = self.generateGenericStructName(fTypeKW, reqTagList, genericArgs)
             else: unwrappedKW += reqTagStr
         else:
-            unwrappedKW += reqTagStr
+            if self.xlator.useNestedClasses:
+                if fTypeKW in self.nestedClasses: # is a nested Class
+                    if fTypeKW==self.currentObjName and self.isNestedClass:
+                        unwrappedKW = unwrappedKW
+                    elif self.currentObjName==self.getNestedOutter(fTypeKW):
+                        itrTypeKW = unwrappedKW
+                        unwrappedKW = self.currentObjName+reqTagStr
+                    elif self.isNestedClass and self.getNestedOutter(fTypeKW)==self.getNestedOutter(self.currentObjName):
+                        unwrappedKW = unwrappedKW
+                    else:
+                        unwrappedKW = unwrappedKW+reqTagStr
+                elif fTypeKW in self.nestedClasses.values(): # contains a nested class
+                    if fTypeKW==self.currentObjName:
+                        unwrappedKW = unwrappedKW
+                    else:
+                        unwrappedKW = unwrappedKW+reqTagStr
+                else: unwrappedKW += reqTagStr
+            else: unwrappedKW += reqTagStr
         langType = self.xlator.adjustBaseTypes(unwrappedKW, progSpec.isNewContainerTempFunc(tSpec))
         langType = self.xlator.applyIterator(langType, itrTypeKW)
         langType = self.xlator.applyOwner(ownerOut, langType, varMode)
@@ -683,6 +700,7 @@ class CodeGenerator(object):
         fTypeKW    = progSpec.fieldTypeKeyword(tSpecIn)
         progSpec.isOldContainerTempFuncErr(tSpecIn, 'codeNameSeg1 '+self.currentObjName+' ' +str(name))
         isCtnr     = progSpec.isNewContainerTempFunc(tSpecIn)
+        if genericArgs==None and previousTypeSpec!=None: genericArgs = progSpec.getGenericArgsFromTypeSpec(previousTypeSpec)
         if(name=='allocate'): cdErr("Deprecated use of allocate()")
 
         paramList  = None
@@ -802,7 +820,7 @@ class CodeGenerator(object):
     def codeItemRef(self, name, LorR_Val, returnType, LorRorP_Val, genericArgs):
         # Returns information related to a variable, function, etc.
         previousSegName = ""
-        previousTypeSpec = ""
+        previousTypeSpec = None
         S=''
         segStr=''
         if(LorR_Val=='RVAL'): canonicalName ='>'
