@@ -428,15 +428,19 @@ class CodeGenerator(object):
             else: retVal[prop]=copy.copy(tSpec[prop])
         return retVal
 
+    def copyField(self, field):
+        copyField = {}
+        for prop in field:
+            if prop=='typeSpec':
+                copyField[prop] = self.copyTypeSpec(field[prop])
+            else:
+                copyField[prop] = copy.copy(field[prop])
+        return copyField
+
     def copyFields(self, fields):
         retVal = []
         for field in fields:
-            copyField = {}
-            for prop in field:
-                if prop=='typeSpec':
-                    copyField[prop] = self.copyTypeSpec(field[prop])
-                else:
-                    copyField[prop] = copy.copy(field[prop])
+            copyField = self.copyField(field)
             retVal.append(copyField)
         return retVal
 
@@ -499,6 +503,23 @@ class CodeGenerator(object):
             self.currentObjName=previousObjName
         return genericStructName
 
+    def copyGenericsToArgList(self, tSpec, genericArgs):
+        argListIn  = progSpec.getArgList(tSpec)
+        argListOut = None
+        if argListIn and genericArgs:
+            argListOut = []
+            for arg in argListIn:
+                argTypeKW = progSpec.fieldTypeKeyword(arg)
+                if argTypeKW in genericArgs:
+                    argOut = self.copyField(arg)
+                    genericType = genericArgs[argTypeKW]
+                    fTypeOut    = progSpec.fieldTypeKeyword(genericType)
+                    ownerOut    = progSpec.getOwner(genericType)
+                    tSpecOut    = {'owner':ownerOut, 'fieldType':fTypeOut}
+                    argOut['typeSpec'] = tSpecOut
+                    argListOut.append(argOut)
+        return(argListOut)
+
     def getGenericFieldsTypeSpec(self, genericArgs, tSpec):
         if genericArgs == None: return tSpec
         if genericArgs == {}:   return tSpec
@@ -511,6 +532,10 @@ class CodeGenerator(object):
             tSpec['fieldType'] = fTypeOut
             tSpec['owner']     = ownerOut
             tSpec['generic']   = fTypeKW
+        argListOut = self.copyGenericsToArgList(tSpec, genericArgs)
+        if argListOut and self.xlator.useNestedClasses:
+            tSpec = self.copyTypeSpec(tSpec)
+            tSpec['argList']=argListOut
         return tSpec
 
     def getGenericTypeSpec(self, genericArgs, tSpec):
