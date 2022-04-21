@@ -568,8 +568,8 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
         CODE_RVAL='tmpVar'
         globalFieldCount +=1
         childRecName='SRec' + str(globalFieldCount)
-        gatherFieldCode+='\n'+indent+'\nour stateRec: '+childRecName+' <- getChildStateRec('+VarTag+', EP)'
-        gatherFieldCode+='\n'+indent+'while('+childRecName+' != NULL and '+childRecName+'.next !=NULL and getNextStateRec('+childRecName+', EP) !=NULL){\n'
+        gatherFieldCode+='\n'+indent+'\nour stateRec: '+childRecName+' <- '+VarTag+'.child'
+        gatherFieldCode+='\n'+indent+'while('+childRecName+' != NULL and getNextStateRec('+childRecName+', EP) !=NULL){\n'
         if fromIsALT:
             gatherFieldCode+=Write_ALT_Extracter(classes, fTypeKW, fields, childRecName, '', 'tmpVar', indent+'    ', level)
             gatherFieldCode+='\n'+indent+CODE_LVAR+'.append('+CODE_RVAL+')'
@@ -670,7 +670,6 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
     #print ("##########################\n",S,"\n#####################################\n")
     if LHS_IsPointer: # LVAL is a pointer and should be allocated or cleared.
         S+= indent + 'AllocateOrClear(' +CODE_LVAR +')\n'
-        S+= indent + CODE_LVAR +'.stillParsing <- true\n'
         S+=coFactualCode
     S+=gatherFieldCode
     #print "ASSIGN_CODE", S
@@ -707,7 +706,6 @@ def Write_structExtracter(classes, ToStructName, FromStructName, fields, nameFor
             codeDogParser.AddToObjectFromText(classes[0], classes[1], newStructtxt, 'Adding '+ToStructName+'{flag: postParseProcessed}')
             pppFunc="\n    void: "+postParseFuncName+"(their "+ToStructName+": item, our stateRec: SRec) <- {print(\"Override this function!\")}\n"
             parserFunctionAccumulator += pppFunc
-        S += "memStruct.stillParsing <- false\n"
     return S
 
 def Write_Extracter(classes, ToStructName, FromStructName, logLvl):
@@ -768,7 +766,7 @@ struct <CLASSNAME>ExtracterThread: inherits=Threads{
         me string: streamID <- ctrls.streamName()
         log("OPENING EXTRACT_THREAD:" + streamID)
         ctrls.parser.syntax.Extract_<CLASSNAME>_to_<CLASSNAME>(parseTree, topItem, ctrls.parser)
-        log("Extracted_<CLASSNAME>:"+shortedStr(toString(topItem),120))
+        log("Extracted_<CLASSNAME>:"+toString(topItem).subStr(0,120))
         log("CLOSING EXTRACT_THREAD:" + streamID)
         protect(ctrls.chkExtractDone){
             ctrls.extractCompleted <- true
@@ -893,8 +891,6 @@ def CreateStructsForStringModels(classes, newClasses, tags):
                 [memObj, memVersionName]=fetchMemVersion(classes, className)
                 if memObj!=None:
                     Write_Extracter(classes, className, className, 2)
-                    stillParsingFieldText = "    flag: stillParsing\n"
-                    codeDogParser.AddToObjectFromText(classes[0], classes[1], progSpec.wrapFieldListInObjectDef(className, stillParsingFieldText), 'class '+className)
                 else: cdlog(2, "NOTE: Skipping {} because it has no struct version defined.".format(className))
 
     if numStringStructs==0: return
