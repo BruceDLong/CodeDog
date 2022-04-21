@@ -67,4 +67,12 @@ struct GLOBAL{
     void: logFlush() <- {me MutexMngr: MtxMgr{logMgr.Mesg.loggerMutex}; logMgr.writeToLog("MESG: "+logMgr.Mesg.logStr); logMgr.Mesg.logStr <- ""}
     //void: logFlush() <- {logMgr.writeToLog("MESG: "+logMgr.Mesg.logStr); logMgr.Mesg.logStr <- ""}
     //me void: assert(me string: condition) <- {}
+
+    me string: shortedStr(me string: str, me int: len) <- {
+        if(str.size()<=len){return(str)}
+        me int: endLen    <- len/3
+        me int: startLen  <- len-endLen
+        return(str.subStr(0, startLen) + " ### " +str.subStr(str.size()-endLen))
+
+    }
 }
