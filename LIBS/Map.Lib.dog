@@ -154,9 +154,10 @@ struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={inser
             Leaf.isLeaf  <-true
             Allocate(newNode, key, value)
             newNode.isBlack <-true
-            newNode.left <- Leaf
-            newNode.right <- Leaf
-            Root <- newNode
+            newNode.left    <- Leaf
+            newNode.right   <- Leaf
+            newNode.parent  <- NULL
+            Root    <- newNode
             mapSize <- mapSize + 1
             return(newNode)
         }
@@ -370,6 +371,7 @@ struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={inser
             if(child.isBlack == false){child.isBlack <- true}
             else{deleteCase1(child)}
         }
+        // TODO: decrement mapSize, handle delete Root
     }
 
     me void: replaceNode(their Node_RBTree<keyType, valueType>: node, their Node_RBTree<keyType, valueType>: child) <- {
@@ -392,8 +394,9 @@ struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={inser
     }
 
     me void: deleteCase1(their Node_RBTree<keyType, valueType>: doubleBlackNode) <- {
-        print ("deleteCase1: ", doubleBlackNode.key, "\n")
-        if(doubleBlackNode === Leaf){print("    Leaf\n")}
+        print ("    deleteCase1: ", doubleBlackNode.key, "\n")
+        if(doubleBlackNode === Leaf){print("LEAF-a");return()}
+        if(doubleBlackNode.isLeaf){print("LEAF-b");return()}
         if(doubleBlackNode.parent == NULL){
             Root <- doubleBlackNode
             return()
