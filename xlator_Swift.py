@@ -249,7 +249,8 @@ class Xlator_Swift(Xlator):
             tSpec['codeConverter']='%0.count'
             tSpec['fieldType']='int'
         elif name == "subStr":
-            tSpec['codeConverter']='substring(from:%1, to:%2)'
+            if lenParams==1: tSpec['codeConverter']='%0.substring(from:%1, to:%0.count)'
+            else: tSpec['codeConverter']='substring(from:%1, to:%2)'
         return [name, tSpec]
 
     def langStringFormatterCommand(self, fmtStr, argStr):

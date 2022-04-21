@@ -528,7 +528,9 @@ class CodeGenerator(object):
             tSpec = self.copyTypeSpec(tSpec)
             genericType = genericArgs[fTypeKW]
             fTypeOut    = progSpec.fieldTypeKeyword(genericType)
+            ownerIn     = progSpec.getOwner(tSpec)
             ownerOut    = progSpec.getOwner(genericType)
+            if ownerIn=='itr': ownerOut = 'itr'
             tSpec['fieldType'] = fTypeOut
             tSpec['owner']     = ownerOut
             tSpec['generic']   = fTypeKW

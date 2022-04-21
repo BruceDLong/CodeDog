@@ -567,9 +567,11 @@ class Xlator_CPP(Xlator):
         S = ''
         assignTag = action['assignTag']
         if assignTag == '':
-            [containerType, __owner]=progSpec.getContainerType_Owner(AltIDXFormat[1])
+            [containerType, owner]=progSpec.getContainerType_Owner(AltIDXFormat[1])
             if containerType == 'RBTreeMap':
-                S = indent+AltIDXFormat[0]+'.insert('+AltIDXFormat[2]+', '+RHS+');\n'
+                connector = '.'
+                if progSpec.ownerIsPointer(owner): connector = self.PtrConnector
+                S = indent+AltIDXFormat[0]+connector+'insert('+AltIDXFormat[2]+', '+RHS+');\n'
         #else: assignTag = assignTag[0]
         return S
 
