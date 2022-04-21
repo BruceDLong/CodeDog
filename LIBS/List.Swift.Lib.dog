@@ -42,26 +42,3 @@ struct Swift_Array<nodeType>: implements=List wraps=Array specs={insert=linear a
     // TODO: need Reverse Iterators working first
     //itr nodeType: back() <- <%!rbegin()%>             // returns reverse iterator to the reverse beginning of the sequence container
 }
-/*
-struct Swift_Map<keyType, valueType>: implements=Map wraps=`NSMutableOrderedSet` specs={insert=logarithmic}{
-    valueType: at(keyType)                      <- <%!%>
-    void: clear()                               <- <%!removeAllObjects()%>
-    me bool: containsKey(keyType: key)          <- <%!%>
-    itr nodeType: end()                         <- <%!%>           // returns itr to past-the-end element
-    itr nodeType: erase(itr nodeType: position) <- <%!%>
-    itr nodeType: eraseInterval(itr nodeType: start, itr nodeType: end) <- <%!%>
-    itr nodeType: find(keyType: key)            <- <%!%>
-    nodeType: first()                           <- <%!%>
-    itr nodeType: front()                       <- <%!%>
-    itr nodeType: insert(itr nodeType: position, nodeType: value) <- <%!insert(%1)%>
-    me bool:  isEmpty()                         <- <%!%>
-    nodeType: last()                            <- <%!%>
-    itr valueType: lower_bound(keyType: key)    <- <%!%>
-    //nodeType: popFirst()                        <- <%!%>
-    //nodeType: popLast()                         <- <%!%>
-    me uint:  size()                            <- <%!%>
-    /////////////////////////////////////////
-    // TODO: need Reverse Iterators working first
-    //itr nodeType: back() <- <%!%>             // returns reverse iterator to the reverse ene of the sequence container
-}
-*/

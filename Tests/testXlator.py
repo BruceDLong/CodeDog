@@ -25,6 +25,7 @@ testDefinitions = {
      'class/boolDecl':      ['struct testClass{ me void: runTest()<-{me bool: myBool <- true     \n if(myBool){print("p")}}}','PGBR:p'],
      'class/constDecl':     ['struct testClass{ me void: runTest()<-{const int: myInt <- 2       \n print(myInt)}}',    'PGBR:2'],
      'class/charDecl':      ['struct testClass{ me void: runTest()<-{me char: myChar<- "c"       \n print(myChar)}}',   'PGBR:c'],
+     'class/rangeDecl':     ['struct testClass{ me void: runTest()<-{me 2..10: age <- 8          \n print(age)}}',      'PGBR:8'],
      'class/baseDecls':     ['''
 struct testClass{
     me void: runTest()<-{
@@ -48,8 +49,10 @@ struct testClass{
         print(myConst)
         me char: myChar <-"c"
         print(myChar)
+        me 2..10: age <- 8
+        print(age)
     }
-}''', 'PGBR:2one3412.3467p8c',['class/simple', 'class/intDecl', 'class/strDecl', 'class/int32Decl', 'class/int64Decl', 'class/doubleDecl', 'class/uint32Decl', 'class/uint64Decl', 'class/boolDecl', 'class/constDecl', 'class/charDecl']],
+}''', 'PGBR:2one3412.3467p8c8',['class/simple', 'class/intDecl', 'class/strDecl', 'class/int32Decl', 'class/int64Decl', 'class/doubleDecl', 'class/uint32Decl', 'class/uint64Decl', 'class/boolDecl', 'class/constDecl', 'class/charDecl']],
 #####################################################################################################
 #############################################################
      #'class/strListDecl':  ['struct testClass{me List<me string>: myStringList}', 'PGB:'],
@@ -160,7 +163,7 @@ struct testClass{
      'actions/backListRep':  ['struct testClass{me void: runTest()<-{me List<me int>:testListBackward<-[2,13,-22,188]\nwithEach TB in Backward testListBackward {print(TB," ")}}}', 'PGBR:188 -22 13 2 '],
      'actions/listKeyRep':   ['struct testClass{me void: runTest()<-{me List<me int>:testKeyList<-[2,3,5,8,13,21]\nwithEach TK in testKeyList {print(TK_key,"-", TK, " ")}}}', 'PGBR:0-2 1-3 2-5 3-8 4-13 5-21 '],
      'actions/mapRep':       ['struct testClass{me void: runTest()<-{me Map<me string, me string>:testMap\ntestMap["E"]<-"every"\ntestMap["G"]<-"good"\ntestMap["B"]<-"boy"\ntestMap["D"]<-"does"\ntestMap["F"]<-"fine"\nwithEach M in testMap {print(M," ")}}}', 'PGBR:boy does every fine good '],
-     'actions/mapKeyRep':    ['struct testClass{me void: runTest()<-{me Map<me string, me string>:testMapKey\ntestMapKey["E"]<-"every"\ntestMapKey["G"]<-"good"\ntestMapKey["B"]<-"boy"\ntestMapKey["D"]<-"does"\ntestMapKey["F"]<-"fine"\nwithEach MK in testMapKey {print(MK_key,"-",MK," ")}}}', 'PGBR:B-boy D-does E-every F-fine G-good '],
+     #'actions/mapKeyRep':    ['struct testClass{me void: runTest()<-{me Map<me string, me string>:testMapKey\ntestMapKey["E"]<-"every"\ntestMapKey["G"]<-"good"\ntestMapKey["B"]<-"boy"\ntestMapKey["D"]<-"does"\ntestMapKey["F"]<-"fine"\nwithEach MK in testMapKey {print(MK_key,"-",MK," ")}}}', 'PGBR:B-boy D-does E-every F-fine G-good '],
      #'actions/deleteListRep':['struct testClass{me void: runTest()<-{me List<me int>:testDelList<-[2,3,5,8,13,21]\nwithEach TD in testDelList {if(TD_key==3){testDelList.erase(TD_key)\nTDIdx<-TDIdx-1}\nelse{print(TD, " ")}}}}', 'PGBR:2 3 5 13 21 '],
      'actions/repetitions':  ['''
 struct testClass{
@@ -175,11 +178,9 @@ struct testClass{
         withEach TK in testKeyList {print(TK_key,"-", TK, " ")}
         me Map<me string, me string>:testMap\ntestMap["E"]<-"every"\ntestMap["G"]<-"good"\ntestMap["B"]<-"boy"\ntestMap["D"]<-"does"\ntestMap["F"]<-"fine"
         withEach M in testMap {print(M," ")}
-        me Map<me string, me string>:testMapKey\ntestMapKey["E"]<-"every"\ntestMapKey["G"]<-"good"\ntestMapKey["B"]<-"boy"\ntestMapKey["D"]<-"does"\ntestMapKey["F"]<-"fine"
-        withEach MK in testMapKey {print(MK_key,"-",MK," ")}
     }
-}''', 'PGBR:2 3 4 5 5 4 3 2 2 13 -22 188 188 -22 13 2 0-2 1-3 2-5 3-8 4-13 5-21 boy does every fine good B-boy D-does E-every F-fine G-good ',
-    ['actions/rangeRep','actions/backRangeRep','actions/listRep','actions/backListRep','actions/listKeyRep','actions/mapRep','actions/mapKeyRep']],
+}''', 'PGBR:2 3 4 5 5 4 3 2 2 13 -22 188 188 -22 13 2 0-2 1-3 2-5 3-8 4-13 5-21 boy does every fine good ',
+    ['actions/rangeRep','actions/backRangeRep','actions/listRep','actions/backListRep','actions/listKeyRep','actions/mapRep']],
 ###################################################################################################
      'actions/plusEquals':    ['struct testClass{me void: runTest()<-{me int:A<-2 \n A<+-1 \n print(A)}}', 'PGBR:3'],
      'actions/minusEquals':   ['struct testClass{me void: runTest()<-{me int:A<-2 \n A<--1 \n print(A)}}', 'PGBR:1'],
@@ -737,7 +738,7 @@ def getCPPTest():
     global reportText
     xlatorLabel = 'TESTING: CPP'
     buildSpec = "LinuxBuild: Platform='Linux' Lang='CPP' LangVersion='GNU';\n"
-    buildSpec += "//SwingBuild: Platform='Swing' Lang='Java';\n"
+    buildSpec += "//JavaBuild: Platform='Swing' Lang='Java';\n"
     buildSpec += "//SwiftBuild: Platform='Swift' Lang='Swift';"
     runSpec = "./testXlator"
     runDirectory = workingDirectory + "/LinuxBuild"
@@ -750,11 +751,11 @@ def getJavaTest():
     global runDirectory
     global workingDirectory
     xlatorLabel = 'TESTING: JAVA'
-    buildSpec = "SwingBuild: Platform='Swing' Lang='Java';\n"
+    buildSpec = "JavaBuild: Platform='Swing' Lang='Java';\n"
     buildSpec += "//LinuxBuild: Platform='Linux' Lang='CPP' LangVersion='GNU';\n"
     buildSpec += "//SwiftBuild: Platform='Swift' Lang='Swift';"
     runSpec = "java GLOBAL"
-    runDirectory = workingDirectory + "/SwingBuild"
+    runDirectory = workingDirectory + "/JavaBuild"
     runListedTests(testsToRun)
 
 def getSwiftTest():
@@ -765,7 +766,7 @@ def getSwiftTest():
     global workingDirectory
     xlatorLabel = 'TESTING: SWIFT'
     buildSpec = "SwiftBuild: Platform='Swift' Lang='Swift';\n"
-    buildSpec += "//SwingBuild: Platform='Swing' Lang='Java';\n"
+    buildSpec += "//JavaBuild: Platform='Swing' Lang='Java';\n"
     buildSpec += "//LinuxBuild: Platform='Linux' Lang='CPP' LangVersion='GNU';"
     runSpec = "./testXlator"
     runDirectory = workingDirectory + "/SwiftBuild"

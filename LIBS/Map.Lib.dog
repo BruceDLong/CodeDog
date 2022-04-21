@@ -1,61 +1,65 @@
-// CodeDog Multimap
-requirements = [[require, Multimap_implementation]]
+// CodeDog Map model
 
-model Multimap<keyType, valueType>{
-    const model: MultimapNode(keyType: key, valueType: value) <- {
+requirements = [
+    [require, Map_implementation]
+]
+
+model Map<keyType, valueType>{
+    const model: MapNode(keyType: key, valueType: value) <- {
         me keyType: key
         me valueType: value
-        their Node_RBMultimap<keyType, valueType>: goNext()
-        their Node_RBMultimap<keyType, valueType>: goPrev()
+        their Node_RBTree<keyType, valueType>: goNext()
+        their Node_RBTree<keyType, valueType>: goPrev()
     }
-    const model: MultimapItr(keyType: key, valueType: value) <- {
-        our MultimapNode<keyType, valueType>: node
-        our MultimapNode<keyType, valueType>: goNext()
-        //our MultimapNode<keyType, valueType>: goPrev()
+    const model: MapItr(keyType: key, valueType: value) <- {
+        our MapNode<keyType, valueType>: node
+        our MapNode<keyType, valueType>: goNext()
+        //our MapNode<keyType, valueType>: goPrev()
         me valueType: val()
     }
+
     valueType: at(keyType)
     void: clear()
     me bool: containsKey(keyType: key)
-    our MultimapItr: end()
+    our MapItr: end()
     void: erase(keyType: key)
-    our MultimapItr: find(keyType: key)
+    our MapItr: find(keyType: key)
     valueType: first()
-    our MultimapItr: front()
-    our MultimapItr: insert(keyType: key, valueType: value)
+    our MapItr: front()
+    our MapItr: insert(keyType: key, valueType: value)
     me bool:  isEmpty()
     valueType: last()
     //itr valueType: lower_bound(keyType: key)
     me uint:  size()
 }
 
-struct RBMultimap<keyType, valueType>: implements=Multimap native=codeDog specs={insert=logarithmic find=logarithmic at=logarithmic}{ // constant
-    const struct: Node_RBMultimap(keyType: key, valueType: value): implements=MapNode <- {
+////////////////////////////////////////////////////////
+struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={insert=logarithmic find=logarithmic at=logarithmic}{// find=logarithmic at=logarithmic}{  // constant
+    const struct: Node_RBTree(keyType: key, valueType: value): implements=MapNode <- {
         me keyType: key
         me valueType: value
         me bool: isBlack
         me bool: isLeaf
-        their Node_RBMultimap<keyType, valueType>: left
-        their Node_RBMultimap<keyType, valueType>: right
-        their Node_RBMultimap<keyType, valueType>: parent
+        their Node_RBTree<keyType, valueType>: left
+        their Node_RBTree<keyType, valueType>: right
+        their Node_RBTree<keyType, valueType>: parent
         // CONSTRUCTORS
-        me none: Node_RBMultimap(keyType: _key, valueType: _val) <-{
+        me none: Node_RBTree(keyType: _key, valueType: _val) <-{
             key   <- _key
             value <- _val
         }
     }
-
-    const struct: iterator_RBMultimap(keyType: key, valueType: value): implements=MapItr <- {
-        their Node_RBMultimap<keyType, valueType>: node
-        their RBMultimap<keyType, valueType>: container
-        their Node_RBMultimap<keyType, valueType>: goNext() <- {
+    const struct: iterator_RBTreeMap(keyType: key, valueType: value):  implements=MapItr native=codeDog <- {
+        their Node_RBTree<keyType, valueType>: node
+        their RBTreeMap<keyType, valueType>: container
+        their Node_RBTree<keyType, valueType>: goNext() <- {
             if(node.right != NULL and !node.right.isLeaf){
                 node <- findSmallest(node.right)
                 if(node==NULL or node.isLeaf){node <- container.edge}
                 return(node)
             }
-            their Node_RBMultimap<keyType, valueType>: parentTemp <- node.parent
-            their Node_RBMultimap<keyType, valueType>: nodeTemp   <- node
+            their Node_RBTree<keyType, valueType>: parentTemp <- node.parent
+            their Node_RBTree<keyType, valueType>: nodeTemp   <- node
             while(parentTemp!=NULL and nodeTemp===parentTemp.right){
                 nodeTemp   <- parentTemp
                 parentTemp <- parentTemp.parent
@@ -64,8 +68,8 @@ struct RBMultimap<keyType, valueType>: implements=Multimap native=codeDog specs=
             if(node==NULL or node.isLeaf){node <- container.edge}
             return(node)
         }
-        their Node_RBMultimap<keyType, valueType>: findSmallest(their Node_RBMultimap<keyType, valueType>: crntNode) <- {
-            their Node_RBMultimap<keyType, valueType>: prevNode <- NULL
+        their Node_RBTree<keyType, valueType>: findSmallest(their Node_RBTree<keyType, valueType>: crntNode) <- {
+            their Node_RBTree<keyType, valueType>: prevNode <- NULL
             while(!(crntNode == NULL or crntNode.isLeaf)){
                 prevNode <- crntNode
                 crntNode <- crntNode.left
@@ -73,34 +77,37 @@ struct RBMultimap<keyType, valueType>: implements=Multimap native=codeDog specs=
             if(prevNode != NULL){return(prevNode)}
             return(crntNode)
         }
-        their iterator_RBMultimap<keyType, valueType>: __opAssign(their iterator_RBMultimap<keyType, valueType>: RHS) <- {
+        itr iterator_RBTreeMap<keyType, valueType>: __opAssign(itr iterator_RBTreeMap<keyType, valueType>: RHS) <- {
             node <- RHS.node
             return(self)
         }
-        their iterator_RBMultimap<keyType, valueType>: __inc() <- { // Prefix ++ overload
+        their iterator_RBTreeMap<keyType, valueType>: __inc() <- { // Prefix ++ overload
             if(node){
                 node <- goNext()
             }
             return(self)
         }
-        me bool: __notEqual(me iterator_RBMultimap<keyType, valueType>: RHS) <- {
+        me bool: __notEqual(itr iterator_RBTreeMap<keyType, valueType>: RHS) <- {
             return(node !== RHS.node)
         }
         me valueType: __derefPtr() <- {return(node.value)}
-        me bool: __isEqual(me iterator_RBMultimap<keyType, valueType>: RHS) <- {
+        me bool: __isEqual(itr iterator_RBTreeMap<keyType, valueType>: RHS) <- {
             return(node === RHS.node)
         }
-        me valueType: val() <- {return(node.value)}
-        me keyType: key() <- {return(node.key)}
+        their iterator_RBTreeMap<keyType, valueType>: __opPtr() <- {
+            return(self)
+        }
+        me valueType: val()                         <- <%!%0.node->value%>
+        me valueType: key()                         <- <%!.node->key%>
     }
 
-    their Node_RBMultimap<keyType, valueType>: Root
-    their Node_RBMultimap<keyType, valueType>: Leaf
-    their Node_RBMultimap<keyType, valueType>: edge
+    their Node_RBTree<keyType, valueType>: Root
+    their Node_RBTree<keyType, valueType>: Leaf
+    their Node_RBTree<keyType, valueType>: edge
     me uint: mapSize
 
     valueType: at(keyType: searchKey) <- {
-        their Node_RBMultimap<keyType, valueType>: node
+        their Node_RBTree<keyType, valueType>: node
         node <- getNode(Root, searchKey)
         return(node.value)
     }
@@ -113,35 +120,33 @@ struct RBMultimap<keyType, valueType>: implements=Multimap native=codeDog specs=
         if(getNode(Root, key)){return(true)}
         else{return(false)}
     }
-    me iterator_RBMultimap<keyType, valueType>: end() <- {
-        me iterator_RBMultimap<keyType, valueType>: retItr; retItr.node <- edge
+    itr iterator_RBTreeMap<keyType, valueType>: end() <- {
+        itr iterator_RBTreeMap<keyType, valueType>: retItr
+        retItr.node <- edge
         return(retItr)
     }
     me void: erase(keyType: key) <- {
-        their Node_RBMultimap<keyType, valueType>: node
+        their Node_RBTree<keyType, valueType>: node
         node <- getNode(Root, key)
         removeHelper(node, key)
     }
-    me void: erase(their iterator_RBMultimap<keyType, valueType>: iter) <- {
-        removeHelper(iter.node, iter.node.key)
-    }
-    me iterator_RBMultimap<keyType, valueType>: find(keyType: key) <- {
-        their Node_RBMultimap<keyType, valueType>: retNode <- getNode(Root, key)
+    itr iterator_RBTreeMap<keyType, valueType>: find(keyType: key) <- {
+        their Node_RBTree<keyType, valueType>: retNode <- getNode(Root, key)
         if(retNode==NULL){retNode <- edge}
-        me iterator_RBMultimap<keyType, valueType>: retItr; retItr.node <- retNode
+        itr iterator_RBTreeMap<keyType, valueType>: retItr; retItr.node <- retNode
         return(retItr)
     }
     valueType: first() <- {
-        their Node_RBMultimap<keyType, valueType>: smallestNode <- findSmallest(Root)
+        their Node_RBTree<keyType, valueType>: smallestNode <- findSmallest(Root)
         return(smallestNode.value)
     }
-    me iterator_RBMultimap<keyType, valueType>: front() <- {
-        me iterator_RBMultimap<keyType, valueType>: retItr; retItr.node <- findSmallest(Root)
+    itr iterator_RBTreeMap<keyType, valueType>: front() <- {
+        itr iterator_RBTreeMap<keyType, valueType>: retItr; retItr.node <- findSmallest(Root)
         retItr.container <- self
         return(retItr)
     }
-    their Node_RBMultimap<keyType, valueType>: insert(keyType: key, valueType: value) <- {
-        their Node_RBMultimap<keyType, valueType>: newNode
+    their Node_RBTree<keyType, valueType>: insert(keyType: key, valueType: value) <- {
+        their Node_RBTree<keyType, valueType>: newNode
         if(Root == NULL){
             Allocate(Leaf)
             Allocate(edge)
@@ -149,9 +154,10 @@ struct RBMultimap<keyType, valueType>: implements=Multimap native=codeDog specs=
             Leaf.isLeaf  <-true
             Allocate(newNode, key, value)
             newNode.isBlack <-true
-            newNode.left <- Leaf
-            newNode.right <- Leaf
-            Root <- newNode
+            newNode.left    <- Leaf
+            newNode.right   <- Leaf
+            newNode.parent  <- NULL
+            Root    <- newNode
             mapSize <- mapSize + 1
             return(newNode)
         }
@@ -168,36 +174,37 @@ struct RBMultimap<keyType, valueType>: implements=Multimap native=codeDog specs=
         return(false)
     }
     valueType: last() <- {
-        their Node_RBMultimap<keyType, valueType>: crntNode <- Root
-        their Node_RBMultimap<keyType, valueType>: prevNode
+        their Node_RBTree<keyType, valueType>: crntNode <- Root
+        their Node_RBTree<keyType, valueType>: prevNode
         while(!(crntNode === Leaf)){
             prevNode <- crntNode
             crntNode <- crntNode.right
         }
         return(prevNode.value)
     }
-    me iterator_RBMultimap<keyType, valueType>: lower_bound(keyType: key) <- {
-        return(find(key))
+    //itr valueType: lower_bound(keyType: key) <- {}
+    void: set(keyType: key, valueType: value) <- {
+        their Node_RBTree<keyType, valueType>: node
+        node <- getNode(Root, key)
+        node.value <- value
     }
-    valueType: popFirst() <- {
-        me iterator_RBMultimap<keyType, valueType>: frontItr <- front()
-        their Node_RBMultimap<keyType, valueType>: frontNode <- frontItr.node
-        erase(frontItr)
-        return(frontNode.value)
-    }
-    //their Node_RBMultimap<keyType, valueType>: popLast() <- {}
     me uint:  size() <- {return(mapSize)}
-    me iterator_RBMultimap<keyType, valueType>: upper_bound(keyType: key) <- {
-        return(find(key+1))
+    valueType: __index(keyType: searchKey) <- {
+        itr iterator_RBTreeMap<keyType, valueType>: retItr <- find(searchKey)
+        if(retItr.node == edge){
+            me valueType: newVal
+            retItr.node <- insert(searchKey, newVal)
+        }
+        return(retItr.node.value)
     }
     ////////////////////////////////////////////////////////////////////
-    me bool: isLeftChild(their Node_RBMultimap<keyType, valueType>: node) <- {
+    me bool: isLeftChild(their Node_RBTree<keyType, valueType>: node) <- {
         if(node.parent != NULL and node === node.parent.left){return(true)}
         {return(false)}
     }
 
-    me void: leftRotate(their Node_RBMultimap<keyType, valueType>: node, me bool: changeColor) <- {
-        their Node_RBMultimap<keyType, valueType>: temp <- node.right
+    me void: leftRotate(their Node_RBTree<keyType, valueType>: node, me bool: changeColor) <- {
+        their Node_RBTree<keyType, valueType>: temp <- node.right
         node.right <- temp.left
         node.right.parent <- node
         if(node.parent == NULL){
@@ -216,8 +223,8 @@ struct RBMultimap<keyType, valueType>: implements=Multimap native=codeDog specs=
         }
     }
 
-    me void: rightRotate(their Node_RBMultimap<keyType, valueType>: node, me bool: changeColor) <- {
-        their Node_RBMultimap<keyType, valueType>: temp <- node.left
+    me void: rightRotate(their Node_RBTree<keyType, valueType>: node, me bool: changeColor) <- {
+        their Node_RBTree<keyType, valueType>: temp <- node.left
         node.left <- temp.right
         node.left.parent <- node
         if(node.parent == NULL){
@@ -236,8 +243,8 @@ struct RBMultimap<keyType, valueType>: implements=Multimap native=codeDog specs=
         }
     }
 
-    me void: rotate(their Node_RBMultimap<keyType, valueType>: node)<-{
-        their Node_RBMultimap<keyType, valueType>: GParentNode <- node.parent.parent
+    me void: rotate(their Node_RBTree<keyType, valueType>: node)<-{
+        their Node_RBTree<keyType, valueType>: GParentNode <- node.parent.parent
         if(isLeftChild(node) == true){
             if(isLeftChild(node.parent) == true){
                 rightRotate(GParentNode, false)
@@ -269,7 +276,7 @@ struct RBMultimap<keyType, valueType>: implements=Multimap native=codeDog specs=
         return()
     }
 
-    me void: correctTree(their Node_RBMultimap<keyType, valueType>: node)<-{
+    me void: correctTree(their Node_RBTree<keyType, valueType>: node)<-{
         if(node.parent===Root){
             print ("ERROR: PARENT ", node.parent.key," is Root.  Node key is ", node.key, "\n")
             exit(1)
@@ -300,7 +307,7 @@ struct RBMultimap<keyType, valueType>: implements=Multimap native=codeDog specs=
         return()
     }
 
-    me void: checkColor(their Node_RBMultimap<keyType, valueType>: node) <-{
+    me void: checkColor(their Node_RBTree<keyType, valueType>: node) <-{
         if(node === Root or node === Leaf){
             Root.isBlack <- true
             return()
@@ -309,8 +316,8 @@ struct RBMultimap<keyType, valueType>: implements=Multimap native=codeDog specs=
         if(node.parent!=NULL){checkColor(node.parent)}
     }
 
-    me void: BSTInsert(their Node_RBMultimap<keyType, valueType>: root, their Node_RBMultimap<keyType, valueType>: newNode) <- {
-        if(newNode.key >= root.key){
+    me void: BSTInsert(their Node_RBTree<keyType, valueType>: root, their Node_RBTree<keyType, valueType>: newNode) <- {
+        if(newNode.key > root.key){
             if(root.right === Leaf){
                 root.right <- newNode
                 newNode.parent <- root
@@ -333,7 +340,7 @@ struct RBMultimap<keyType, valueType>: implements=Multimap native=codeDog specs=
         return(heightHelper(Root)-1)
     }
 
-    me int: heightHelper(their Node_RBMultimap<keyType, valueType>: node)<-{
+    me int: heightHelper(their Node_RBTree<keyType, valueType>: node)<-{
         if(node == NULL){return(0)}
         me int: leftHeight <- heightHelper(node.left)+1
         me int: rightHeight <- heightHelper(node.right)+1
@@ -341,12 +348,12 @@ struct RBMultimap<keyType, valueType>: implements=Multimap native=codeDog specs=
         return(rightHeight)
     }
 
-    me void: removeHelper(their Node_RBMultimap<keyType, valueType>: node, keyType: key) <- {
+    me void: removeHelper(their Node_RBTree<keyType, valueType>: node, keyType: key) <- {
         if(node === Leaf or node == NULL){return()}
         if(node.key == key){
             if(node.right === Leaf or node.left === Leaf){deleteOneChild(node)}
             else{
-                their Node_RBMultimap<keyType, valueType>: inorderSuccessor <- findSmallest(node.right)
+                their Node_RBTree<keyType, valueType>: inorderSuccessor <- findSmallest(node.right)
                 node.key <- inorderSuccessor.key
                 removeHelper(node.right, node.key)
             }
@@ -355,8 +362,8 @@ struct RBMultimap<keyType, valueType>: implements=Multimap native=codeDog specs=
         else{removeHelper(node.left, key)}
     }
 
-    me void: deleteOneChild(their Node_RBMultimap<keyType, valueType>: nodeToBeDelete) <- {
-        their Node_RBMultimap<keyType, valueType>: child
+    me void: deleteOneChild(their Node_RBTree<keyType, valueType>: nodeToBeDelete) <- {
+        their Node_RBTree<keyType, valueType>: child
         if(nodeToBeDelete.right === Leaf){child <- nodeToBeDelete.left}
         else{child <- nodeToBeDelete.right}
         replaceNode(nodeToBeDelete, child)
@@ -364,9 +371,10 @@ struct RBMultimap<keyType, valueType>: implements=Multimap native=codeDog specs=
             if(child.isBlack == false){child.isBlack <- true}
             else{deleteCase1(child)}
         }
+        // TODO: decrement mapSize, handle delete Root
     }
 
-    me void: replaceNode(their Node_RBMultimap<keyType, valueType>: node, their Node_RBMultimap<keyType, valueType>: child) <- {
+    me void: replaceNode(their Node_RBTree<keyType, valueType>: node, their Node_RBTree<keyType, valueType>: child) <- {
         child.parent <- node.parent
         if(node.parent == NULL){Root <-child}
         else{
@@ -375,8 +383,8 @@ struct RBMultimap<keyType, valueType>: implements=Multimap native=codeDog specs=
         }
     }
 
-    their Node_RBMultimap<keyType, valueType>: findSmallest(their Node_RBMultimap<keyType, valueType>: crntNode) <- {
-        their Node_RBMultimap<keyType, valueType>: prevNode <- NULL
+    their Node_RBTree<keyType, valueType>: findSmallest(their Node_RBTree<keyType, valueType>: crntNode) <- {
+        their Node_RBTree<keyType, valueType>: prevNode <- NULL
         while(!(crntNode == NULL or crntNode === Leaf)){
             prevNode <- crntNode
             crntNode <- crntNode.left
@@ -385,7 +393,10 @@ struct RBMultimap<keyType, valueType>: implements=Multimap native=codeDog specs=
         return(crntNode)
     }
 
-    me void: deleteCase1(their Node_RBMultimap<keyType, valueType>: doubleBlackNode) <- {
+    me void: deleteCase1(their Node_RBTree<keyType, valueType>: doubleBlackNode) <- {
+        print ("    deleteCase1: ", doubleBlackNode.key, "\n")
+        if(doubleBlackNode === Leaf){print("LEAF-a");return()}
+        if(doubleBlackNode.isLeaf){print("LEAF-b");return()}
         if(doubleBlackNode.parent == NULL){
             Root <- doubleBlackNode
             return()
@@ -393,8 +404,9 @@ struct RBMultimap<keyType, valueType>: implements=Multimap native=codeDog specs=
         deleteCase2(doubleBlackNode)
     }
 
-    me void: deleteCase2(their Node_RBMultimap<keyType, valueType>: doubleBlackNode) <- {
-        their Node_RBMultimap<keyType, valueType>: siblingNode
+    me void: deleteCase2(their Node_RBTree<keyType, valueType>: doubleBlackNode) <- {
+        print ("deleteCase2: ", doubleBlackNode.key, "\n")
+        their Node_RBTree<keyType, valueType>: siblingNode
         siblingNode <- findSiblingNode(doubleBlackNode)
         if(siblingNode.isBlack == false){
             if(isLeftChild(siblingNode)){rightRotate(siblingNode, true)}
@@ -404,16 +416,18 @@ struct RBMultimap<keyType, valueType>: implements=Multimap native=codeDog specs=
         deleteCase3(doubleBlackNode)
     }
 
-    me void: deleteCase3(their Node_RBMultimap<keyType, valueType>: doubleBlackNode) <- {
-        their Node_RBMultimap<keyType, valueType>: siblingNode <- findSiblingNode(doubleBlackNode)
+    me void: deleteCase3(their Node_RBTree<keyType, valueType>: doubleBlackNode) <- {
+        print ("deleteCase3: ", doubleBlackNode.key, "\n")
+        their Node_RBTree<keyType, valueType>: siblingNode <- findSiblingNode(doubleBlackNode)
         if(doubleBlackNode.parent.isBlack == true and siblingNode.isBlack == true and siblingNode.left.isBlack == true and siblingNode.right.isBlack == true){
             siblingNode.isBlack <- false
             deleteCase1(doubleBlackNode.parent)
         }else{deleteCase4(doubleBlackNode)}
     }
 
-    me void: deleteCase4(their Node_RBMultimap<keyType, valueType>: doubleBlackNode) <- {
-        their Node_RBMultimap<keyType, valueType>: siblingNode <- findSiblingNode(doubleBlackNode)
+    me void: deleteCase4(their Node_RBTree<keyType, valueType>: doubleBlackNode) <- {
+        print ("deleteCase4: ", doubleBlackNode.key, "\n")
+        their Node_RBTree<keyType, valueType>: siblingNode <- findSiblingNode(doubleBlackNode)
         if(doubleBlackNode.parent.isBlack == false and siblingNode.isBlack == true and siblingNode.left.isBlack == true and siblingNode.right.isBlack == true){
             siblingNode.isBlack <- false
             doubleBlackNode.parent.isBlack <- true
@@ -421,8 +435,9 @@ struct RBMultimap<keyType, valueType>: implements=Multimap native=codeDog specs=
         }else{deleteCase5(doubleBlackNode)}
     }
 
-    me void: deleteCase5(their Node_RBMultimap<keyType, valueType>: doubleBlackNode) <- {
-        their Node_RBMultimap<keyType, valueType>: siblingNode <- findSiblingNode(doubleBlackNode)
+    me void: deleteCase5(their Node_RBTree<keyType, valueType>: doubleBlackNode) <- {
+        print ("deleteCase5: ", doubleBlackNode.key, "\n")
+        their Node_RBTree<keyType, valueType>: siblingNode <- findSiblingNode(doubleBlackNode)
         if(siblingNode.isBlack == true){
             if(isLeftChild(doubleBlackNode) == true and siblingNode.right.isBlack == true and siblingNode.left.isBlack == false){
                 rightRotate(siblingNode.left, true)
@@ -433,8 +448,9 @@ struct RBMultimap<keyType, valueType>: implements=Multimap native=codeDog specs=
         deleteCase6(doubleBlackNode)
     }
 
-    me void: deleteCase6(their Node_RBMultimap<keyType, valueType>: doubleBlackNode) <- {
-        their Node_RBMultimap<keyType, valueType>: siblingNode <- findSiblingNode(doubleBlackNode)
+    me void: deleteCase6(their Node_RBTree<keyType, valueType>: doubleBlackNode) <- {
+        print ("deleteCase6: ", doubleBlackNode.key, "\n")
+        their Node_RBTree<keyType, valueType>: siblingNode <- findSiblingNode(doubleBlackNode)
         siblingNode.isBlack <- siblingNode.parent.isBlack
         siblingNode.parent.isBlack <- true
         if(isLeftChild(doubleBlackNode) == true){
@@ -447,13 +463,13 @@ struct RBMultimap<keyType, valueType>: implements=Multimap native=codeDog specs=
         if(siblingNode.parent == NULL){Root <- siblingNode}
     }
 
-    their Node_RBMultimap<keyType, valueType>: findSiblingNode(their Node_RBMultimap<keyType, valueType>: node) <- {
-        their Node_RBMultimap<keyType, valueType>: parent<- node.parent
+    their Node_RBTree<keyType, valueType>: findSiblingNode(their Node_RBTree<keyType, valueType>: node) <- {
+        their Node_RBTree<keyType, valueType>: parent<- node.parent
         if(isLeftChild(node) == true){return(parent.right)}
         else{return(parent.left)}
     }
 
-    their Node_RBMultimap<keyType, valueType>: getNode(their Node_RBMultimap<keyType, valueType>: node, keyType: searchKey) <- {
+    their Node_RBTree<keyType, valueType>: getNode(their Node_RBTree<keyType, valueType>: node, keyType: searchKey) <- {
         while(!(node === Leaf)){
             if(searchKey < node.key){node <- node.left}
             else if(searchKey > node.key){node <- node.right}
@@ -470,7 +486,7 @@ struct RBMultimap<keyType, valueType>: implements=Multimap native=codeDog specs=
         print("_____________________________________\n")
     }
 
-    me void: traverseHelper(their Node_RBMultimap<keyType, valueType>: node, me string: indent) <- {
+    me void: traverseHelper(their Node_RBTree<keyType, valueType>: node, me string: indent) <- {
         me string: isBlackStr
         if(node === Leaf){return()}
         traverseHelper(node.left, indent+"    ")
@@ -480,7 +496,7 @@ struct RBMultimap<keyType, valueType>: implements=Multimap native=codeDog specs=
         traverseHelper(node.right, indent+"    ")
     }
 
-    me int: blackNodes(their Node_RBMultimap<keyType, valueType>: node) <- {
+    me int: blackNodes(their Node_RBTree<keyType, valueType>: node) <- {
         if(node === Root){return(1)}
         me int: rightBlackNodes <- blackNodes(node.right)
         me int: leftBlackNodes <- blackNodes(node.left)
@@ -490,4 +506,3 @@ struct RBMultimap<keyType, valueType>: implements=Multimap native=codeDog specs=
     }
 
 }
-

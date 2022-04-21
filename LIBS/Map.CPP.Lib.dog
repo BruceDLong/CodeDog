@@ -1,0 +1,45 @@
+// Map.CPP.Lib.dog
+requirements = [
+    [tagOneOf, Lang, [CPP]]
+]
+
+interface={
+    provides = [Map_implementation]
+    libFiles = []
+    headers  = []
+}
+
+LibDescription ={
+    useStatus   = dynamic
+    description = 'Map in routines for CPP'
+}
+
+struct CPP_Map<keyType, valueType>: implements=Map wraps=map native=lang specs={insert=logarithmic find=logarithmic at=logarithmic}{
+    const struct: iterator_CPP_Map(keyType: key, valueType: value): implements=MapItr wraps=iterator native=lang <- {
+        me keyType: key()                        <- <%!%0.first%>
+        me valueType: val()                      <- <%!%0->second%>
+        our RBNode<keyType, valueType>: goNext() <- <%!++%0%>
+        our RBNode<keyType, valueType>: goPrev() <- <%!--%0%>
+    }
+
+    valueType: at(keyType)                      <- <%!at(%1)%>
+    void: clear()                               <- <%!clear()%>
+    me bool: containsKey(keyType: key)          <- <%!count(%1)>0%>
+    itr iterator_CPP_Map: end()                 <- <%!end()%>           // returns itr to past-the-end element
+    void: erase(keyType: key)                   <- <%!erase(%1)%>
+    itr iterator_CPP_Map: eraseInterval(itr iterator_CPP_Map: start, itr iterator_CPP_Map: end) <- <%!erase(%1, %2)%>
+    itr iterator_CPP_Map: find(keyType: key)    <- <%!find(%1)%>
+    valueType: first()                          <- <%!begin()->second%>
+    itr iterator_CPP_Map: front()               <- <%!%0.begin()%>
+    itr iterator_CPP_Map: insert(keyType: key, valueType: value) <- <%!insert(pair<%T0Type, %T1Type>(%1, %2))%>
+    me bool:  isEmpty()                         <- <%!empty()%>
+    valueType: last()                           <- <%!rbegin()->second%>
+    itr iterator_CPP_Map<keyType, valueType>: lower_bound(keyType: key)  <- <%!lower_bound(%1)%>
+    // itr iterator_CPP_Map: popFirst()              <- <%!%0.front(); %0.pop_front()%>
+    // itr iterator_CPP_Map: popLast()               <- <%!%0.back(); %0.pop_back()%>
+    me uint:  size()                            <- <%!size()%>
+    /////////////////////////////////////////
+    // TODO: need Reverse Iterators working first
+    // itr iterator_CPP_Map: back() <- <%!rend()%>             // returns reverse iterator to the reverse ene of the sequence container
+}
+

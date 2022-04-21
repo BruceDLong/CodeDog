@@ -3,43 +3,37 @@
 from progSpec import cdErr
 
 class Xlator(object):
-    def getContainerType(self, typeSpec, actionOrField):
-        cdErr("In base class Xlator::getContainerType.")
-
-    def adjustBaseTypes(self, fieldType, isContainer):
+    def adjustBaseTypes(self, fType, isContainer):
         cdErr("In base class Xlator::adjustBaseTypes.")
 
-    def applyOwner(self, typeSpec, owner, langType):
+    def applyIterator(self, langType, itrTypeKW):
+        cdErr("In base class Xlator::applyIterator.")
+
+    def applyOwner(self, owner, langType):
         cdErr("In base class Xlator::applyOwner.")
 
-    def getUnwrappedClassOwner(self, classes, typeSpec, fieldType, varMode, ownerIn):
+    def getUnwrappedClassOwner(self, classes, tSpec, fType, varMode, ownerIn):
         cdErr("In base class Xlator::getUnwrappedClassOwner.")
 
-    def getReqTagString(self, classes, typeSpec):
+    def getReqTagString(self, classes, tSpec):
         cdErr("In base class Xlator::getReqTagString.")
 
-    def xlateLangType(self, classes, typeSpec, owner, fTypeKW, varMode, actionOrField):
-        cdErr("In base class Xlator::xlateLangType.")
-
-    def makePtrOpt(self, typeSpec):
+    def makePtrOpt(self, tSpec):
         cdErr("In base class Xlator::makePtrOpt.")
 
-    def codeIteratorOperation(self, itrCommand, fieldType):
-        cdErr("In base class Xlator::codeIteratorOperation.")
-
-    def recodeStringFunctions(self, name, typeSpec):
+    def recodeStringFunctions(self, name, tSpec, lenParams):
         cdErr("In base class Xlator::recodeStringFunctions.")
 
     def langStringFormatterCommand(self, fmtStr, argStr):
         cdErr("In base class Xlator::langStringFormatterCommand.")
 
-    def LanguageSpecificDecorations(self, S, typeSpec, owner, LorRorP_Val):
+    def LanguageSpecificDecorations(self, S, tSpec, owner, LorRorP_Val):
         cdErr("In base class Xlator::LanguageSpecificDecorations.")
 
-    def convertToInt(self, S, typeSpec):
+    def convertToInt(self, S, tSpec):
         cdErr("In base class Xlator::convertToInt.")
 
-    def checkForTypeCastNeed(self, lhsTypeSpec, rhsTypeSpec, RHScodeStr):
+    def checkForTypeCastNeed(self, lhsTSpec, rhsTSpec, RHS):
         cdErr("In base class Xlator::checkForTypeCastNeed.")
 
     def getTheDerefPtrMods(self, itemTypeSpec):
@@ -81,9 +75,6 @@ class Xlator(object):
     def getContaineCategory(self, containerSpec):
         cdErr("In base class Xlator::getContaineCategory.")
 
-    def getContainerTypeInfo(self, containerType, name, idxType, typeSpecIn, paramList, genericArgs):
-        cdErr("In base class Xlator::getContainerTypeInfo.")
-
     def codeArrayIndex(self, idx, containerType, LorR_Val, previousSegName, idxTypeSpec):
         cdErr("In base class Xlator::codeArrayIndex.")
 
@@ -123,10 +114,10 @@ class Xlator(object):
     def codeMain(self, classes, tags):
         cdErr("In base class Xlator::codeMain.")
 
-    def codeArgText(self, argFieldName, argType, argOwner, typeSpec, makeConst, typeArgList):
+    def codeArgText(self, argFieldName, argType, argOwner, tSpec, makeConst, typeArgList):
         cdErr("In base class Xlator::codeArgText.")
 
-    def codeStructText(self, classes, attrList, parentClass, classInherits, classImplements, structName, structCode, tags):
+    def codeStructText(self, classes, attrList, parentClass, classInherits, classImplements, className, structCode, tags):
         cdErr("In base class Xlator::codeStructText.")
 
     def produceTypeDefs(self, typeDefMap):
@@ -138,10 +129,10 @@ class Xlator(object):
     def addGLOBALSpecialCode(self, classes, tags):
         cdErr("In base class Xlator::addGLOBALSpecialCode.")
 
-    def variableDefaultValueString(self, fieldType, isTypeArg, owner):
+    def variableDefaultValueString(self, fType, isTypeArg, owner):
         cdErr("In base class Xlator::variableDefaultValueString.")
 
-    def codeNewVarStr(self, classes, tags, lhsTypeSpec, varName, fieldDef, indent, actionOrField, genericArgs, localVarsAllocated):
+    def codeNewVarStr(self, LTSpec, varName, fieldDef, indent, genericArgs, localVarsAlloc):
         cdErr("In base class Xlator::codeNewVarStr.")
 
     def codeIncrement(self, varName):
@@ -153,13 +144,13 @@ class Xlator(object):
     def isNumericType(self, convertedType):
         cdErr("In base class Xlator::isNumericType.")
 
-    def codeVarFieldRHS_Str(self, fieldName, cvrtType, innerType, typeSpec, paramList, isAllocated, typeArgList, genericArgs):
+    def codeVarFieldRHS_Str(self, fieldName, cvrtType, tSpec, paramList, isAllocated, typeArgList, genericArgs):
         cdErr("In base class Xlator::codeVarFieldRHS_Str.")
 
     def codeConstField_Str(self, convertedType, fieldName, fieldValueText, className, indent):
         cdErr("In base class Xlator::codeConstField_Str.")
 
-    def codeVarField_Str(self, convertedType, typeSpec, fieldName, fieldValueText, className, tags, typeArgList, indent):
+    def codeVarField_Str(self, convertedType, tSpec, fieldName, fieldValueText, className, tags, typeArgList, indent):
         cdErr("In base class Xlator::codeVarField_Str.")
 
     def codeConstructor(self, className, ctorArgs, callSuper, ctorInit, funcBody):
@@ -174,7 +165,7 @@ class Xlator(object):
     def codeConstructorArgText(self, argFieldName, count, argType, defaultVal):
         cdErr("In base class Xlator::codeConstructorArgText.")
 
-    def codeCopyConstructor(self, fieldName, convertedType, isTemplateVar):
+    def codeCopyConstructor(self, fieldName, isTemplateVar):
         cdErr("In base class Xlator::codeCopyConstructor.")
 
     def codeConstructorCall(self, className):
@@ -183,13 +174,13 @@ class Xlator(object):
     def codeSuperConstructorCall(self, parentClassName):
         cdErr("In base class Xlator::codeSuperConstructorCall.")
 
-    def codeFuncHeaderStr(self, className, fieldName, returnType, argListText, localArgsAllocated, inheritMode, overRideOper, isConstructor, typeArgList, typeSpec, indent):
+    def codeFuncHeaderStr(self, className, field, cvrtType, argListText, localArgsAlloc, inheritMode, typeArgList, isNested, indent):
         cdErr("In base class Xlator::codeFuncHeaderStr.")
 
     def getVirtualFuncText(self, field):
         cdErr("In base class Xlator::getVirtualFuncText.")
 
-    def codeTemplateHeader(self, structName, typeArgList):
+    def codeTemplateHeader(self, className, typeArgList):
         cdErr("In base class Xlator::codeTemplateHeader.")
 
     def extraCodeForTopOfFuntion(self, argList):
