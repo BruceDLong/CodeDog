@@ -234,20 +234,18 @@ class Xlator_CPP(Xlator):
 
     def getTheDerefPtrMods(self, itemTypeSpec):
         if itemTypeSpec!=None and isinstance(itemTypeSpec, dict) and 'owner' in itemTypeSpec:
-            if progSpec.isNewContainerTempFunc(itemTypeSpec): return ['', '', False]
-            if progSpec.typeIsPointer(itemTypeSpec):
-                owner=progSpec.getOwner(itemTypeSpec)
-                if progSpec.isNewContainerTempFunc(itemTypeSpec):
-                    if owner=='itr':
-                        containerType = progSpec.getDatastructID(itemTypeSpec)
-                        cdErr("####### TODO: needs to work with new container type #######")
-                        ctnrCat = progSpec.getContaineCategory(itemTypeSpec)
-                        if containerType =='map' or containerType == 'multimap':
-                            return ['', '->second', False]
+            owner=progSpec.getOwner(itemTypeSpec)
+            if progSpec.isNewContainerTempFunc(itemTypeSpec):
+                if owner=='itr':
+                    containerType = progSpec.getDatastructID(itemTypeSpec)
+                    cdErr("####### TODO: needs to work with new container type ####### "+containerType)
+                    if containerType =='map' or containerType == 'multimap':
+                        return ['', '->second', False]
                     return ['(*', ')', False]
-                else:
-                    if owner!='itr':
-                        return ['(*', ')', True]
+                return ['', '', False]
+            if progSpec.typeIsPointer(owner):
+                if owner!='itr':
+                    return ['(*', ')', True]
         return ['', '', False]
 
     def derefPtr(self, varRef, itemTypeSpec):
