@@ -27,10 +27,20 @@ class Xlator_CPP(Xlator):
     renameInitFuncs       = False
     useAllCtorArgs        = False
     hasMacros             = True
-    useNestedClasses      = False
+    useNestedClasses      = True
     nullValue             = "nullptr"
 
     ###################################################### CONTAINERS
+    def getIteratorValueCodeConverter(self, tSpec, prevNameSeg):
+        fTypeKW    = progSpec.fieldTypeKeyword(tSpec)
+        itrTSpec   = self.codeGen.getDataStructItrTSpec(fTypeKW)
+        itrTypeKW  = progSpec.fieldTypeKeyword(itrTSpec)
+        reqTagList = progSpec.getReqTagList(tSpec)
+        valOwner   = progSpec.getOwner(reqTagList[1])
+        [LNodeP, RNodeP, LNodeA, RNodeA] = self.ChoosePtrDecorationForSimpleCase(valOwner)
+        itrVal     = progSpec.getCodeConverterByFieldID(self.codeGen.classStore, itrTypeKW, 'val', prevNameSeg ,RNodeP)
+        return itrVal
+
     def codeArrayIndex(self, idx, containerType, LorR_Val, previousSegName, idxTypeSpec):
         if 'owner' in idxTypeSpec and (idxTypeSpec['owner']=='their' or idxTypeSpec['owner']=='our' or idxTypeSpec['owner']=='itr'):
             idx = "*"+idx
@@ -68,7 +78,7 @@ class Xlator_CPP(Xlator):
         firstType    = progSpec.fieldTypeKeyword(ctnrTSpec)
         firstTSpec   = {'owner':firstOwner, 'fieldType':firstType}
         reqTagList   = progSpec.getReqTagList(ctnrTSpec)
-        containerCat = progSpec.getContaineCategory(ctnrTSpec)
+        containerCat = progSpec.getContaineCategory(self.codeGen.classStore, ctnrTSpec)
         if progSpec.ownerIsPointer(ctnrOwner): connector="->"
         else: connector = "."
         if containerCat=="Map" or containerCat=="Multimap":
@@ -101,7 +111,7 @@ class Xlator_CPP(Xlator):
         itrTypeKW    = progSpec.fieldTypeKeyword(itrTSpec)
         itrOwner     = progSpec.getOwner(itrTSpec)
         itrName      = repName + "Itr"
-        containerCat = progSpec.getContaineCategory(ctnrTSpec)
+        containerCat = progSpec.getContaineCategory(self.codeGen.classStore, ctnrTSpec)
         [LDeclP, RDeclP, LDeclA, RDeclA] = self.ChoosePtrDecorationForSimpleCase(ctnrOwner)
         if containerCat=='Map' or containerCat=="Multimap":
             if(reqTagList!=None):
@@ -110,9 +120,9 @@ class Xlator_CPP(Xlator):
             else: cdErr("TODO: handle value type owner and keyword in iterateContainerStr().")
             valTSpec    = {'owner':valOwner, 'fieldType':valTypeKW}
             [LNodeP, RNodeP, LNodeA, RNodeA] = self.ChoosePtrDecorationForSimpleCase(valOwner)
-            valTSpec['codeConverter'] = progSpec.getCodeConverterByFieldID(classes, itrTypeKW, 'val', repName,RNodeP)
+            valTSpec['codeConverter'] = self.getIteratorValueCodeConverter(ctnrTSpec, repName)
             localVarsAlloc.append([repName, valTSpec]) # Tracking local vars for scope
-            frontItr    = progSpec.getCodeConverterByFieldID(classes, datastructID, "front" , ctnrName , RDeclP)
+            frontItr    = progSpec.getCodeConverterByFieldID(self.codeGen.classStore, datastructID, "front" , ctnrName , RDeclP)
             actionText += indent + "for(auto "+repName+'='+frontItr + '; '+repName+'!='+ctnrName+RDeclP+'end(); ++'+repName+'){\n'
         elif containerCat=='List':
             if willBeModifiedDuringTraversal:
@@ -232,24 +242,21 @@ class Xlator_CPP(Xlator):
     def checkForTypeCastNeed(self, lhsTSpec, rhsTSpec, RHS):
         return RHS
 
-    def getTheDerefPtrMods(self, itemTypeSpec):
-        if itemTypeSpec!=None and isinstance(itemTypeSpec, dict) and 'owner' in itemTypeSpec:
-            owner=progSpec.getOwner(itemTypeSpec)
-            if progSpec.isNewContainerTempFunc(itemTypeSpec):
+    def getTheDerefPtrMods(self, tSpec):
+        if tSpec!=None and isinstance(tSpec, dict) and 'owner' in tSpec:
+            owner=progSpec.getOwner(tSpec)
+            if progSpec.isNewContainerTempFunc(tSpec):
                 if owner=='itr':
-                    containerType = progSpec.getDatastructID(itemTypeSpec)
-                    cdErr("####### TODO: needs to work with new container type ####### "+containerType)
-                    if containerType =='map' or containerType == 'multimap':
-                        return ['', '->second', False]
-                    return ['(*', ')', False]
+                    itrVal = self.getIteratorValueCodeConverter(tSpec, '')
+                    return ['', itrVal, False]
                 return ['', '', False]
             if progSpec.typeIsPointer(owner):
                 if owner!='itr':
                     return ['(*', ')', True]
         return ['', '', False]
 
-    def derefPtr(self, varRef, itemTypeSpec):
-        [leftMod, rightMod, isDerefd] = self.getTheDerefPtrMods(itemTypeSpec)
+    def derefPtr(self, varRef, tSpec):
+        [leftMod, rightMod, isDerefd] = self.getTheDerefPtrMods(tSpec)
         S = leftMod + varRef + rightMod
         return [S, isDerefd]
 
@@ -888,6 +895,7 @@ void SetBits(CopyableAtomic<uint64_t>& target, uint64_t mask, uint64_t value) {
             if(typeArgList != None):
                 templateHeader = self.codeTemplateHeader(className, typeArgList) +"\n"
                 className = className + self.codeTypeArgs(typeArgList)
+                if self.useNestedClasses and '::' in cvrtType: templateHeader += 'typename '
             else:
                 templateHeader = ""
             if overRideOper:

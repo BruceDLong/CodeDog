@@ -116,8 +116,8 @@ struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={inser
         return(node.value)
     }
     void: clear() <- {
-        Root <- Leaf
-        Leaf <- NULL
+        Leaf    <- NULL
+        Root    <- Leaf
         mapSize <- 0
     }
     me bool: containsKey(keyType: key) <- {
@@ -287,32 +287,13 @@ struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={inser
         Root.isBlack <- true
     }
 
-    me void: BSTInsert(their Node_RBTree<keyType, valueType>: node, their Node_RBTree<keyType, valueType>: newNode) <- {
-        if(newNode.key > node.key){
-            if(node.right === Leaf){
-                node.right <- newNode
-                newNode.parent <- node
-                return()
-            }
-            BSTInsert(node.right, newNode)
-            return()
-        }
-        if(node.left === Leaf){
-            node.left <- newNode
-            newNode.parent <-node
-            return()
-        }
-        BSTInsert(node.left, newNode)
-        return()
-    }
-
     me void: deleteFix(their Node_RBTree<keyType, valueType>: node) <- {
         their Node_RBTree<keyType, valueType>: sibling
         while(node!=Root and node.isBlack==true){
             if(node==node.parent.left){
                 sibling <- node.parent.right
                 if(sibling.isBlack==false){
-                    sibling.isBlack <- true
+                    sibling.isBlack     <- true
                     node.parent.isBlack <- false
                     leftRotate(node.parent)
                     sibling <- node.parent.right
@@ -323,7 +304,7 @@ struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={inser
                 }else{
                     if(sibling.right.isBlack==true){
                         sibling.left.isBlack <- true
-                        sibling.isBlack <- false
+                        sibling.isBlack      <- false
                         rightRotate(sibling)
                         sibling <- node.parent.right
                     }
@@ -336,7 +317,7 @@ struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={inser
             }else{
                 sibling <- node.parent.left
                 if(sibling.isBlack==false){
-                    sibling.isBlack <- true
+                    sibling.isBlack     <- true
                     node.parent.isBlack <- false
                     rightRotate(node.parent)
                     sibling <- node.parent.left
@@ -347,12 +328,12 @@ struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={inser
                 }else{
                     if(sibling.left.isBlack==true){
                       sibling.right.isBlack <- true
-                      sibling.isBlack <- false
+                      sibling.isBlack       <- false
                       leftRotate(sibling)
                       sibling <- node.parent.left
                     }
                     sibling.isBlack <- node.parent.isBlack
-                    node.parent.isBlack <- true
+                    node.parent.isBlack  <- true
                     sibling.left.isBlack <- true
                     rightRotate(node.parent)
                     node <- Root
@@ -374,14 +355,14 @@ struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={inser
             child <- node.left
             replaceNode(node, child)
         }else{                            // node no child is leaf
-            temp     <- findSmallest(node.right)
+            temp         <- findSmallest(node.right)
             startIsBlack <- temp.isBlack
             child        <- temp.right
             if(temp.parent == node) {   // if temp is a child of node
                 child.parent <- temp
             } else {
                 replaceNode(temp, temp.right)
-                temp.right <- node.right
+                temp.right        <- node.right
                 temp.right.parent <- temp
             }
             replaceNode(node, temp)

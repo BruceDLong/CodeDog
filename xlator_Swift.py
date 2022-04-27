@@ -78,7 +78,7 @@ class Xlator_Swift(Xlator):
         itrTSpec     = self.codeGen.getDataStructItrTSpec(datastructID)
         itrTypeKW    = progSpec.fieldTypeKeyword(itrTSpec) + ' '
         itrName      = repName + "Itr"
-        containerCat = progSpec.getContaineCategory(ctnrTSpec)
+        containerCat = progSpec.getContaineCategory(self.codeGen.classStore, ctnrTSpec)
         if containerCat=="Map" or containerCat=="Multimap":
             valueFieldType = progSpec.fieldTypeKeyword(ctnrTSpec)
             if(reqTagList != None):
@@ -120,7 +120,7 @@ class Xlator_Swift(Xlator):
         itrTypeKW    = progSpec.fieldTypeKeyword(itrTSpec)
         itrOwner     = progSpec.getOwner(itrTSpec)
         itrName      = repName + "Itr"
-        containerCat = progSpec.getContaineCategory(ctnrTSpec)
+        containerCat = progSpec.getContaineCategory(self.codeGen.classStore, ctnrTSpec)
         [LDeclP, RDeclP, LDeclA, RDeclA] = self.ChoosePtrDecorationForSimpleCase(firstOwner)
         [LNodeP, RNodeP, LNodeA, RNodeA] = self.ChoosePtrDecorationForSimpleCase(itrOwner)
         if containerCat=='Map':
@@ -298,7 +298,7 @@ class Xlator_Swift(Xlator):
                     if owner=='itr':
                         # OLD: ctnrCat = progSpec.getDatastructID(itemTypeSpec)
                         cdErr("####### TODO: needs to work with new container type #######")
-                        ctnrCat = progSpec.getContaineCategory(itemTypeSpec) # NEW
+                        ctnrCat = progSpec.getContaineCategory(self.codeGen.classStore, itemTypeSpec) # NEW
                         if ctnrCat =='map' or ctnrCat == 'multimap':
                             return ['', '', False]
                     # OPTIONALS
