@@ -35,6 +35,7 @@ model Map<keyType, valueType>{
 
 ////////////////////////////////////////////////////////
 struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={insert=logarithmic find=logarithmic at=logarithmic}{// find=logarithmic at=logarithmic}{  // constant
+    // Thanks to: https://www.programiz.com/dsa/red-black-tree
     const struct: Node_RBTree(keyType: key, valueType: value): implements=MapNode <- {
         me keyType: key
         me valueType: value
@@ -81,7 +82,7 @@ struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={inser
             if(prevNode != NULL){return(prevNode)}
             return(crntNode)
         }
-        itr iterator_RBTreeMap<keyType, valueType>: __opAssign(itr iterator_RBTreeMap<keyType, valueType>: RHS) <- {
+        their iterator_RBTreeMap<keyType, valueType>: __opAssign(itr iterator_RBTreeMap<keyType, valueType>: RHS) <- {
             node <- RHS.node
             return(self)
         }
@@ -102,7 +103,7 @@ struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={inser
             return(self)
         }
         me valueType: val()                         <- <%!%0.node->value%>
-        me valueType: key()                         <- <%!.node->key%>
+        me valueType: key()                         <- <%!%0.node->key%>
     }
 
     their Node_RBTree<keyType, valueType>: Root
@@ -150,34 +151,41 @@ struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={inser
         return(retItr)
     }
     their Node_RBTree<keyType, valueType>: insert(keyType: key, valueType: value) <- {
-        their Node_RBTree<keyType, valueType>:: newNode
-        newNode.parent  <- NULL
-        newNode.key     <- key
-        newNode.value   <- value
-        newNode.left    <- Leaf
-        newNode.right   <- Leaf
-        newNode.isBlack <- false
-        their Node_RBTree<keyType, valueType>: temp <- NULL
-        their Node_RBTree<keyType, valueType>: next <- Root
-        while(next!=Leaf){
-            temp <- next
-            if(newNode.key < next.key){next <- next.left}
-            else{next <- next.right}
-        }
-        newNode.parent <- temp
-        if(temp==NULL){Root <- newNode}
-        else if(newNode.key < temp.key){temp.left <- newNode}
-        else{temp.right <- newNode}
-        mapSize <- mapSize + 1
-        if(newNode.parent==NULL){
-            newNode.isBlack <- true
+        if(containsKey(key)){
+            their Node_RBTree<keyType, valueType>: node
+            node <- getNode(Root, key)
+            node.value <- value
+            return(node)
+        }else{
+            their Node_RBTree<keyType, valueType>:: newNode
+            newNode.parent  <- NULL
+            newNode.key     <- key
+            newNode.value   <- value
+            newNode.left    <- Leaf
+            newNode.right   <- Leaf
+            newNode.isBlack <- false
+            their Node_RBTree<keyType, valueType>: temp <- NULL
+            their Node_RBTree<keyType, valueType>: next <- Root
+            while(next!=Leaf){
+                temp <- next
+                if(newNode.key < next.key){next <- next.left}
+                else{next <- next.right}
+            }
+            newNode.parent <- temp
+            if(temp==NULL){Root <- newNode}
+            else if(newNode.key < temp.key){temp.left <- newNode}
+            else{temp.right <- newNode}
+            mapSize <- mapSize + 1
+            if(newNode.parent==NULL){
+                newNode.isBlack <- true
+                return(newNode)
+            }
+            if(newNode.parent.parent == NULL){
+                return(newNode)
+            }
+            insertFix(newNode)
             return(newNode)
         }
-        if(newNode.parent.parent == NULL){
-            return(newNode)
-        }
-        insertFix(newNode)
-        return(newNode)
     }
     me bool: isEmpty() <- {
         if(Root==Leaf){return(true)}
@@ -317,6 +325,7 @@ struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={inser
             }else{
                 sibling <- node.parent.left
                 if(sibling.isBlack==false){
+                    // TODO: test case
                     sibling.isBlack     <- true
                     node.parent.isBlack <- false
                     rightRotate(node.parent)
@@ -327,10 +336,10 @@ struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={inser
                     node <- node.parent
                 }else{
                     if(sibling.left.isBlack==true){
-                      sibling.right.isBlack <- true
-                      sibling.isBlack       <- false
-                      leftRotate(sibling)
-                      sibling <- node.parent.left
+                        sibling.right.isBlack <- true
+                        sibling.isBlack       <- false
+                        leftRotate(sibling)
+                        sibling <- node.parent.left
                     }
                     sibling.isBlack <- node.parent.isBlack
                     node.parent.isBlack  <- true
