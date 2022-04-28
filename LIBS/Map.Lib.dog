@@ -8,8 +8,8 @@ model Map<keyType, valueType>{
     const model: MapNode(keyType: key, valueType: value) <- {
         me keyType: key
         me valueType: value
-        their Node_RBTree<keyType, valueType>: goNext()
-        their Node_RBTree<keyType, valueType>: goPrev()
+        our MapNode<keyType, valueType>: goNext()
+        our MapNode<keyType, valueType>: goPrev()
     }
     const model: MapItr(keyType: key, valueType: value) <- {
         our MapNode<keyType, valueType>: node
@@ -41,9 +41,9 @@ struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={inser
         me valueType: value
         me bool: isBlack
         me bool: isLeaf
-        their Node_RBTree<keyType, valueType>: left
-        their Node_RBTree<keyType, valueType>: right
-        their Node_RBTree<keyType, valueType>: parent
+        our Node_RBTree<keyType, valueType>: left
+        our Node_RBTree<keyType, valueType>: right
+        our Node_RBTree<keyType, valueType>: parent
         // CONSTRUCTORS
         me none: Node_RBTree(keyType: _key, valueType: _val) <-{
             key     <- _key
@@ -55,16 +55,17 @@ struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={inser
         }
     }
     const struct: iterator_RBTreeMap(keyType: key, valueType: value):  implements=MapItr native=codeDog <- {
-        their Node_RBTree<keyType, valueType>: node
+        our Node_RBTree<keyType, valueType>: node
         their RBTreeMap<keyType, valueType>: container
-        their Node_RBTree<keyType, valueType>: goNext() <- {
+
+        our Node_RBTree<keyType, valueType>: goNext() <- {
             if(node.right != NULL and !node.right.isLeaf){
                 node <- findSmallest(node.right)
                 if(node==NULL or node.isLeaf){node <- container.edge}
                 return(node)
             }
-            their Node_RBTree<keyType, valueType>: parentTemp <- node.parent
-            their Node_RBTree<keyType, valueType>: nodeTemp   <- node
+            our Node_RBTree<keyType, valueType>: parentTemp <- node.parent
+            our Node_RBTree<keyType, valueType>: nodeTemp   <- node
             while(parentTemp!=NULL and nodeTemp===parentTemp.right){
                 nodeTemp   <- parentTemp
                 parentTemp <- parentTemp.parent
@@ -73,8 +74,8 @@ struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={inser
             if(node==NULL or node.isLeaf){node <- container.edge}
             return(node)
         }
-        their Node_RBTree<keyType, valueType>: findSmallest(their Node_RBTree<keyType, valueType>: crntNode) <- {
-            their Node_RBTree<keyType, valueType>: prevNode <- NULL
+        our Node_RBTree<keyType, valueType>: findSmallest(our Node_RBTree<keyType, valueType>: crntNode) <- {
+            our Node_RBTree<keyType, valueType>: prevNode <- NULL
             while(!(crntNode == NULL or crntNode.isLeaf)){
                 prevNode <- crntNode
                 crntNode <- crntNode.left
@@ -106,13 +107,13 @@ struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={inser
         me valueType: key()                         <- <%!%0.node->key%>
     }
 
-    their Node_RBTree<keyType, valueType>: Root
-    their Node_RBTree<keyType, valueType>: Leaf
-    their Node_RBTree<keyType, valueType>: edge
+    our Node_RBTree<keyType, valueType>: Root
+    our Node_RBTree<keyType, valueType>: Leaf
+    our Node_RBTree<keyType, valueType>: edge
     me uint: mapSize
 
     valueType: at(keyType: searchKey) <- {
-        their Node_RBTree<keyType, valueType>: node
+        our Node_RBTree<keyType, valueType>: node
         node <- getNode(Root, searchKey)
         return(node.value)
     }
@@ -126,46 +127,45 @@ struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={inser
         else{return(false)}
     }
     itr iterator_RBTreeMap<keyType, valueType>: end() <- {
-        itr iterator_RBTreeMap<keyType, valueType>: retItr
-        retItr.node <- edge
+        itr iterator_RBTreeMap<keyType, valueType>: retItr{edge, self}
         return(retItr)
     }
     me void: erase(keyType: key) <- {
-        their Node_RBTree<keyType, valueType>: node
+        our Node_RBTree<keyType, valueType>: node
         node <- getNode(Root, key)
         removeHelper(node, key)
     }
     itr iterator_RBTreeMap<keyType, valueType>: find(keyType: key) <- {
-        their Node_RBTree<keyType, valueType>: retNode <- getNode(Root, key)
+        our Node_RBTree<keyType, valueType>: retNode <- getNode(Root, key)
         if(retNode==NULL){retNode <- edge}
-        itr iterator_RBTreeMap<keyType, valueType>: retItr; retItr.node <- retNode
+        itr iterator_RBTreeMap<keyType, valueType>: retItr{retNode, self}
         return(retItr)
     }
     valueType: first() <- {
-        their Node_RBTree<keyType, valueType>: smallestNode <- findSmallest(Root)
+        our Node_RBTree<keyType, valueType>: smallestNode <- findSmallest(Root)
         return(smallestNode.value)
     }
     itr iterator_RBTreeMap<keyType, valueType>: front() <- {
-        itr iterator_RBTreeMap<keyType, valueType>: retItr; retItr.node <- findSmallest(Root)
+        itr iterator_RBTreeMap<keyType, valueType>: retItr{findSmallest(Root), self}
         retItr.container <- self
         return(retItr)
     }
-    their Node_RBTree<keyType, valueType>: insert(keyType: key, valueType: value) <- {
+    our Node_RBTree<keyType, valueType>: insert(keyType: key, valueType: value) <- {
         if(containsKey(key)){
-            their Node_RBTree<keyType, valueType>: node
+            our Node_RBTree<keyType, valueType>: node
             node <- getNode(Root, key)
             node.value <- value
             return(node)
         }else{
-            their Node_RBTree<keyType, valueType>:: newNode
+            our Node_RBTree<keyType, valueType>:: newNode
             newNode.parent  <- NULL
             newNode.key     <- key
             newNode.value   <- value
             newNode.left    <- Leaf
             newNode.right   <- Leaf
             newNode.isBlack <- false
-            their Node_RBTree<keyType, valueType>: temp <- NULL
-            their Node_RBTree<keyType, valueType>: next <- Root
+            our Node_RBTree<keyType, valueType>: temp <- NULL
+            our Node_RBTree<keyType, valueType>: next <- Root
             while(next!=Leaf){
                 temp <- next
                 if(newNode.key < next.key){next <- next.left}
@@ -192,8 +192,8 @@ struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={inser
         return(false)
     }
     valueType: last() <- {
-        their Node_RBTree<keyType, valueType>: crntNode <- Root
-        their Node_RBTree<keyType, valueType>: prevNode
+        our Node_RBTree<keyType, valueType>: crntNode <- Root
+        our Node_RBTree<keyType, valueType>: prevNode
         while(!(crntNode === Leaf)){
             prevNode <- crntNode
             crntNode <- crntNode.right
@@ -202,7 +202,7 @@ struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={inser
     }
     //itr valueType: lower_bound(keyType: key) <- {}
     void: set(keyType: key, valueType: value) <- {
-        their Node_RBTree<keyType, valueType>: node
+        our Node_RBTree<keyType, valueType>: node
         node <- getNode(Root, key)
         node.value <- value
     }
@@ -216,8 +216,8 @@ struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={inser
         return(retItr.node.value)
     }
     ////////////////////////////////////////////////////////////////////
-    me void: leftRotate(their Node_RBTree<keyType, valueType>: node) <- {
-        their Node_RBTree<keyType, valueType>: temp <- node.right
+    me void: leftRotate(our Node_RBTree<keyType, valueType>: node) <- {
+        our Node_RBTree<keyType, valueType>: temp <- node.right
         node.right <- temp.left
         if(temp.left != Leaf){
             temp.left.parent <- node
@@ -234,8 +234,8 @@ struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={inser
         node.parent <- temp
     }
 
-    me void: rightRotate(their Node_RBTree<keyType, valueType>: node) <- {
-        their Node_RBTree<keyType, valueType>: temp <- node.left
+    me void: rightRotate(our Node_RBTree<keyType, valueType>: node) <- {
+        our Node_RBTree<keyType, valueType>: temp <- node.left
         node.left <- temp.right
         if(temp.right != Leaf){
             temp.right.parent <- node
@@ -252,8 +252,8 @@ struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={inser
         node.parent <- temp
     }
 
-    me void: insertFix(their Node_RBTree<keyType, valueType>: node) <- {
-        their Node_RBTree<keyType, valueType>: aunt
+    me void: insertFix(our Node_RBTree<keyType, valueType>: node) <- {
+        our Node_RBTree<keyType, valueType>: aunt
         while(node.parent.isBlack==false){
             if(node.parent==node.parent.parent.right){
                 aunt <- node.parent.parent.left
@@ -295,8 +295,8 @@ struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={inser
         Root.isBlack <- true
     }
 
-    me void: deleteFix(their Node_RBTree<keyType, valueType>: node) <- {
-        their Node_RBTree<keyType, valueType>: sibling
+    me void: deleteFix(our Node_RBTree<keyType, valueType>: node) <- {
+        our Node_RBTree<keyType, valueType>: sibling
         while(node!=Root and node.isBlack==true){
             if(node==node.parent.left){
                 sibling <- node.parent.right
@@ -352,10 +352,10 @@ struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={inser
         node.isBlack <- true
     }
 
-    me void: removeHelper(their Node_RBTree<keyType, valueType>: node, keyType: key) <- {
+    me void: removeHelper(our Node_RBTree<keyType, valueType>: node, keyType: key) <- {
         if(node === Leaf or node == NULL){return()}
-        their Node_RBTree<keyType, valueType>: temp <- node
-        their Node_RBTree<keyType, valueType>: child
+        our Node_RBTree<keyType, valueType>: temp <- node
+        our Node_RBTree<keyType, valueType>: child
         me bool: startIsBlack <- node.isBlack
         if(node.left.isLeaf==true or node.left==Leaf){           // node Left child is leaf
             child <- node.right
@@ -386,7 +386,7 @@ struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={inser
         mapSize <- mapSize - 1
     }
 
-    me void: replaceNode(their Node_RBTree<keyType, valueType>: node, their Node_RBTree<keyType, valueType>: child) <- {
+    me void: replaceNode(our Node_RBTree<keyType, valueType>: node, our Node_RBTree<keyType, valueType>: child) <- {
         if(node.parent==NULL or node==Root){    // node is ROOT
             Root <- child
         }else if(node == node.parent.left){     // node is LEFT child of parent
@@ -397,8 +397,8 @@ struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={inser
         child.parent <- node.parent
     }
 
-    their Node_RBTree<keyType, valueType>: findSmallest(their Node_RBTree<keyType, valueType>: crntNode) <- {
-        their Node_RBTree<keyType, valueType>: prevNode <- NULL
+    our Node_RBTree<keyType, valueType>: findSmallest(our Node_RBTree<keyType, valueType>: crntNode) <- {
+        our Node_RBTree<keyType, valueType>: prevNode <- NULL
         while(!(crntNode == NULL or crntNode === Leaf)){
             prevNode <- crntNode
             crntNode <- crntNode.left
@@ -407,7 +407,7 @@ struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={inser
         return(crntNode)
     }
 
-    their Node_RBTree<keyType, valueType>: getNode(their Node_RBTree<keyType, valueType>: node, keyType: searchKey) <- {
+    our Node_RBTree<keyType, valueType>: getNode(our Node_RBTree<keyType, valueType>: node, keyType: searchKey) <- {
         while(!(node === Leaf)){
             if(searchKey < node.key){node <- node.left}
             else if(searchKey > node.key){node <- node.right}
@@ -423,7 +423,7 @@ struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={inser
         print("_____________________________________\n")
     }
 
-    me void: traverseHelper(their Node_RBTree<keyType, valueType>: node, me string: indent) <- {
+    me void: traverseHelper(our Node_RBTree<keyType, valueType>: node, me string: indent) <- {
         me string: isBlackStr
         if(node === Leaf){return()}
         traverseHelper(node.left, indent+"    ")

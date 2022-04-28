@@ -224,7 +224,7 @@ class Xlator_Java(Xlator):
                 else: langType=progSpec.flattenObjectName(fType)
         return langType
 
-    def applyIterator(self, langType, itrTypeKW):
+    def applyIterator(self, langType, itrTypeKW, varMode):
         return langType
 
     def applyOwner(self, owner, langType, varMode):
@@ -349,9 +349,11 @@ class Xlator_Java(Xlator):
         return CPL
 
     def codeXlatorAllocater(self, tSpec, genericArgs):
-        owner = progSpec.getOwner(tSpec)
-        cvrtType  = self.codeGen.convertType(tSpec, 'alloc', genericArgs)
-        if(owner!='const'): S="new "+cvrtType
+        owner      = progSpec.getOwner(tSpec)
+        reqTagList = progSpec.getReqTagList(tSpec)
+        fTypeKW    = progSpec.fieldTypeKeyword(tSpec)
+        fTypeKW    = self.codeGen.generateGenericStructName(fTypeKW, reqTagList, genericArgs)
+        if(owner!='const'): S="new "+fTypeKW
         else: cdErr("ERROR: Cannot allocate a 'const' variable.")
         return S
 

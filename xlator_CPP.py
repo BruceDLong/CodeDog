@@ -174,12 +174,14 @@ class Xlator_CPP(Xlator):
         else: langType=progSpec.flattenObjectName(fType[0])
         return langType
 
-    def applyIterator(self, langType, itrTypeKW):
+    def applyIterator(self, langType, itrTypeKW, varMode):
+        # varMode is 'var' or 'arg' or 'alloc' or 'func' for function Header.
         if itrTypeKW==None: return langType
+        if varMode=='func': langType = 'typename ' + langType
         return langType +'::' + itrTypeKW
 
     def applyOwner(self, owner, langType, varMode):
-        # varMode is 'var' or 'arg' or 'alloc'
+        # varMode is 'var' or 'arg' or 'alloc' or 'func' for function Header.
         if varMode!='alloc':
             if owner=='me':         langType = langType
             elif owner=='my':       langType = "unique_ptr<"+langType + ' >'
@@ -895,7 +897,6 @@ void SetBits(CopyableAtomic<uint64_t>& target, uint64_t mask, uint64_t value) {
             if(typeArgList != None):
                 templateHeader = self.codeTemplateHeader(className, typeArgList) +"\n"
                 className = className + self.codeTypeArgs(typeArgList)
-                if self.useNestedClasses and '::' in cvrtType: templateHeader += 'typename '
             else:
                 templateHeader = ""
             if overRideOper:

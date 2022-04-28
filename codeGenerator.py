@@ -598,7 +598,7 @@ class CodeGenerator(object):
         return outerKW
 
     def convertType(self, tSpec, varMode, genericArgs):
-        # varMode is 'var' or 'arg' or 'alloc'. Large items are passed as pointers
+        # varMode is 'var' or 'arg' or 'alloc' or 'func' for function Header. Large items are passed as pointers
         progSpec.isOldContainerTempFuncErr(tSpec, "convertType")
         tSpec    = self.getGenericFieldsTypeSpec(genericArgs, tSpec)
         fTypeKW  = progSpec.fieldTypeKeyword(tSpec)
@@ -633,7 +633,7 @@ class CodeGenerator(object):
                 else: unwrappedKW += reqTagStr
             else: unwrappedKW += reqTagStr
         langType = self.xlator.adjustBaseTypes(unwrappedKW, progSpec.isNewContainerTempFunc(tSpec))
-        langType = self.xlator.applyIterator(langType, itrTypeKW)
+        langType = self.xlator.applyIterator(langType, itrTypeKW, varMode)
         langType = self.xlator.applyOwner(ownerOut, langType, varMode)
         return langType
 
@@ -644,7 +644,7 @@ class CodeGenerator(object):
             elif len(paramList)>0:
                 fTypeKW      = progSpec.fieldTypeKeyword(tSpec)
                 classDef     = progSpec.findSpecOf(self.classStore[0], fTypeKW, "struct")
-                genericArgs  = progSpec.getGenericArgs(classDef)
+                if genericArgs==None: genericArgs  = progSpec.getGenericArgs(classDef)
                 modelParams  = self.getCtorModelParams(fTypeKW)
                 if len(paramList)>len(modelParams): modelParams  = []
                 [CPL, paramTypeList]  = self.codeParameterList('Allocate', paramList, modelParams, genericArgs)
@@ -1565,7 +1565,7 @@ class CodeGenerator(object):
         return ctorCode
 
     #### STRUCT FIELDS #####################################################
-    def codeFunction(self, className, classDef, field, typeArgList, genericArgs, cvrtType, indent):
+    def codeFunction(self, className, classDef, field, typeArgList, genericArgs, indent):
         structCode   = ""
         funcDefCode  = ""
         globalFuncs  = ""
@@ -1599,7 +1599,7 @@ class CodeGenerator(object):
         #### RETURN TYPE ###########################################
         FirstReturnType = copy.copy(tSpec) # TODO: Un-Hardcode FirstReturnType, typeSpec?
         if(fTypeKW[0] != '<%'): pass #self.registerType(className, fieldName, cvrtType, typeDefName)
-        if(cvrtType=='none'): cvrtType = ''
+
 
         #### FUNC HEADER: for both decl and defn. ##################
         inheritMode='normal'
@@ -1618,6 +1618,8 @@ class CodeGenerator(object):
             self.classStore[0][className]['attrList'].append('abstract')
 
         # ####################################################################
+        cvrtType     = self.convertType(tSpec, 'func', genericArgs)
+        if(cvrtType=='none'): cvrtType = ''
         [structCode, funcDefCode, globalFuncs]=self.xlator.codeFuncHeaderStr(className, field, cvrtType, argListText, self.localArgsAllocated, inheritMode, typeArgList, self.isNestedClass, indent)
 
         #### FUNC BODY #############################################
@@ -1725,7 +1727,7 @@ class CodeGenerator(object):
         elif(fieldArglist==None):
             [structCode, funcDefCode] = self.xlator.codeVarField_Str(cvrtType, tSpec, fieldName, RHS, className, tags, typeArgList, indent)
         ###### ArgList exists so this is a FUNCTION###########
-        else: [structCode, funcDefCode, globalFuncs] = self.codeFunction(className, classDef, field, typeArgList, genericArgs, cvrtType, indent)
+        else: [structCode, funcDefCode, globalFuncs] = self.codeFunction(className, classDef, field, typeArgList, genericArgs, indent)
         return [structCode, funcDefCode, globalFuncs, topFuncDefCode]
 
     def codeStructFields(self, className, tags, indent):
