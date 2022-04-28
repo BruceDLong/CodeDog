@@ -61,7 +61,7 @@ struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={inser
         our Node_RBTree<keyType, valueType>: goNext() <- {
             if(node.right != NULL and !node.right.isLeaf){
                 node <- findSmallest(node.right)
-                if(node==NULL or node.isLeaf){node <- container.edge}
+                if(node==NULL  or node.isLeaf){node <- container.edge}
                 return(node)
             }
             our Node_RBTree<keyType, valueType>: parentTemp <- node.parent
