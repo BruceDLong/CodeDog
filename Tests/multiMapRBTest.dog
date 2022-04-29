@@ -1,0 +1,110 @@
+LinuxBuild: Platform='Linux' Lang='CPP' LangVersion='GNU';
+BuildCmd = ""
+Title = "Infomage - DataDog"
+FileName = "multiMapRBTest"
+Version = "0.1"
+CopyrightMesg = "Copyright (c) 2015-2016 Bruce Long"
+Authors = "Bruce Long"
+Description = "DataDog gives you the numbers of your life."
+ProgramOrLibrary = "program"
+featuresNeeded = [Map]
+LicenseText = `This file is part of the "Proteus suite" All Rights Reserved.`
+runCode=`
+me testClass: TC
+TC.runTest()
+`
+
+struct testClass{
+    me void: runTest()<-{
+        me RBMultimap<me int, me string>: testMM
+        print("   isEmpty(true):"+toString(testMM.isEmpty()),"\n")
+        print("________\n")
+        testMM.insert(29," 29")
+        testMM.insert(8," 8")
+        testMM.insert(22," 22")
+        testMM.insert(6," 6")
+        testMM.insert(21," 21")
+        testMM.insert(3," 3")
+        testMM.insert(14," 14")
+        testMM.insert(7," 7")
+        testMM.insert(5," 5")
+        testMM.insert(23," 23")
+        testMM.insert(4," 4")
+        testMM.insert(9," 9")
+        testMM.insert(10," 10")
+        testMM.insert(12," 12")
+        testMM.insert(15," 15")
+        testMM.insert(16," 16")
+        testMM.insert(18," 18")
+        testMM.insert(19," 19")
+        testMM.insert(1," 1")
+        testMM.insert(20," 20")
+        testMM.insert(24," 24")
+        testMM.insert(11," 11")
+        testMM.insert(25," 25")
+        testMM.insert(17," 17")
+        testMM.insert(26," 26")
+        testMM.insert(27," 27")
+        testMM.insert(13," 13")
+        testMM.insert(28," 28")
+        testMM.insert(2," 2")
+        testMM.insert(0," 0")
+        withEach item in testMM{print(item)}
+        print("\n")
+        print("________\n")
+        print("   at(1):",testMM.at(1),"\n")
+        print("   first(0):",testMM.first(),"\n")
+        print("   Size(30):",testMM.size(),"\n")
+        print("   Last(29):",testMM.last(),"\n")
+        print("   isEmpty(false):"+toString(testMM.isEmpty()),"\n")
+        itr RBMultimap<me int, me string>: testItr <- testMM.find(10)
+        print("   find(10):",testItr,"\n")
+        print("   key(10):",testItr.key(),"\n")
+        print("   val(10):",testItr.val(),"\n")
+        print("   containsKey(true):",toString(testMM.containsKey(1)),"\n")
+        print("   __index[5]:",testMM[5],"\n")
+        print("\n")
+        print("________\n")
+        print("   goNext(11):",testItr.goNext().value,"\n")
+        itr RBMultimap<me int, me string>: testItr2{testItr}
+        print("   __opAssign(11):",testItr2,"\n")
+        print("________\n")
+        testMM.erase(16)
+        testMM.erase(29)
+        testMM.erase(1)
+        testMM.erase(25)
+        testMM.erase(3)
+        testMM.erase(21)
+        testMM.erase(22)
+        testMM.erase(5)
+        testMM.erase(19)
+        testMM.erase(17)
+        testMM.erase(7)
+        testMM.erase(13)
+        testMM.erase(27)
+        testMM.erase(9)
+        testMM.erase(24)
+        testMM.erase(10)
+        testMM.erase(12)
+        testMM.erase(6)
+        testMM.erase(15)
+        testMM.erase(4)
+        testMM.erase(18)
+        testMM.erase(0)
+        testMM.erase(28)
+        print("________\n")
+        testMM.insert(8," 500")
+        print("   after insert duplicate(8,500):",testMM.at(8),"\n")
+        print("________\n")
+        withEach item2 in testMM{print(item2)}
+        print("\n")
+        print("________\n")
+        print("   clear():\n")
+        testMM.clear()
+        print("   isEmpty(true):"+toString(testMM.isEmpty()),"\n")
+    }
+}
+    // TODO: delete node: handle memory leak
+    // TODO: multimap
+    // TODO: deleteFix() missing case
+
