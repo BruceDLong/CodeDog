@@ -54,7 +54,7 @@ class Xlator_Java(Xlator):
                     else: S= '.at(' + idx +')'
                 else: S= '[' + idx +']'
         else:
-            containerCat = progSpec.getContaineCategory(containerType)
+            containerCat = progSpec.getContaineCategory(self.codeGen.classStore, containerType)
             if containerCat=='Map' or containerCat=='List':
                 fieldDefIdx = self.codeGen.CheckObjectVars(ctnrTypeKW, "__index", "")
                 if fieldDefIdx and 'typeSpec' in fieldDefIdx:
@@ -101,7 +101,7 @@ class Xlator_Java(Xlator):
         firstType    = progSpec.getNewContainerFirstElementTypeTempFunc(ctnrTSpec)
         firstTSpec   = {'owner':firstOwner, 'fieldType':firstType}
         reqTagList   = progSpec.getReqTagList(ctnrTSpec)
-        containerCat = progSpec.getContaineCategory(ctnrTSpec)
+        containerCat = progSpec.getContaineCategory(self.codeGen.classStore, ctnrTSpec)
         if containerCat=="Map" or containerCat=="Multimap":
             valueFieldType = progSpec.fieldTypeKeyword(ctnrTSpec)
             if(reqTagList != None):
@@ -144,7 +144,7 @@ class Xlator_Java(Xlator):
         itrTSpec     = self.codeGen.getDataStructItrTSpec(datastructID)
         itrOwner     = progSpec.getOwner(itrTSpec)
         itrName      = repName
-        containerCat = progSpec.getContaineCategory(ctnrTSpec)
+        containerCat = progSpec.getContaineCategory(self.codeGen.classStore, ctnrTSpec)
         [LDeclP, RDeclP, LDeclA, RDeclA] = self.ChoosePtrDecorationForSimpleCase(firstOwner)
         [LNodeP, RNodeP, LNodeA, RNodeA] = self.ChoosePtrDecorationForSimpleCase(itrOwner)
         if containerCat=='Map' or containerCat=="Multimap":
@@ -224,7 +224,7 @@ class Xlator_Java(Xlator):
                 else: langType=progSpec.flattenObjectName(fType)
         return langType
 
-    def applyIterator(self, langType, itrTypeKW):
+    def applyIterator(self, langType, itrTypeKW, varMode):
         return langType
 
     def applyOwner(self, owner, langType, varMode):
@@ -349,9 +349,11 @@ class Xlator_Java(Xlator):
         return CPL
 
     def codeXlatorAllocater(self, tSpec, genericArgs):
-        owner = progSpec.getOwner(tSpec)
-        cvrtType  = self.codeGen.convertType(tSpec, 'alloc', genericArgs)
-        if(owner!='const'): S="new "+cvrtType
+        owner      = progSpec.getOwner(tSpec)
+        reqTagList = progSpec.getReqTagList(tSpec)
+        fTypeKW    = progSpec.fieldTypeKeyword(tSpec)
+        fTypeKW    = self.codeGen.generateGenericStructName(fTypeKW, reqTagList, genericArgs)
+        if(owner!='const'): S="new "+fTypeKW
         else: cdErr("ERROR: Cannot allocate a 'const' variable.")
         return S
 

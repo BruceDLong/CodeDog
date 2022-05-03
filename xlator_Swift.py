@@ -78,7 +78,7 @@ class Xlator_Swift(Xlator):
         itrTSpec     = self.codeGen.getDataStructItrTSpec(datastructID)
         itrTypeKW    = progSpec.fieldTypeKeyword(itrTSpec) + ' '
         itrName      = repName + "Itr"
-        containerCat = progSpec.getContaineCategory(ctnrTSpec)
+        containerCat = progSpec.getContaineCategory(self.codeGen.classStore, ctnrTSpec)
         if containerCat=="Map" or containerCat=="Multimap":
             valueFieldType = progSpec.fieldTypeKeyword(ctnrTSpec)
             if(reqTagList != None):
@@ -120,7 +120,7 @@ class Xlator_Swift(Xlator):
         itrTypeKW    = progSpec.fieldTypeKeyword(itrTSpec)
         itrOwner     = progSpec.getOwner(itrTSpec)
         itrName      = repName + "Itr"
-        containerCat = progSpec.getContaineCategory(ctnrTSpec)
+        containerCat = progSpec.getContaineCategory(self.codeGen.classStore, ctnrTSpec)
         [LDeclP, RDeclP, LDeclA, RDeclA] = self.ChoosePtrDecorationForSimpleCase(firstOwner)
         [LNodeP, RNodeP, LNodeA, RNodeA] = self.ChoosePtrDecorationForSimpleCase(itrOwner)
         if containerCat=='Map':
@@ -194,7 +194,7 @@ class Xlator_Swift(Xlator):
         else: langType=progSpec.flattenObjectName(fType[0])
         return langType
 
-    def applyIterator(self, langType, itrTypeKW):
+    def applyIterator(self, langType, itrTypeKW, varMode):
         return langType
 
     def applyOwner(self, owner, langType, varMode):
@@ -249,7 +249,8 @@ class Xlator_Swift(Xlator):
             tSpec['codeConverter']='%0.count'
             tSpec['fieldType']='int'
         elif name == "subStr":
-            tSpec['codeConverter']='substring(from:%1, to:%2)'
+            if lenParams==1: tSpec['codeConverter']='%0.substring(from:%1, to:%0.count)'
+            else: tSpec['codeConverter']='substring(from:%1, to:%2)'
         return [name, tSpec]
 
     def langStringFormatterCommand(self, fmtStr, argStr):
@@ -297,7 +298,7 @@ class Xlator_Swift(Xlator):
                     if owner=='itr':
                         # OLD: ctnrCat = progSpec.getDatastructID(itemTypeSpec)
                         cdErr("####### TODO: needs to work with new container type #######")
-                        ctnrCat = progSpec.getContaineCategory(itemTypeSpec) # NEW
+                        ctnrCat = progSpec.getContaineCategory(self.codeGen.classStore, itemTypeSpec) # NEW
                         if ctnrCat =='map' or ctnrCat == 'multimap':
                             return ['', '', False]
                     # OPTIONALS

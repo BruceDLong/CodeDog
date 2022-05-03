@@ -842,11 +842,15 @@ def getDatastructID(tSpec):
     else:   #is a parseResult
         return(tSpec['arraySpec']['datastructID'][0])
 
-def getContaineCategory(ctnrTSpec):
+def getContaineCategory(classStore, ctnrTSpec):
     fromImpl = getFromImpl(ctnrTSpec)
     if fromImpl: return fromImpl
     fTypeKW = fieldTypeKeyword(ctnrTSpec)
     if fTypeKW=='string':     return 'string'
+    structSpec = findSpecOf(classStore[0], fTypeKW, 'struct')
+    if structSpec:
+        classImplements = searchATagStore(structSpec['tags'], 'implements')
+        return classImplements[0]
     cdErr("Unknown type in progSpec.getContaineCategory() "+fTypeKW)
 
 def getContainerType_Owner(tSpec):
@@ -974,8 +978,8 @@ def getArgList(tSpec):
     if 'argList' in tSpec: return tSpec['argList']
     return None
 
-def getCodeConverterByFieldID(classes, className, fieldName, prevNameSeg, connector):
-    structSpec=findSpecOf(classes[0], className, 'struct')
+def getCodeConverterByFieldID(classStore, className, fieldName, prevNameSeg, connector):
+    structSpec=findSpecOf(classStore[0], className, 'struct')
     fieldID = className+ "::" +fieldName
     if structSpec==None: return None
     for field in structSpec["fields"]:
@@ -983,7 +987,7 @@ def getCodeConverterByFieldID(classes, className, fieldName, prevNameSeg, connec
             if 'typeSpec' in field and field['typeSpec']!=None and 'codeConverter' in field['typeSpec']:
                 codeConverter = field['typeSpec']['codeConverter']
                 codeConverter = codeConverter.replace("%G", '')
-                codeConverter = codeConverter.replace("%0", prevNameSeg)
+                if prevNameSeg!='': codeConverter = codeConverter.replace("%0", prevNameSeg)
                 return codeConverter
             return prevNameSeg+connector+fieldName+"()"
     return prevNameSeg+connector+fieldName+"()"
