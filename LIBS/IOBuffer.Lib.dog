@@ -10,6 +10,45 @@ struct strInnerBuf{
     their strInnerBuf: prev
 }
 
+struct strBufItr{
+    their strBuf: theStrBuf
+    their strInnerBuf: crntInnerBuf
+    me int64: crntRelPos
+    me int64: crntAbsPos() <- {return(crntInnerBuf.myOffset + crntRelPos)}
+    me mode[bfWaiting, bfOK, bfEOB, bfError]: status
+    me char: ch() <- {
+        return(crntInnerBuf.buf[crntRelPos])
+    }
+    me int: goNext() <- {
+        crntRelPos <+- 1
+        if(crntRelPos >= crntInnerBuf.buf.size()){
+            crntInnerBuf <- theStrBuf.findInrBufWithPos(crntAbsPos())
+            if(crntInnerBuf==NULL){
+                if(theStrBuf.bufferClosed){status <- bfEOB}
+                else{status <- bfError}
+            }else{
+                crntRelPos <- 0
+                status <- bfOK
+            }
+        }
+        return(status)
+    }
+    me string: stringify() <- {
+        me string: retVal
+        if(crntInnerBuf){retVal <- "'"+crntInnerBuf.buf +"'("+toString(crntRelPos)+ ")\n"}
+        else{retVal <- "NULL"}
+        return(retVal)
+    }
+}
+
+struct strBufRange{
+    their strBuf: theStrBuf
+    me int64: startPos
+    me int64: endPos
+    void: INIT(me int64: start, me int64: end) <- {}  // inc RefCount
+    void: DEINIT() <- {} // dec RefCOunt
+}
+
 struct strBuf{
     their strInnerBuf: head
     their strInnerBuf: tail
@@ -20,7 +59,7 @@ struct strBuf{
     me string: streamName
 
     void: putStr(me string: data) <- {
-        ///xlog("PUTTING:"+data)
+        //log("PUTTING:"+data)
         me MutexMngr: bufMtxMgr{bufMutex}
         if(bufferClosed){
             log("WARNING: Buffer already closed in putStr:"+data)
@@ -156,43 +195,310 @@ struct strBuf{
         putStr(data)
         close()
     }
-}
 
-struct strBufItr{
-    their strBuf: theStrBuf
-    their strInnerBuf: crntInnerBuf
-    me int64: crntRelPos
-    me int64: crntAbsPos() <- {return(crntInnerBuf.myOffset + crntRelPos)}
-    me mode[bfWaiting, bfOK, bfEOB, bfError]: status
-    me char: ch() <- {
-        return(crntInnerBuf.buf[crntRelPos])
+////////////////////////////////////////////////////////
+// Stream parsing utilities
+    me int64: chkStr(me int64: pos, me string: s) <- {
+        me int64: L <- s.size()
+        our strBufItr: txtItr <- getItrAt(pos)
+        withEach i in RANGE(0 .. L){
+            if(txtItr == NULL or txtItr.status!=bfOK or txtItr.ch() != s[i]){return(-1)}
+            txtItr.goNext()
+        }
+        return(L)
     }
-    me int: goNext() <- {
-        crntRelPos <+- 1
-        if(crntRelPos >= crntInnerBuf.buf.size()){
-            crntInnerBuf <- theStrBuf.findInrBufWithPos(crntAbsPos())
-            if(crntInnerBuf==NULL){
-                if(theStrBuf.bufferClosed){status <- bfEOB}
-                else{status <- bfError}
-            }else{
-                crntRelPos <- 0
-                status <- bfOK
+    me int64: scrapeUntil(me int64: pos, me string:endStr) <- {
+        me char: ender <- endStr[0]
+        our strBufItr: txtItr <- getItrAt(pos)
+        while(txtItr != NULL and txtItr.status==bfOK){
+            me char: ch <- txtItr.ch()
+            if(ch==ender){
+                me int64: p <- txtItr.crntAbsPos()
+                me int64: nxtLen <- chkStr(p, endStr)
+                if(nxtLen>0){return((p+nxtLen)-pos)}
+            }
+            txtItr.goNext()
+        }
+        return(-1)
+    }
+    me int64: escapedScrapeUntil(me int64:pos, me string:endChar) <- {
+        me string: prevCharStr <- " "
+        me char: prevChar <- prevCharStr[0]
+        me char: ender <- endChar[0]
+        me string: escCharStr <- "\\ "
+        me char: escChar <- escCharStr[0]
+        our strBufItr: txtItr <- getItrAt(pos)
+        while(txtItr != NULL and txtItr.status==bfOK){
+            me char: ch <- txtItr.ch()
+            me int64: p <- txtItr.crntAbsPos()
+            if(prevChar!=escChar and ch==ender){return(p-pos)}
+            if(prevChar==escChar and ch==escChar) {prevChar<-escCharStr[1]}
+            else {prevChar <- ch}
+            txtItr.goNext()
+        }
+        return(-1)
+    }
+    me int64: scrapeUTF8Char(me int64: pos, their int32: out) <- {
+        our strBufItr: txtItr <- getItrAt(pos)
+        me int: count <- 0
+        me int: expectedBytes <- -1
+        me string: bufr <- ""
+        while(txtItr != NULL and txtItr.status==bfOK){
+            me char: ch <- txtItr.ch()
+            if(count==0){
+                expectedBytes <- remainingOctets(ch) + 1
+            }
+            bufr <+- ch
+            count <+- 1
+            if(count==expectedBytes){break()}
+            txtItr.goNext()
+        }
+        if(count!=expectedBytes){return(-1)}
+        me int64: p<-0
+        packUTF8Char(bufr, p, out)
+        return(expectedBytes)
+    }
+    me int64: scrapeAlphaSeq(me int64: pos) <- {
+        me int64: charsUsed <- 0
+        our strBufItr: txtItr <- getItrAt(pos)
+        while(txtItr != NULL and txtItr.status==bfOK){
+            me char: ch <- txtItr.ch()
+            if(!isalpha(ch)){
+                if(charsUsed==0){return(-1)}
+                else{return(charsUsed)}
+            }
+            txtItr.goNext()
+            charsUsed <+- 1
+        }
+        return(charsUsed)
+    }
+    me int64: scrapeUintSeq(me int64: pos) <- {
+        me int64: charsUsed <- 0
+        our strBufItr: txtItr <- getItrAt(pos)
+        while(txtItr != NULL and txtItr.status==bfOK){
+            me char: ch <- txtItr.ch()
+            if(!isdigit(ch)){
+                if(charsUsed==0){return(-1)}
+                else{return(charsUsed)}
+            }
+            txtItr.goNext()
+            charsUsed <+- 1
+        }
+        return(charsUsed)
+    }
+    me int64: scrapeHexNum(me int64: pos) <- {
+        me int64: charsUsed <- 0
+        our strBufItr: txtItr <- getItrAt(pos)
+        while(txtItr != NULL and txtItr.status==bfOK){
+            me char: ch <- txtItr.ch()
+            if(!isxdigit(ch)){
+                if(charsUsed==0){return(-1)}
+                else{return(charsUsed)}
+            }
+            txtItr.goNext()
+            charsUsed <+- 1
+        }
+        return(charsUsed)
+    }
+    me int64: scrapeBinNum(me int64: pos) <- {
+        me int64: charsUsed <- 0
+        our strBufItr: txtItr <- getItrAt(pos)
+        while(txtItr != NULL and txtItr.status==bfOK){
+            me char: ch <- txtItr.ch()
+            if(!isxdigit(ch)){
+                if(charsUsed==0){return(-1)}
+                else{return(charsUsed)}
+            }
+            txtItr.goNext()
+            charsUsed <+- 1
+        }
+        return(charsUsed)
+    }
+    me int64: scrapeAlphaNumSeq(me int64: pos) <- {
+        me int64: charsUsed <- 0
+        our strBufItr: txtItr <- getItrAt(pos)
+        while(txtItr != NULL and txtItr.status==bfOK){
+            me char: ch <- txtItr.ch()
+            if(!isalnum(ch)){
+                if(charsUsed==0){return(-1)}
+                else{return(charsUsed)}
+            }
+            txtItr.goNext()
+            charsUsed <+- 1
+        }
+        return(charsUsed)
+    }
+    me int64: scrapeFlexNum(me int64: pos) <- {
+        me int64: charsUsed <- 0
+        me bool: sepCharFound <- false  // '.' or '/' was found.
+        our strBufItr: txtItr <- getItrAt(pos)
+        if(txtItr.ch()=="." or txtItr.ch()=="/"){return(-1)}
+        me char: prevCH <- " "
+        while(txtItr != NULL and txtItr.status==bfOK){
+            me char: ch <- txtItr.ch()
+            if(!(isdigit(ch) or ((ch=="." or ch=="/") and !sepCharFound))){
+                if(charsUsed==0){return(-1)}
+                else{
+                    if(prevCH!="." and prevCH!="/"){return(charsUsed)}
+                    else{return(-1)}
+                }
+            }
+            if(ch=="." or ch=="/"){sepCharFound <- true}
+            prevCH <- ch
+            txtItr.goNext()
+            charsUsed <+- 1
+        }
+        return(charsUsed)
+    }
+    me int64: scrapeAlphaNum_Seq(me int64: pos) <- {
+        me int64: charsUsed <- 0
+        our strBufItr: txtItr <- getItrAt(pos)
+        while(txtItr != NULL and txtItr.status==bfOK){
+            me char: ch <- txtItr.ch()
+            if (!(isalnum(ch) or ch=="_")){
+                if(charsUsed==0){return(-1)}
+                else{return(charsUsed)}
+            }
+            txtItr.goNext()
+            charsUsed <+- 1
+        }
+        return(charsUsed)
+    }
+
+    me int64: scrapeUnicodeWordContinue(me int64: pos) <- {
+        me int64: charsUsed <- 0
+        our strBufItr: txtItr <- getItrAt(pos)
+        while(txtItr != NULL and txtItr.status==bfOK){
+            me int32: ch
+            me int64: bytesUsed <- scrapeUTF8Char(pos, ch)
+            if(charsUsed==0 and bytesUsed<=0){return(-1)}
+            if (!(unicodeMgr.isUnicodeWordContinue(ch))){
+                if(charsUsed==0){return(-1)}
+                else{return(charsUsed)}
+            }
+            pos <+- bytesUsed
+            txtItr.goNext()
+            charsUsed <+- bytesUsed
+        }
+        if(charsUsed==0){return(-1)}
+        return(charsUsed)
+    }
+    me int64: scrapePrintableSeq(me int64: pos) <- {
+        me int64: charsUsed <- 0
+        our strBufItr: txtItr <- getItrAt(pos)
+        while(txtItr != NULL and txtItr.status==bfOK){
+            me char: ch <- txtItr.ch()
+            if(!isprint(ch)){
+                if(charsUsed==0){return(-1)}
+                else{return(charsUsed)}
+            }
+            txtItr.goNext()
+            charsUsed <+- 1
+        }
+        return(charsUsed)
+    }
+    me int64: scrapeCComment(me int64: pos) <- {
+        me char: ch <- at(pos)
+        if(ch=="/"){
+            me char: nextCh <- at(pos+1)
+            if(nextCh=="/"){
+                return(scrapeToEOL(pos))
+            } else if(nextCh=="*"){
+                return(scrapeUntil(pos+2, "*/")+2)
             }
         }
-        return(status)
+        return(0)
     }
-    me string: stringify() <- {
-        me string: retVal
-        if(crntInnerBuf){retVal <- "'"+crntInnerBuf.buf +"'("+toString(crntRelPos)+ ")\n"}
-        else{retVal <- "NULL"}
-        return(retVal)
+    me int64: scrapeWSC(me int64: pos) <- {
+        me int64: charsUsed <- 0
+        me int64: p <- pos
+        while(true){
+            me int64: prevP <- p
+            me char: ch <- at(p)
+            if(isspace(ch)){p <+- 1; charsUsed <+- 1}
+            else if(ch=="/"){
+                me int64: cmntLen <- scrapeCComment(p)
+                if(cmntLen>0){p <+- cmntLen; charsUsed <+- cmntLen}
+            }
+            if(prevP == p){  // !WSC(ch)
+                if(charsUsed==0){return(0)}
+                else{return(charsUsed)}
+            }
+        }
+        return(0) // Never reached
     }
-}
-
-struct strBufRange{
-    their strBuf: theStrBuf
-    me int64: startPos
-    me int64: endPos
-    void: INIT(me int64: start, me int64: end) <- {}  // inc RefCount
-    void: DEINIT() <- {} // dec RefCOunt
+    me int64: scrapeWS(me int64: pos) <- {
+        me int64: charsUsed <- 0
+        our strBufItr: txtItr <- getItrAt(pos)
+        while(txtItr != NULL and txtItr.status==bfOK){
+            me char: ch <- txtItr.ch()
+            if(!isspace(ch)){
+                if(charsUsed==0){return(0)}
+                else{return(charsUsed)}
+            }
+            txtItr.goNext()
+            charsUsed <+- 1
+        }
+        return(charsUsed)
+    }
+    me int64: scrapeQuotedStr(me int64: pos) <- {
+        me string: ch <- ""
+        ch <+- at(pos)
+        if(ch != "'" and ch != "\""){return(-1)}
+        else{pos <+- 1}
+        me int64: sLen <- escapedScrapeUntil(pos, ch)
+        if(sLen<0){return(-1)}
+        return(sLen+2)
+    }
+    me int64: scrapeQuotedStr1(me int64: pos) <- {
+        if(chkStr(pos, "'")>=0){pos <- pos+1}else{return(-1)}
+        me int64: sLen <- escapedScrapeUntil(pos, "'")
+        if(sLen<0){return(-1)}
+        return(sLen+2)
+    }
+    me int64: scrapeQuotedStr2(me int64: pos) <- {
+        if(chkStr(pos, "\"")>=0){pos <- pos+1}else{return(-1)}
+        me int64: sLen <- escapedScrapeUntil(pos, "\"")
+        if(sLen<0){return(-1)}
+        return(sLen+2)
+    }
+    me int64: scrapeCID(me int64: pos) <- {
+        me char: ch <- at(pos)
+        if(isalpha(ch)){
+            return(scrapeAlphaNum_Seq(pos))
+        }
+        return(-1)
+    }
+    me int64: scrapeUniID(me int64: pos) <- {
+        me int32: ch
+        me int64: bytesUsed <- scrapeUTF8Char(pos, ch)
+        if(bytesUsed<=0){return(-1)}
+        me int: tmpCh <- ch
+     //    log("UNICODESTR:'"+toString(bytesUsed) +"  val:"+toString(tmpCh))
+        if(unicodeMgr.isUnicodeWordStart(ch)){
+            me int64: charsUsed <- scrapeUnicodeWordContinue(pos+bytesUsed)
+            if(charsUsed==-1){charsUsed<-0}
+            me string:TXT
+            withEach idx in RANGE(pos..pos+charsUsed+bytesUsed){
+                me char: tChr <- at(idx)
+                TXT <+- tChr
+            }
+            //~ log("scrapeUniID A:"+TXT+": "+toString(charsUsed+bytesUsed)+" bytesUsed:"+toString(bytesUsed))
+            if(charsUsed<0){return(1)}
+            else{return(charsUsed+bytesUsed)}
+        }
+        return(-1)
+    }
+    me int64: scrapeIntSeq(me int64: pos) <- {
+        me int64: initialChars <- 0
+        me char: ch <- at(pos)
+        if(ch=="+" or ch=="-"){initialChars <- 1}
+        me int64: numDigits <- scrapeUintSeq(pos+initialChars)
+        if(numDigits>0){return(numDigits+initialChars)}
+        return(-1)
+    }
+    // TODO: me int64: scrapeRdxSeq(me int64: pos) <- { }
+    me int64: scrapeToEOL(me int64: pos) <- {
+        return(scrapeUntil(pos, "\n"))
+    }
 }

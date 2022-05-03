@@ -974,6 +974,7 @@ def getOwner(tSpec):
 
 def getArgList(tSpec):
     if tSpec==None: return None
+    if tSpec==0:    return None
     if 'typeSpec' in tSpec: tSpec = tSpec['typeSpec']
     if 'argList' in tSpec: return tSpec['argList']
     return None

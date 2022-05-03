@@ -670,9 +670,9 @@ class CodeGenerator(object):
         S = self.xlator.codeXlatorAllocater(tSpec, genericArgs) + CPL
         return S
 
-    def convertNameSeg(self, tSpecOut, name, connector, paramList, reqTagList, genericArgs):
-        newName = tSpecOut['codeConverter']
-        fTypeKW = progSpec.fieldTypeKeyword(tSpecOut)
+    def convertNameSeg(self, tSpec, name, connector, paramList, reqTagList, genericArgs):
+        newName = tSpec['codeConverter']
+        fTypeKW = progSpec.fieldTypeKeyword(tSpec)
         if newName == "": cdErr("ERROR: empty codeConverter for: "+name)
         if paramList != None:
             count=1
@@ -687,12 +687,6 @@ class CodeGenerator(object):
             paramList=None
         if '%0.' in newName and connector==self.xlator.PtrConnector:
             newName = newName.replace('%0.', '%0'+self.xlator.PtrConnector)
-        if fTypeKW == "keyType":
-            if tSpecOut['owner']!="itr":tSpecOut['owner'] = progSpec.getOwner(reqTagList[0])
-            tSpecOut['fieldType'] = progSpec.fieldTypeKeyword(reqTagList[0])
-        elif fTypeKW == "valueType":
-            if tSpecOut['owner']!="itr":tSpecOut['owner'] = progSpec.getOwner(reqTagList[1])
-            tSpecOut['fieldType'] = progSpec.fieldTypeKeyword(reqTagList[1])
         if "%T0Type" in newName:
             if(reqTagList != None):
                 T0Type  = progSpec.fieldTypeKeyword(reqTagList[0])
