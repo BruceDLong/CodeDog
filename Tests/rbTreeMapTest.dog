@@ -1,0 +1,114 @@
+LinuxBuild: Platform='Linux' Lang='CPP' LangVersion='GNU';
+BuildCmd = ""
+Title = "Infomage - DataDog"
+FileName = "rbTreeMapTest"
+Version = "0.1"
+CopyrightMesg = "Copyright (c) 2015-2016 Bruce Long"
+Authors = "Bruce Long"
+Description = "DataDog gives you the numbers of your life."
+ProgramOrLibrary = "program"
+featuresNeeded = [Map]
+LicenseText = `This file is part of the "Proteus suite" All Rights Reserved.`
+runCode=`
+me testClass: TC
+TC.runTest()
+`
+
+struct testClass{
+    me void: runTest()<-{
+        me RBTreeMap<me int, me string>: testMap
+        print("   isEmpty(true):"+toString(testMap.isEmpty()),"\n")
+        print("________\n")
+        testMap.insert(29," 29")
+        testMap.insert(8," 8")
+        testMap.insert(22," 22")
+        testMap.insert(6," 6")
+        testMap.insert(21," 21")
+        testMap.insert(3," 3")
+        testMap.insert(14," 14")
+        testMap.insert(7," 7")
+        testMap.insert(5," 5")
+        testMap.insert(23," 23")
+        testMap.insert(4," 4")
+        testMap.insert(9," 9")
+        testMap.insert(10," 10")
+        testMap.insert(12," 12")
+        testMap.insert(15," 15")
+        testMap.insert(16," 16")
+        testMap.insert(18," 18")
+        testMap.insert(19," 19")
+        testMap.insert(1," 1")
+        testMap.insert(20," 20")
+        testMap.insert(24," 24")
+        testMap.insert(11," 11")
+        testMap.insert(25," 25")
+        testMap.insert(17," 17")
+        testMap.insert(26," 26")
+        testMap.insert(27," 27")
+        testMap.insert(13," 13")
+        testMap.insert(28," 28")
+        testMap.insert(2," 2")
+        testMap.insert(0," 0")
+        withEach item in testMap{print(item)}
+        print("\n")
+        print("________\n")
+        print("   at(1):",testMap.at(1),"\n")
+        print("   first(0):",testMap.first(),"\n")
+        print("   Size(30):",testMap.size(),"\n")
+        print("   Last(29):",testMap.last(),"\n")
+        print("   isEmpty(false):"+toString(testMap.isEmpty()),"\n")
+        itr RBTreeMap<me int, me string>: testItr <- testMap.find(10)
+        print("   find(10):",testItr,"\n")
+        print("   key(10):",testItr.key(),"\n")
+        print("   val(10):",testItr.val(),"\n")
+        print("   containsKey(true):",toString(testMap.containsKey(1)),"\n")
+        print("   __index[5]:",testMap[5],"\n")
+        testMap.set(1," 100")
+        print("   set(100):",testMap.at(1),"\n")
+        testMap.set(1," 1")
+        print("   set(1):",testMap.at(1),"\n")
+        print("\n")
+        print("________\n")
+        print("   goNext(11):",testItr.goNext().value,"\n")
+        itr RBTreeMap<me int, me string>: testItr2{testItr}
+        print("   __opAssign(11):",testItr2,"\n")
+        print("________\n")
+        testMap.erase(16)
+        testMap.erase(29)
+        testMap.erase(1)
+        testMap.erase(25)
+        testMap.erase(3)
+        testMap.erase(21)
+        testMap.erase(22)
+        testMap.erase(5)
+        testMap.erase(19)
+        testMap.erase(17)
+        testMap.erase(7)
+        testMap.erase(13)
+        testMap.erase(27)
+        testMap.erase(9)
+        testMap.erase(24)
+        testMap.erase(10)
+        testMap.erase(12)
+        testMap.erase(6)
+        testMap.erase(15)
+        testMap.erase(4)
+        testMap.erase(18)
+        testMap.erase(0)
+        testMap.erase(28)
+        print("________\n")
+        testMap.insert(8," 500")
+        print("   after insert duplicate(8,500):",testMap.at(8),"\n")
+        print("________\n")
+        withEach item2 in testMap{print(item2)}
+        print("\n")
+        print("________\n")
+        print("   clear():\n")
+        testMap.clear()
+        print("   isEmpty(true):"+toString(testMap.isEmpty()),"\n")
+    }
+}
+    // TODO: delete node: handle memory leak
+    // TODO: multimap
+    // TODO: deleteFix() missing case
+

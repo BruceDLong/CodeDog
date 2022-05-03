@@ -5,6 +5,8 @@ requirements = [
 ]
 
 model List<nodeType>{   //model is abstract class
+    const model: iterator_CPP_Deque(nodeType: node): implements=ListItr wraps=iterator native=lang <- {
+    }
     void: append()
     nodeType: at()
     me void: clear()

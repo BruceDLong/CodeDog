@@ -15,6 +15,8 @@ LibDescription ={
 }
 
 struct CPP_Deque<nodeType>: implements=List wraps=deque native=lang specs={insert=linear append=constant prepend=constant}{
+    const struct: iterator_CPP_Deque(nodeType: node): implements=ListItr wraps=iterator native=lang <- {
+    }
     void: append(nodeType: value)               <- <%!push_back(%1)%>
     nodeType: at(me int: position)              <- <%!at(%1)%>
     void: clear()                               <- <%!clear()%>
@@ -23,13 +25,13 @@ struct CPP_Deque<nodeType>: implements=List wraps=deque native=lang specs={inser
     itr nodeType: end()                         <- <%!end()%>           // returns itr to past-the-end element
     itr nodeType: erase(itr nodeType: position) <- <%!%0.erase(%0.begin()+%1)%>
     itr nodeType: eraseInterval(itr nodeType: start, itr nodeType: end) <- <%!erase(%1, %2)%>
-    nodeType: first()                           <- <%!front()%>
+    itr nodeType: first()                       <- <%!front()%>
     itr nodeType: front()                       <- <%!begin()%>
     nodeType: __getAt(me int: position)         <- <%!at(%1)%>
     itr nodeType: insert(itr nodeType: position, nodeType: value) <- <%!insert(%1, %2)%>
     itr nodeType: insertIdx(me int: position, nodeType: value)    <- <%!%0.insert((%0.begin()+%1), %2)%>
     me bool: isEmpty()                          <- <%!empty()%>
-    nodeType: last()                            <- <%!back()%>
+    itr nodeType: last()                        <- <%!back()%>
     itr nodeType: nthItr()                      <- <%!(%0.begin()+%1)%>
     nodeType: popFirst()                        <- <%!%0.front(); %0.pop_front()%>
     nodeType: popLast()                         <- <%!%0.back(); %0.pop_back()%>
