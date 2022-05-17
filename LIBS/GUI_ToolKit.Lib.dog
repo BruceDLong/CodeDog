@@ -38,7 +38,34 @@ struct fontSpec{
     me flag: scaled
     me int: pp  // The non-scaled value
     me int: height
+    me Map<int32, int>: charWidths
 
+    me int: getCharWidthX1024(me int32: chr) <- {
+        itr Map<int32, int>: chrWidthItr <- charWidths.find(chr)
+        if(chrWidthItr!=charWidths.end()){
+            return(chrWidthItr.val)
+        }
+        me string: text; text <+- chr
+        me deltaSize: ds <- getTextSizeX1024(text, self)
+        me int: width <- ds.width
+        charWidths[chr] <- width
+        return(width)
+    }
+
+    me int: getCharWidth(me int32: chr) <- {return(getCharWidthX1024(chr)/1024)}
+
+    me int: getCharPosFromWidth(me string: text, me int: maxWidthToCur) <- {
+        if(text.size()==0){return(0)}
+        me int32: wtc <- 0
+        me int: chPos <- 0
+        withEach count in RANGE(0..text.size()){
+            me int: chrWidth <- getCharWidth(text[chPos])
+            if(wtc+(chrWidth/2) >= maxWidthToCur){break()}
+            wtc <+- chrWidth
+            chPos <+- 1
+        }
+        return(chPos)
+    }
     none: fontSpec(me string: initName, me string: initSize) <- {
         name      <- initName
         size      <- stoi(initSize)
