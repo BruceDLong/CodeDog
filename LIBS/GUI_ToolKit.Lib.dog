@@ -37,6 +37,7 @@ struct fontSpec{
     me int: size
     me flag: scaled
     me int: pp  // The non-scaled value
+    me int: headerY
     me int: height
     me Map<int32, int>: charWidths
 
@@ -71,6 +72,7 @@ struct fontSpec{
         size      <- stoi(initSize)
         pp        <- size
         height    <- getTextSize("gyjqGYM", self).height
+        headerY   <- height*2/3  // TODO: calculate correctly
     }
 }
 
