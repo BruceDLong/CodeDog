@@ -206,6 +206,16 @@ struct GUI_ctxt{
 
 /////////////////////////////////  G L O B A L
 struct GLOBAL{
+    // CLIPBOARD ROUTINES:
+    our string: getClipboardAsText() <- <%{
+        GtkClipboard * clpbrd = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
+        gchar * text          = gtk_clipboard_wait_for_text(clpbrd);
+        if(text==nullptr){return(nullptr);}
+        shared_ptr<string> S = make_shared<string>();
+        *S = text;
+        g_free(text);
+        return(S);
+    }%>
     // //TIME ROUTINES:
     me int64: ticksPerSec() <- <%!%GG_USEC_PER_SEC%>
     me int64: getCurrentTimeStamp() <- <%!g_get_real_time()/1000%>

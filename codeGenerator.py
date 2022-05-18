@@ -763,7 +763,7 @@ class CodeGenerator(object):
                 tSpecOut={'owner':'me', 'fieldType': 'void', 'codeConverter':'flags=0'}
                 # TODO: if flags or modes have a non-zero default this should account for that.
             elif(name[0]=='[' and fTypeKW=='string'):
-                tSpecOut={'owner':owner, 'fieldType': 'char'}
+                tSpecOut={'owner':'me', 'fieldType': 'char'}
                 [S2, idxTypeSpec] = self.codeExpr(name[1], None, None, 'RVAL', genericArgs)
                 S += self.xlator.codeArrayIndex(S2, 'string', LorR_Val, previousSegName, idxTypeSpec)
                 return [S, tSpecOut, S2, '']  # Here we return S2 for use in code forms other than [idx]. e.g. f(idx)

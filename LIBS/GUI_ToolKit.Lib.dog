@@ -90,6 +90,7 @@ struct GLOBAL{
 
     // Call setwindowMetrics() early in the top level draw() to populate window metrics
     void: setwindowMetrics()<-{windowW <- widgetWidth(drawing_area); windowH <- widgetHeight(drawing_area)}
+    our string: getClipboardAsText()
 }
 
 ///////// Widgets and events

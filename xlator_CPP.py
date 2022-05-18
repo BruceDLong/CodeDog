@@ -42,8 +42,8 @@ class Xlator_CPP(Xlator):
         return itrVal
 
     def codeArrayIndex(self, idx, containerType, LorR_Val, previousSegName, idxTypeSpec):
-        if 'owner' in idxTypeSpec and (idxTypeSpec['owner']=='their' or idxTypeSpec['owner']=='our' or idxTypeSpec['owner']=='itr'):
-            idx = "*"+idx
+        owner = progSpec.getOwner(idxTypeSpec)
+        if owner=='their' or owner=='our' or owner=='itr': idx = "*"+idx
         S= '[' + idx +']'
         return S
 
