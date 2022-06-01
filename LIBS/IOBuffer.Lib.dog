@@ -22,10 +22,12 @@ struct strBufItr{
     me int: goNext() <- {
         crntRelPos <+- 1
         if(crntRelPos >= crntInnerBuf.buf.size()){
+            their strInnerBuf: prevInnerBuf <- crntInnerBuf
             crntInnerBuf <- theStrBuf.findInrBufWithPos(crntAbsPos())
+            if(prevInnerBuf === crntInnerBuf){return(bfOK)}
             if(crntInnerBuf==NULL){
-                if(theStrBuf.bufferClosed){status <- bfEOB}
-                else{status <- bfError}
+                if(theStrBuf.bufferClosed){status <- bfEOB; print("bfEOB\n")}
+                else{status <- bfError; print("bfError\n")}
             }else{
                 crntRelPos <- 0
                 status <- bfOK
@@ -57,6 +59,10 @@ struct strBuf{
     me SyncLock: bufLock
     me bool: bufferClosed
     me string: streamName
+    me bool: interactiveMode     // If true, allow tail of buffer to be tentative / modifiable.
+    me bool: pre_parse_only      // If true, do not release for parsing; wait for 'submit'
+    me int64: firstTentativeByte // The first byte that may be changed or deleted.
+    me int64: consumerStatus       // Use for setting the status of the consumer/parser; if needed.
 
     void: putStr(me string: data) <- {
         //log("PUTTING:"+data)
@@ -69,14 +75,8 @@ struct strBuf{
         innerBuf.buf <- data
         innerBuf.myOffset <- crntStreamSize
         innerBuf.refCount <- 1
-        me int64: dataSize <- data.size()
-        crntStreamSize <+- dataSize
-        me int64: newLines <- 0
-        withEach idx in RANGE(0..dataSize){
-            if(data[idx] == "\n"){
-                newLines <+- 1
-            }
-        }
+        crntStreamSize <+- data.size()
+        me int64: newLines <- numNewlines(data)
         if(tail==NULL){
             head <- innerBuf
             innerBuf.endingLineNumber <- newLines
@@ -164,7 +164,7 @@ struct strBuf{
         errCharPos <- charPos-(lastLinePos+bufWithChar.myOffset)
         return(streamName+":"+toString(errLineNum)+":"+toString(errCharPos))
     }
-
+    void: notifyWaitingThread() <- {bufLock.notifyOne()}
     void: close() <- {
         me MutexMngr: bufMtxMgr{bufMutex}
         bufferClosed <- true
@@ -173,6 +173,16 @@ struct strBuf{
     }
     me int64: size() <- {
         return(crntStreamSize)
+    }
+    me int64: numNewlines(me string: data) <- {
+        me int64: dataSize <- data.size()
+        me int64: newLines <- 0
+        withEach idx in RANGE(0..dataSize){
+            if(data[idx] == "\n"){
+                newLines <+- 1
+            }
+        }
+        return(newLines)
     }
     me string: stringify() <- {
         me string: retVal
@@ -194,6 +204,52 @@ struct strBuf{
         init(StreamName)
         putStr(data)
         close()
+    }
+
+////////////////////////////////////////////////////////
+// Interactive mode utilities
+
+    void: submitForPreParse() <- {
+        pre_parse_only  <- true
+        notifyWaitingThread()
+    }
+    void: submitForParse() <- {
+        pre_parse_only  <- false
+        notifyWaitingThread()
+    }
+
+    void: deleteTentativeChars(me int64: pos, me int64:N) <- { // And shorten buffer by N
+        me MutexMngr: bufMtxMgr{bufMutex}
+        crntStreamSize <-- N
+        me int64: innerPos <- pos-tail.myOffset
+        tail.endingLineNumber <-- numNewlines(tail.buf.subStr(innerPos, innerPos+N))
+        tail.buf <- tail.buf.subStr(0, innerPos-1) + tail.buf.subStr(innerPos+N)
+        bufLock.notifyOne()
+    }
+    void: insertTentativeStr(me int64: pos, me string: data) <- { // And lengthen buffer by data.size() then fill with data
+        if(tail==NULL){
+            firstTentativeByte <- 0
+            putStr(data)
+        } else {
+            me MutexMngr: bufMtxMgr{bufMutex}
+            crntStreamSize <+- data.size()
+            me int64: innerPos <- pos-tail.myOffset
+            tail.buf <- tail.buf.subStr(0, innerPos-1) + data + tail.buf.subStr(innerPos)
+            tail.endingLineNumber <+- numNewlines(data)
+            bufLock.notifyOne()
+        }
+    }
+    void: putTentativeStr(me string: data) <- {
+        if(tail==NULL){
+            firstTentativeByte <- 0
+            putStr(data)
+        } else {
+            me MutexMngr: bufMtxMgr{bufMutex}
+            crntStreamSize <+- data.size()
+            tail.buf <+- data
+            tail.endingLineNumber <+- numNewlines(data)
+            bufLock.notifyOne()
+        }
     }
 
 ////////////////////////////////////////////////////////
@@ -364,7 +420,6 @@ struct strBuf{
         }
         return(charsUsed)
     }
-
     me int64: scrapeUnicodeWordContinue(me int64: pos) <- {
         me int64: charsUsed <- 0
         our strBufItr: txtItr <- getItrAt(pos)
