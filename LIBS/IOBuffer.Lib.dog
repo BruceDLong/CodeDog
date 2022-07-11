@@ -26,8 +26,8 @@ struct strBufItr{
             crntInnerBuf <- theStrBuf.findInrBufWithPos(crntAbsPos())
             if(prevInnerBuf === crntInnerBuf){return(bfOK)}
             if(crntInnerBuf==NULL){
-                if(theStrBuf.bufferClosed){status <- bfEOB; print("bfEOB\n")}
-                else{status <- bfError; print("bfError\n")}
+                if(theStrBuf.bufferClosed){status <- bfEOB}
+                else{status <- bfError}
             }else{
                 crntRelPos <- 0
                 status <- bfOK
