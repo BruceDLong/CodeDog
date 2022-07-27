@@ -34,6 +34,7 @@ struct GLOBAL{
     me float: fTheta
     me Matrix4: matProj
     void: setUpMatrixes(me float: FovAngle  <- 90.0) <- {
+        worldMatx.makeIdentity()
         // Projection Matrix
         me float: fNear <- 0.1          // Distance from player's eyes to the screen
         me float: fFar  <- 1000.0       // Furtherest items to display
@@ -49,7 +50,7 @@ struct GLOBAL{
         matProj.m33 <- 0.0
 
     }
-    me Scene: mainScene
+
 }
 
 struct Matrix4{
@@ -58,6 +59,56 @@ struct Matrix4{
     me float: m20     me float: m21     me float: m22     me float: m23
     me float: m30     me float: m31     me float: m32     me float: m33
 
+    void: makeIdentity() <- {
+        m00 <- 1.0
+        m11 <- 1.0
+        m22 <- 1.0
+        m33 <- 1.0
+    }
+
+    void: makeRotationX(me float: fAngleRad) <- {
+        m00 <- 1.0
+        m11 <- cosf(fAngleRad)
+        m12 <- sinf(fAngleRad)
+        m21 <- -sinf(fAngleRad)
+        m22 <- cosf(fAngleRad)
+        m33 <- 1.0
+    }
+
+    void: makeRotationY(me float: fAngleRad) <- {
+        m00 <- cosf(fAngleRad)
+        m02 <- sinf(fAngleRad)
+        m20 <- -sinf(fAngleRad)
+        m11 <- 1.0
+        m22 <- cosf(fAngleRad)
+        m33 <- 1.0
+    }
+
+    void: makeRotationZ(me float: fAngleRad) <- {
+        m00 <- cosf(fAngleRad)
+        m01 <- sinf(fAngleRad)
+        m10 <- -sinf(fAngleRad)
+        m11 <- cosf(fAngleRad)
+        m22 <- 1.0
+        m33 <- 1.0
+    }
+
+    void: makeScale(me float: x, me float: y, me float: z) <- {
+        m00 <- x
+        m11 <- y
+        m22 <- z
+        m33 <- 1.0
+    }
+
+    void: makeTranslation(me float: x, me float: y, me float: z) <- {
+        m00 <- 1.0
+        m11 <- 1.0
+        m22 <- 1.0
+        m33 <- 1.0
+        m30 <- x
+        m31 <- y
+        m32 <- z
+    }
     me void: zero()<-{
         m00<-0.0;    m01<-0.0;    m02<-0.0;    m03<-0.0
         m10<-0.0;    m11<-0.0;    m12<-0.0;    m13<-0.0
@@ -75,11 +126,13 @@ struct Point2D{
     me float: y
 }
 
-struct Point3D{
+struct Vec3D{
     me float: x
     me float: y
     me float: z
 }
+
+struct Point3D: wraps=Vec3D{}
 
 struct Triangle2D{
     me Point2D: p1
@@ -118,9 +171,29 @@ struct Triangle3D{
     }
 }
 
+struct Thing3D{
+    me cdColor: color
+    me Vec3D:   location
+    me Vec3D:   orientation
+    me float:   scale
+    me List<our Mesh>: meshes
+    me Map<string, our Thing3D>: parts
+
+    void: draw(their GUI_ctxt: cr, me double: interpolation, their Matrix4: parentMatx) <- {
+        me Matrix4: thingMatx <-parentMatx
+        thingMatx.makeTranslation(location.x, location.y, location.z)
+        withEach mesh in meshes{
+            mesh.draw(cr, interpolation, thingMatx)
+        }
+        withEach part in parts{
+            part.draw(cr, interpolation, thingMatx)
+        }
+    }
+}
+
 struct Mesh{
     me List<Triangle3D>: tris
-    void: draw(their GUI_ctxt: cr, me double: interpolation) <- {
+    void: draw(their GUI_ctxt: cr, me double: interpolation, their Matrix4: parentMatx) <- {
         //print("    DRAW MESH:\n")
 // Set up rotation matrices
 fTheta <+- 0.02  //1.0 * interpolation;
@@ -152,15 +225,16 @@ matRotX.m33 <- 1.0
 
             matrixTimesTri(tri, TriRotatedZ, matRotZ)
             matrixTimesTri(TriRotatedZ, TriRotatedZX, matRotX)
+            matrixTimesTri(TriRotatedZX, TriXlated, parentMatx)
 
-            TriXlated <-  TriRotatedZX
+            //TriXlated <-  TriRotatedZX
             TriXlated.p1.z <+- 3.0
             TriXlated.p2.z <+- 3.0
             TriXlated.p3.z <+- 3.0
 
-            if(TriXlated.normal.z){
+            //if(TriXlated.normal.z){
                 matrixTimesTri(TriXlated, TriPrj, matProj)
-            }
+            //}
 
 //print("AF_PROJ: "+TriPrj.stringify()+"\n")
             // Scale into view for screen between -1 and +1
@@ -233,11 +307,3 @@ matRotX.m33 <- 1.0
     }
 }
 
-struct Scene{
-    me List<our Mesh>: meshes
-    void: draw(their GUI_ctxt: cr, me double: interpolation) <- {
-        withEach mesh in meshes{
-            mesh.draw(cr, interpolation)
-        }
-    }
-}
