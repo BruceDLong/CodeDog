@@ -1,0 +1,243 @@
+// Render3D
+LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
+
+// Thanks to OneLoneCoder for his video series on 3D engines: https://www.youtube.com/c/javidx9
+
+FileName = "Render3D"
+Version = "0.1"
+CopyrightMesg = "Copyright (c) 2020-<YEAR> Bruce Long"
+Authors = "Bruce Long"
+Description = "Toy 3D rendering engine"
+
+ProgramOrLibrary = "library"
+
+struct GLOBAL{
+    void: matrixTimesVec3(their Point3D: pIn, their Point3D: pOut, their Matrix4: m) <- {
+             pOut.x <- pIn.x * m.m00 + pIn.y * m.m10 + pIn.z * m.m20 + m.m30
+             pOut.y <- pIn.x * m.m01 + pIn.y * m.m11 + pIn.z * m.m21 + m.m31
+             pOut.z <- pIn.x * m.m02 + pIn.y * m.m12 + pIn.z * m.m22 + m.m32
+        me float: w <- pIn.x * m.m03 + pIn.y * m.m13 + pIn.z * m.m23 + m.m33
+
+        if(w!=0.0){
+            pOut.x </- w
+            pOut.y </- w
+            pOut.z </- w
+        }
+    }
+
+    void: matrixTimesTri(their Triangle3D: tIn, their Triangle3D: tOut, their Matrix4: m) <- {
+        matrixTimesVec3(tIn.p1, tOut.p1, m)
+        matrixTimesVec3(tIn.p2, tOut.p2, m)
+        matrixTimesVec3(tIn.p3, tOut.p3, m)
+    }
+
+    me float: fTheta
+    me Matrix4: matProj
+    void: setUpMatrixes(me float: FovAngle  <- 90.0) <- {
+        // Projection Matrix
+        me float: fNear <- 0.1          // Distance from player's eyes to the screen
+        me float: fFar  <- 1000.0       // Furtherest items to display
+        me float: fFovRad <- 1.0 / tanf(FovAngle * 0.5 / 180.0 * 3.14159);
+        me float: fAspectRatio <- convertToFloatVal(screenHeight) / convertToFloatVal(screenWidth)
+
+        matProj.zero();
+        matProj.m00 <- fAspectRatio * fFovRad
+        matProj.m11 <- fFovRad
+        matProj.m22 <- fFar / (fFar - fNear)
+        matProj.m32 <- -fFar * fNear / (fFar - fNear)
+        matProj.m23 <- 1.0
+        matProj.m33 <- 0.0
+
+    }
+    me Scene: mainScene
+}
+
+struct Matrix4{
+    me float: m00     me float: m01     me float: m02     me float: m03
+    me float: m10     me float: m11     me float: m12     me float: m13
+    me float: m20     me float: m21     me float: m22     me float: m23
+    me float: m30     me float: m31     me float: m32     me float: m33
+
+    me void: zero()<-{
+        m00<-0.0;    m01<-0.0;    m02<-0.0;    m03<-0.0
+        m10<-0.0;    m11<-0.0;    m12<-0.0;    m13<-0.0
+        m20<-0.0;    m21<-0.0;    m22<-0.0;    m23<-0.0
+        m30<-0.0;    m31<-0.0;    m32<-0.0;    m33<-0.0
+    }
+}
+
+struct pixel{
+
+}
+
+struct Point2D{
+    me float: x
+    me float: y
+}
+
+struct Point3D{
+    me float: x
+    me float: y
+    me float: z
+}
+
+struct Triangle2D{
+    me Point2D: p1
+    me Point2D: p2
+    me Point2D: p3
+
+    void: draw(their GUI_ctxt: cr) <- {
+        //print("        DRAW TRIANGLE:",p1.x,", ",p1.y,",     ",p2.x,", ",p2.y,",     ",p3.x,", ",p3.y, "\n")
+        cr.moveTo(p1.x, p1.y)
+        cr.lineTo(p2.x, p2.y)
+        cr.lineTo(p3.x, p3.y)
+        cr.lineTo(p1.x, p1.y)
+    }
+    void: INIT(me float: px1, me float: py1,   me float: px2, me float: py2,    me float: px3, me float: py3)<-{
+        p1.x <- px1;    p1.y <- py1;
+        p2.x <- px2;    p2.y <- py2;
+        p3.x <- px3;    p3.y <- py3;
+    }
+}
+
+struct Triangle3D{
+    me Point3D: p1
+    me Point3D: p2
+    me Point3D: p3
+    void: INIT(me float: px1, me float: py1, me float: pz1, me float: px2, me float: py2, me float: pz2, me float: px3, me float: py3, me float: pz3)<-{
+        p1.x <- px1;    p1.y <- py1;     p1.z <- pz1;
+        p2.x <- px2;    p2.y <- py2;     p2.z <- pz2;
+        p3.x <- px3;    p3.y <- py3;     p3.z <- pz3;
+    }
+    me string: stringify() <- {
+        me string: S <- "TRI3D:"
+        S <+- toString(p1.x) + ", "+toString(p1.y) + ", "+toString(p1.z) + ",      "
+        S <+- toString(p2.x) + ", "+toString(p2.y) + ", "+toString(p2.z) + ",      "
+        S <+- toString(p3.x) + ", "+toString(p3.y) + ", "+toString(p3.z)
+        return(S)
+    }
+}
+
+struct Mesh{
+    me List<Triangle3D>: tris
+    void: draw(their GUI_ctxt: cr, me double: interpolation) <- {
+        //print("    DRAW MESH:\n")
+// Set up rotation matrices
+fTheta <+- 0.02  //1.0 * interpolation;
+
+me Matrix4: matRotZ;   matRotZ.zero();
+me Matrix4: matRotX;   matRotX.zero();
+
+// Rotation Z
+matRotZ.m00 <- cosf(fTheta)
+matRotZ.m01 <- sinf(fTheta)
+matRotZ.m10 <- -sinf(fTheta)
+matRotZ.m11 <- cosf(fTheta)
+matRotZ.m22 <- 1.0
+matRotZ.m33 <- 1.0
+
+// Rotation X
+matRotX.m00 <- 1.0;
+matRotX.m11 <- cosf(fTheta * 0.5)
+matRotX.m12 <- sinf(fTheta * 0.5)
+matRotX.m21 <- -sinf(fTheta * 0.5)
+matRotX.m22 <- cosf(fTheta * 0.5)
+matRotX.m33 <- 1.0
+
+        withEach tri in tris{
+            me Triangle3D: TriRotatedZ
+            me Triangle3D: TriRotatedZX
+            me Triangle3D: TriXlated
+            me Triangle3D: TriPrj
+
+            matrixTimesTri(tri, TriRotatedZ, matRotZ)
+            matrixTimesTri(TriRotatedZ, TriRotatedZX, matRotX)
+
+            TriXlated <-  TriRotatedZX
+            TriXlated.p1.z <+- 3.0
+            TriXlated.p2.z <+- 3.0
+            TriXlated.p3.z <+- 3.0
+
+            if(TriXlated.normal.z){
+                matrixTimesTri(TriXlated, TriPrj, matProj)
+            }
+
+//print("AF_PROJ: "+TriPrj.stringify()+"\n")
+            // Scale into view for screen between -1 and +1
+            TriPrj.p1.x <+- 1.0; TriPrj.p1.y <+- 1.0;
+            TriPrj.p2.x <+- 1.0; TriPrj.p2.y <+- 1.0;
+            TriPrj.p3.x <+- 1.0; TriPrj.p3.y <+- 1.0;
+            TriPrj.p1.x <*- 0.5 * screenWidth;
+            TriPrj.p1.y <*- 0.5 * screenHeight;
+            TriPrj.p2.x <*- 0.5 * screenWidth;
+            TriPrj.p2.y <*- 0.5 * screenHeight;
+            TriPrj.p3.x <*- 0.5 * screenWidth;
+            TriPrj.p3.y <*- 0.5 * screenHeight;
+
+            me Triangle2D: toDraw;
+            toDraw.INIT(TriPrj.p1.x, TriPrj.p1.y, TriPrj.p2.x, TriPrj.p2.y, TriPrj.p3.x, TriPrj.p3.y)
+            toDraw.draw(cr)
+        }
+
+/*
+        withEach tri in tris{
+            // 1. Make a scratch copy
+            // 2. Calculate Triangle Normal in WorldView Space
+                        GFX3D::vec3d normal, line1, line2;
+                        line1  = Vec_Sub(triTransformed.p[1], triTransformed.p[0]);
+                        line2  = Vec_Sub(triTransformed.p[2], triTransformed.p[0]);
+                        normal = Vec_CrossProduct(line1, line2);
+                        normal = Vec_Normalise(normal);
+
+            // 3. Cull triangles that face away from viewer
+                        if (flags & RENDER_CULL_CW  && GFX3D::Math::Vec_DotProduct(normal, triTransformed.p[0]) > 0.0f) continue;
+                        if (flags & RENDER_CULL_CCW && GFX3D::Math::Vec_DotProduct(normal, triTransformed.p[0]) < 0.0f) continue;
+
+            // 4. If Lighting, calculate shading
+
+
+            // 5. Clip triangle against near plane
+                        int nClippedTriangles = 0;
+                        GFX3D::triangle clipped[2];
+                        nClippedTriangles = GFX3D::Math::Triangle_ClipAgainstPlane({ 0.0f, 0.0f, 0.1f }, { 0.0f, 0.0f, 1.0f }, triTransformed, clipped[0], clipped[1]);
+
+            // 6. FOR each clipped triangle (Either 1 or 2{
+                    // 6a. Project and adjust Each vertex;   Later, project to texture coords also.
+
+                    // 6b. Clip the 4 sides. THis may create new triangles
+
+                    // 6c. FOR each clipped triangle {
+                            // Scale and Slide to the ViewPort
+
+                                        vec3d vOffsetView = { 1,1,0 };
+                                        triRaster.p[0] = Math::Vec_Add(triRaster.p[0], vOffsetView);
+                                        triRaster.p[1] = Math::Vec_Add(triRaster.p[1], vOffsetView);
+                                        triRaster.p[2] = Math::Vec_Add(triRaster.p[2], vOffsetView);
+                                        triRaster.p[0].x *= 0.5f * fViewW;
+                                        triRaster.p[0].y *= 0.5f * fViewH;
+                                        triRaster.p[1].x *= 0.5f * fViewW;
+                                        triRaster.p[1].y *= 0.5f * fViewH;
+                                        triRaster.p[2].x *= 0.5f * fViewW;
+                                        triRaster.p[2].y *= 0.5f * fViewH;
+                                        vOffsetView = { fViewX,fViewY,0 };
+                                        triRaster.p[0] = Math::Vec_Add(triRaster.p[0], vOffsetView);
+                                        triRaster.p[1] = Math::Vec_Add(triRaster.p[1], vOffsetView);
+                                        triRaster.p[2] = Math::Vec_Add(triRaster.p[2], vOffsetView);
+                            // if(fillTriangle){fillTri(tri)}
+                            // if(wireFrame){draw 3 lines}
+
+                            // TriangleDrawnCount++;
+                    // }
+            // }
+        } */
+    }
+}
+
+struct Scene{
+    me List<our Mesh>: meshes
+    void: draw(their GUI_ctxt: cr, me double: interpolation) <- {
+        withEach mesh in meshes{
+            mesh.draw(cr, interpolation)
+        }
+    }
+}
