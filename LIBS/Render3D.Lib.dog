@@ -9,6 +9,7 @@ CopyrightMesg = "Copyright (c) 2020-<YEAR> Bruce Long"
 Authors = "Bruce Long"
 Description = "Toy 3D rendering engine"
 
+featuresNeeded = []
 ProgramOrLibrary = "library"
 
 struct GLOBAL{
@@ -204,10 +205,12 @@ struct Triangle3D{
 }
 
 struct Thing3D{
+    me string: name
     me cdColor: color
     me Vec3D:   location
     me Vec3D:   orientation
-    me float:   scale
+    me Vec3D:   scale
+
     me List<our Mesh>: meshes
     me Map<string, our Thing3D>: parts
 
@@ -215,6 +218,7 @@ struct Thing3D{
     me Matrix4: XoriMatx
     me Matrix4: YoriMatx
     me Matrix4: ZoriMatx
+    me Matrix4: scaleMatx
 
     me Matrix4: thingMatx
 
@@ -226,25 +230,44 @@ struct Thing3D{
     void: rotateY(me float: angle) <- {orientation.y <+- angle; YoriMatx.makeRotationY(orientation.y)}
     void: rotateZ(me float: angle) <- {orientation.z <+- angle; ZoriMatx.makeRotationZ(orientation.z)}
 
+    void: setScale(me float: x, me float: y, me float: z) <- {
+        scale.x <- x;   scale.y <- y;   scale.z <- z;
+        scaleMatx.makeScale(x, y, z)
+    }
     void: calcThingMatx(their Matrix4: parentMatx) <- {
         me Matrix4: tmp1
         me Matrix4: tmp2
 
-        tmp2.MultiplyMatrix(parentMatx, XoriMatx)
+        tmp1.MultiplyMatrix(parentMatx, scaleMatx)
+
+        tmp2.MultiplyMatrix(tmp1, XoriMatx)
         tmp1.MultiplyMatrix(tmp2, YoriMatx)
         tmp2.MultiplyMatrix(tmp1, ZoriMatx)
 
         thingMatx.MultiplyMatrix(tmp2, locMatx)
-        // TODO: add scale
+    }
+
+    void: addPart(our Thing3D: thing) <- {
+        parts[thing.name] <- thing
     }
 
     void: draw(their GUI_ctxt: cr, me double: interpolation, their Matrix4: parentMatx) <- {
         withEach mesh in meshes{
+            cr.setColor(color)
             mesh.draw(cr, interpolation, thingMatx)
         }
         withEach part in parts{
             part.draw(cr, interpolation, thingMatx)
         }
+    }
+
+    void: INIT() <- {
+        color <- Styler.DarkGray
+        scaleMatx.makeIdentity()
+        locMatx.makeIdentity()
+        XoriMatx.makeIdentity()
+        YoriMatx.makeIdentity()
+        ZoriMatx.makeIdentity()
     }
 }
 
@@ -281,7 +304,7 @@ struct Mesh{
             toDraw.INIT(TriPrj.p1.x, TriPrj.p1.y, TriPrj.p2.x, TriPrj.p2.y, TriPrj.p3.x, TriPrj.p3.y)
             toDraw.draw(cr)
         }
-
+        cr.strokeNow()
 /*
         withEach tri in tris{
             // 1. Make a scratch copy
