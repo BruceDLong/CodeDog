@@ -31,23 +31,16 @@ struct GLOBAL{
         matrixTimesVec3(tIn.p3, tOut.p3, m)
     }
 
-    me float: fTheta
+    me Matrix4: worldMatx
     me Matrix4: matProj
-    void: setUpMatrixes(me float: FovAngle  <- 90.0) <- {
+    void: setUpMatrixes(me float: fFovDegrees  <- 90.0) <- {
         worldMatx.makeIdentity()
+
         // Projection Matrix
         me float: fNear <- 0.1          // Distance from player's eyes to the screen
         me float: fFar  <- 1000.0       // Furtherest items to display
-        me float: fFovRad <- 1.0 / tanf(FovAngle * 0.5 / 180.0 * 3.14159);
         me float: fAspectRatio <- convertToFloatVal(screenHeight) / convertToFloatVal(screenWidth)
-
-        matProj.zero();
-        matProj.m00 <- fAspectRatio * fFovRad
-        matProj.m11 <- fFovRad
-        matProj.m22 <- fFar / (fFar - fNear)
-        matProj.m32 <- -fFar * fNear / (fFar - fNear)
-        matProj.m23 <- 1.0
-        matProj.m33 <- 0.0
+        matProj.MakeProjection(fFovDegrees, fAspectRatio, fNear, fFar)
 
     }
 
@@ -58,6 +51,13 @@ struct Matrix4{
     me float: m10     me float: m11     me float: m12     me float: m13
     me float: m20     me float: m21     me float: m22     me float: m23
     me float: m30     me float: m31     me float: m32     me float: m33
+
+    me void: zero()<-{
+        m00<-0.0;    m01<-0.0;    m02<-0.0;    m03<-0.0
+        m10<-0.0;    m11<-0.0;    m12<-0.0;    m13<-0.0
+        m20<-0.0;    m21<-0.0;    m22<-0.0;    m23<-0.0
+        m30<-0.0;    m31<-0.0;    m32<-0.0;    m33<-0.0
+    }
 
     void: makeIdentity() <- {
         m00 <- 1.0
@@ -109,16 +109,48 @@ struct Matrix4{
         m31 <- y
         m32 <- z
     }
-    me void: zero()<-{
-        m00<-0.0;    m01<-0.0;    m02<-0.0;    m03<-0.0
-        m10<-0.0;    m11<-0.0;    m12<-0.0;    m13<-0.0
-        m20<-0.0;    m21<-0.0;    m22<-0.0;    m23<-0.0
-        m30<-0.0;    m31<-0.0;    m32<-0.0;    m33<-0.0
+
+    void: MakeProjection(me float: fFovDegrees, me float: fAspectRatio, me float: fNear, me float: fFar) <- {
+        me float: fFovRad <- 1.0 / tanf(fFovDegrees * 0.5 / 180.0 * 3.14159);
+        zero();
+        m00 <- fAspectRatio * fFovRad
+        m11 <- fFovRad
+        m22 <- fFar / (fFar - fNear)
+        m32 <- -fFar * fNear / (fFar - fNear)
+        m23 <- 1.0
+        m33 <- 0.0
     }
-}
 
-struct pixel{
+    void: MultiplyMatrix(their Matrix4: m1, their Matrix4: m2) <- {
+        m00 <- m1.m00 * m2.m00 + m1.m01 * m2.m10 + m1.m02 * m2.m20 + m1.m03 * m2.m30
+        m10 <- m1.m10 * m2.m00 + m1.m11 * m2.m10 + m1.m12 * m2.m20 + m1.m13 * m2.m30
+        m20 <- m1.m20 * m2.m00 + m1.m21 * m2.m10 + m1.m22 * m2.m20 + m1.m23 * m2.m30
+        m30 <- m1.m30 * m2.m00 + m1.m31 * m2.m10 + m1.m32 * m2.m20 + m1.m33 * m2.m30
 
+        m01 <- m1.m00 * m2.m01 + m1.m01 * m2.m11 + m1.m02 * m2.m21 + m1.m03 * m2.m31
+        m11 <- m1.m10 * m2.m01 + m1.m11 * m2.m11 + m1.m12 * m2.m21 + m1.m13 * m2.m31
+        m21 <- m1.m20 * m2.m01 + m1.m21 * m2.m11 + m1.m22 * m2.m21 + m1.m23 * m2.m31
+        m31 <- m1.m30 * m2.m01 + m1.m31 * m2.m11 + m1.m32 * m2.m21 + m1.m33 * m2.m31
+
+        m02 <- m1.m00 * m2.m02 + m1.m01 * m2.m12 + m1.m02 * m2.m22 + m1.m03 * m2.m32
+        m12 <- m1.m10 * m2.m02 + m1.m11 * m2.m12 + m1.m12 * m2.m22 + m1.m13 * m2.m32
+        m22 <- m1.m20 * m2.m02 + m1.m21 * m2.m12 + m1.m22 * m2.m22 + m1.m23 * m2.m32
+        m32 <- m1.m30 * m2.m02 + m1.m31 * m2.m12 + m1.m32 * m2.m22 + m1.m33 * m2.m32
+
+        m03 <- m1.m00 * m2.m03 + m1.m01 * m2.m13 + m1.m02 * m2.m23 + m1.m03 * m2.m33
+        m13 <- m1.m10 * m2.m03 + m1.m11 * m2.m13 + m1.m12 * m2.m23 + m1.m13 * m2.m33
+        m23 <- m1.m20 * m2.m03 + m1.m21 * m2.m13 + m1.m22 * m2.m23 + m1.m23 * m2.m33
+        m33 <- m1.m30 * m2.m03 + m1.m31 * m2.m13 + m1.m32 * m2.m23 + m1.m33 * m2.m33
+    }
+
+    me string: stringify() <- {
+        me string: S
+        S <+- "\t"+toString(m00)+"\t"+toString(m01)+"\t"+toString(m02)+"\t"+toString(m03)+"\n"
+        S <+- "\t"+toString(m10)+"\t"+toString(m11)+"\t"+toString(m12)+"\t"+toString(m13)+"\n"
+        S <+- "\t"+toString(m20)+"\t"+toString(m21)+"\t"+toString(m22)+"\t"+toString(m23)+"\n"
+        S <+- "\t"+toString(m30)+"\t"+toString(m31)+"\t"+toString(m32)+"\t"+toString(m33)+"\n"
+        return(S)
+    }
 }
 
 struct Point2D{
@@ -179,9 +211,34 @@ struct Thing3D{
     me List<our Mesh>: meshes
     me Map<string, our Thing3D>: parts
 
+    me Matrix4: locMatx
+    me Matrix4: XoriMatx
+    me Matrix4: YoriMatx
+    me Matrix4: ZoriMatx
+
+    me Matrix4: thingMatx
+
+    void: setLocation(me float: x, me float: y, me float: z) <- {
+        location.x <- x;   location.y <- y;   location.z <- z;
+        locMatx.makeTranslation(x, y, z)
+    }
+    void: rotateX(me float: angle) <- {orientation.x <+- angle; XoriMatx.makeRotationX(orientation.x)}
+    void: rotateY(me float: angle) <- {orientation.y <+- angle; YoriMatx.makeRotationY(orientation.y)}
+    void: rotateZ(me float: angle) <- {orientation.z <+- angle; ZoriMatx.makeRotationZ(orientation.z)}
+
+    void: calcThingMatx(their Matrix4: parentMatx) <- {
+        me Matrix4: tmp1
+        me Matrix4: tmp2
+
+        tmp2.MultiplyMatrix(parentMatx, XoriMatx)
+        tmp1.MultiplyMatrix(tmp2, YoriMatx)
+        tmp2.MultiplyMatrix(tmp1, ZoriMatx)
+
+        thingMatx.MultiplyMatrix(tmp2, locMatx)
+        // TODO: add scale
+    }
+
     void: draw(their GUI_ctxt: cr, me double: interpolation, their Matrix4: parentMatx) <- {
-        me Matrix4: thingMatx <-parentMatx
-        thingMatx.makeTranslation(location.x, location.y, location.z)
         withEach mesh in meshes{
             mesh.draw(cr, interpolation, thingMatx)
         }
@@ -193,41 +250,13 @@ struct Thing3D{
 
 struct Mesh{
     me List<Triangle3D>: tris
+
     void: draw(their GUI_ctxt: cr, me double: interpolation, their Matrix4: parentMatx) <- {
-        //print("    DRAW MESH:\n")
-// Set up rotation matrices
-fTheta <+- 0.02  //1.0 * interpolation;
-
-me Matrix4: matRotZ;   matRotZ.zero();
-me Matrix4: matRotX;   matRotX.zero();
-
-// Rotation Z
-matRotZ.m00 <- cosf(fTheta)
-matRotZ.m01 <- sinf(fTheta)
-matRotZ.m10 <- -sinf(fTheta)
-matRotZ.m11 <- cosf(fTheta)
-matRotZ.m22 <- 1.0
-matRotZ.m33 <- 1.0
-
-// Rotation X
-matRotX.m00 <- 1.0;
-matRotX.m11 <- cosf(fTheta * 0.5)
-matRotX.m12 <- sinf(fTheta * 0.5)
-matRotX.m21 <- -sinf(fTheta * 0.5)
-matRotX.m22 <- cosf(fTheta * 0.5)
-matRotX.m33 <- 1.0
-
         withEach tri in tris{
-            me Triangle3D: TriRotatedZ
-            me Triangle3D: TriRotatedZX
             me Triangle3D: TriXlated
             me Triangle3D: TriPrj
+            matrixTimesTri(tri, TriXlated, parentMatx)
 
-            matrixTimesTri(tri, TriRotatedZ, matRotZ)
-            matrixTimesTri(TriRotatedZ, TriRotatedZX, matRotX)
-            matrixTimesTri(TriRotatedZX, TriXlated, parentMatx)
-
-            //TriXlated <-  TriRotatedZX
             TriXlated.p1.z <+- 3.0
             TriXlated.p2.z <+- 3.0
             TriXlated.p3.z <+- 3.0
@@ -306,4 +335,3 @@ matRotX.m33 <- 1.0
         } */
     }
 }
-
