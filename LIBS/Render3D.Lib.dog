@@ -13,6 +13,24 @@ featuresNeeded = []
 ProgramOrLibrary = "library"
 
 struct GLOBAL{
+    me bool: renderWireFrame <- false   // Otherwise render solid shapes
+    me bool: CULL_GZ <- true            // Cull triangles when norm is Greater than Zero
+    me bool: CULL_LZ <- false           // Cull triangles when norm is Less than Zero
+    me Matrix4: worldMatx
+    me Matrix4: matProj
+
+
+    void: setUpMatrixes(me float: fFovDegrees  <- 90.0) <- {
+        worldMatx.makeIdentity()
+
+        // Projection Matrix
+        me float: fNear <- 0.1          // Distance from player's eyes to the screen
+        me float: fFar  <- 1000.0       // Furtherest items to display
+        me float: fAspectRatio <- convertToFloatVal(screenHeight) / convertToFloatVal(screenWidth)
+        matProj.MakeProjection(fFovDegrees, fAspectRatio, fNear, fFar)
+
+    }
+
     void: matrixTimesVec3(their Point3D: pIn, their Point3D: pOut, their Matrix4: m) <- {
              pOut.x <- pIn.x * m.m00 + pIn.y * m.m10 + pIn.z * m.m20 + m.m30
              pOut.y <- pIn.x * m.m01 + pIn.y * m.m11 + pIn.z * m.m21 + m.m31
@@ -31,20 +49,59 @@ struct GLOBAL{
         matrixTimesVec3(tIn.p2, tOut.p2, m)
         matrixTimesVec3(tIn.p3, tOut.p3, m)
     }
-
-    me Matrix4: worldMatx
-    me Matrix4: matProj
-    void: setUpMatrixes(me float: fFovDegrees  <- 90.0) <- {
-        worldMatx.makeIdentity()
-
-        // Projection Matrix
-        me float: fNear <- 0.1          // Distance from player's eyes to the screen
-        me float: fFar  <- 1000.0       // Furtherest items to display
-        me float: fAspectRatio <- convertToFloatVal(screenHeight) / convertToFloatVal(screenWidth)
-        matProj.MakeProjection(fFovDegrees, fAspectRatio, fNear, fFar)
-
+    void: Vec_CrossProduct(their Vec3D: v1, their Vec3D: v2, their Vec3D: result) <- {
+        result.x <- v1.y * v2.z - v1.z * v2.y
+        result.y <- v1.z * v2.x - v1.x * v2.z
+        result.z <- v1.x * v2.y - v1.y * v2.x
     }
 
+    void: Vec_Add(their Vec3D: v1, their Vec3D: v2, their Vec3D: result) <- {
+        result.x <- v1.x + v2.x
+        result.y <- v1.y + v2.y
+        result.z <- v1.z + v2.z
+    }
+
+    void: Vec_Sub(their Vec3D: v1, their Vec3D: v2, their Vec3D: result) <- {
+        result.x <- v1.x - v2.x
+        result.y <- v1.y - v2.y
+        result.z <- v1.z - v2.z
+    }
+
+    void: Vec_Mul(their Vec3D: v, me float: k, their Vec3D: result) <- {
+        result.x <- v.x * k
+        result.y <- v.y * k
+        result.z <- v.z * k
+    }
+
+    void: Vec_Div(their Vec3D: v, me float: k, their Vec3D: result) <- {
+        result.x <- v.x / k
+        result.y <- v.y / k
+        result.z <- v.z / k
+    }
+
+    me float: Vec_DotProduct(their Vec3D: v1, their Vec3D: v2) <- {
+        return(v1.x*v2.x + v1.y*v2.y + v1.z*v2.z)
+    }
+
+    me float: Vec_Length(their Vec3D: v) <- {
+        return(sqrtf(Vec_DotProduct(v, v)))
+    }
+
+    void: Vec_Normalise(their Vec3D: v) <- {
+        me float: l <- Vec_Length(v);
+        v.x <- v.x / l
+        v.y <- v.y / l
+        v.z <- v.z / l
+    }
+
+    void: CalcTrianglesNorm(their Triangle3D: TriXlated, their Vec3D: normedResult) <- {
+        me Vec3D: line1
+        me Vec3D: line2
+        Vec_Sub(TriXlated.p2, TriXlated.p1, line1)
+        Vec_Sub(TriXlated.p3, TriXlated.p1, line2)
+        Vec_CrossProduct(line1, line2, normedResult)
+        Vec_Normalise(normedResult)
+    }
 }
 
 struct Matrix4{
@@ -178,6 +235,8 @@ struct Triangle2D{
         cr.lineTo(p2.x, p2.y)
         cr.lineTo(p3.x, p3.y)
         cr.lineTo(p1.x, p1.y)
+        if(renderWireFrame){cr.strokeNow()}
+        else{cr.fillNow()}
     }
     void: INIT(me float: px1, me float: py1,   me float: px2, me float: py2,    me float: px3, me float: py3)<-{
         p1.x <- px1;    p1.y <- py1;
@@ -275,57 +334,68 @@ struct Mesh{
     me List<Triangle3D>: tris
 
     void: draw(their GUI_ctxt: cr, me double: interpolation, their Matrix4: parentMatx) <- {
+        me uint64: TriangleDrawnCount <- 0
+        me float: halfScreenWidth  <- 0.5 * screenWidth
+        me float: halfScreenHeight <- 0.5 * screenHeight
         withEach tri in tris{
             me Triangle3D: TriXlated
             me Triangle3D: TriPrj
             matrixTimesTri(tri, TriXlated, parentMatx)
 
-            TriXlated.p1.z <+- 3.0
-            TriXlated.p2.z <+- 3.0
-            TriXlated.p3.z <+- 3.0
+// Remove when camera compensates:
+TriXlated.p1.z <+- 3.0
+TriXlated.p2.z <+- 3.0
+TriXlated.p3.z <+- 3.0
 
-            //if(TriXlated.normal.z){
+
+            // Calculate Triangle's normal
+            me Vec3D: TrianglesNormal
+            CalcTrianglesNorm(TriXlated, TrianglesNormal)
+
+        if (CULL_GZ and Vec_DotProduct(TrianglesNormal, TriXlated.p1) > 0.0){continue()}
+        if (CULL_LZ and Vec_DotProduct(TrianglesNormal, TriXlated.p1) < 0.0){continue()}
+
+            // 4. If Lighting, calculate shading
+
+            // 5. Clip triangle against near plane
+
+            // 6. FOR each clipped triangle (Either 1 or 2{
+                // 6a. Project and adjust Each vertex;   Later, project to texture coords also.
                 matrixTimesTri(TriXlated, TriPrj, matProj)
-            //}
 
-//print("AF_PROJ: "+TriPrj.stringify()+"\n")
-            // Scale into view for screen between -1 and +1
-            TriPrj.p1.x <+- 1.0; TriPrj.p1.y <+- 1.0;
-            TriPrj.p2.x <+- 1.0; TriPrj.p2.y <+- 1.0;
-            TriPrj.p3.x <+- 1.0; TriPrj.p3.y <+- 1.0;
-            TriPrj.p1.x <*- 0.5 * screenWidth;
-            TriPrj.p1.y <*- 0.5 * screenHeight;
-            TriPrj.p2.x <*- 0.5 * screenWidth;
-            TriPrj.p2.y <*- 0.5 * screenHeight;
-            TriPrj.p3.x <*- 0.5 * screenWidth;
-            TriPrj.p3.y <*- 0.5 * screenHeight;
+                // 6b. Clip the 4 sides. THis may create new triangles
 
-            me Triangle2D: toDraw;
-            toDraw.INIT(TriPrj.p1.x, TriPrj.p1.y, TriPrj.p2.x, TriPrj.p2.y, TriPrj.p3.x, TriPrj.p3.y)
-            toDraw.draw(cr)
+                // 6c. FOR each clipped triangle {
+                    // Scale into view for screen between -1 and +1
+                    TriPrj.p1.x <+- 1.0; TriPrj.p1.y <+- 1.0;
+                    TriPrj.p2.x <+- 1.0; TriPrj.p2.y <+- 1.0;
+                    TriPrj.p3.x <+- 1.0; TriPrj.p3.y <+- 1.0;
+                    TriPrj.p1.x <*- halfScreenWidth
+                    TriPrj.p1.y <*- halfScreenHeight
+                    TriPrj.p2.x <*- halfScreenWidth
+                    TriPrj.p2.y <*- halfScreenHeight
+                    TriPrj.p3.x <*- halfScreenWidth
+                    TriPrj.p3.y <*- halfScreenHeight
+
+                    me Triangle2D: toDraw;
+                    toDraw.INIT(TriPrj.p1.x, TriPrj.p1.y, TriPrj.p2.x, TriPrj.p2.y, TriPrj.p3.x, TriPrj.p3.y)
+                    toDraw.draw(cr)
+
+                    TriangleDrawnCount <+- 1
         }
-        cr.strokeNow()
+       // cr.strokeNow()
 /*
         withEach tri in tris{
             // 1. Make a scratch copy
             // 2. Calculate Triangle Normal in WorldView Space
-                        GFX3D::vec3d normal, line1, line2;
-                        line1  = Vec_Sub(triTransformed.p[1], triTransformed.p[0]);
-                        line2  = Vec_Sub(triTransformed.p[2], triTransformed.p[0]);
-                        normal = Vec_CrossProduct(line1, line2);
-                        normal = Vec_Normalise(normal);
-
             // 3. Cull triangles that face away from viewer
-                        if (flags & RENDER_CULL_CW  && GFX3D::Math::Vec_DotProduct(normal, triTransformed.p[0]) > 0.0f) continue;
-                        if (flags & RENDER_CULL_CCW && GFX3D::Math::Vec_DotProduct(normal, triTransformed.p[0]) < 0.0f) continue;
-
+            *
             // 4. If Lighting, calculate shading
 
-
             // 5. Clip triangle against near plane
-                        int nClippedTriangles = 0;
-                        GFX3D::triangle clipped[2];
-                        nClippedTriangles = GFX3D::Math::Triangle_ClipAgainstPlane({ 0.0f, 0.0f, 0.1f }, { 0.0f, 0.0f, 1.0f }, triTransformed, clipped[0], clipped[1]);
+                    int nClippedTriangles = 0;
+                    GFX3D::triangle clipped[2];
+                    nClippedTriangles = GFX3D::Math::Triangle_ClipAgainstPlane({ 0.0f, 0.0f, 0.1f }, { 0.0f, 0.0f, 1.0f }, triTransformed, clipped[0], clipped[1]);
 
             // 6. FOR each clipped triangle (Either 1 or 2{
                     // 6a. Project and adjust Each vertex;   Later, project to texture coords also.
