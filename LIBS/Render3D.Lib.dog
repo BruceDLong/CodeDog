@@ -1,4 +1,12 @@
 // Render3D
+
+//ENHANCEMENTS:
+//    Camera and navigation
+//    Triangle clipping
+//    Multi-shaded triangles
+//    Texture mapping to triangles
+//    Load meshes and textures from a file
+
 LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
 
 // Thanks to OneLoneCoder for his video series on 3D engines: https://www.youtube.com/c/javidx9
@@ -14,11 +22,13 @@ ProgramOrLibrary = "library"
 
 struct GLOBAL{
     me bool: renderWireFrame <- false   // Otherwise render solid shapes
+    me bool: RENDER_LIGHTING <- true
     me bool: CULL_GZ <- true            // Cull triangles when norm is Greater than Zero
     me bool: CULL_LZ <- false           // Cull triangles when norm is Less than Zero
     me Matrix4: worldMatx
     me Matrix4: matProj
 
+    me List<their LightSource>: lightSources
 
     void: setUpMatrixes(me float: fFovDegrees  <- 90.0) <- {
         worldMatx.makeIdentity()
@@ -263,6 +273,22 @@ struct Triangle3D{
     }
 }
 
+struct LightSource{
+    mode[lsOff, lsAmbient, lsDirected, ListPoint]: type
+    me cdColor: color
+    me Vec3D: direction
+    //me Vec3D: position // Future use
+    //me float: param    // Future use
+
+    void: init(me int: srcType, me cdColor: colr, me float:x, me float:y, me float:z) <- {
+        type <- srcType
+        color <- colr
+        direction.x <- x
+        direction.y <- y
+        direction.z <- z
+        Vec_Normalise(direction)
+    }
+}
 struct Thing3D{
     me string: name
     me cdColor: color
@@ -310,13 +336,13 @@ struct Thing3D{
         parts[thing.name] <- thing
     }
 
-    void: draw(their GUI_ctxt: cr, me double: interpolation, their Matrix4: parentMatx) <- {
+    void: draw(their GUI_ctxt: cr, their Matrix4: parentMatx, me double: interpolation) <- {
         withEach mesh in meshes{
-            cr.setColor(color)
-            mesh.draw(cr, interpolation, thingMatx)
+            //cr.setColor(color)
+            mesh.draw(cr, thingMatx, color, interpolation)
         }
         withEach part in parts{
-            part.draw(cr, interpolation, thingMatx)
+            part.draw(cr, thingMatx, interpolation)
         }
     }
 
@@ -333,7 +359,7 @@ struct Thing3D{
 struct Mesh{
     me List<Triangle3D>: tris
 
-    void: draw(their GUI_ctxt: cr, me double: interpolation, their Matrix4: parentMatx) <- {
+    void: draw(their GUI_ctxt: cr, their Matrix4: parentMatx, their cdColor: color, me double: interpolation) <- {
         me uint64: TriangleDrawnCount <- 0
         me float: halfScreenWidth  <- 0.5 * screenWidth
         me float: halfScreenHeight <- 0.5 * screenHeight
@@ -356,6 +382,42 @@ TriXlated.p3.z <+- 3.0
         if (CULL_LZ and Vec_DotProduct(TrianglesNormal, TriXlated.p1) < 0.0){continue()}
 
             // 4. If Lighting, calculate shading
+            me cdColor: faceColor <- color
+            if(RENDER_LIGHTING){
+                me cdColor: ambient_clamp{ 0,0,0 }
+                me cdColor: light_combined{ 0,0,0 }
+                me float: ambRed; me float: ambGreen; me float: ambBlue;  // Ambient values
+                me float: nRed; me float: nGreen; me float: nBlue;        // Combined directed lights
+                me uint: nLightSources <- 0
+
+                withEach light in lightSources{
+                    switch(light.type){
+                        case lsOff:{}
+                        case lsAmbient:{
+                            ambRed   <- light.color.red   / 255.0
+                            ambGreen <- light.color.green / 255.0
+                            ambBlue  <- light.color.blue  / 255.0
+                        }
+                        case lsDirected:{
+                            nLightSources <+- 1
+                            me float: intensity <- Vec_DotProduct(light.direction, TrianglesNormal)
+                            if(intensity > 0.0){
+                                nRed   <+- intensity * (light.color.red  /255.0)
+                                nGreen <+- intensity * (light.color.green/255.0)
+                                nBlue  <+- intensity * (light.color.blue /255.0)
+                            }
+                        }
+                        case ListPoint:{}
+                    }
+                }
+                nRed   <- max(nRed,   ambRed)
+                nGreen <- max(nGreen, ambGreen)
+                nBlue  <- max(nBlue,  ambBlue)
+
+                faceColor.red   <- faceColor.red   * nRed
+                faceColor.green <- faceColor.green * nGreen
+                faceColor.blue  <- faceColor.blue  * nBlue
+            }
 
             // 5. Clip triangle against near plane
 
@@ -376,55 +438,45 @@ TriXlated.p3.z <+- 3.0
                     TriPrj.p2.y <*- halfScreenHeight
                     TriPrj.p3.x <*- halfScreenWidth
                     TriPrj.p3.y <*- halfScreenHeight
+                        //~ // Why are these lines given in the OLC code?
+                        //~ vOffsetView = { fViewX,fViewY,0 };
+                        //~ triRaster.p[0] = Math::Vec_Add(triRaster.p[0], vOffsetView);
+                        //~ triRaster.p[1] = Math::Vec_Add(triRaster.p[1], vOffsetView);
+                        //~ triRaster.p[2] = Math::Vec_Add(triRaster.p[2], vOffsetView);
 
                     me Triangle2D: toDraw;
                     toDraw.INIT(TriPrj.p1.x, TriPrj.p1.y, TriPrj.p2.x, TriPrj.p2.y, TriPrj.p3.x, TriPrj.p3.y)
+                    cr.setColor(faceColor)
                     toDraw.draw(cr)
 
                     TriangleDrawnCount <+- 1
         }
-       // cr.strokeNow()
-/*
-        withEach tri in tris{
-            // 1. Make a scratch copy
-            // 2. Calculate Triangle Normal in WorldView Space
-            // 3. Cull triangles that face away from viewer
-            *
-            // 4. If Lighting, calculate shading
+    }
+}
 
-            // 5. Clip triangle against near plane
-                    int nClippedTriangles = 0;
-                    GFX3D::triangle clipped[2];
-                    nClippedTriangles = GFX3D::Math::Triangle_ClipAgainstPlane({ 0.0f, 0.0f, 0.1f }, { 0.0f, 0.0f, 1.0f }, triTransformed, clipped[0], clipped[1]);
-
-            // 6. FOR each clipped triangle (Either 1 or 2{
-                    // 6a. Project and adjust Each vertex;   Later, project to texture coords also.
-
-                    // 6b. Clip the 4 sides. THis may create new triangles
-
-                    // 6c. FOR each clipped triangle {
-                            // Scale and Slide to the ViewPort
-
-                                        vec3d vOffsetView = { 1,1,0 };
-                                        triRaster.p[0] = Math::Vec_Add(triRaster.p[0], vOffsetView);
-                                        triRaster.p[1] = Math::Vec_Add(triRaster.p[1], vOffsetView);
-                                        triRaster.p[2] = Math::Vec_Add(triRaster.p[2], vOffsetView);
-                                        triRaster.p[0].x *= 0.5f * fViewW;
-                                        triRaster.p[0].y *= 0.5f * fViewH;
-                                        triRaster.p[1].x *= 0.5f * fViewW;
-                                        triRaster.p[1].y *= 0.5f * fViewH;
-                                        triRaster.p[2].x *= 0.5f * fViewW;
-                                        triRaster.p[2].y *= 0.5f * fViewH;
-                                        vOffsetView = { fViewX,fViewY,0 };
-                                        triRaster.p[0] = Math::Vec_Add(triRaster.p[0], vOffsetView);
-                                        triRaster.p[1] = Math::Vec_Add(triRaster.p[1], vOffsetView);
-                                        triRaster.p[2] = Math::Vec_Add(triRaster.p[2], vOffsetView);
-                            // if(fillTriangle){fillTri(tri)}
-                            // if(wireFrame){draw 3 lines}
-
-                            // TriangleDrawnCount++;
-                    // }
-            // }
-        } */
+struct MeshGenerator{
+    void: generateMesh(me string: meshType, me float: arg, me float: arg2, their Mesh: result) <- {
+        result.tris.clear()
+        if(meshType=="cube"){  // arg: side length
+            me Triangle3D: t1;
+            // SOUTH
+            t1.INIT(0.0, 0.0, 0.0,    0.0, arg, 0.0,    arg, arg, 0.0);   result.tris.append(t1)
+            t1.INIT(0.0, 0.0, 0.0,    arg, arg, 0.0,    arg, 0.0, 0.0);   result.tris.append(t1)
+            // EAST
+            t1.INIT(arg, 0.0, 0.0,    arg, arg, 0.0,    arg, arg, arg);   result.tris.append(t1)
+            t1.INIT(arg, 0.0, 0.0,    arg, arg, arg,    arg, 0.0, arg);   result.tris.append(t1)
+            // NORTH
+            t1.INIT(arg, 0.0, arg,    arg, arg, arg,    0.0, arg, arg);   result.tris.append(t1)
+            t1.INIT(arg, 0.0, arg,    0.0, arg, arg,    0.0, 0.0, arg);   result.tris.append(t1)
+            // WEST
+            t1.INIT(0.0, 0.0, arg,    0.0, arg, arg,    0.0, arg, 0.0);   result.tris.append(t1)
+            t1.INIT(0.0, 0.0, arg,    0.0, arg, 0.0,    0.0, 0.0, 0.0);   result.tris.append(t1)
+            // TOP
+            t1.INIT(0.0, arg, 0.0,    0.0, arg, arg,    arg, arg, arg);   result.tris.append(t1)
+            t1.INIT(0.0, arg, 0.0,    arg, arg, arg,    arg, arg, 0.0);   result.tris.append(t1)
+            // BOTTOM
+            t1.INIT(arg, 0.0, arg,    0.0, 0.0, arg,    0.0, 0.0, 0.0);   result.tris.append(t1)
+            t1.INIT(arg, 0.0, arg,    0.0, 0.0, 0.0,    arg, 0.0, 0.0);   result.tris.append(t1)
+        }
     }
 }
