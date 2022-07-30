@@ -259,6 +259,11 @@ struct Triangle3D{
     me Point3D: p1
     me Point3D: p2
     me Point3D: p3
+    void: initFromVecs(their Vec3D: v1, their Vec3D: v2, their Vec3D: v3) <- {
+        p1.x <- v1.x;   p1.y <- v1.y;    p1.z <- v1.z;
+        p2.x <- v2.x;   p2.y <- v2.y;    p2.z <- v2.z;
+        p3.x <- v3.x;   p3.y <- v3.y;    p3.z <- v3.z;
+    }
     void: INIT(me float: px1, me float: py1, me float: pz1, me float: px2, me float: py2, me float: pz2, me float: px3, me float: py3, me float: pz3)<-{
         p1.x <- px1;    p1.y <- py1;     p1.z <- pz1;
         p2.x <- px2;    p2.y <- py2;     p2.z <- pz2;
@@ -439,7 +444,7 @@ TriXlated.p3.z <+- 3.0
                     TriPrj.p3.x <*- halfScreenWidth
                     TriPrj.p3.y <*- halfScreenHeight
                         //~ // Why are these lines given in the OLC code?
-                        //~ vOffsetView = { fViewX,fViewY,0 };
+                        //~ vOffsetView = { screenWidth, screenHeight, 0 };
                         //~ triRaster.p[0] = Math::Vec_Add(triRaster.p[0], vOffsetView);
                         //~ triRaster.p[1] = Math::Vec_Add(triRaster.p[1], vOffsetView);
                         //~ triRaster.p[2] = Math::Vec_Add(triRaster.p[2], vOffsetView);
@@ -455,7 +460,54 @@ TriXlated.p3.z <+- 3.0
 }
 
 struct MeshGenerator{
-    void: generateMesh(me string: meshType, me float: arg, me float: arg2, their Mesh: result) <- {
+    void: genQuad(their Mesh: result, their Vec3D: v1, their Vec3D: v2, their Vec3D: v3, their Vec3D: v4) <- {
+        me Triangle3D: tri
+        tri.initFromVecs(v1, v3, v4);   result.tris.append(tri)
+        tri.initFromVecs(v1, v4, v2);   result.tris.append(tri)
+    }
+
+    void: fillCircleVec(their Vec3D: result, me int: iterNum, me int: tessellation, me float: diameter, me float: height) <- {
+        me float: angle <- iterNum * 2*pi / tessellation
+        result.x <- cosf(angle) *diameter
+        result.y <- height
+        result.z <- sinf(angle) *diameter
+    }
+
+    void: genCone(their Mesh: result, me int: tessellation, me float: yPos, me float: height, me float: radius, me bool: normalIn) <- {
+        withEach idx in RANGE(0..tessellation){
+            me Vec3D: v1
+            me Vec3D: v2
+            me Vec3D: v3
+            fillCircleVec(v1, idx,   tessellation, radius, yPos)
+            fillCircleVec(v2, idx+1, tessellation, radius, yPos)
+            v3.x <- 0;  v3.y <- yPos+height; v3.z <- 0;
+
+            me Triangle3D: tri
+            if(normalIn) {tri.initFromVecs(v1, v2, v3)}
+            else {tri.initFromVecs(v1, v3, v2)}
+            result.tris.append(tri)
+        }
+    }
+
+    void: genCylinder(their Mesh: result, me float: height, me float: diameterTop, me float: diameterBottom, me int: tessellation) <- {
+        me float: topDiameter    <- diameterTop/2
+        me float: bottomDiameter <- diameterBottom/2
+        withEach idx in RANGE(0..tessellation){
+            me Vec3D: v1
+            me Vec3D: v2
+            me Vec3D: v3
+            me Vec3D: v4
+            fillCircleVec(v1, idx,   tessellation, topDiameter, 0.0)
+            fillCircleVec(v2, idx+1, tessellation, topDiameter, 0.0)
+            fillCircleVec(v3, idx,   tessellation, bottomDiameter, height)
+            fillCircleVec(v4, idx+1, tessellation, bottomDiameter, height)
+            genQuad(result, v1, v2, v3, v4)
+        }
+        genCone(result, tessellation, 0, -0.2, topDiameter, true)
+        genCone(result, tessellation, height,0.0, bottomDiameter, false)
+    }
+
+    void: generateMesh(their Mesh: result, me string: meshType, me float: arg, me float: arg2) <- {
         result.tris.clear()
         if(meshType=="cube"){  // arg: side length
             me Triangle3D: t1;
@@ -477,6 +529,8 @@ struct MeshGenerator{
             // BOTTOM
             t1.INIT(arg, 0.0, arg,    0.0, 0.0, arg,    0.0, 0.0, 0.0);   result.tris.append(t1)
             t1.INIT(arg, 0.0, arg,    0.0, 0.0, 0.0,    arg, 0.0, 0.0);   result.tris.append(t1)
+        }
+        else if(meshType=="Cylinder"){
         }
     }
 }
