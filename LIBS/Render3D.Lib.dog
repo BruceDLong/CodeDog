@@ -259,7 +259,12 @@ struct Triangle3D{
     me Point3D: p1
     me Point3D: p2
     me Point3D: p3
-    void: initFromVecs(their Vec3D: v1, their Vec3D: v2, their Vec3D: v3) <- {
+    void: initFromVecs(their Vec3D: v1, their Vec3D: v2, their Vec3D: v3, me bool: normalOut) <- {
+        if(!normalOut){
+            their Vec3D: tmp <- v2
+            v2 <- v3
+            v3 <- tmp
+        }
         p1.x <- v1.x;   p1.y <- v1.y;    p1.z <- v1.z;
         p2.x <- v2.x;   p2.y <- v2.y;    p2.z <- v2.z;
         p3.x <- v3.x;   p3.y <- v3.y;    p3.z <- v3.z;
@@ -460,20 +465,34 @@ TriXlated.p3.z <+- 3.0
 }
 
 struct MeshGenerator{
-    void: genQuad(their Mesh: result, their Vec3D: v1, their Vec3D: v2, their Vec3D: v3, their Vec3D: v4) <- {
+    void: genQuad(their Mesh: result, their Vec3D: v1, their Vec3D: v2, their Vec3D: v3, their Vec3D: v4, me bool: normalOut) <- {
         me Triangle3D: tri
-        tri.initFromVecs(v1, v3, v4);   result.tris.append(tri)
-        tri.initFromVecs(v1, v4, v2);   result.tris.append(tri)
+        tri.initFromVecs(v1, v3, v4, normalOut);   result.tris.append(tri)
+        tri.initFromVecs(v1, v4, v2, normalOut);   result.tris.append(tri)
     }
 
-    void: fillCircleVec(their Vec3D: result, me int: iterNum, me int: tessellation, me float: diameter, me float: height) <- {
+    void: fillCircleVec(their Vec3D: result, me int: iterNum, me int: tessellation, me float: radius, me float: height) <- {
         me float: angle <- iterNum * 2*pi / tessellation
-        result.x <- cosf(angle) *diameter
+        result.x <- cosf(angle) *radius
         result.y <- height
-        result.z <- sinf(angle) *diameter
+        result.z <- sinf(angle) *radius
     }
 
-    void: genCone(their Mesh: result, me int: tessellation, me float: yPos, me float: height, me float: radius, me bool: normalIn) <- {
+    void: genRingCap(their Mesh: result, me int: tessellation, me float: yPos, me float: height, me float: radius, me float: thickness, me bool: normalOut) <- {
+        withEach idx in RANGE(0..tessellation){
+            me Vec3D: v1
+            me Vec3D: v2
+            me Vec3D: v3
+            me Vec3D: v4
+            fillCircleVec(v1, idx,   tessellation, radius, yPos)
+            fillCircleVec(v2, idx+1, tessellation, radius, yPos)
+            fillCircleVec(v3, idx,   tessellation, radius-thickness, yPos+height)
+            fillCircleVec(v4, idx+1, tessellation, radius-thickness, yPos+height)
+            genQuad(result, v1, v2, v3, v4, normalOut)
+        }
+    }
+
+    void: genCap(their Mesh: result, me int: tessellation, me float: yPos, me float: height, me float: radius, me bool: normalOut) <- {
         withEach idx in RANGE(0..tessellation){
             me Vec3D: v1
             me Vec3D: v2
@@ -483,28 +502,39 @@ struct MeshGenerator{
             v3.x <- 0;  v3.y <- yPos+height; v3.z <- 0;
 
             me Triangle3D: tri
-            if(normalIn) {tri.initFromVecs(v1, v2, v3)}
-            else {tri.initFromVecs(v1, v3, v2)}
-            result.tris.append(tri)
+            tri.initFromVecs(v1, v2, v3, normalOut);    result.tris.append(tri)
         }
     }
 
-    void: genCylinder(their Mesh: result, me float: height, me float: diameterTop, me float: diameterBottom, me int: tessellation) <- {
-        me float: topDiameter    <- diameterTop/2
-        me float: bottomDiameter <- diameterBottom/2
+    void: genCone(their Mesh: result, me int: tessellation, me float: yPos, me float: height, me float: radius, me bool: normalOut) <- {
+        // For a 3 sided pyramid set tessalations to 3. For 4 sided, set it to 4.
+        genCap(result, tessellation, yPos, height, radius, normalOut) // Create cone part
+        genCap(result, tessellation, yPos, 0, radius, !normalOut)     // Create bottom cap part
+    }
+
+    void: genCylinder(their Mesh: result, me float: height, me float: topRadius, me float: bottomRadius, me int: tessellation, me bool: cap, me bool: normalOut) <- {
         withEach idx in RANGE(0..tessellation){
             me Vec3D: v1
             me Vec3D: v2
             me Vec3D: v3
             me Vec3D: v4
-            fillCircleVec(v1, idx,   tessellation, topDiameter, 0.0)
-            fillCircleVec(v2, idx+1, tessellation, topDiameter, 0.0)
-            fillCircleVec(v3, idx,   tessellation, bottomDiameter, height)
-            fillCircleVec(v4, idx+1, tessellation, bottomDiameter, height)
-            genQuad(result, v1, v2, v3, v4)
+            fillCircleVec(v1, idx,   tessellation, topRadius, 0.0)
+            fillCircleVec(v2, idx+1, tessellation, topRadius, 0.0)
+            fillCircleVec(v3, idx,   tessellation, bottomRadius, height)
+            fillCircleVec(v4, idx+1, tessellation, bottomRadius, height)
+            genQuad(result, v1, v2, v3, v4, normalOut)
         }
-        genCone(result, tessellation, 0, -0.2, topDiameter, true)
-        genCone(result, tessellation, height,0.0, bottomDiameter, false)
+        if(cap){
+            genCap(result, tessellation, 0, 0.0, topRadius, normalOut)
+            genCap(result, tessellation, height,0.0, bottomRadius, !normalOut)
+        }
+    }
+
+    void: genTube(their Mesh: result, me float: height, me float: topRadius, me float: bottomRadius, me float: thickness, me int: tessellation, me bool: normalOut) <- {
+        genCylinder(result, height, topRadius, bottomRadius, tessellation, false, normalOut)
+        genCylinder(result, height, topRadius-thickness, bottomRadius-thickness, tessellation, false, !normalOut)
+        genRingCap(result, tessellation, 0.0, 0.0, topRadius, thickness, !normalOut)
+        genRingCap(result, tessellation, height, 0.0, bottomRadius, thickness, normalOut)
     }
 
     void: generateMesh(their Mesh: result, me string: meshType, me float: arg, me float: arg2) <- {
