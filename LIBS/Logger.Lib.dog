@@ -50,10 +50,11 @@ struct logManager{
 struct GLOBAL{
     me logManager: logMgr
 
-    void: logSeg(me string: logTxt) <- {logMgr.Mesg.logStr <+- logTxt}
-    void: logSegIn(me string: segID)<-{logMgr.Mesg.logStr <+- "-"+segID+":["}
-    void: logSegOut(me string: retID)<-{if(retID!=""){retID<-":"+retID} logMgr.Mesg.logStr <+- "]"+retID}
+    void: logSeg(me string: logTxt) <- {me MutexMngr: MtxMgr{logMgr.Mesg.loggerMutex}; logMgr.Mesg.logStr <+- logTxt}
+    void: logSegIn(me string: segID)<-{me MutexMngr: MtxMgr{logMgr.Mesg.loggerMutex}; logMgr.Mesg.logStr <+- "-"+segID+":["}
+    void: logSegOut(me string: retID)<-{me MutexMngr: MtxMgr{logMgr.Mesg.loggerMutex}; if(retID!=""){retID<-":"+retID} logMgr.Mesg.logStr <+- "]"+retID}
     void: logSegStartCol(me string: logTxt, me int: startPos) <- {
+        me MutexMngr: MtxMgr{logMgr.Mesg.loggerMutex};
         me int: strLength <- logMgr.Mesg.logStr.size()
         if(strLength < startPos){
             me int: lenDiff <- startPos - strLength
@@ -63,7 +64,7 @@ struct GLOBAL{
         }
         logMgr.Mesg.logStr <+- logTxt
     }
-    void: logSegClear() <- {logMgr.Mesg.logStr <+- ""}
+    void: logSegClear() <- {me MutexMngr: MtxMgr{logMgr.Mesg.loggerMutex}; logMgr.Mesg.logStr <+- ""}
     void: logFlush() <- {me MutexMngr: MtxMgr{logMgr.Mesg.loggerMutex}; logMgr.writeToLog("MESG: "+logMgr.Mesg.logStr); logMgr.Mesg.logStr <- ""}
     //void: logFlush() <- {logMgr.writeToLog("MESG: "+logMgr.Mesg.logStr); logMgr.Mesg.logStr <- ""}
     //me void: assert(me string: condition) <- {}
