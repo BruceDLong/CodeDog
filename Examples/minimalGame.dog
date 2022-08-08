@@ -42,7 +42,7 @@ struct AlienArmada{
     me GameImage: alien1Img
 
     void: update() <- {
-        leftMostPos  <- screenWidth
+        leftMostPos  <- windowW
         rightMostPos <- 0
         me double: xToMove
         me double: yToMove <- 0
@@ -61,7 +61,7 @@ struct AlienArmada{
 
             }
         }else if(direction == goingRight){
-            if(rightMostPos > screenWidth - alien1Width - 10){
+            if(rightMostPos > windowW - alien1Width - 10){
                 direction <- goingLeft
                 yToMove   <- alienAdvance
             }
@@ -91,7 +91,7 @@ struct AlienArmada{
     }
     void: addAlienRow(me int: yPos, me int: numAliens)<-{
         me int: rowWidth <- numAliens * (alien1Width + 15)
-        me int: rowStart; rowStart <- (screenWidth - rowWidth) / 2
+        me int: rowStart; rowStart <- (windowW - rowWidth) / 2
         me int: crntPos  <- rowStart
         withEach pos in RANGE (0..numAliens){
             our AlienShip:: alien
@@ -130,7 +130,7 @@ struct Bullet{
         else if(owner == theirBullet){
             y <- y + bulletSpeed
         }
-        if(y < 0 or y > screenHeight){
+        if(y < 0 or y > windowH){
             deleteIt <- true
         }
         return(deleteIt)
@@ -157,25 +157,25 @@ struct GameMenuScreen: inherits=GameMode{
     void: draw(their GUI_ctxt: cr, me double: interpolation) <- {
         textY <- 100
         cr.setColor(Styler.DarkSlateBlue)
-        cr.rectangle(0,0,screenWidth, screenHeight)
+        cr.rectangle(0,0,windowW, windowH)
         cr.fillNow()
 
         cr.setColor(Styler.White)
         our fontSpec:: testFont {"Ariel", 20, 0}
         if (winner) {
-            renderTextCentered(cr, "WINNER!", testFont, screenWidth/2, textY)
+            renderTextCentered(cr, "WINNER!", testFont, windowW/2, textY)
             textY <+- 100
         }
         if (finalScore) {
-            renderTextCentered(cr, "Final Score: " + toString(finalScore), testFont, screenWidth/2, textY)
+            renderTextCentered(cr, "Final Score: " + toString(finalScore), testFont, windowW/2, textY)
             textY <+- 100
-            renderTextCentered(cr, "Press Space to Play Again!", testFont, screenWidth/2, textY)
+            renderTextCentered(cr, "Press Space to Play Again!", testFont, windowW/2, textY)
             textY <+- 100
         } else {
-            renderTextCentered(cr, "Press Space to Play!", testFont, screenWidth/2, textY)
+            renderTextCentered(cr, "Press Space to Play!", testFont, windowW/2, textY)
             textY <+- 100
         }
-        renderTextCentered(cr, "Press Escape to Exit", testFont, screenWidth/2, textY)
+        renderTextCentered(cr, "Press Escape to Exit", testFont, windowW/2, textY)
         textY <+- 100
         cr.strokeNow()
         window.requestRedraw()
@@ -201,9 +201,9 @@ struct GamePauseScreen: inherits=GameMode{
     void: draw(their GUI_ctxt: cr, me double: interpolation) <- {
         cr.setColor(Styler.White)
         our fontSpec:: testFont {"Ariel", 20, 0}
-        renderTextCentered(cr, "PAUSED", testFont, screenWidth/2, 200)
-        renderTextCentered(cr, "Press Space to Continue Playing", testFont, screenWidth/2, 300)
-        renderTextCentered(cr, "Press Escape to Exit", testFont, screenWidth/2, 400)
+        renderTextCentered(cr, "PAUSED", testFont, windowW/2, 200)
+        renderTextCentered(cr, "Press Space to Continue Playing", testFont, windowW/2, 300)
+        renderTextCentered(cr, "Press Escape to Exit", testFont, windowW/2, 400)
         cr.strokeNow()
         window.requestRedraw()
     }
@@ -235,7 +235,7 @@ struct GamePlayScreen: inherits=GameMode{
 
     void: update() <- {
         if(movingLeft){playerPosition <- max(shipWidth/2, playerPosition - playerMovement)}
-        if(movingRight) {playerPosition <- min(screenWidth-shipWidth/2, playerPosition + playerMovement)}
+        if(movingRight) {playerPosition <- min(windowW-shipWidth/2, playerPosition + playerMovement)}
         me int: bulletIdx <- 0
         while (bulletIdx < bullets.size()){
             our Bullet: bullet <- bullets[bulletIdx]
@@ -250,8 +250,8 @@ struct GamePlayScreen: inherits=GameMode{
     }
     void: draw(their GUI_ctxt: cr, me double: interpolation) <- {
         displayBackgroundImage(cr, "assets/level1Background.png")
-        shipOffsetY <- screenHeight/10
-        displayImage(cr, "assets/ship1.png", playerPosition-shipWidth/2, screenHeight-shipOffsetY, scaleFactor, scaleFactor)
+        shipOffsetY <- windowH/10
+        displayImage(cr, "assets/ship1.png", playerPosition-shipWidth/2, windowH-shipOffsetY, scaleFactor, scaleFactor)
         armada.draw(cr)
         withEach bullet in bullets{
             bullet.draw(cr)
@@ -289,7 +289,7 @@ struct GamePlayScreen: inherits=GameMode{
                     alienIdx  <- alienIdx  + 1
                 }
             }else if(bullet.owner == theirBullet){      // player is hit
-                if(pointIsInRectangle(bullet.x, bullet.y, playerPosition - shipWidth/2, screenHeight - shipOffsetY, shipWidth, 100)){
+                if(pointIsInRectangle(bullet.x, bullet.y, playerPosition - shipWidth/2, windowH - shipOffsetY, shipWidth, 100)){
                     explosion1.play()
                     finalScore <- playerScore
                     looper.setGameMode(gameMenuScreen)
@@ -301,7 +301,7 @@ struct GamePlayScreen: inherits=GameMode{
         me int: alienIdx <- 0
         while(alienIdx < armada.aliens.size()){
             our AlienShip: alien <- armada.aliens[alienIdx]
-            if(pointIsInRectangle(alien.x, alien.y, playerPosition, screenHeight - shipOffsetY, shipWidth, 100)){
+            if(pointIsInRectangle(alien.x, alien.y, playerPosition, windowH - shipOffsetY, shipWidth, 100)){
                 explosion1.play()
                 finalScore <- playerScore
                 looper.setGameMode(gameMenuScreen)
@@ -316,7 +316,7 @@ struct GamePlayScreen: inherits=GameMode{
             case SDLK_SPACE:{
                 our Bullet:: newBullet
                 newBullet.x <- playerPosition
-                newBullet.y <- screenHeight - shipOffsetY
+                newBullet.y <- windowH - shipOffsetY
                 newBullet.owner <- ourBullet
                 bullets.pushFirst(newBullet)
                 playerFires.play()
@@ -341,7 +341,7 @@ struct GamePlayScreen: inherits=GameMode{
             case SDLK_SPACE:{
                 our Bullet:: newBullet
                 newBullet.x <- playerPosition
-                newBullet.y <- screenHeight - shipOffsetY
+                newBullet.y <- windowH - shipOffsetY
                 newBullet.owner <- ourBullet
                 bullets.pushFirst(newBullet)
                 playerFires.play()
@@ -361,7 +361,7 @@ struct GamePlayScreen: inherits=GameMode{
     }
     void: init(our GameLooper: ourLooper) <- {
         looper <- ourLooper
-        playerPosition <- screenWidth/2
+        playerPosition <- windowW/2
         shipWidth      <- 136/scaleFactor
         bullets.clear()
         playerFires.loadFromFile("assets/fire1.wav")

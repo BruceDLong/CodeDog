@@ -36,7 +36,7 @@ struct GLOBAL{
         // Projection Matrix
         me float: fNear <- 0.1          // Distance from player's eyes to the screen
         me float: fFar  <- 1000.0       // Furtherest items to display
-        me float: fAspectRatio <- convertToFloatVal(screenHeight) / convertToFloatVal(screenWidth)
+        me float: fAspectRatio <- convertToFloatVal(windowH) / convertToFloatVal(windowW)
         matProj.MakeProjection(fFovDegrees, fAspectRatio, fNear, fFar)
 
     }
@@ -371,8 +371,8 @@ struct Mesh{
 
     void: draw(their GUI_ctxt: cr, their Matrix4: parentMatx, their cdColor: color, me double: interpolation) <- {
         me uint64: TriangleDrawnCount <- 0
-        me float: halfScreenWidth  <- 0.5 * screenWidth
-        me float: halfScreenHeight <- 0.5 * screenHeight
+        me float: halfScreenWidth  <- 0.5 * windowW
+        me float: halfScreenHeight <- 0.5 * windowH
         withEach tri in tris{
             me Triangle3D: TriXlated
             me Triangle3D: TriPrj
@@ -449,7 +449,7 @@ TriXlated.p3.z <+- 3.0
                     TriPrj.p3.x <*- halfScreenWidth
                     TriPrj.p3.y <*- halfScreenHeight
                         //~ // Why are these lines given in the OLC code?
-                        //~ vOffsetView = { screenWidth, screenHeight, 0 };
+                        //~ vOffsetView = { windowW, windowH, 0 };
                         //~ triRaster.p[0] = Math::Vec_Add(triRaster.p[0], vOffsetView);
                         //~ triRaster.p[1] = Math::Vec_Add(triRaster.p[1], vOffsetView);
                         //~ triRaster.p[2] = Math::Vec_Add(triRaster.p[2], vOffsetView);

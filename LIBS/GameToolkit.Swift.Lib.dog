@@ -108,7 +108,7 @@ struct GUI_ctxt{
     me void: moveTo(me double: x, me double: y)         <- <%!move(to:CGPoint(x:%1, y:%2))%>
     me void: lineTo(me double: x, me double: y)         <- <%!addLine(to:CGPoint(x:%1, y:%2))%>
     me void: strokeNow()                                <- <%!drawPath(using: .fillStroke)%>
-    me void: fillNow()                                  <- <%!fill(CGRect(x:0, y:0, width:screenWidth, height:screenHeight))%>
+    me void: fillNow()                                  <- <%!fill(CGRect(x:0, y:0, width:windowW, height:windowH))%>
     //me void: strokeKeep()                             <- <%!%>
     //me void: fillKeep()                               <- <%!%>
     //me void: setFillPattern()                         <- <%!%>

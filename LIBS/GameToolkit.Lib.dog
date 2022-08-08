@@ -296,8 +296,8 @@ struct GLOBAL{
     their GameSurface: screenSurface
     their INK_Image:   canvas
     me Map<me string, their INK_Image>: picCache
-    me int: screenWidth
-    me int: screenHeight
+    me int: windowW
+    me int: windowH
 
     void: deinitGraphics() <- {
         deallocateWindow(window)

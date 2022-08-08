@@ -66,7 +66,7 @@ struct GLOBAL{
             Uint32 fullScreenFlag = (startFullScreen)?SDL_WINDOW_FULLSCREEN_DESKTOP:0;
             window = SDL_CreateWindow( "SDL Tutorial", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN|fullScreenFlag);
             SDL_SetWindowResizable(window, SDL_TRUE);
-            SDL_GetWindowSize(window, &screenWidth, &screenHeight);
+            SDL_GetWindowSize(window, &windowW, &windowH);
             if( window == NULL ){
                 printf( "Window could not be created! SDL_Error: %s\n", SDL_GetError());
             }else{
@@ -77,8 +77,8 @@ struct GLOBAL{
         }
     }%>
     void: resetWindowSize(me int: width, me int: height) <- <%{
-        screenWidth  = width;
-        screenHeight = height;
+        windowW  = width;
+        windowH = height;
         if(canvas) cairo_surface_destroy(canvas);
         if(screenSurface) {
             SDL_FreeSurface(screenSurface);
@@ -153,8 +153,8 @@ struct GLOBAL{
         else pic=picPtr->second;
         double picWidth = cairo_image_surface_get_width(pic);
         double picHeight = cairo_image_surface_get_height(pic);
-        double xScale = screenWidth / picWidth;
-        double yScale = screenHeight / picHeight;
+        double xScale = windowW / picWidth;
+        double yScale = windowH / picHeight;
         cairo_save(cr);
         cairo_scale(cr, xScale, yScale);
         cairo_set_source_surface(cr,pic,0,0);

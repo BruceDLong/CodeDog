@@ -19,8 +19,8 @@ featuresNeeded = [GameToolkit, List]
 LicenseText = `Public Domain`
 
 runCode=`
-    screenWidth  <- 1000
-    screenHeight <- 1000
+    windowW  <- 1000
+    windowH <- 1000
     setUpGame()
     initializeGraphics(true)
     gameLooper.play(1, 40)
@@ -30,7 +30,7 @@ struct GameMenuScreen: inherits=GameMode{
     void: update() <- {}
     void: draw(their GUI_ctxt: cr, me double: interpolation) <- {
         cr.setColor(mainStyle.White)
-        cr.rectangle(0,0,screenWidth, screenHeight)
+        cr.rectangle(0,0,windowW, windowH)
         cr.fillNow()
         cr.setColor(mainStyle.Green)
         cr.rectangle(100, 100, 200, 200)

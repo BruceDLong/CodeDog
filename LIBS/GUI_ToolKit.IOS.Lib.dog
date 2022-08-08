@@ -189,7 +189,7 @@ struct GUI_ctxt{
     me void: rectangle(me double: x, me double: y, me double: w, me double: h) <- <%!addRect(CGRect(x:%1, y:%2, width:%3, height:%4))%>
     me void: paintNow()                                 <- <%!drawPath(using: .fillStroke)%>
     me void: strokeNow()                                <- <%!drawPath(using: .fillStroke)%>
-    me void: fillNow()                                  <- <%!fill(CGRect(x:0, y:0, width:screenWidth, height:screenHeight))%>
+    me void: fillNow()                                  <- <%!fill(CGRect(x:0, y:0, width:windowW, height:windowH))%>
     //me void: strokeKeep()                             <- <%!%>
     me void: fillKeep()                                 <- <%!fillPath()%>
     //me void: setFillPattern()                         <- <%!%>
