@@ -21,23 +21,37 @@ featuresNeeded = []
 ProgramOrLibrary = "library"
 
 struct GLOBAL{
+    me MeshGenerator: meshGenerator
     me bool: renderWireFrame <- false   // Otherwise render solid shapes
     me bool: RENDER_LIGHTING <- true
     me bool: CULL_GZ <- true            // Cull triangles when norm is Greater than Zero
     me bool: CULL_LZ <- false           // Cull triangles when norm is Less than Zero
     me Matrix4: worldMatx
     me Matrix4: matProj
+    me Matrix4: mat4ID
+    me int: windowXPos
+    me int: windowYPos
+    me int: windowWidth3D
+    me int: windowHeight3D
 
     me List<their LightSource>: lightSources
 
-    void: setUpMatrixes(me float: fFovDegrees  <- 90.0) <- {
+    void: setUpMatrixes(me float: fFovDegrees, me int: xPos, me int: yPos, me int: width, me int: height) <- {
+        windowXPos <- xPos
+        windowYPos <- yPos
+        windowHeight3D <- height
+        windowWidth3D <- width
         worldMatx.makeIdentity()
 
         // Projection Matrix
         me float: fNear <- 0.1          // Distance from player's eyes to the screen
         me float: fFar  <- 1000.0       // Furtherest items to display
-        me float: fAspectRatio <- convertToFloatVal(windowH) / convertToFloatVal(windowW)
+        me float: fAspectRatio <- convertToFloatVal(windowHeight3D) / convertToFloatVal(windowWidth3D)
         matProj.MakeProjection(fFovDegrees, fAspectRatio, fNear, fFar)
+        print("windowXPos:",windowXPos,"  windowYPos:",windowYPos,"\n")
+        print("windowWidth3D:",windowWidth3D,"  windowHeight3D:",windowHeight3D,"   fAspectRatio:",fAspectRatio,"\n")
+        print("PROJ:\n",matProj.stringify())
+        mat4ID.makeIdentity()
 
     }
 
@@ -370,9 +384,11 @@ struct Mesh{
     me List<Triangle3D>: tris
 
     void: draw(their GUI_ctxt: cr, their Matrix4: parentMatx, their cdColor: color, me double: interpolation) <- {
-        me uint64: TriangleDrawnCount <- 0
-        me float: halfScreenWidth  <- 0.5 * windowW
-        me float: halfScreenHeight <- 0.5 * windowH
+        me uint64: triangleDrawnCount <- 0
+        me float: halfScreenWidth  <- 0.5 * windowWidth3D
+        me float: halfScreenHeight <- 0.5 * windowHeight3D
+        me Vec3D: vOffsetView{ windowXPos, windowYPos, 0 }
+        print("WINDOW X/Y:",vOffsetView.x,"/",vOffsetView.y,"\n")
         withEach tri in tris{
             me Triangle3D: TriXlated
             me Triangle3D: TriPrj
@@ -382,7 +398,6 @@ struct Mesh{
 TriXlated.p1.z <+- 3.0
 TriXlated.p2.z <+- 3.0
 TriXlated.p3.z <+- 3.0
-
 
             // Calculate Triangle's normal
             me Vec3D: TrianglesNormal
@@ -448,19 +463,21 @@ TriXlated.p3.z <+- 3.0
                     TriPrj.p2.y <*- halfScreenHeight
                     TriPrj.p3.x <*- halfScreenWidth
                     TriPrj.p3.y <*- halfScreenHeight
-                        //~ // Why are these lines given in the OLC code?
-                        //~ vOffsetView = { windowW, windowH, 0 };
-                        //~ triRaster.p[0] = Math::Vec_Add(triRaster.p[0], vOffsetView);
-                        //~ triRaster.p[1] = Math::Vec_Add(triRaster.p[1], vOffsetView);
-                        //~ triRaster.p[2] = Math::Vec_Add(triRaster.p[2], vOffsetView);
+
+                    // RE-locate to an area of the window
+                    Vec_Add(TriPrj.p1, vOffsetView, TriPrj.p1);
+                    Vec_Add(TriPrj.p2, vOffsetView, TriPrj.p2);
+                    Vec_Add(TriPrj.p3, vOffsetView, TriPrj.p3);
 
                     me Triangle2D: toDraw;
                     toDraw.INIT(TriPrj.p1.x, TriPrj.p1.y, TriPrj.p2.x, TriPrj.p2.y, TriPrj.p3.x, TriPrj.p3.y)
                     cr.setColor(faceColor)
                     toDraw.draw(cr)
 
-                    TriangleDrawnCount <+- 1
+                    triangleDrawnCount <+- 1
         }
+
+        print("\nTriangles:",triangleDrawnCount,"\n");
     }
 }
 
