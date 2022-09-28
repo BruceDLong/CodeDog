@@ -528,8 +528,6 @@ struct strBuf{
         me int32: ch
         me int64: bytesUsed <- scrapeUTF8Char(pos, ch)
         if(bytesUsed<=0){return(-1)}
-        me int: tmpCh <- ch
-     //    log("UNICODESTR:'"+toString(bytesUsed) +"  val:"+toString(tmpCh))
         if(unicodeMgr.isUnicodeWordStart(ch)){
             me int64: charsUsed <- scrapeUnicodeWordContinue(pos+bytesUsed)
             if(charsUsed==-1){charsUsed<-0}

@@ -297,28 +297,28 @@ class Xlator_CPP(Xlator):
             return["", ".get()"]
         return["", ""]
 
-    def determinePtrConfigForAssignments(self, LVAL, RVAL, assignTag, codeStr):
+    def determinePtrConfigForAssignments(self, LTSpec, RTSpec, assignTag, codeStr):
         #TODO: make test case
         # Returns left and right text decorations for both LHS and RHS of assignment
-        if RVAL==0 or RVAL==None or isinstance(RVAL, str): return ['','',  '',''] # This happens e.g., string.size() # TODO: fix this.
-        if LVAL==0 or LVAL==None or isinstance(LVAL, str): return ['','',  '','']
-        LeftOwner =progSpec.getOwner(LVAL)
-        RightOwner=progSpec.getOwner(RVAL)
+        if RTSpec==0 or RTSpec==None or isinstance(RTSpec, str): return ['','',  '',''] # This happens e.g., string.size() # TODO: fix this.
+        if LTSpec==0 or LTSpec==None or isinstance(LTSpec, str): return ['','',  '','']
+        LeftOwner =progSpec.getOwner(LTSpec)
+        RightOwner=progSpec.getOwner(RTSpec)
         if not isinstance(assignTag, str):
             assignTag = assignTag[0]
-        if progSpec.typeIsPointer(LVAL) and progSpec.typeIsPointer(RVAL):
+        if progSpec.typeIsPointer(LTSpec) and progSpec.typeIsPointer(RTSpec):
             if assignTag=='deep' :return ['(*',')',  '(*',')']
             elif LeftOwner=='their' and (RightOwner=='our' or RightOwner=='my'): return ['','', '','.get()']
             else: return ['','',  '', '']
         if LeftOwner == RightOwner: return ['','',  '','']
-        if LeftOwner=='me' and progSpec.typeIsPointer(RVAL):
-            [leftMod, rightMod, isDerefd] = self.getTheDerefPtrMods(RVAL)
+        if LeftOwner=='me' and progSpec.typeIsPointer(RTSpec):
+            [leftMod, rightMod, isDerefd] = self.getTheDerefPtrMods(RTSpec)
             return ['','',  leftMod, rightMod]  # ['', '', "(*", ")"]
-        if progSpec.typeIsPointer(LVAL) and RightOwner=='me':
+        if progSpec.typeIsPointer(LTSpec) and RightOwner=='me':
             if assignTag!="" or assignTag=='deep':return ['(*',')',  '', '']
             else: return ['','',  "&", '']
-        if progSpec.typeIsPointer(LVAL) and RightOwner=='literal':return ['(*',')',  '', '']
-        if progSpec.typeIsPointer(LVAL) and RightOwner=='const':return ['(*',')', '','']
+        if progSpec.typeIsPointer(LTSpec) and RightOwner=='literal':return ['(*',')',  '', '']
+        if progSpec.typeIsPointer(LTSpec) and RightOwner=='const':return ['(*',')', '','']
         return ['','',  '','']
 
     def codeSpecialParamList(self, tSpec, CPL):
@@ -485,7 +485,9 @@ class Xlator_CPP(Xlator):
         fieldType1 = progSpec.fieldTypeKeyword(typeSpec1)
         fieldType2 = progSpec.fieldTypeKeyword(typeSpec2)
         if fieldType1 == "char" and (fieldType2 == 'string' or fieldType2 == 'String') and S[0] == '"':
-            return("'" + S[1:-1] + "'")
+            ch = S[1:-1]
+            if ch=="'": ch = "\\'"
+            return("'" + ch + "'")
         return(S)
 
     def adjustConditional(self, S2, conditionType):

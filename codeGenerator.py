@@ -1170,7 +1170,7 @@ class CodeGenerator(object):
         if(rangeSpec): # iterate over range
             [S_low, lowValTypeSpec] = self.codeExpr(rangeSpec[2][0], None, None, 'RVAL', genericArgs)
             [S_hi,   hiValTypeSpec] = self.codeExpr(rangeSpec[4][0], None, None, 'RVAL', genericArgs)
-            ctrlVarsTypeSpec = lowValTypeSpec
+            ctrlVarsTypeSpec = {'owner': 'me', 'fieldType': ctrType}
             actionText += self.xlator.codeRangeSpec(traversalMode, ctrType, repName, S_low, S_hi, indent)
             self.localVarsAllocated.append([repName, ctrlVarsTypeSpec])  # Tracking local vars for scope
         elif(whileSpec):
