@@ -17,6 +17,7 @@ interface={
             }
         },
         { packageName = 'libev'
+          innerPkgName= 'libev-4.33'
           fetchMethod = 'zip:http://dist.schmorp.de/libev/libev-4.33.tar.gz'
           buildCmds   = {
               Linux   = {installFiles = ['.']}

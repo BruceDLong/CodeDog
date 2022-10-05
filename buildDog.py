@@ -1,6 +1,5 @@
 # buildDog.py
 
-
 from __future__ import unicode_literals
 import progSpec
 import os
@@ -14,7 +13,6 @@ from pathlib import Path
 import checkSys
 import environmentMngr as emgr
 
-
 importantFolders = {}
 #TODO: error handling
 def string_escape(s, encoding='utf-8'):
@@ -22,7 +20,6 @@ def string_escape(s, encoding='utf-8'):
              .decode('unicode-escape') # Perform the actual octal-escaping decode
              .encode('latin1')         # 1:1 mapping back to bytes
              .decode(encoding))        # Decode original encoding
-
 
 def runCMD(myCMD, myDir):
     print("\nCOMMAND: ", myCMD, "\n")
@@ -45,26 +42,20 @@ def runCmdStreaming(myCMD, myDir):
     print("\nCOMMAND: ", myCMD, "\n")
     errText=''
     process = subprocess.Popen(myCMD, cwd=myDir, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines = True,)
-
     while process.poll() is None:
         output = process.stdout.readline()
         if output:
             print(output.strip())
-
         err = process.stderr.readline()
         while err!='':
             errText += err
             err = process.stderr.readline()
-
     returnCode = process.returncode
-
     if returnCode!=0 or (errText and (errText.find("ERROR")) >= 0 or errText.find("error")>=0):
         print("ERRORS:---------------\n")
         #print(string_escape(str(errText))[2:-1])
         print(errText)
         print("----------------------\n")
-
-
     return returnCode
 
 def makeDirs(dirToGen):
@@ -81,7 +72,6 @@ def makeDirs(dirToGen):
     except OSError as exception:
         print("ERROR MAKING_DIR", exception)
         if exception.errno != errno.EEXIST: raise
-
 
 def writeFile(path, fileName, fileSpecs, fileExtension):
     #print path
@@ -126,7 +116,20 @@ def copyRecursive(src, dst, symlinks=False):
                 # ~ errors.extend((src, dst, str(why)))
         # ~ if errors:
             # ~ raise shutil.Error(errors)
-
+def gitClone(cloneUrl, packageName, packageDirectory):
+    checkSys.CheckPipModules({'GitPython':'3.1'})
+    import urllib.request
+    from git import Repo
+    packagePath = packageDirectory + '/' + packageName + '/' + packageName
+    checkRepo = os.path.isdir(packagePath)
+    if not checkRepo:
+        try:
+            urllib.request.urlopen(cloneUrl)
+        except (urllib.error.URLError, urllib.error.HTTPError):
+            cdErr("URL not found: " + cloneUrl)
+        cdlog(1, "Cloning git repository: " + packageName)
+        Repo.clone_from(cloneUrl, packagePath)
+        makeDirs(packageDirectory + '/' + packageName + "/INSTALL")
 
 def downloadPackageFile(downloadUrl, packageName, packageDirectory):
     downloadFileExtension = downloadUrl.rsplit('.', 1)[-1]
@@ -136,7 +139,6 @@ def downloadPackageFile(downloadUrl, packageName, packageDirectory):
     checkRepo = os.path.isfile(packagePath)
     if not checkRepo:
         emgr.downloadFile(packagePath, downloadUrl)
-
 
 def downloadExtractZip(downloadUrl, packageName, packageDirectory):
     zipExtension = ""
@@ -153,57 +155,75 @@ def downloadExtractZip(downloadUrl, packageName, packageDirectory):
     else:
         pass
 
-    zipFileDirectory = packageDirectory + '/' + packageName
-    innerPackageName = packageName     # TODO: get actual innerPackageName
-    innerPackageDir  = zipFileDirectory + '/' + innerPackageName
-    packagePath = zipFileDirectory + '/' + packageName + zipExtension
-    checkDirectory = os.path.isdir(zipFileDirectory)
+    zipFileDir  = packageDirectory + '/' + packageName
+    packagePath = zipFileDir + '/' + packageName + zipExtension
+    checkDir    = os.path.isdir(zipFileDir)
     zipFileName = os.path.basename(downloadUrl)
-    if not checkDirectory:
-        makeDirs(zipFileDirectory + "/INSTALL")
+    if not checkDir:
+        makeDirs(zipFileDir + "/INSTALL")
         emgr.downloadFile(packagePath, downloadUrl)
         try:
             cdlog(1, "Extracting zip file: " + zipFileName)
-            shutil.unpack_archive(packagePath, zipFileDirectory)
+            shutil.unpack_archive(packagePath, zipFileDir)
         except:
             cdErr("Could not extract zip archive file: " + zipFileName)
+
+def getPackageName(packageMap):
+    if 'packageName' in packageMap:
+        return(packageMap['packageName'][1:-1])
+    return("")
+
+def getInnerPackageName(packageMap):
+    if 'innerPkgName' in packageMap:
+        return(packageMap['innerPkgName'][1:-1])
+    return(getPackageName(packageMap))
+
+def getFetchType(packageMap):
+    if 'fetchMethod' in packageMap:
+        return(packageMap['fetchMethod'][1:-1].split(':', 1)[0])
+    return("")
+
+def getFetchURL(packageMap):
+    if 'fetchMethod' in packageMap:
+        fetchMethod = packageMap['fetchMethod'][1:-1]
+        fetchURL    = packageMap['fetchMethod'][1:-1].split(':', 1)[1]
+        splitSpec   = fetchURL.split('@', 1)
+        if len(splitSpec)>1: print("TODO: handle fetchMethod @: ",fetchURL)
+        fetchURL    = splitSpec[0]
+        return(fetchURL)
+    return("")
+
+def fetchPackages(packageData, packageDirectory):
+    for package in packageData:
+        packageMap   = progSpec.extractMapFromTagMap(package)
+        packageName  = getPackageName(packageMap)
+        fetchType    = getFetchType(packageMap)
+        fetchURL     = getFetchURL(packageMap)
+        buildCmdsMap = {}
+        if packageName=="" or fetchType=="": return
+        if fetchType == "git":    gitClone(fetchURL, packageName, packageDirectory)
+        elif fetchType == "file": downloadPackageFile(fetchURL, packageName, packageDirectory)
+        elif fetchType == "zip":  downloadExtractZip(fetchURL, packageName, packageDirectory)
+        else: pass
 
 def FindOrFetchLibraries(buildName, packageData, platform, tools):
     #print("#############:buildName:", buildName, platform)
     packageDirectory = os.path.join(os.getcwd(), buildName)
     [includeFolders, libFolders] = ["", ""]
+    fetchPackages(packageData, packageDirectory)
     for package in packageData:
-        packageMap = progSpec.extractMapFromTagMap(package)
-        packageName = fetchType = fetchURL = fetchCommit = ""
+        packageMap   = progSpec.extractMapFromTagMap(package)
+        packageName  = getPackageName(packageMap)
+        innerPkgName = getInnerPackageName(packageMap)
         buildCmdsMap = {}
-        if 'packageName' in packageMap:
-            packageName = packageMap['packageName'][1:-1]
-        if 'fetchMethod' in packageMap:
-            fetchMethod = packageMap['fetchMethod'][1:-1]
-            fetchSpec   = packageMap['fetchMethod'][1:-1].split(':', 1)
-            fetchType   = fetchSpec[0]
-            splitSpec   = fetchSpec[1].split('@', 1)
-            fetchURL    = splitSpec[0]
-            if len(splitSpec)>=2: fetchCommit = splitSpec[1]
         if 'buildCmds' in packageMap:
             buildCmds = packageMap['buildCmds']
             buildCmdsMap = progSpec.extractMapFromTagMap(buildCmds)
-
-        if packageName!="" and fetchMethod!="":
-            if fetchType == "git":
-                gitClone(fetchURL, packageName, packageDirectory)
-            elif fetchType == "file":
-                downloadPackageFile(fetchURL, packageName, packageDirectory)
-            elif fetchType == "zip":
-                downloadExtractZip(fetchURL, packageName, packageDirectory)
-            else:
-                pass
-
         if buildCmdsMap!={} and platform in buildCmdsMap:
             #print("###########:",platform, ' = ', buildCmdsMap[platform])
             buildCommand = buildCmdsMap[platform]
             buildCmdMap = progSpec.extractMapFromTagMap(buildCommand)
-            downloadedFolder = packageDirectory+"/"+packageName+"/"+packageName
+            downloadedFolder = packageDirectory+"/"+packageName+"/"+innerPkgName
 
             if 'buildCmd' in buildCmdMap:
                 actualBuildCmd = buildCmdMap['buildCmd'][1:-1]
@@ -238,24 +258,6 @@ def FindOrFetchLibraries(buildName, packageData, platform, tools):
                     copyRecursive(filename, LibsFolder)
 
     return [includeFolders, libFolders]
-
-
-def gitClone(cloneUrl, packageName, packageDirectory):
-    checkSys.CheckPipModules({'GitPython':'3.1'})
-    import urllib.request
-    from git import Repo
-    packagePath = packageDirectory + '/' + packageName + '/' + packageName
-    checkRepo = os.path.isdir(packagePath)
-    if not checkRepo:
-        try:
-            urllib.request.urlopen(cloneUrl)
-        except (urllib.error.URLError, urllib.error.HTTPError):
-            cdErr("URL not found: " + cloneUrl)
-
-        cdlog(1, "Cloning git repository: " + packageName)
-        Repo.clone_from(cloneUrl, packagePath)
-        makeDirs(packageDirectory + '/' + packageName + "/INSTALL")
-
 
 def buildSconsFile(fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData, fileExtension, tools):
     (includeFolders, libFolders) = FindOrFetchLibraries(buildName, packageData, platform, tools)
@@ -308,34 +310,11 @@ def buildSconsFile(fileName, libFiles, buildName, platform, fileSpecs, progOrLib
 
 def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData, tools):
     fileExtension = '.cpp'
-
     writeFile(buildName, fileName, fileSpecs, fileExtension)
     copyRecursive("Resources", buildName+"/assets")
-
-
     (includeFolders, libFolders) = FindOrFetchLibraries(buildName, packageData, platform, tools)
-
-
     packageDirectory = os.getcwd() + '/' + buildName
-
-    for package in packageData:
-        packageMap = progSpec.extractMapFromTagMap(package)
-        packageName = fetchMethod = fetchMethodUrl = ""
-        if 'packageName' in packageMap:
-            packageName = packageMap['packageName'][1:-1]
-        if 'fetchMethod' in packageMap:
-            fetchMethod = packageMap['fetchMethod'][1:-1]
-            fetchMethodUrl = packageMap['fetchMethod'][1:-1].split(':', 1)[1]
-
-
-        if fetchMethod.startswith("git:"):
-            gitClone(fetchMethodUrl, packageName, packageDirectory)
-        elif fetchMethod.startswith("file:"):
-            downloadPackageFile(fetchMethodUrl, packageName, packageDirectory)
-        elif fetchMethod.startswith("zip:"):
-            downloadExtractZip(fetchMethodUrl, packageName, packageDirectory)
-        else:
-            pass
+    fetchPackages(packageData, packageDirectory)
 
     #building scons file
     SconsFile = "import os\n"
@@ -372,7 +351,6 @@ def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
                 firstTime=False
                 sconsLibs += '"'+libFile+'"'
     sconsLibs += ']\n'
-        #print "libStr: " + libStr
     currentDirectory = os.getcwd()
     #TODO check if above is typo
     workingDirectory = currentDirectory + "/" + buildName

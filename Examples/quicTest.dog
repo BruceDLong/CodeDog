@@ -2,7 +2,7 @@
 LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' LangVersion='GNU' optimize='speed';
 
 Title = "Quic Protocol"
-FileName = "Quic"
+FileName = "quicTest"
 Version = "1.0"
 CopyrightMesg = "Copyright 2020-2021 Bruce Long; All rights reserved."
 Authors = "Bruce Long"
