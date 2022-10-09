@@ -452,7 +452,8 @@ class Xlator_CPP(Xlator):
                         retTypeSpec='char'
                         innerS=item0[1:-1]
                         if len(innerS)==1:
-                            S+="'"+item0[1:-1] +"'"
+                            if innerS=="'": innerS="\\'"
+                            S+="'"+innerS +"'"
                         else:
                             cdErr("Characters must have exactly 1 character.")
                     else:
@@ -485,9 +486,9 @@ class Xlator_CPP(Xlator):
         fieldType1 = progSpec.fieldTypeKeyword(typeSpec1)
         fieldType2 = progSpec.fieldTypeKeyword(typeSpec2)
         if fieldType1 == "char" and (fieldType2 == 'string' or fieldType2 == 'String') and S[0] == '"':
-            ch = S[1:-1]
-            if ch=="'": ch = "\\'"
-            return("'" + ch + "'")
+            innerS = S[1:-1]
+            if innerS=="'": innerS = "\\'"
+            return("'" + innerS + "'")
         return(S)
 
     def adjustConditional(self, S2, conditionType):

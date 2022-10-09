@@ -48,9 +48,9 @@ struct GLOBAL{
         me float: fFar  <- 1000.0       // Furtherest items to display
         me float: fAspectRatio <- convertToFloatVal(windowHeight3D) / convertToFloatVal(windowWidth3D)
         matProj.MakeProjection(fFovDegrees, fAspectRatio, fNear, fFar)
-        print("windowXPos:",windowXPos,"  windowYPos:",windowYPos,"\n")
-        print("windowWidth3D:",windowWidth3D,"  windowHeight3D:",windowHeight3D,"   fAspectRatio:",fAspectRatio,"\n")
-        print("PROJ:\n",matProj.stringify())
+        //~ print("windowXPos:",windowXPos,"  windowYPos:",windowYPos,"\n")
+        //~ print("windowWidth3D:",windowWidth3D,"  windowHeight3D:",windowHeight3D,"   fAspectRatio:",fAspectRatio,"\n")
+        //~ print("PROJ:\n",matProj.stringify())
         mat4ID.makeIdentity()
 
     }
@@ -388,7 +388,7 @@ struct Mesh{
         me float: halfScreenWidth  <- 0.5 * windowWidth3D
         me float: halfScreenHeight <- 0.5 * windowHeight3D
         me Vec3D: vOffsetView{ windowXPos, windowYPos, 0 }
-        print("WINDOW X/Y:",vOffsetView.x,"/",vOffsetView.y,"\n")
+        //print("WINDOW X/Y:",vOffsetView.x,"/",vOffsetView.y,"\n")
         withEach tri in tris{
             me Triangle3D: TriXlated
             me Triangle3D: TriPrj
@@ -477,7 +477,7 @@ TriXlated.p3.z <+- 3.0
                     triangleDrawnCount <+- 1
         }
 
-        print("\nTriangles:",triangleDrawnCount,"\n");
+        //print("\nTriangles:",triangleDrawnCount,"\n");
     }
 }
 
