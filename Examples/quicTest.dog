@@ -1,4 +1,13 @@
 // Quic test
+// thanks to https://github.com/dtikhonov/lsquic-tutorial
+// from lsquic-tutorial copy mycert-cert.pem into project folder and rename to certFile.pem
+// from lsquic-tutorial copy mycert-key.pem into project folder and rename to keyFile.pem
+// Run without any options to display an options menu: ./quickTest
+// Start server: ./quicTest -m server
+// Start client: ./quicTest -m client
+// Start the server first, then start the client.  The script should automatically fetch and read file test.txt
+// You can also use non local IP addresses to send to a different machine
+
 LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' LangVersion='GNU' optimize='speed';
 
 Title = "Quic Protocol"
@@ -168,7 +177,7 @@ struct ClientAndServer{
             qConn.createNewStream()
 
             our FetchFile:: fetchFile
-            fetchFile.setArgs("test.txt")
+            fetchFile.setArgs("assets/test.txt")
             qConn.enQSession(fetchFile)
             client.start()
 
