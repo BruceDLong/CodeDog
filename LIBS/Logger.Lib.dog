@@ -36,6 +36,7 @@ struct logManager{
     //ShowLogs(InfoLogs | MesgLogs | ...) // ALL_LOGS = the OR of all of them
     //HideLogs(InfoLogs | MesgLogs | ...)
     //RouteLogs(FILE) // Options: stdOut, A file, the platform's system logs, a string
+    me void: openLogFile()
     me void: writeToLog(me string: txt)
 
     me void: init(me int: outMode) <- {
@@ -74,6 +75,11 @@ struct GLOBAL{
         me int: endLen    <- len/3
         me int: startLen  <- len-endLen
         return(str.subStr(0, startLen) + " ### " +str.subStr(str.size()-endLen))
-
     }
+    me void: log(me string: MSG)
+    me void: logInfo(me string: MSG)
+    me void: logCritical(me string: MSG)
+    me void: logFatalError(me string: MSG)
+    me void: logWarn(me string: MSG)
+    me void: logDbg(me string: MSG)
 }

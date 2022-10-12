@@ -12,7 +12,6 @@ struct GLOBAL{
     me string: toString(me bool: tf) <- {
         if(tf){return("true")} else {return("false")}
     }
-
     // Convert doubles to strings w/ a specified number of significant figures. (Pretty axes labels)
     // TODO: Rounding, trailing 0's, leading 0's, track decimal point, tolerance range test, clean integers, move label w/ high sigfigs
     me string: dblToString(me double: val, me int: sigFigs) <- {
@@ -49,10 +48,8 @@ struct GLOBAL{
 
         return(S2)
     }
-
     me bool: isUpper(me char: ch) <- {return(ch>="A" and ch<="Z")}
     me bool: isLower(me char: ch) <- {return(ch>="a" and ch<="z")}
-
     me string: deCamelCase(me string: identifier) <- {
         me string: retval
         me int: chPos <- 0
@@ -67,7 +64,6 @@ struct GLOBAL{
         }
         return(retval)
     }
-
     me string: dispFieldAsText(me string: label, me int:labelLen) <- {
         me string: S <- ""
         me int: labelSize<-label.size()
@@ -107,7 +103,6 @@ struct GLOBAL{
         }
         return(strOut)
     }
-
     me int: findLastSubString(me string: strToSearch, me string: strToFind) <- {
         me int: toFindSize <- strToFind.size()
         if(toFindSize==0){return(-1)}
@@ -124,6 +119,37 @@ struct GLOBAL{
         }
         return(-1)
     }
+    me int: uniqueObjectID(their any:obj)
+    me uint: shiftLeft (me uint: bits, me uint: shft)
+    me uint: shiftRight(me uint: bits, me uint: shft)
+    me uint: AndBits(me uint: bits, me uint: shft)
+    me uint: OrBits (me uint: bits, me uint: shft)
+    // me void: endFunc()               // TODO: endFunc is erroneously populating to callable struct fields progSpec.populateCallableStructFields()
+}
+struct GLOBAL{  /////////  STRING & CHAR HANDLING  /////////////////////
+    me int: findString(me string: toSearch, me string: toFind)
+    me bool: isalpha(me char: ch)
+    me bool: isalnum(me char: ch)
+    me bool: isdigit(me char: ch)
+    me bool: isprint(me char: ch)
+    me bool: isspace(me char: ch)
+    me bool: isxdigit(me string: input)
+    me char: toLower(me char: ch)
+    me char: toUpper(me char: ch)
+    me string: readAssetAsString(me string: filename)
+    me string: wideCharToMultibyte(me int:ch)
+    void: trimLeftWS(their string: str)
+    void: trimRightWS(their string: str)
+    me string: trimWS(their string: str)
+}
+struct GLOBAL{  /////////  MATH HANDLING  //////////////////////////////
+    me int: randInt(me int: val)
+    me int: sqrt(me int: val)
+}
+struct GLOBAL{  /////////  TYPE CONVERTERS  ////////////////////////////
+    me int64: stoi(me string: str)
+    //me string: toString(me bool: val)
+    me string: toString(me long: val)
 }
 
 struct _atomic_uint64{}
@@ -225,5 +251,14 @@ struct FileStream{
     me void: write(me string: S)
     me bool: EOF()
     me bool: failure()
+    me bool: flush()
 }
-struct sessionFile{}
+struct sessionFile{
+    me void: openSession(me string: filename)
+    me void: closeSession()
+    me void: writeEntry(me string: entry)
+    me bool: openToRead(me string: filename)
+    me string: readEntry()
+    me bool: eof()
+    me void: closeReading()
+}

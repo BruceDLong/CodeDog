@@ -699,7 +699,7 @@ class Xlator_Java(Xlator):
         Platform = progSpec.fetchTagValue(tags, 'Platform')
         if len(attrList)>0:
             for attr in attrList:
-                if attr=='abstract': classAttrs += 'abstract '
+                if attr=='abstract' and className!='GLOBAL': classAttrs += 'abstract '
         if parentClass != "":
             parentClass = parentClass.replace('::', '_')
             parentClass = progSpec.getUnwrappedClassFieldTypeKeyWord(classes, className)
@@ -891,19 +891,18 @@ class Xlator_Java(Xlator):
         tSpec        = progSpec.getTypeSpec(field)
         fTypeKW      = progSpec.fieldTypeKeyword(tSpec)
         fieldName    = field['fieldName']
-        if inheritMode=='pure-virtual':
-            cvrtType = 'abstract '+cvrtType
         if(className=='GLOBAL'):
-            if fieldName=='main':
+            if inheritMode=='pure-virtual': structCode=''
+            elif fieldName=='main':
                 structCode += indent + "public static void " + fieldName +" (String[] args)";
                 #localArgsAlloc.append(['args', {'owner':'me', 'fieldType':'String', 'argList':None}])
             else:
                 structCode += indent + "public " + cvrtType + ' ' + fieldName +"("+argListText+")"
         else:
+            if inheritMode=='pure-virtual': cvrtType = 'abstract '+cvrtType
             structCode += indent + "public " + cvrtType +' ' + fieldName +"("+argListText+")"
-        if inheritMode=='pure-virtual':
-            structCode += ";\n"
-        elif inheritMode=='override': pass
+            if inheritMode=='pure-virtual': structCode += ";\n"
+        if inheritMode=='override': pass
         return [structCode, funcDefCode, globalFuncs]
 
     def getVirtualFuncText(self, field):

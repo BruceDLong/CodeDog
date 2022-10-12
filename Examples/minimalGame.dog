@@ -14,7 +14,7 @@ Authors = "Bruce Long"
 Description = "This is an example of a very minimal game"
 ProgramOrLibrary = "program"
 
-featuresNeeded = [GameToolkit, List]
+featuresNeeded = [GameToolkit]
 
 LicenseText = `Public Domain`
 

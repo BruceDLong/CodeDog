@@ -85,8 +85,12 @@ struct GLOBAL{
     //const uint32: UINT_MAX                                    <- <%!%GLLONG_MAX%>
     //const uint32: UINT_MIN                                    <- <%!%GLLONG_MIN%>
     me timeOutID: callPeriodically(me string: varClass, me string: funcToCall, me int:microSecs): COMMAND_addImplements="Runnable:ToClass:%1" <- <%!%GScheduledExecutorService timerID=Executors.newSingleThreadScheduledExecutor(); timerID.scheduleAtFixedRate(%2, 0, %3, TimeUnit.MILLISECONDS)%>
+    //me uint: shiftLeft (me uint: bits, me uint: shft) <- {}
+    //me uint: shiftRight(me uint: bits, me uint: shft) <- {}
+    //me uint: AndBits(me uint: bits, me uint: shft) <- {}
+    //me uint: OrBits (me uint: bits, me uint: shft) <- {}
 }
-struct GLOBAL{  /////////  STRING & CHAR CONVERTERS  ///////////////////
+struct GLOBAL{  /////////  STRING & CHAR HANDLING    ///////////////////
     me int: findString(me string: toSearch, me string: toFind)  <- <%!%G%1.indexOf(%2)%>
     me bool: isalpha(me char: ch)                               <- <%!%GCharacter.isLetter(%1)%>
     me bool: isalnum(me char: ch)                               <- <%!%GCharacter.isLetterOrDigit(%1)%>
@@ -96,7 +100,7 @@ struct GLOBAL{  /////////  STRING & CHAR CONVERTERS  ///////////////////
     me char: toLower(me char: ch)                               <- {if(ch>="A" and ch<="Z"){ch <+- 32} return(ch)}
     me char: toUpper(me char: ch)                               <- {if(ch>="a" and ch<="z"){ch <-- 32} return(ch)}
 }
-struct GLOBAL{  /////////  MATH CONVERTERS  ////////////////////////////
+struct GLOBAL{  /////////  MATH HANDLING    ////////////////////////////
     me int: abs(me int: val)                                    <- <%!%GMath.abs(%1)%>
     me int: atan2(me int: val1, me int: val2)                   <- <%!%GMath.atan2(%1, %2)%>
     me int: cos(me int: val)                                    <- <%!%GMath.cos(%1)%>
