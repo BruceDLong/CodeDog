@@ -11,7 +11,6 @@ interface={
     headers  = [java.lang.String, java.io.*, java.util.*,java.lang.Math.*, java.lang.Object, java.io.RandomAccessFile]
 }
 
-
 LibDescription ={
     useStatus   = dynamic
     description = 'Built in routines for Java'
@@ -41,11 +40,9 @@ struct GLOBAL{
             return "";
         }
     }%>
-
     me string: wideCharToMultibyte(me int:ch) <- <%{
         return ("");
     }%>
-
     void: trimLeftWS(their string: str)  <- <%{}%>
     void: trimRightWS(their string: str) <- <%{}%>
     me string: trimWS(their string: str) <- {
@@ -76,7 +73,7 @@ struct GLOBAL{
     me long: getCurrentTimeStamp()                              <- <%!%Gnew Date().getTime()%>
     me void: endFunc(me int: val)                               <- <%!%G %>
     me int: uniqueObjectID(their any:obj)                       <- <%!%GSystem.identityHashCode(%1)%>
-    const int64: INT64_MAX                                     <- <%!%GLong.MAX_VALUE%>
+    const int64: INT64_MAX                                      <- <%!%GLong.MAX_VALUE%>
     //const int64: INT64_MIN                                    <- <%!%GLLONG_MIN%>
     //const uint64: UINT64MAX                                   <- <%!%GLLONG_MAX%>
     //const uint64: UINT64MIN                                   <- <%!%GLLONG_MIN%>
@@ -128,9 +125,9 @@ struct GLOBAL{  /////////  TYPE CONVERTERS  ////////////////////////////
     me string: toString(me uint64: val)                         <- <%!%GString.valueOf(%1)%>
 }
 
-struct _atomic_uint64:wraps=uint64{}
-struct timeValue{me long: timeValue}
-struct DateValue{me long: DateValue}
-struct timeOfDay{me long: timeOfDay}
-struct DateTime{me long: DateTime}
-struct random{me Random: random}
+struct _atomic_uint64: wraps=uint64{}
+struct timeValue: wraps=long{}
+struct DateValue: wraps=long{}
+struct timeOfDay: wraps=long{}
+struct DateTime:  wraps=long{}
+struct random:    wraps=Random{}

@@ -9,7 +9,6 @@ interface={
     headers  = [Foundation]
 }
 
-
 LibDescription ={
     useStatus   =  dynamic
     description = 'Built in routines for Swift'
@@ -17,7 +16,6 @@ LibDescription ={
 
 initCode = ""
 deinitCode = ""
-
 
 struct stream{
     void: copyFile(me InputStream: inStream, me OutputStream: outStream) <- {}
@@ -47,6 +45,20 @@ struct FileStream{
 }
 
 struct GLOBAL{
+    //me string: readAssetAsString(me string: filename)         <- {}
+    //me string: wideCharToMultibyte(me int:ch)                 <- {}
+    void: trimLeftWS(their string: str)                         <- {}
+    void: trimRightWS(their string: str)                        <- {}
+    //me string: trimWS(their string: str)                      <- {}
+    me void: endFunc(me int: val)                               <- <%!return(0)%>
+    //me uint: shiftLeft (me uint: bits, me uint: shft)         <- {}
+    //me uint: shiftRight(me uint: bits, me uint: shft)         <- {}
+    //me uint: AndBits(me uint: bits, me uint: shft)            <- {}
+    //me uint: OrBits (me uint: bits, me uint: shft)            <- {}
+    me timeValue: sleep(me timeValue: milliseconds)             <- <%!%Gsleep(UInt32(%1))%>
+}
+struct GLOBAL{  /////////  STRING & CHAR HANDLING  /////////////////////
+    //me int: findString(me string: toSearch, me string: toFind)  <- {}
     me bool: isalpha(me char: ch)<- <%{
         switch ch {
             case "a"..."z": return true
@@ -54,15 +66,6 @@ struct GLOBAL{
             default: return false
         }
     }%>
-
-    me bool: isspace(me char: ch)<- <%{
-        return ch == " " || ch == "\t" || ch == "\n" || ch == "\r"
-    }%>
-
-    me bool: isdigit(me char: ch)<- <%{
-        return ch >= "0" && ch <= "9"
-    }%>
-
     me bool: isalnum(me char: ch)<- <%{
         switch ch {
             case "a"..."z": return true
@@ -71,22 +74,30 @@ struct GLOBAL{
             default: return false
         }
     }%>
-
+    me bool: isdigit(me char: ch)<- <%{
+        return ch >= "0" && ch <= "9"
+    }%>
     me bool: isprint(me char: ch)<- <%{
         return ch > "\u{1f}" && ch != "\u{7f}"
     }%>
-
-    me void: endFunc(me int: val)                           <- <%!return(0)%>
-    me int: randInt(me int: val)                            <- <%!(rand() % %1)%>
-    me string: toString(me int: val)                        <- <%!String(%1)%>
-    me int: stoi(me string: S)                              <- <%!Int(%1)!%>
-    /////////////////////////////////////////////////////
-    me timeValue: sleep(me timeValue: milliseconds)         <- <%!%Gsleep(UInt32(%1))%>
-    me timeValue: convertToTimeVal()                        <-  <%!%G(Double)(%1)%>
-    me timeValue: double()                                  <-  <%!%G(Double)(%1)%>
-    me char: toUpper(me char: ch) <- <%!%1.uppercased()%>
-    me char: toLower(me char: ch) <- <%!%1.lowercased()%>
+    me bool: isspace(me char: ch)<- <%{
+        return ch == " " || ch == "\t" || ch == "\n" || ch == "\r"
+    }%>
+    //me bool: isxdigit(me string: input)                       <- {}
+    me char: toLower(me char: ch)                               <- <%!%1.lowercased()%>
+    me char: toUpper(me char: ch)                               <- <%!%1.uppercased()%>
+}
+struct GLOBAL{  /////////  MATH HANDLING  //////////////////////////////
+    me int: randInt(me int: val)                                <- <%!(rand() % %1)%>
+    //me int: sqrt(me int: val)                                 <- {}
+}
+struct GLOBAL{  /////////  TYPE CONVERTERS  ////////////////////////////
+    me timeValue: convertToTimeVal()                            <- <%!%G(Double)(%1)%>
+    me timeValue: double()                                      <- <%!%G(Double)(%1)%>
+    me int64: stoi(me string: str)                              <- <%!Int(%1)!%>
+    me string: toString(me long: val)                           <- <%!String(%1)%>
+    me string: toString(me int: val)                            <- <%!String(%1)%>
 }
 
 struct _atomic_uint64:wraps=uint64{}
-struct timeValue{me Double: timeValue}
+struct timeValue: wraps=Double{}

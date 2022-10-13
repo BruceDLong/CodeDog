@@ -10,7 +10,6 @@ interface={
     headers  = [signal.h, string, cstring, memory, cstdint, list, deque, map, cstdarg, iostream, fstream, sys/stat.h, math.h, algorithm]
 }
 
-
 LibDescription ={
     useStatus   = dynamic
     description = 'Built in routines for CPP'
@@ -19,18 +18,14 @@ LibDescription ={
 initCode = "signal(SIGSEGV, reportFault)"
 deinitCode = ""
 embedVeryHigh = `
-
         typedef CopyableAtomic<uint64_t> _atomic_uint64;
-
         bool doesFileExist(string filePath){
             ifstream ifile(filename);
             return (bool)ifile;
         }
-
         void copyAssetToWritableFolder(string fromPath, string toPath){
             //TODO: finish func body if package C++
         }
-
         string joinCmdStrings(int count , char *argv[]) {
             string acc="";
             for(int i=1; i<count; ++i){
@@ -39,7 +34,6 @@ embedVeryHigh = `
             }
             return(acc);
         }
-
         constexpr unsigned int _strHash(const char* str, int h = 0){
             return !str[h] ? 5381 : (_strHash(str, h+1)*33) ^ str[h];
         }
@@ -73,7 +67,6 @@ struct sessionFile{
     me void: openSession(me string: filename) <-{session.openAppend(filename)}
     me void: closeSession() <- {session.close()}
     me void: writeEntry(me string: entry) <- {entry<-entry+"\n"; session.write(entry); session.flush();}
-
     me bool: openToRead(me string: filename) <- {
         session.open(filename)
         if(session.failure()){print("ERROR: session file "+filename+"\n"); return(true)}
@@ -89,12 +82,10 @@ struct GLOBAL{
         getline(*strm, S);
         return(S);
     }%>
-
     me int64: _strm_read(their istream: stream, their string: S) <- <%{
         stream->read((char*)S->data(), S->size());
         return(stream->gcount());
     }%>
-
     me string: readAssetAsString(me string: filename) <- <%{
         string text = "";
         string fileDir = getAssetsDir()+"/"+filename;
@@ -111,7 +102,6 @@ struct GLOBAL{
         }
         return retVal;
     }%>
-
     void: trimLeftWS(their string: str)  <- <%{str->erase(0, str->find_first_not_of("\t\n\v\f\r "));}%>
     void: trimRightWS(their string: str) <- <%{str->erase(str->find_last_not_of("\t\n\v\f\r ")+1);}%>
     me string: trimWS(their string: str) <- {
@@ -163,8 +153,8 @@ struct GLOBAL{  /////////  TYPE CONVERTERS  ////////////////////////////
     me string: toString(me number_type: val)                    <- <%!std::to_string(%1)%>
 }
 
-struct _atomic_uint64:wraps=_atomic_uint64{}
-struct timeValue{me int64: timeValue}
-struct DateValue{me int64: DateValue}
-struct timeOfDay{me int64: timeOfDay}
-struct DateTime{me int64: DateTime}
+struct _atomic_uint64: wraps=_atomic_uint64{}
+struct timeValue: wraps=int64{}
+struct DateValue: wraps=int64{}
+struct timeOfDay: wraps=int64{}
+struct DateTime:  wraps=int64{}

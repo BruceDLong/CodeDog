@@ -941,7 +941,7 @@ class CodeGenerator(object):
                     bitfieldMask  =self.xlator.applyTypecast('uint64', prefix+segName+"Mask")
                     bitfieldOffset=self.xlator.applyTypecast('uint64', prefix+segName+"Offset")
                     S="((" + S[0:prevLen] + connector +  "flags&"+bitfieldMask+")"+">>"+bitfieldOffset+')'
-                    S=self.xlator.applyTypecast('uint64', S)
+                    S=self.xlator.applyTypecast(self.xlator.modeIdxType, S)
 
         return [S, segTSpec, LHSParentType, AltFormat]
 

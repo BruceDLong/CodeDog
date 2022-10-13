@@ -16,6 +16,7 @@ class Xlator_CPP(Xlator):
     ObjConnector          = "::"                      # Name segment connector for Classes.
     NameSegConnector      = "."
     NameSegFuncConnector  = "."
+    modeIdxType           = 'uint64'
     doesLangHaveGlobals   = True
     funcBodyIndent        = ""
     funcsDefInClass       = False

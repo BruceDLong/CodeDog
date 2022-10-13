@@ -16,6 +16,7 @@ class Xlator_Java(Xlator):
     ObjConnector          = "."                      # Name segment connector for classes.
     NameSegConnector      = "."
     NameSegFuncConnector  = "."
+    modeIdxType           = 'uint64'
     doesLangHaveGlobals   = False
     funcBodyIndent        = "    "
     funcsDefInClass       = True

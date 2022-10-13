@@ -16,6 +16,7 @@ class Xlator_Swift(Xlator):
     ObjConnector          = "."                      # Name segment connector for classes.
     NameSegConnector      = "."
     NameSegFuncConnector  = "()."
+    modeIdxType           = 'int'
     doesLangHaveGlobals   = True
     funcBodyIndent        = "    "
     funcsDefInClass       = True

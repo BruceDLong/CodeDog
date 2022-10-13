@@ -66,6 +66,9 @@ class Xlator(object):
     def getEnumStr(self, fieldName, enumList):
         cdErr("In base class Xlator::getEnumStr.")
 
+    def getEnumStringifyFunc(self, className, enumList):
+        cdErr("In base class Xlator::getEnumStringifyFunc.")
+
     def codeIdentityCheck(self, S, S2, retType1, retType2, opIn):
         cdErr("In base class Xlator::codeIdentityCheck.")
 
