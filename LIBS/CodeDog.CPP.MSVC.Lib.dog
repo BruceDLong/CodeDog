@@ -4,6 +4,11 @@ requirements = [
 ]
 
 interface={
+    packages = [
+        { packageName = 'SDL2-dev'
+          fetchMethod = 'packageMgr'
+        }
+    ]
     provides = [CodeDog_langVersion_implementation]
     libFiles = []
     headers  = [vector, chrono, direct.h]
