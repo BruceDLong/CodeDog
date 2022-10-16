@@ -63,6 +63,9 @@ class Xlator(object):
     def getConstIntFieldStr(self, fieldName, fieldValue, intSize):
         cdErr("In base class Xlator::getConstIntFieldStr.")
 
+    def langVarNamePrefix(self, crntBaseName, refedClass):
+        cdErr("In base class Xlator::langVarNamePrefix.")
+
     def getEnumStr(self, fieldName, enumList):
         cdErr("In base class Xlator::getEnumStr.")
 

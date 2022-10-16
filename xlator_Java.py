@@ -363,6 +363,11 @@ class Xlator_Java(Xlator):
         else: S= "public static final long "+fieldName+ " = " + fieldValue+ "L;\n"
         return(S)
 
+    def langVarNamePrefix(self, crntBaseName, refedClass):
+        if crntBaseName!=refedClass:
+            return(refedClass + self.ObjConnector)
+        return('')
+
     def getEnumStr(self, fieldName, enumList):
         S = ''
         count=0
