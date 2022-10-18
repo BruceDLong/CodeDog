@@ -204,6 +204,7 @@ def fetchPackages(packageData, packageDirectory):
         if fetchType == "git":    gitClone(fetchURL, packageName, packageDirectory)
         elif fetchType == "file": downloadPackageFile(fetchURL, packageName, packageDirectory)
         elif fetchType == "zip":  downloadExtractZip(fetchURL, packageName, packageDirectory)
+        elif fetchType == "sys":  checkAndUpgradeOSPackageVersions(packageName)
         else: pass
 
 def FindOrFetchLibraries(buildName, packageData, platform, tools):
