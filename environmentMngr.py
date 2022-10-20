@@ -74,7 +74,7 @@ def checkAndUpgradeOSPackageVersions(packageName):
         installedVersion = installedPackage.read().split(" ")[-1].replace('\n','')
         candidateVersion = candidatePackage.read().split(" ")[-1].replace('\n','')
         cdlog(1, f"Candidate Package available: {candidateVersion}")
-        if installedVersion or installedVersion == '(none)':
+        if installedVersion or candidateVersion == '(none)':
             if installedVersion != candidateVersion:
                 getPackageManagerCMD(packageName, findPackageManager())
             else:
