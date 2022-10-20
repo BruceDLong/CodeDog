@@ -43,18 +43,6 @@ Clone Git Repos
 
     
 
-    $ python3 --version
-
-#. Check Pyparsing version is 2.4.6 or higher::
-
-    $ pip3 show pyparsing
-
-Install C++, GTK & Dependencies
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-If you are going to be developing for Linux you will need to install the following::
-
-    $ sudo apt install build-essential libgtk-3-dev libcurl4-gnutls-dev libsdl2-dev libsdl2-mixer-dev libicu-dev libgmp-dev libncurses5-dev libwebsockets-dev
-
 Android Studio
 ^^^^^^^^^^^^^^
 If you are going to be developing for Android you will need to install Android Studio.  Follow the instructions provided in the Android official documentation.
@@ -63,25 +51,46 @@ Instructions: `<https://developer.android.com/studio/install#linux>`__
 
 Download: `<https://developer.android.com/studio/index.html>`_
 
-Add CodeDog to your System Path
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-#. Edit your .bashrc file adding the following line toward the bottom of the file.::
-
-    PATH="$PATH:$HOME/devl/CodeDog"
-
-#. Verify CodeDog command::
-
-    $ codeDog --version
-
-Installing a Text Editor
+Installing VSCode or VSCode-Server (Integrated Development Environment "IDE")
 ^^^^^^^^^^^^^^^^^^^^^^^^
-You will need a text editor, our recommendation is `Geany <https://www.geany.org/>`_.   We have already made a configuration file for Geany that provides syntax highlighting.
 
-#. Install Geany::
+#. Install VSCode:
+
+    $ sudo apt install wget gpg
+    $ wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > packages.microsoft.gpg
+    $ sudo install -D -o root -g root -m 644 packages.microsoft.gpg /etc/apt/keyrings/packages.microsoft.gpg
+    $ sudo sh -c 'echo "deb [arch=amd64,arm64,armhf signed-by=/etc/apt/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main" > /etc/apt/sources.list.d/vscode.list'
+    $ rm -f packages.microsoft.gpg
+    $ sudo apt install apt-transport-https
+    $ sudo apt update
+    $ sudo apt install code
+
+#. Copy the VSCode extension for CodeDog syntax
+
+    $ cp -r ~/devl/CodeDog/Docs/syntax-highlight-extensions/vscpde-codeDog-syntax-extension ~/.vscode/extensions/
+
+#. (Optional) Install VSCode-Server (to allow remote VSCode sessions on the host):
+
+    At the time of publishing, VSCode does not expose an option to specify which port is used to listen for remote sessions. There's an open-source project that acts as a wrapper, allowing finer control over both ports and user access: https://coder.com/docs/code-server/latest/guide
+
+    $ curl -fsSL https://code-server.dev/install.sh | sh
+
+    The installation script will guide you through the rest of the setup process
+
+#. (Optional) Copy and install the VSCode extension for CodeDog syntax
+
+    $ cp -r ~/devl/CodeDog/Docs/syntax-highlight-extensions/vscpde-codeDog-syntax-extension ~/.vscode-server/extensions/
+
+Installing Geany (Text Editor / IDE)
+^^^^^^^^^^^^^^^^^^^^^^^^
+ `Geany <https://www.geany.org/>`_ is another open source text editor. We have already made a configuration file for Geany that provides syntax highlighting.
+
+#. Install Geany:
 
     $ sudo apt install geany geany-plugins
 
-#. Copy the CodeDog config file from the CodeDog repo into Geany
+#. Copy the CodeDog config file from the CodeDog repo into Geany:
+
     $ cp ~/devl/CodeDog/filetypes.dog.conf  ~/.config/geany/filedefs
 
 #. Open Geany/ Tools menu/ Configuration files/ filetype extensions.conf.  Add the following line::
