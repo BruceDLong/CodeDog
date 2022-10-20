@@ -13,6 +13,17 @@ Setting up CodeDog on Linux
     The green sections below indicate either text or commands to enter: those beginning with $ are terminal commands.  To open a terminal go to the start menu and type "terminal" in the search box then enter.
     Now you should have a terminal window open, copy the commands below, omitting the $ prompt then enter.
 
+Python, Pip & Pyparsing Installs
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#. Python3 is required for CodeDog to run. To install open terminal and enter the following commands::
+
+    $ sudo apt install python3
+    $ sudo apt install python3-pip
+
+#. Check Python version is 3 or higher::
+
+    $ python3 --version
+
 Clone Git Repos
 ^^^^^^^^^^^^^^^
 #. Install Git::
@@ -28,16 +39,9 @@ Clone Git Repos
 
     $ git clone https://github.com/BruceDLong/CodeDog.git
 
-Python, Pip & Pyparsing Installs
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-#. Python and Pyparsing are required for CodeDog to run.  To install open terminal and enter the following commands::
+#. Run 
 
-    $ wget https://bootstrap.pypa.io/get-pip.py
-    $ sudo apt install python3
-    $ sudo apt install python3-pip
-    $ sudo pip3 install pyparsing
-
-#. Check Python version is 3 or higher::
+    
 
     $ python3 --version
 
