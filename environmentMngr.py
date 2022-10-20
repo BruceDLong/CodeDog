@@ -68,6 +68,7 @@ def getPackageManagerCMD(packageName, installedPackageManagerList):
 
 
 def checkAndUpgradeOSPackageVersions(packageName):
+    # TODO: Build a loop to list multiple packages passed in, rather than just the last one
     cdlog(1, f"Searching for package: {packageName}")
     installedPackage = os.popen(f'apt-cache policy {packageName} | grep Installed')
     if installedPackage.read():
