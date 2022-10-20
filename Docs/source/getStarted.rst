@@ -39,9 +39,9 @@ Clone Git Repos
 
     $ git clone https://github.com/BruceDLong/CodeDog.git
 
-#. Run 
+#. Run any CodeDog example to set up the environment::
 
-    
+    $ ./codeDog ./Examples/minimalGame.dog
 
 Android Studio
 ^^^^^^^^^^^^^^
@@ -54,7 +54,7 @@ Download: `<https://developer.android.com/studio/index.html>`_
 Installing VSCode or VSCode-Server (Integrated Development Environment "IDE")
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-#. Install VSCode:
+#. Install VSCode::
 
     $ sudo apt install wget gpg
     $ wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > packages.microsoft.gpg
@@ -65,19 +65,19 @@ Installing VSCode or VSCode-Server (Integrated Development Environment "IDE")
     $ sudo apt update
     $ sudo apt install code
 
-#. Copy the VSCode extension for CodeDog syntax
+#. Copy the VSCode extension for CodeDog syntax::
 
     $ cp -r ~/devl/CodeDog/Docs/syntax-highlight-extensions/vscpde-codeDog-syntax-extension ~/.vscode/extensions/
 
-#. (Optional) Install VSCode-Server (to allow remote VSCode sessions on the host):
+#. (Optional) Install VSCode-Server (to allow remote VSCode sessions on the host)::
 
-    At the time of publishing, VSCode does not expose an option to specify which port is used to listen for remote sessions. There's an open-source project that acts as a wrapper, allowing finer control over both ports and user access: https://coder.com/docs/code-server/latest/guide
+    .. note:: At the time of publishing, VSCode does not expose an option to specify which port is used to listen for remote sessions. There's an open-source project that acts as a wrapper, allowing finer control over both ports and user access: https://coder.com/docs/code-server/latest/guide
 
     $ curl -fsSL https://code-server.dev/install.sh | sh
 
-    The installation script will guide you through the rest of the setup process
+    .. note:: The installation script will guide you through the rest of the setup process
 
-#. (Optional) Copy and install the VSCode extension for CodeDog syntax
+#. (Optional) Copy and install the VSCode extension for CodeDog syntax::
 
     $ cp -r ~/devl/CodeDog/Docs/syntax-highlight-extensions/vscpde-codeDog-syntax-extension ~/.vscode-server/extensions/
 
