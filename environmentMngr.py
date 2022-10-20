@@ -18,7 +18,7 @@ def checkToolWindows(toolName):
 
 def findPackageManager():
     installedPackageManagerList = []
-    packageManagers = ["dpkg", "brew", "yum", "apt-get", "pacman", "emerge", "zypper", "dnf"]
+    packageManagers = ["dpkg", "brew", "yum", "gdebi", "apt-get", "pacman", "emerge", "zypper", "dnf"]
 
     for pmgr in packageManagers:
         if checkToolLinux(pmgr):
@@ -37,13 +37,15 @@ def packageInstalled(packageManagar, packageName):
 
 def getPackageManagerCMD(packageName, installedPackageManagerList):
     packageExtension = packageName.split(".")[-1]
-
     for ipm in installedPackageManagerList:
         if ipm == 'dpkg' and packageExtension == 'deb':
             if packageInstalled("sudo dpkg -i", packageName):
                 break
         elif ipm == 'apt-get':
             if packageInstalled("sudo apt-get install", packageName):
+                break
+        elif ipm == 'gdebi':
+            if packageInstalled("sudo apt install", packageName):
                 break
         elif ipm == 'yum':
             if packageInstalled("sudo yum install", packageName):
