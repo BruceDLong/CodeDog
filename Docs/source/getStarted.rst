@@ -24,6 +24,10 @@ Python, Pip & Pyparsing Installs
 
     $ python3 --version
 
+#. Install the pyparsing pip module::
+
+    $ pip install --user pyparsing
+
 Clone Git Repos
 ^^^^^^^^^^^^^^^
 #. Install Git::
