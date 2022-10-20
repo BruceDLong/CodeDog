@@ -5,8 +5,8 @@ requirements = [
 
 interface={
     packages = [
-        { packageName = 'SDL2-dev'
-          fetchMethod = 'packageMgr'
+        { packageName = 'libsdl2-dev libsdl2-mixer-dev libcairo2-dev libpango1.0-dev'
+          fetchMethod = 'sys:'
         }
     ]
     provides=[GameToolkit_implementation]
