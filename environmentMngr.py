@@ -45,7 +45,7 @@ def getPackageManagerCMD(packageName, installedPackageManagerList):
             if packageInstalled("sudo apt-get install", packageName):
                 break
         elif ipm == 'gdebi':
-            if packageInstalled("sudo apt install", packageName):
+            if packageInstalled("sudo gdebi --apt-line", packageName):
                 break
         elif ipm == 'yum':
             if packageInstalled("sudo yum install", packageName):
