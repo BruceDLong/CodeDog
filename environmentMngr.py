@@ -25,45 +25,93 @@ def findPackageManager():
             installedPackageManagerList.append(pmgr)
     return installedPackageManagerList
 
-
-def packageInstall(packageManager, packageName):
+def packageInstall(packageManager, pmgrInstallFlags, packageName):
     cdlog(1, "Package Installing: "+packageName)
-    if subprocess.call(f'{packageManager} {packageName}'+" -y > /dev/null 2>&1", shell=True) == 0:
+    if subprocess.call(f'{packageManager} {pmgrInstallFlags} {packageName}'+" > /dev/null 2>&1", shell=True) == 0:
         cdlog(1, "Package installed Successfully")
         return True
     else:
         cdErr("Unable to install package. \nPlease install manually : " + packageName)
 
+def packageRemove(packageManager, pmgrRemoveFlags, packageName):
+    cdlog(1, "Package Installing: "+packageName)
+    if subprocess.call(f'{packageManager} {pmgrRemoveFlags} {packageName}'+" > /dev/null 2>&1", shell=True) == 0:
+        cdlog(1, "Package installed Successfully")
+        return True
+    else:
+        cdErr("Unable to install package. \nPlease install manually : " + packageName)
+
+def packageInstalled(packageManager, pmgrCurrentFlags, packageName):
+    cdlog(1, "Checking for installed Package: "+packageName)
+    if subprocess.call(f'{packageManager} {pmgrCurrentFlags} {packageName}'+ "> /dev/null 2>&1", shell=True) == 0:
+        cdlog(1, "Package Is Currently Installed")
+        return True
+    else:
+        cdlog(1, "Package Is NOT Currently Installed")
+        return False
+
+
+def setPackageMgrFlags(installedPackageManagerList):
+    for ipm in installedPackageManagerList:
+        if ipm == 'dpkg' and packageExtension == 'deb':
+            pmgrInstallFlags = "-i"
+            pmgrCurrentFlags = "-l"
+            pmgrRemoveFlags  = "-r"
+            break
+        elif ipm == 'apt-get':
+            if packageInstall("sudo apt-get install", packageName):
+                break
+        elif ipm == 'gdebi':
+            if packageInstall("sudo gdebi --apt-line", packageName):
+                break
+        elif ipm == 'yum':
+            if packageInstall("sudo yum install", packageName):
+                break
+        elif ipm == 'pacman':
+            if packageInstall("sudo pacman -S", packageName):
+                break
+        elif ipm == 'dnf':
+            if packageInstall("sudo dnf install", packageName):
+                break
+        elif ipm == 'emerge':
+            if packageInstall("sudo emerge -pv", packageName):
+                break
+        elif ipm == 'zypper':
+            if packageInstall("sudo zypper install", packageName):
+                break
+        elif ipm == 'brew':
+            if packageInstall("brew install --cask", packageName):
+                break
 
 def getPackageManagerCMD(packageName, installedPackageManagerList):
     packageExtension = packageName.split(".")[-1]
     for ipm in installedPackageManagerList:
         if ipm == 'dpkg' and packageExtension == 'deb':
-            if packageInstalled("sudo dpkg -i", packageName):
+            if packageInstall("sudo dpkg -i", packageName):
                 break
         elif ipm == 'apt-get':
-            if packageInstalled("sudo apt-get install", packageName):
+            if packageInstall("sudo apt-get install", packageName):
                 break
         elif ipm == 'gdebi':
-            if packageInstalled("sudo gdebi --apt-line", packageName):
+            if packageInstall("sudo gdebi --apt-line", packageName):
                 break
         elif ipm == 'yum':
-            if packageInstalled("sudo yum install", packageName):
+            if packageInstall("sudo yum install", packageName):
                 break
         elif ipm == 'pacman':
-            if packageInstalled("sudo pacman -S", packageName):
+            if packageInstall("sudo pacman -S", packageName):
                 break
         elif ipm == 'dnf':
-            if packageInstalled("sudo dnf install", packageName):
+            if packageInstall("sudo dnf install", packageName):
                 break
         elif ipm == 'emerge':
-            if packageInstalled("sudo emerge -pv", packageName):
+            if packageInstall("sudo emerge -pv", packageName):
                 break
         elif ipm == 'zypper':
-            if packageInstalled("sudo zypper install", packageName):
+            if packageInstall("sudo zypper install", packageName):
                 break
         elif ipm == 'brew':
-            if packageInstalled("brew install --cask", packageName):
+            if packageInstall("brew install --cask", packageName):
                 break
 
 
