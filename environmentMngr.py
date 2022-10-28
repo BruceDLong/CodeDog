@@ -32,7 +32,7 @@ def setPackageMgrFlags(packageManager):
     # make this a user choice
     pm = {packageManager}
     if pm == 'dpkg':
-        pmgrPrepend      = "echo yes | sudo "
+        pmgrPrepend      = "echo 'yes' | sudo "
         pmgrInstallFlags = "-i"
         pmgrCurrentFlags = "-l"
         pmgrRemoveFlags  = "-r"
@@ -46,32 +46,32 @@ def setPackageMgrFlags(packageManager):
         pmgrUpgradeFlags = "upgrade"
     elif pm == 'gdebi':
         pmgrPrepend      = "sudo "
-        pmgrInstallFlags = "-i"
+        pmgrInstallFlags = "--q --o install -y"
         pmgrCurrentFlags = "-l"
-        pmgrRemoveFlags  = "-r"
-        pmgrUpgradeFlags = "-i"
+        pmgrRemoveFlags  = "--q --o remove -y"
+        pmgrUpgradeFlags = "--q --o upgrade -y"
     elif pm == 'rpm':
         pmgrPrepend      = "sudo "
         pmgrInstallFlags = "-i"
-        pmgrCurrentFlags = "-l"
-        pmgrRemoveFlags  = "-r"
-        pmgrUpgradeFlags = "-i"
+        pmgrCurrentFlags = "-q"
+        pmgrRemoveFlags  = "-e"
+        pmgrUpgradeFlags = "-U"
     elif pm == 'yum':
         pmgrPrepend      = "sudo "
-        pmgrInstallFlags = "-i"
-        pmgrCurrentFlags = "-l"
-        pmgrRemoveFlags  = "-r"
-        pmgrUpgradeFlags = "-i"
+        pmgrInstallFlags = "install"
+        pmgrCurrentFlags = "check-update"
+        pmgrRemoveFlags  = "remove"
+        pmgrUpgradeFlags = "upgrade"
     elif pm == 'pacman':
         pmgrPrepend      = "sudo "
         pmgrInstallFlags = "-S"
-        pmgrCurrentFlags = "-l"
-        pmgrRemoveFlags  = "-r"
-        pmgrUpgradeFlags = "-i"
+        pmgrCurrentFlags = "-Q"
+        pmgrRemoveFlags  = "-R"
+        pmgrUpgradeFlags = "-U"
     elif pm == 'dnf':
         pmgrPrepend      = "sudo "
-        pmgrInstallFlags = "install -y"
-        pmgrCurrentFlags = "-l"
+        pmgrInstallFlags = "install"
+        pmgrCurrentFlags = "check"
         pmgrRemoveFlags  = "remove"
         pmgrUpgradeFlags = "upgrade"
     elif pm == 'emerge':
@@ -89,9 +89,9 @@ def setPackageMgrFlags(packageManager):
     elif pm == 'brew':
         pmgrPrepend      = "sudo "
         pmgrInstallFlags = "install --cask"
-        pmgrCurrentFlags = "-l"
-        pmgrRemoveFlags  = "-r"
-        pmgrUpgradeFlags = "-i"
+        pmgrCurrentFlags = "list"
+        pmgrRemoveFlags  = "uninstall"
+        pmgrUpgradeFlags = "upgrade"
 
     return pmgrPrepend,pmgrInstallFlags,pmgrCurrentFlags,pmgrRemoveFlags,pmgrUpgradeFlags
 
