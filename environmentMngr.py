@@ -34,69 +34,70 @@ def setPackageMgrFlags(packageManager):
     if pm == 'dpkg':
         pmgrPrepend      = "echo 'yes' | sudo "
         pmgrInstallFlags = "-i"
-        pmgrCurrentFlags = "-l"
+        pmgrQueryFlags = "-l"
         pmgrRemoveFlags  = "-r"
         pmgrUpgradeFlags = "-i"
     elif pm == 'apt-get':
         pmgrPrepend      = "sudo "
         pmgrInstallFlags = "install -y"
         # TODO: need to either create a separate workflow for apt-get/apt-cache or we need to use apt instead as the original binary does not have query function
-        pmgrCurrentFlags = "-l"
+        pmgrQueryFlags = "-l"
         pmgrRemoveFlags  = "remove"
         pmgrUpgradeFlags = "upgrade"
     elif pm == 'gdebi':
         pmgrPrepend      = "sudo "
         pmgrInstallFlags = "--q --o install -y"
-        pmgrCurrentFlags = "-l"
+        pmgrQueryFlags = "-l"
         pmgrRemoveFlags  = "--q --o remove -y"
         pmgrUpgradeFlags = "--q --o upgrade -y"
     elif pm == 'rpm':
         pmgrPrepend      = "sudo "
         pmgrInstallFlags = "-i"
-        pmgrCurrentFlags = "-q"
+        pmgrQueryFlags = "-q"
         pmgrRemoveFlags  = "-e"
         pmgrUpgradeFlags = "-U"
     elif pm == 'yum':
         pmgrPrepend      = "sudo "
         pmgrInstallFlags = "install"
-        pmgrCurrentFlags = "check-update"
+        pmgrQueryFlags = "check-update"
         pmgrRemoveFlags  = "remove"
         pmgrUpgradeFlags = "upgrade"
     elif pm == 'pacman':
         pmgrPrepend      = "sudo "
         pmgrInstallFlags = "-S"
-        pmgrCurrentFlags = "-Q"
+        pmgrQueryFlags = "-Q"
         pmgrRemoveFlags  = "-R"
         pmgrUpgradeFlags = "-U"
     elif pm == 'dnf':
         pmgrPrepend      = "sudo "
         pmgrInstallFlags = "install"
-        pmgrCurrentFlags = "check"
+        pmgrQueryFlags = "check"
         pmgrRemoveFlags  = "remove"
         pmgrUpgradeFlags = "upgrade"
     elif pm == 'emerge':
         pmgrPrepend      = "sudo "
         pmgrInstallFlags = "-pv"
-        pmgrCurrentFlags = "-l"
+        # TODO: not familiar enough with this manager. leaving some junk strings for now
+        pmgrQueryFlags = "-l"
         pmgrRemoveFlags  = "-r"
         pmgrUpgradeFlags = "-i"
     elif pm == 'zypper':
         pmgrPrepend      = "sudo "
         pmgrInstallFlags = "-i"
-        pmgrCurrentFlags = "-l"
+        pmgrQueryFlags = "-l"
         pmgrRemoveFlags  = "-r"
         pmgrUpgradeFlags = "-i"
     elif pm == 'brew':
         pmgrPrepend      = "sudo "
         pmgrInstallFlags = "install --cask"
-        pmgrCurrentFlags = "list"
+        pmgrQueryFlags = "list"
         pmgrRemoveFlags  = "uninstall"
         pmgrUpgradeFlags = "upgrade"
 
-    return pmgrPrepend,pmgrInstallFlags,pmgrCurrentFlags,pmgrRemoveFlags,pmgrUpgradeFlags
+    return pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags
 
 def packageInstall(packageManager, packageName):
-    pmgrPrepend,pmgrInstallFlags,pmgrCurrentFlags,pmgrRemoveFlags,pmgrUpgradeFlags = setPackageMgrFlags({packageManager})
+    pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags = setPackageMgrFlags({packageManager})
     cdlog(1, "Package Installing: "+packageName)
     if subprocess.call(f'{pmgrPrepend} {packageManager} {pmgrInstallFlags} {packageName}'+" > /dev/null 2>&1", shell=True) == 0:
         cdlog(1, "Package installed Successfully")
@@ -105,7 +106,7 @@ def packageInstall(packageManager, packageName):
         cdErr("Unable to install package. \nPlease install manually : " + packageName)
 
 def packageRemove(packageManager, packageName):
-    pmgrPrepend,pmgrInstallFlags,pmgrCurrentFlags,pmgrRemoveFlags,pmgrUpgradeFlags = setPackageMgrFlags({packageManager})
+    pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags = setPackageMgrFlags({packageManager})
     cdlog(1, "Package Installing: "+packageName)
     if subprocess.call(f'{pmgrPrepend} {packageManager} {pmgrRemoveFlags} {packageName}'+" > /dev/null 2>&1", shell=True) == 0:
         cdlog(1, "Package removed Successfully")
@@ -114,17 +115,22 @@ def packageRemove(packageManager, packageName):
         cdErr("Unable to remove package. \nPlease remove manually : " + packageName)
 
 def packageInstalled(packageManager, packageName):
-    pmgrPrepend,pmgrInstallFlags,pmgrCurrentFlags,pmgrRemoveFlags,pmgrUpgradeFlags = setPackageMgrFlags({packageManager})
+    pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags = setPackageMgrFlags({packageManager})
     cdlog(1, "Checking for installed Package: "+packageName)
-    if subprocess.call(f'{pmgrPrepend} {packageManager} {pmgrCurrentFlags} {packageName}'+ "> /dev/null 2>&1", shell=True) == 0:
+    _packageToCheck = subprocess.call(f'{pmgrPrepend} {packageManager} {pmgrQueryFlags} {packageName}', shell=True)
+    _isPackageInstalled = subprocess.call(f'{pmgrPrepend} {packageManager} {pmgrQueryFlags} {packageName}'+" | grep -i installed", shell=True)
+    _isPackageAvailable = subprocess.call(f'{pmgrPrepend} {packageManager} {pmgrQueryFlags} {packageName}'+" | grep -i candidate", shell=True)
+    installedVersion = _isPackageInstalled.read().split(" ")[-1].replace('\n','')
+    candidateVersion = _isPackageAvailable.read().split(" ")[-1].replace('\n','')
+    if _packageToCheck():
         cdlog(1, "Package Is Currently Installed")
-        return True
+        return True,installedVersion,candidateVersion
     else:
         cdlog(1, "Package Is NOT Currently Installed")
-        return False
+        return False,candidateVersion
 
 def packageUpdate(packageManager, packageName):
-    pmgrPrepend,pmgrInstallFlags,pmgrCurrentFlags,pmgrRemoveFlags,pmgrUpgradeFlags = setPackageMgrFlags({packageManager})
+    pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags = setPackageMgrFlags({packageManager})
     cdlog(1, "Package Updating: "+packageName)
     if subprocess.call(f'{pmgrPrepend} {packageManager} {pmgrUpgradeFlags} {packageName}'+" > /dev/null 2>&1", shell=True) == 0:
         cdlog(1, "Package updated Successfully")
@@ -160,20 +166,22 @@ def getPackageManagerCMD(packageName, installedPackageManagerList):
 
 def checkAndUpgradeOSPackageVersions(packageName):
     cdlog(1, f"Searching for package: {packageName}")
-    pmgr = getPackageManagerCMD()
-    pmgrPrepend,pmgrInstallFlags,pmgrCurrentFlags,pmgrRemoveFlags,pmgrUpgradeFlags = setPackageMgrFlags(pmgr)
+    pmgr = getPackageManagerCMD({packageName}, findPackageManager())
+    pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags = setPackageMgrFlags(pmgr)
     # Uses a concatanated string from the package manager and flags, returns a boolean result for positive or negative [0|1]
-    # installedPackage = os.popen(f'{pmgr} {pmgrCurrentFlags} {packageName} > /dev/null 2>&1 ; echo -e $?')
+    # installedPackage = os.popen(f'{pmgr} {pmgrQueryFlags} {packageName} > /dev/null 2>&1 ; echo -e $?')
     currentlyInstalled = packageInstalled({pmgr}, {packageName})
     # If 0 (detected as installed):
     if currentlyInstalled == 'True':
         # Pull base label for currently installed package version0
-        _installedPackage = os.popen(f'{pmgr} {pmgrCurrentFlags} {packageName} | grep -i Installed')
+        #_installedPackage = packageInstalled.installedVersion({pmgr}, {packageName})
         # Pull base label for candidate installer version
-        _candidatePackage = os.popen(f'{pmgr} {pmgrCurrentFlags} {packageName} | grep -i Candidate')
+        #_candidatePackage = packageInstalled.candidateVersion({pmgr}, {packageName})
         # Parse version number from base labels
-        installedVersion = _installedPackage.read().split(" ")[-1].replace('\n','')
-        candidateVersion = _candidatePackage.read().split(" ")[-1].replace('\n','')
+        # installedVersion = _installedPackage.read().split(" ")[-1].replace('\n','')
+        # candidateVersion = _candidatePackage.read().split(" ")[-1].replace('\n','')
+        installedVersion = packageInstalled.installedVersion({pmgr}, {packageName})
+        candidateVersion = packageInstalled.candidateVersion({pmgr}, {packageName})
         cdlog(1, f"Candidate Package available: {candidateVersion}")
         # Compare versions and apply updates only if needed
         if installedVersion or candidateVersion == '(none)':
