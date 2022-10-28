@@ -96,7 +96,7 @@ def setPackageMgrFlags(packageManager):
     return pmgrPrepend,pmgrInstallFlags,pmgrCurrentFlags,pmgrRemoveFlags,pmgrUpgradeFlags
 
 def packageInstall(packageManager, packageName):
-    setPackageMgrFlags({packageManager})
+    pmgrPrepend,pmgrInstallFlags,pmgrCurrentFlags,pmgrRemoveFlags,pmgrUpgradeFlags = setPackageMgrFlags({packageManager})
     cdlog(1, "Package Installing: "+packageName)
     if subprocess.call(f'{pmgrPrepend} {packageManager} {pmgrInstallFlags} {packageName}'+" > /dev/null 2>&1", shell=True) == 0:
         cdlog(1, "Package installed Successfully")
@@ -105,7 +105,7 @@ def packageInstall(packageManager, packageName):
         cdErr("Unable to install package. \nPlease install manually : " + packageName)
 
 def packageRemove(packageManager, packageName):
-    setPackageMgrFlags({packageManager})
+    pmgrPrepend,pmgrInstallFlags,pmgrCurrentFlags,pmgrRemoveFlags,pmgrUpgradeFlags = setPackageMgrFlags({packageManager})
     cdlog(1, "Package Installing: "+packageName)
     if subprocess.call(f'{pmgrPrepend} {packageManager} {pmgrRemoveFlags} {packageName}'+" > /dev/null 2>&1", shell=True) == 0:
         cdlog(1, "Package removed Successfully")
@@ -114,7 +114,7 @@ def packageRemove(packageManager, packageName):
         cdErr("Unable to remove package. \nPlease remove manually : " + packageName)
 
 def packageInstalled(packageManager, packageName):
-    setPackageMgrFlags({packageManager})
+    pmgrPrepend,pmgrInstallFlags,pmgrCurrentFlags,pmgrRemoveFlags,pmgrUpgradeFlags = setPackageMgrFlags({packageManager})
     cdlog(1, "Checking for installed Package: "+packageName)
     if subprocess.call(f'{pmgrPrepend} {packageManager} {pmgrCurrentFlags} {packageName}'+ "> /dev/null 2>&1", shell=True) == 0:
         cdlog(1, "Package Is Currently Installed")
@@ -124,9 +124,9 @@ def packageInstalled(packageManager, packageName):
         return False
 
 def packageUpdate(packageManager, packageName):
-    setPackageMgrFlags({packageManager})
+    pmgrPrepend,pmgrInstallFlags,pmgrCurrentFlags,pmgrRemoveFlags,pmgrUpgradeFlags = setPackageMgrFlags({packageManager})
     cdlog(1, "Package Updating: "+packageName)
-    if subprocess.call(f'{pmgrPrepend} {packageManager} {pmgrUpdateFlags} {packageName}'+" > /dev/null 2>&1", shell=True) == 0:
+    if subprocess.call(f'{pmgrPrepend} {packageManager} {pmgrUpgradeFlags} {packageName}'+" > /dev/null 2>&1", shell=True) == 0:
         cdlog(1, "Package updated Successfully")
         return True
     else:
@@ -161,10 +161,10 @@ def getPackageManagerCMD(packageName, installedPackageManagerList):
 def checkAndUpgradeOSPackageVersions(packageName):
     cdlog(1, f"Searching for package: {packageName}")
     pmgr = getPackageManagerCMD()
-    setPackageMgrFlags(pmgr)
+    pmgrPrepend,pmgrInstallFlags,pmgrCurrentFlags,pmgrRemoveFlags,pmgrUpgradeFlags = setPackageMgrFlags(pmgr)
     # Uses a concatanated string from the package manager and flags, returns a boolean result for positive or negative [0|1]
     # installedPackage = os.popen(f'{pmgr} {pmgrCurrentFlags} {packageName} > /dev/null 2>&1 ; echo -e $?')
-    currentlyInstalled = packageInstalled({pmgr} {packageName})
+    currentlyInstalled = packageInstalled({pmgr}, {packageName})
     # If 0 (detected as installed):
     if currentlyInstalled == 'True':
         # Pull base label for currently installed package version0
