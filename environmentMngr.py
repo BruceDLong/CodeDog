@@ -140,32 +140,23 @@ def getPackageManagerCMD(packageName, installedPackageManagerList):
             # if packageInstall("gdebi", packageName):
             #     break
         elif ipm == 'dpkg' and packageExtension == 'deb':
-            if packageInstall("dpkg", packageName):
-                break
+            return "dpkg"
         elif ipm == 'rpm' and packageExtension == 'rpm':
-            if packageInstall("rpm", packageName):
-                break
+            return "rpm"
         elif ipm == 'apt-get':
-            if packageInstall("apt-get", packageName):
-                break
+            return "apt-get"
         elif ipm == 'yum':
-            if packageInstall("yum", packageName):
-                break
+            return "yum"
         elif ipm == 'pacman':
-            if packageInstall("pacman", packageName):
-                break
+            return "pacman"
         elif ipm == 'dnf':
-            if packageInstall("dnf", packageName):
-                break
+            return "dnf"
         elif ipm == 'emerge':
-            if packageInstall("emerge", packageName):
-                break
+            return "emerge"
         elif ipm == 'zypper':
-            if packageInstall("zypper", packageName):
-                break
+            return "zypper"
         elif ipm == 'brew':
-            if packageInstall("brew", packageName):
-                break
+            return "brew"
 
 def checkAndUpgradeOSPackageVersions(packageName):
     cdlog(1, f"Searching for package: {packageName}")
