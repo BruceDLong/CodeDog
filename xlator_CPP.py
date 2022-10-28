@@ -342,6 +342,11 @@ class Xlator_CPP(Xlator):
         S= "static const uint64_t "+fieldName+ " = " + fieldValue+ ";"
         return(S)
 
+    def langVarNamePrefix(self, crntBaseName, refedClass):
+        if crntBaseName!=refedClass:
+            return(refedClass + self.ObjConnector)
+        return('')
+
     def getEnumStr(self, fieldName, enumList):
         S = "\n    enum " + fieldName +" {"
         enumSize = len (enumList)
