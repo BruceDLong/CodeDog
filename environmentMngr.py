@@ -118,10 +118,15 @@ def packageInstalled(packageManager, packageName):
     pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags = setPackageMgrFlags({packageManager})
     cdlog(1, "Checking for installed Package: "+packageName)
     _packageToCheck = subprocess.call(f'{pmgrPrepend} {packageManager} {pmgrQueryFlags} {packageName}', shell=True)
+    print("Package to check "+{_packageToCheck})
     _isPackageInstalled = subprocess.call(f'{pmgrPrepend} {packageManager} {pmgrQueryFlags} {packageName}'+" | grep -i installed", shell=True)
+    print("is Package Installed "+ {_isPackageInstalled})
     _isPackageAvailable = subprocess.call(f'{pmgrPrepend} {packageManager} {pmgrQueryFlags} {packageName}'+" | grep -i candidate", shell=True)
+    print ("is Package Available "+{_isPackageAvailable})
     installedVersion = _isPackageInstalled.read().split(" ")[-1].replace('\n','')
+    print ("installed Version "+ {installedVersion})
     candidateVersion = _isPackageAvailable.read().split(" ")[-1].replace('\n','')
+    print ("candidate Version "+ {candidateVersion})
     if _packageToCheck():
         cdlog(1, "Package Is Currently Installed")
         return True,installedVersion,candidateVersion
@@ -167,7 +172,6 @@ def getPackageManagerCMD(packageName, installedPackageManagerList):
 def checkAndUpgradeOSPackageVersions(packageName):
     cdlog(1, f"Searching for package: {packageName}")
     pmgr = getPackageManagerCMD({packageName}, findPackageManager())
-    pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags = setPackageMgrFlags(pmgr)
     # Uses a concatanated string from the package manager and flags, returns a boolean result for positive or negative [0|1]
     # installedPackage = os.popen(f'{pmgr} {pmgrQueryFlags} {packageName} > /dev/null 2>&1 ; echo -e $?')
     currentlyInstalled = packageInstalled({pmgr}, {packageName})
