@@ -16,6 +16,10 @@ def checkToolWindows(toolName):
     else:
         return None
 
+#def detPackageNomenclature(packageName)
+    #TODO: add OS-specific detection to handle different package nomenclatures
+    # package base-names can be fed through a package manager query to identify the most common package names
+    
 def findPackageManager():
     installedPackageManagerList = []
     packageManagers = ["dpkg", "brew", "yum", "gdebi", "apt-get", "pacman", "emerge", "zypper", "dnf", "rpm"]

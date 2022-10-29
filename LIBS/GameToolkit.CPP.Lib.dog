@@ -5,7 +5,16 @@ requirements = [
 
 interface={
     packages = [
-        { packageName = 'libsdl2-dev libsdl2-mixer-dev libcairo2-dev libpango1.0-dev'
+        { packageName = 'libsdl2-dev'
+          fetchMethod = 'sys:'
+        }
+        { packageName = 'libsdl2-mixer-dev'
+          fetchMethod = 'sys:'
+        }
+        { packageName = 'libcairo2-dev'
+          fetchMethod = 'sys:'
+        }
+        { packageName = 'libpango1.0-dev'
           fetchMethod = 'sys:'
         }
     ]
