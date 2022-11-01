@@ -28,7 +28,7 @@ def findPackageManager():
         if checkToolLinux(pmgr):
             installedPackageManagerList.append(pmgr)
     return installedPackageManagerList
-
+    
 def setPackageMgrFlags(packageManager):
     # TODO: Set up arrays for multiple package managers [e.g. pkgMgr1Install(apt-get) mkgMgr2Install(gdebi)]
     # TODO: For now, Need to ensure only one match is made. I believe this will loop and select the last one returned. 
@@ -41,50 +41,70 @@ def setPackageMgrFlags(packageManager):
         pmgrQueryFlags   = "-l "
         pmgrRemoveFlags  = "-r "
         pmgrUpgradeFlags = "-i "
-        return pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags
+        queryNotInstalled = " | grep -ic 'no packagesfound\|error'"
+        queryInstalled = " | grep ii | awk '{print $3}'"
+        queryCandidate = "-I | grep -i version"
+        return pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags,queryNotInstalled,queryInstalled,queryCandidate
     elif pmgr == 'apt-get' or 'apt':
         pmgrPrepend      = "sudo "
         pmgrInstallFlags = "-get install -y "
-        # TODO: need to either create a separate workflow for apt-get/apt-cache or we need to use apt instead as the original binary does not have query function
         pmgrQueryFlags   = "-cache policy "
         pmgrRemoveFlags  = "-get remove "
         pmgrUpgradeFlags = "-get upgrade "
-        return pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags
+        queryNotInstalled = " | grep -ic none"
+        queryInstalled = " | grep -i Installed"
+        queryCandidate = " | grep -i Candidate"
+        return pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags,queryNotInstalled,queryInstalled,queryCandidate
     elif pmgr == 'gdebi':
         pmgrPrepend      = "sudo "
         pmgrInstallFlags = "--q --o install -y "
         pmgrQueryFlags   = ""
         pmgrRemoveFlags  = "--q --o remove -y "
         pmgrUpgradeFlags = "--q --o upgrade -y "
-        return pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags
+        queryNotInstalled = " | grep -ic none"
+        queryInstalled = " | grep -i Installed"
+        queryCandidate = " | grep -i Candidate"
+        return pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags,queryNotInstalled,queryInstalled,queryCandidate
     elif pmgr == 'rpm':
         pmgrPrepend      = "sudo "
         pmgrInstallFlags = "-i "
         pmgrQueryFlags   = "-q "
         pmgrRemoveFlags  = "-e "
         pmgrUpgradeFlags = "-U "
-        return pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags
+        queryNotInstalled = " | grep -ic none"
+        queryInstalled = " | grep -i Installed"
+        queryCandidate = " | grep -i Candidate"
+        return pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags,queryNotInstalled,queryInstalled,queryCandidate
     elif pmgr == 'yum':
         pmgrPrepend      = "sudo "
         pmgrInstallFlags = "install "
         pmgrQueryFlags   = "check-update "
         pmgrRemoveFlags  = "remove "
         pmgrUpgradeFlags = "upgrade "
-        return pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags
+        queryNotInstalled = " | grep -ic none"
+        queryInstalled = " | grep -i Installed"
+        queryCandidate = " | grep -i Candidate"
+        return pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags,queryNotInstalled,queryInstalled,queryCandidate
     elif pmgr == 'pacman':
         pmgrPrepend      = "sudo "
         pmgrInstallFlags = "-S "
         pmgrQueryFlags   = "-Q "
         pmgrRemoveFlags  = "-R "
         pmgrUpgradeFlags = "-U "
-        return pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags
+        queryNotInstalled = " | grep -ic none"
+        queryInstalled = " | grep -i Installed"
+        queryCandidate = " | grep -i Candidate"
+        return pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags,queryNotInstalled,queryInstalled,queryCandidate
     elif pmgr == 'dnf':
         pmgrPrepend      = "sudo "
         pmgrInstallFlags = "install "
         pmgrQueryFlags   = "check "
         pmgrRemoveFlags  = "remove "
         pmgrUpgradeFlags = "upgrade "
-        return pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags
+        queryNotInstalled = " | grep -ic none"
+        queryInstalled = " | grep -i Installed"
+        queryCandidate = " | grep -i Candidate"
+        return pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags,queryNotInstalled,queryInstalled,queryCandidate
     elif pmgr == 'emerge':
         pmgrPrepend      = "sudo "
         pmgrInstallFlags = "-pv "
@@ -92,26 +112,35 @@ def setPackageMgrFlags(packageManager):
         pmgrQueryFlags   = "-l "
         pmgrRemoveFlags  = "-r "
         pmgrUpgradeFlags = "-i "
-        return pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags
+        queryNotInstalled = " | grep -ic none"
+        queryInstalled = " | grep -i Installed"
+        queryCandidate = " | grep -i Candidate"
+        return pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags,queryNotInstalled,queryInstalled,queryCandidate
     elif pmgr == 'zypper':
         pmgrPrepend      = "sudo "
         pmgrInstallFlags = "-i "
         pmgrQueryFlags   = "-l "
         pmgrRemoveFlags  = "-r "
         pmgrUpgradeFlags = "-i "
-        return pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags
+        queryNotInstalled = " | grep -ic none"
+        queryInstalled = " | grep -i Installed"
+        queryCandidate = " | grep -i Candidate"
+        return pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags,queryNotInstalled,queryInstalled,queryCandidate
     elif pmgr == 'brew':
         pmgrPrepend      = "sudo "
         pmgrInstallFlags = "install --cask "
         pmgrQueryFlags   = "list "
         pmgrRemoveFlags  = "uninstall "
         pmgrUpgradeFlags = "upgrade "
-        return pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags
+        queryNotInstalled = " | grep -ic none"
+        queryInstalled = " | grep -i Installed"
+        queryCandidate = " | grep -i Candidate"
+        return pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags,queryNotInstalled,queryInstalled,queryCandidate
 
 # TODO: The four definitions below can be optimized into a single definition with a little effort. Will tackle this after it works
 def packageInstall(packageName):
     pmgr = getPackageManagerCMD(packageName, findPackageManager())
-    pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags = setPackageMgrFlags(pmgr)
+    pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags,queryNotInstalled,queryInstalled,queryCandidate = setPackageMgrFlags(pmgr)
     cdlog(1, "Package Installing: "+packageName)
     if subprocess.call(f'{pmgrPrepend}{pmgr}{pmgrInstallFlags}{packageName}'+" > /dev/null 2>&1", shell=True) == 0:
         cdlog(1, "Package installed Successfully")
@@ -121,7 +150,7 @@ def packageInstall(packageName):
 
 def packageRemove(packageName):
     pmgr = getPackageManagerCMD(packageName, findPackageManager())
-    pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags = setPackageMgrFlags(pmgr)
+    pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags,queryNotInstalled,queryInstalled,queryCandidate = setPackageMgrFlags(pmgr)
     cdlog(1, "Package Installing: "+packageName)
     if subprocess.call(f'{pmgrPrepend}{pmgr}{pmgrRemoveFlags}{packageName}'+" > /dev/null 2>&1", shell=True) == 0:
         cdlog(1, "Package removed Successfully")
@@ -132,7 +161,7 @@ def packageRemove(packageName):
 # TODO: This is broken at the moment
 def packageInstalled(packageName):
     pmgr = getPackageManagerCMD(packageName, findPackageManager())
-    pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags = setPackageMgrFlags(pmgr)
+    pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags,queryNotInstalled,queryInstalled,queryCandidate = setPackageMgrFlags(pmgr)
     cdlog(1, "Checking for installed Package: "+packageName)
     # packageInstalled = os.popen(f'apt-cache policy {packageName} | grep Installed')
     # if packageInstalled.read():
@@ -143,35 +172,31 @@ def packageInstalled(packageName):
     pkgCMD = ''
     print("Package Query Command:")
     print(f'{pmgrPrepend}{pmgr}{pmgrQueryFlags}{packageName}')
-    _packageToCheck = subprocess.call(f'{pmgrPrepend}{pmgr}{pmgrQueryFlags}{packageName}', shell=True)
+    checkInstalled = subprocess.Popen(f'{pmgrPrepend}{pmgr}{pmgrQueryFlags}{packageName}{queryNotInstalled}', stdout=subprocess.PIPE, shell=True)
+    _packageToCheck = checkInstalled.stdout.read()
     print("Package to check ")
     print(_packageToCheck)
-    if _packageToCheck():
+    if _packageToCheck == 0:
         cdlog(1, "Package Is Currently Installed")
-        installedPackage = os.popen(f'{pmgrPrepend}{pmgr}{pmgrQueryFlags}{packageName}'+" | grep -i installed")
+        _installedVersion = subprocess.Popen(f'{pmgrPrepend}{pmgr}{pmgrQueryFlags}{packageName}{queryInstalled}', stdout=subprocess.PIPE, shell=True)
+        installedVersion = str(_installedVersion.stdout.read()).split(" ")[-1].replace('\\n\'','')
         print("is Package Installed ")
-        print(installedPackage)
-        candidatePackage = os.popen(f'{pmgrPrepend}{pmgr}{pmgrQueryFlags}{packageName}'+" | grep -i candidate")
-        print("is Package Available ")
-        print(candidatePackage)
-        installedVersion = installedPackage.read().split(" ")[-1].replace('\n','')
-        print("installed Version ")
         print(installedVersion)
-        candidateVersion = candidatePackage.read().split(" ")[-1].replace('\n','')
-        print("candidate Version ")
+        _candidateVersion = subprocess.Popen(f'{pmgrPrepend}{pmgr}{pmgrQueryFlags}{packageName}{queryCandidate}', stdout=subprocess.PIPE, shell=True)
+        candidateVersion = str(_candidateVersion.stdout.read()).split(" ")[-1].replace('\\n\'','')
         print(candidateVersion)
         return True,installedVersion,candidateVersion
     else:
         cdlog(1, "Package Is NOT Currently Installed")
-        candidatePackage = os.popen(f'{pmgrPrepend}{pmgr}{pmgrQueryFlags}{packageName}'+" | grep -i candidate")
-        candidateVersion = candidatePackage.read().split(" ")[-1].replace('\n','')
+        _candidateVersion = subprocess.Popen(f'{pmgrPrepend}{pmgr}{pmgrQueryFlags}{packageName}{queryCandidate}', stdout=subprocess.PIPE, shell=True)
+        candidateVersion = str(_candidateVersion.stdout.read()).split(" ")[-1].replace('\\n\'','')
         print("Available Package Version ")
         print(candidateVersion)
         return False,"(none)",candidateVersion
 
 def packageUpdate(packageName):
     pmgr = getPackageManagerCMD(packageName, findPackageManager())
-    pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags = setPackageMgrFlags(pmgr)
+    pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags,queryNotInstalled,queryInstalled,queryCandidate = setPackageMgrFlags(pmgr)
     cdlog(1, "Package Updating: "+packageName)
     if subprocess.call(f'{pmgrPrepend}{pmgr}{pmgrUpgradeFlags}{packageName}'+" > /dev/null 2>&1", shell=True) == 0:
         cdlog(1, "Package updated Successfully")
@@ -227,7 +252,7 @@ def checkAndUpgradeOSPackageVersions(packageName):
         cdlog(1, f"Candidate Package available: {candidateVersion}")
         # Compare versions and apply updates only if needed
         if installedVersion or candidateVersion == '(none)':
-            if installedVersion != candidateVersion:
+            if installedVersion < candidateVersion:
                 packageInstall(packageName)
             else:
                 cdlog(1, f"Package already Installed: {packageName}")
