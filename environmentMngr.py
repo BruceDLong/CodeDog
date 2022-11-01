@@ -173,7 +173,7 @@ def packageInstalled(packageName):
     print("Package Query Command:")
     print(f'{pmgrPrepend}{pmgr}{pmgrQueryFlags}{packageName}')
     checkInstalled = subprocess.Popen(f'{pmgrPrepend}{pmgr}{pmgrQueryFlags}{packageName}{queryNotInstalled}', stdout=subprocess.PIPE, shell=True)
-    _packageToCheck = checkInstalled.stdout.read()
+    _packageToCheck = int(checkInstalled.stdout.read())
     print("Package to check ")
     print(_packageToCheck)
     if _packageToCheck == 0:
