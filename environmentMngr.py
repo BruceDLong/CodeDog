@@ -131,8 +131,6 @@ def packageRemove(packageName):
 # TODO: This is broken at the moment
 def packageInstalled(packageName):
     pmgr = getPackageManagerCMD(packageName, findPackageManager())
-    print("Package Manager Detected:")
-    print(pmgr)
     pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags = setPackageMgrFlags(pmgr)
     cdlog(1, "Checking for installed Package: "+packageName)
     # packageInstalled = os.popen(f'apt-cache policy {packageName} | grep Installed')
@@ -143,27 +141,30 @@ def packageInstalled(packageName):
     #     candidateVersion = candidatePackage.read().split(" ")[-1].replace('\n','')
     pkgCMD = ''
     print("Package Query Command:")
-    print(f'{pmgrPrepend}{pmgr} {pmgrQueryFlags} {packageName}')
+    print(f'{pmgrPrepend}{pmgr}{pmgrQueryFlags}{packageName}')
     _packageToCheck = subprocess.call(f'{pmgrPrepend}{pmgr}{pmgrQueryFlags}{packageName}', shell=True)
     print("Package to check ")
     print(_packageToCheck)
-    _isPackageInstalled = os.popen(f'{pmgrPrepend}{pmgr}{pmgrQueryFlags}{packageName}'+" | grep -i installed")
-    print("is Package Installed ")
-    print(_isPackageInstalled)
-    _isPackageAvailable = os.popen(f'{pmgrPrepend}{pmgr}{pmgrQueryFlags}{packageName}'+" | grep -i candidate")
-    print("is Package Available ")
-    print(_isPackageAvailable)
-    installedVersion = _isPackageInstalled.split(" ")[-1].replace('\n','')
-    print("installed Version ")
-    print(installedVersion)
-    candidateVersion = _isPackageAvailable.split(" ")[-1].replace('\n','')
-    print("candidate Version ")
-    print(candidateVersion)
     if _packageToCheck():
         cdlog(1, "Package Is Currently Installed")
+        installedPackage = os.popen(f'{pmgrPrepend}{pmgr}{pmgrQueryFlags}{packageName}'+" | grep -i installed")
+        print("is Package Installed ")
+        print(installedPackage)
+        candidatePackage = os.popen(f'{pmgrPrepend}{pmgr}{pmgrQueryFlags}{packageName}'+" | grep -i candidate")
+        print("is Package Available ")
+        print(candidatePackage)
+        installedVersion = installedPackage.read().split(" ")[-1].replace('\n','')
+        print("installed Version ")
+        print(installedVersion)
+        candidateVersion = candidatePackage.read().split(" ")[-1].replace('\n','')
+        print("candidate Version ")
+        print(candidateVersion)
         return True,installedVersion,candidateVersion
     else:
         cdlog(1, "Package Is NOT Currently Installed")
+        candidatePackage = os.popen(f'{pmgrPrepend}{pmgr}{pmgrQueryFlags}{packageName}'+" | grep -i candidate")
+        candidateVersion = candidatePackage.read().split(" ")[-1].replace('\n','')
+        print("is Package Available ")
         return False,"(none)",candidateVersion
 
 def packageUpdate(packageName):
@@ -224,11 +225,11 @@ def checkAndUpgradeOSPackageVersions(packageName):
         # Compare versions and apply updates only if needed
         if installedVersion or candidateVersion == '(none)':
             if installedVersion != candidateVersion:
-                packageInstall(packageName, pmgr)
+                packageInstall(packageName)
             else:
                 cdlog(1, f"Package already Installed: {packageName}")
     else:
-        print(f"Unable to find package. \nPlease install manually : {packageName}")
+        packageInstall(packageName)
 
 
 def downloadFile(fileName, downloadURL):
