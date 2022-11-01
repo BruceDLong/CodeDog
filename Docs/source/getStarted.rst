@@ -45,7 +45,10 @@ Clone Git Repos
 
 #. Run any CodeDog example to set up the environment::
 
-    $ ./codeDog ./Examples/minimalGame.dog
+.. note:: For the moment, your base terminal must be located within the same folder as the *.dog file you are building against
+    
+    $ cd CodeDog/Examples/
+    $ ../codeDog ./minimalGame.dog
 
 Android Studio
 ^^^^^^^^^^^^^^
