@@ -30,8 +30,6 @@ def findPackageManager():
     return installedPackageManagerList
     
 def setPackageMgrFlags(packageManager):
-    # TODO: Set up arrays for multiple package managers [e.g. pkgMgr1Install(apt-get) mkgMgr2Install(gdebi)]
-    # TODO: For now, Need to ensure only one match is made. I believe this will loop and select the last one returned. 
     # There should be some heirarchy for choosing between these depending on the detected OS. We could even
     # make this a user choice
     pmgr = packageManager
@@ -110,7 +108,6 @@ def setPackageMgrFlags(packageManager):
     elif pmgr == 'emerge':
         pmgrPrepend      = "sudo "
         pmgrInstallFlags = "-pv "
-        # TODO: not familiar enough with this manager. leaving some junk strings for now
         pmgrQueryFlags   = "-l "
         pmgrRemoveFlags  = "-r "
         pmgrUpgradeFlags = "-i "
@@ -160,7 +157,6 @@ def packageRemove(packageName):
     else:
         cdErr("Unable to remove package. \nPlease remove manually : " + packageName)
 
-# TODO: This is broken at the moment
 def packageInstalled(packageName):
     pmgr = getPackageManagerCMD(packageName, findPackageManager())
     pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags,queryNotInstalled,queryInstalled,queryCandidate = setPackageMgrFlags(pmgr)
