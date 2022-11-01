@@ -250,8 +250,7 @@ class CodeGenerator(object):
             if parentClass!="": refedClass=parentClass
             else: refedClass=progSpec.baseStructName(self.StaticMemberVars[staticVarName])
             if refedClass=="GLOBAL": return ''
-            if(crntBaseName != refedClass or self.xlator.LanguageName=='Swift'):   #TODO Make this part of xlators
-                return refedClass + self.xlator.ObjConnector
+            return(self.xlator.langVarNamePrefix(crntBaseName, refedClass))
         return ''
 
     def getFieldIDArgList(self, segSpec, genericArgs):
@@ -324,7 +323,6 @@ class CodeGenerator(object):
                         REF=self.CheckClassStaticVars(self.currentObjName, itemName)
                         if(REF):
                             return REF
-
                         elif(itemName in self.StaticMemberVars):
                             parentClassName = self.staticVarNamePrefix(itemName, '')
                             retTypeSpec     = {'owner': 'me', 'fieldType': ['List', [{'tArgOwner': 'me', 'tArgType': 'string'}]], 'note':'not generated from parse', 'reqTagList': [{'tArgOwner': 'me', 'tArgType': 'string'}]}
@@ -712,7 +710,6 @@ class CodeGenerator(object):
         # if tSpecIn has 'dummyType', this is a non-member (or self) and the first segment of the reference.
         # return example: ['getData()', <typeSpec>, <alternate form>, 'OBJVAR']
         S          = ''
-        S_alt      = ''
         SRC        = ''
         namePrefix = ''  # For static_Global vars
         tSpecOut   = {'owner':'', 'fieldType':'void'}
@@ -796,8 +793,7 @@ class CodeGenerator(object):
             callAsGlobal=name.find("%G")
             if(callAsGlobal >= 0): namePrefix=''
 
-        if S_alt=='': S+=namePrefix+connector+name
-        else: S += S_alt
+        S+=namePrefix+connector+name
 
         # Add parameters if this is a function call
         if(paramList != None):
@@ -847,7 +843,6 @@ class CodeGenerator(object):
         if(LorR_Val=='RVAL'): canonicalName ='>'
         else: canonicalName = '<'
         segTSpec={'owner':'', 'dummyType':True}
-
         connector=''
         prevLen=len(S)
         segIDX=0

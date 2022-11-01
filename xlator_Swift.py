@@ -386,6 +386,9 @@ class Xlator_Swift(Xlator):
         S= "static let "+fieldName+ ": Int = " + fieldValue+ ";\n"
         return(S)
 
+    def langVarNamePrefix(self, crntBaseName, refedClass):
+        return(refedClass + self.ObjConnector)
+
     def getEnumStr(self, fieldName, enumList):
         S = ''
         count=0
