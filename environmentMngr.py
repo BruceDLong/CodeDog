@@ -108,6 +108,7 @@ def setPackageMgrFlags(packageManager):
         pmgrUpgradeFlags = "upgrade "
         return pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags
 
+# TODO: The four definitions below can be optimized into a single definition with a little effort. Will tackle this after it works
 def packageInstall(packageName):
     pmgr = getPackageManagerCMD(packageName, findPackageManager())
     pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags = setPackageMgrFlags(pmgr)
@@ -164,7 +165,8 @@ def packageInstalled(packageName):
         cdlog(1, "Package Is NOT Currently Installed")
         candidatePackage = os.popen(f'{pmgrPrepend}{pmgr}{pmgrQueryFlags}{packageName}'+" | grep -i candidate")
         candidateVersion = candidatePackage.read().split(" ")[-1].replace('\n','')
-        print("is Package Available ")
+        print("Available Package Version ")
+        print(candidateVersion)
         return False,"(none)",candidateVersion
 
 def packageUpdate(packageName):
@@ -208,7 +210,8 @@ def getPackageManagerCMD(packageName, installedPackageManagerList):
 def checkAndUpgradeOSPackageVersions(packageName):
     cdlog(1, f"Searching for package: {packageName}")
     # Choose a package manager from those installed, after applying logic based on extension type
-    pmgr = getPackageManagerCMD(packageName, findPackageManager())
+    # Depreciated, after migrating this to each pmgr function
+    # pmgr = getPackageManagerCMD(packageName, findPackageManager())
     # Uses a concatanated string from the package manager and flags, returns a boolean result for positive or negative [0|1]
     # installedPackage = os.popen(f'{pmgr} {pmgrQueryFlags} {packageName} > /dev/null 2>&1 ; echo -e $?')
     currentlyInstalled,installedVersion,candidateVersion = packageInstalled(packageName)
