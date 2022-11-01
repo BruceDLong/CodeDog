@@ -55,6 +55,8 @@ def setPackageMgrFlags(packageManager):
         queryInstalled = " | grep -i Installed"
         queryCandidate = " | grep -i Candidate"
         return pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags,queryNotInstalled,queryInstalled,queryCandidate
+
+    # TODO: All package managers beyond this point need to be reworked to correctly function
     elif pmgr == 'gdebi':
         pmgrPrepend      = "sudo "
         pmgrInstallFlags = "--q --o install -y "
