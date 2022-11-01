@@ -240,7 +240,7 @@ def FindOrFetchLibraries(buildName, packageData, platform, tools):
                         if not packageManager:
                             print(f"Unable to find Package Manager.\nPlease install manually : {packageName}")
                         else:
-                            emgr.getPackageManagerCMD(toolName, packageManager)
+                            emgr.getPackageManagerCMD(toolName, emgr.findPackageManager(toolName))
                         runCmdStreaming(actualBuildCmd, downloadedFolder)
 
             if 'installFiles' in buildCmdMap:
@@ -315,7 +315,8 @@ def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
     copyRecursive("Resources", buildName+"/assets")
     (includeFolders, libFolders) = FindOrFetchLibraries(buildName, packageData, platform, tools)
     packageDirectory = os.getcwd() + '/' + buildName
-    fetchPackages(packageData, packageDirectory)
+    for packageName in packageData:
+        fetchPackages(packageName, packageDirectory)
 
     #building scons file
     SconsFile = "import os\n"

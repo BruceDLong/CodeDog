@@ -19,7 +19,7 @@ def checkToolWindows(toolName):
 #def detPackageNomenclature(packageName)
     #TODO: add OS-specific detection to handle different package nomenclatures
     # package base-names can be fed through a package manager query to identify the most common package names
-    
+
 def findPackageManager():
     installedPackageManagerList = []
     packageManagers = ["dpkg", "brew", "yum", "gdebi", "apt-get", "pacman", "emerge", "zypper", "dnf", "rpm"]
@@ -34,103 +34,116 @@ def setPackageMgrFlags(packageManager):
     # TODO: For now, Need to ensure only one match is made. I believe this will loop and select the last one returned. 
     # There should be some heirarchy for choosing between these depending on the detected OS. We could even
     # make this a user choice
-    pm = {packageManager}
-    if pm == 'dpkg':
+    pmgr = packageManager
+    if pmgr == 'dpkg':
         pmgrPrepend      = "echo 'yes' | sudo "
         pmgrInstallFlags = "-i"
         pmgrQueryFlags = "-l"
         pmgrRemoveFlags  = "-r"
         pmgrUpgradeFlags = "-i"
-    elif pm == 'apt-get':
+        return pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags
+    elif pmgr == 'apt-get':
         pmgrPrepend      = "sudo "
         pmgrInstallFlags = "install -y"
         # TODO: need to either create a separate workflow for apt-get/apt-cache or we need to use apt instead as the original binary does not have query function
         pmgrQueryFlags = "-l"
         pmgrRemoveFlags  = "remove"
         pmgrUpgradeFlags = "upgrade"
-    elif pm == 'gdebi':
+        return pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags
+    elif pmgr == 'gdebi':
         pmgrPrepend      = "sudo "
         pmgrInstallFlags = "--q --o install -y"
         pmgrQueryFlags = "-l"
         pmgrRemoveFlags  = "--q --o remove -y"
         pmgrUpgradeFlags = "--q --o upgrade -y"
-    elif pm == 'rpm':
+        return pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags
+    elif pmgr == 'rpm':
         pmgrPrepend      = "sudo "
         pmgrInstallFlags = "-i"
         pmgrQueryFlags = "-q"
         pmgrRemoveFlags  = "-e"
         pmgrUpgradeFlags = "-U"
-    elif pm == 'yum':
+        return pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags
+    elif pmgr == 'yum':
         pmgrPrepend      = "sudo "
         pmgrInstallFlags = "install"
         pmgrQueryFlags = "check-update"
         pmgrRemoveFlags  = "remove"
         pmgrUpgradeFlags = "upgrade"
-    elif pm == 'pacman':
+        return pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags
+    elif pmgr == 'pacman':
         pmgrPrepend      = "sudo "
         pmgrInstallFlags = "-S"
         pmgrQueryFlags = "-Q"
         pmgrRemoveFlags  = "-R"
         pmgrUpgradeFlags = "-U"
-    elif pm == 'dnf':
+        return pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags
+    elif pmgr == 'dnf':
         pmgrPrepend      = "sudo "
         pmgrInstallFlags = "install"
         pmgrQueryFlags = "check"
         pmgrRemoveFlags  = "remove"
         pmgrUpgradeFlags = "upgrade"
-    elif pm == 'emerge':
+        return pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags
+    elif pmgr == 'emerge':
         pmgrPrepend      = "sudo "
         pmgrInstallFlags = "-pv"
         # TODO: not familiar enough with this manager. leaving some junk strings for now
         pmgrQueryFlags = "-l"
         pmgrRemoveFlags  = "-r"
         pmgrUpgradeFlags = "-i"
-    elif pm == 'zypper':
+        return pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags
+    elif pmgr == 'zypper':
         pmgrPrepend      = "sudo "
         pmgrInstallFlags = "-i"
         pmgrQueryFlags = "-l"
         pmgrRemoveFlags  = "-r"
         pmgrUpgradeFlags = "-i"
-    elif pm == 'brew':
+        return pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags
+    elif pmgr == 'brew':
         pmgrPrepend      = "sudo "
         pmgrInstallFlags = "install --cask"
         pmgrQueryFlags = "list"
         pmgrRemoveFlags  = "uninstall"
         pmgrUpgradeFlags = "upgrade"
+        return pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags
 
-    return pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags
-
-def packageInstall(packageManager, packageName):
-    pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags = setPackageMgrFlags({packageManager})
+def packageInstall(packageName):
+    pmgr = getPackageManagerCMD(packageName, findPackageManager())
+    pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags = setPackageMgrFlags(pmgr)
     cdlog(1, "Package Installing: "+packageName)
-    if subprocess.call(f'{pmgrPrepend} {packageManager} {pmgrInstallFlags} {packageName}'+" > /dev/null 2>&1", shell=True) == 0:
+    if subprocess.call(f'{pmgrPrepend} {pmgr} {pmgrInstallFlags} {packageName}'+" > /dev/null 2>&1", shell=True) == 0:
         cdlog(1, "Package installed Successfully")
         return True
     else:
         cdErr("Unable to install package. \nPlease install manually : " + packageName)
 
-def packageRemove(packageManager, packageName):
-    pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags = setPackageMgrFlags({packageManager})
+def packageRemove(packageName):
+    pmgr = getPackageManagerCMD(packageName, findPackageManager())
+    pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags = setPackageMgrFlags(pmgr)
     cdlog(1, "Package Installing: "+packageName)
-    if subprocess.call(f'{pmgrPrepend} {packageManager} {pmgrRemoveFlags} {packageName}'+" > /dev/null 2>&1", shell=True) == 0:
+    if subprocess.call(f'{pmgrPrepend} {pmgr} {pmgrRemoveFlags} {packageName}'+" > /dev/null 2>&1", shell=True) == 0:
         cdlog(1, "Package removed Successfully")
         return True
     else:
         cdErr("Unable to remove package. \nPlease remove manually : " + packageName)
 
-def packageInstalled(packageManager, packageName):
-    pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags = setPackageMgrFlags({packageManager})
+# TODO: This is broken at the moment
+def packageInstalled(packageName):
+    pmgr = getPackageManagerCMD(packageName, findPackageManager())
+    pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags = setPackageMgrFlags(pmgr)
     cdlog(1, "Checking for installed Package: "+packageName)
-    _packageToCheck = subprocess.call(f'{pmgrPrepend} {packageManager} {pmgrQueryFlags} {packageName}', shell=True)
-    print("Package to check "+{_packageToCheck})
-    _isPackageInstalled = subprocess.call(f'{pmgrPrepend} {packageManager} {pmgrQueryFlags} {packageName}'+" | grep -i installed", shell=True)
-    print("is Package Installed "+ {_isPackageInstalled})
-    _isPackageAvailable = subprocess.call(f'{pmgrPrepend} {packageManager} {pmgrQueryFlags} {packageName}'+" | grep -i candidate", shell=True)
-    print ("is Package Available "+{_isPackageAvailable})
-    installedVersion = _isPackageInstalled.read().split(" ")[-1].replace('\n','')
-    print ("installed Version "+ {installedVersion})
-    candidateVersion = _isPackageAvailable.read().split(" ")[-1].replace('\n','')
-    print ("candidate Version "+ {candidateVersion})
+    pkgCMD = ''
+    _packageToCheck = subprocess.call(f'{pmgrPrepend} {pmgr} {pmgrQueryFlags} {packageName}', shell=True)
+    print("Package to check "+_packageToCheck)
+    _isPackageInstalled = os.popen(f'{pmgrPrepend} {pmgr} {pmgrQueryFlags} {packageName}'+" | grep -i installed")
+    print("is Package Installed "+_isPackageInstalled)
+    _isPackageAvailable = os.popen(f'{pmgrPrepend} {pmgr} {pmgrQueryFlags} {packageName}'+" | grep -i candidate")
+    print ("is Package Available "+_isPackageAvailable)
+    installedVersion = [_isPackageInstalled].read().split(" ")[-1].replace('\n','')
+    print ("installed Version "+installedVersion)
+    candidateVersion = [_isPackageAvailable].read().split(" ")[-1].replace('\n','')
+    print ("candidate Version "+candidateVersion)
     if _packageToCheck():
         cdlog(1, "Package Is Currently Installed")
         return True,installedVersion,candidateVersion
@@ -138,8 +151,9 @@ def packageInstalled(packageManager, packageName):
         cdlog(1, "Package Is NOT Currently Installed")
         return False,candidateVersion
 
-def packageUpdate(packageManager, packageName):
-    pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags = setPackageMgrFlags({packageManager})
+def packageUpdate(packageName):
+    pmgr = getPackageManagerCMD(packageName, findPackageManager())
+    pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags = setPackageMgrFlags(pmgr)
     cdlog(1, "Package Updating: "+packageName)
     if subprocess.call(f'{pmgrPrepend} {packageManager} {pmgrUpgradeFlags} {packageName}'+" > /dev/null 2>&1", shell=True) == 0:
         cdlog(1, "Package updated Successfully")
@@ -147,38 +161,43 @@ def packageUpdate(packageManager, packageName):
     else:
         cdErr("Unable to update package. \nPlease try manually : " + packageName)
 
+# Simple sorting algorithm for packages and package managers
 def getPackageManagerCMD(packageName, installedPackageManagerList):
-    packageExtension = packageName.split(".")[-1]
-    for ipm in installedPackageManagerList:
-        if ipm == 'gdebi' and packageExtension == 'deb':
-            return "gdebi"
-            # if packageInstall("gdebi", packageName):
-            #     break
-        elif ipm == 'dpkg' and packageExtension == 'deb':
-            return "dpkg"
-        elif ipm == 'rpm' and packageExtension == 'rpm':
-            return "rpm"
-        elif ipm == 'apt-get':
-            return "apt-get"
-        elif ipm == 'yum':
-            return "yum"
-        elif ipm == 'pacman':
-            return "pacman"
-        elif ipm == 'dnf':
-            return "dnf"
-        elif ipm == 'emerge':
-            return "emerge"
-        elif ipm == 'zypper':
-            return "zypper"
-        elif ipm == 'brew':
-            return "brew"
+    packages = list(packageName)
+    packageManagers = list(installedPackageManagerList)
+    for package in packages:
+        packageExtension = package.split(".")[-1]
+        for ipm in packageManagers:
+            if ipm == 'gdebi' and packageExtension == 'deb':
+                return "gdebi"
+                # if packageInstall("gdebi", packageName):
+                #     break
+            elif ipm == 'dpkg' and packageExtension == 'deb':
+                return "dpkg"
+            elif ipm == 'rpm' and packageExtension == 'rpm':
+                return "rpm"
+            elif ipm == 'apt-get':
+                return "apt-get"
+            elif ipm == 'yum':
+                return "yum"
+            elif ipm == 'pacman':
+                return "pacman"
+            elif ipm == 'dnf':
+                return "dnf"
+            elif ipm == 'emerge':
+                return "emerge"
+            elif ipm == 'zypper':
+                return "zypper"
+            elif ipm == 'brew':
+                return "brew"
 
 def checkAndUpgradeOSPackageVersions(packageName):
     cdlog(1, f"Searching for package: {packageName}")
-    pmgr = getPackageManagerCMD({packageName}, findPackageManager())
+    # Choose a package manager from those installed, after applying logic based on extension type
+    pmgr = getPackageManagerCMD(packageName, findPackageManager())
     # Uses a concatanated string from the package manager and flags, returns a boolean result for positive or negative [0|1]
     # installedPackage = os.popen(f'{pmgr} {pmgrQueryFlags} {packageName} > /dev/null 2>&1 ; echo -e $?')
-    currentlyInstalled = packageInstalled({pmgr}, {packageName})
+    currentlyInstalled = packageInstalled(packageName)
     # If 0 (detected as installed):
     if currentlyInstalled == 'True':
         # Pull base label for currently installed package version0
@@ -188,8 +207,8 @@ def checkAndUpgradeOSPackageVersions(packageName):
         # Parse version number from base labels
         # installedVersion = _installedPackage.read().split(" ")[-1].replace('\n','')
         # candidateVersion = _candidatePackage.read().split(" ")[-1].replace('\n','')
-        installedVersion = packageInstalled.installedVersion({pmgr}, {packageName})
-        candidateVersion = packageInstalled.candidateVersion({pmgr}, {packageName})
+        installedVersion = packageInstalled.installedVersion(packageName)
+        candidateVersion = packageInstalled.candidateVersion(packageName)
         cdlog(1, f"Candidate Package available: {candidateVersion}")
         # Compare versions and apply updates only if needed
         if installedVersion or candidateVersion == '(none)':
