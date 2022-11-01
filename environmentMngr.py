@@ -155,7 +155,7 @@ def packageUpdate(packageName):
     pmgr = getPackageManagerCMD(packageName, findPackageManager())
     pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags = setPackageMgrFlags(pmgr)
     cdlog(1, "Package Updating: "+packageName)
-    if subprocess.call(f'{pmgrPrepend} {packageManager} {pmgrUpgradeFlags} {packageName}'+" > /dev/null 2>&1", shell=True) == 0:
+    if subprocess.call(f'{pmgrPrepend} {pmgr} {pmgrUpgradeFlags} {packageName}'+" > /dev/null 2>&1", shell=True) == 0:
         cdlog(1, "Package updated Successfully")
         return True
     else:
@@ -163,33 +163,31 @@ def packageUpdate(packageName):
 
 # Simple sorting algorithm for packages and package managers
 def getPackageManagerCMD(packageName, installedPackageManagerList):
-    packages = list(packageName)
     packageManagers = list(installedPackageManagerList)
-    for package in packages:
-        packageExtension = package.split(".")[-1]
-        for ipm in packageManagers:
-            if ipm == 'gdebi' and packageExtension == 'deb':
-                return "gdebi"
-                # if packageInstall("gdebi", packageName):
-                #     break
-            elif ipm == 'dpkg' and packageExtension == 'deb':
-                return "dpkg"
-            elif ipm == 'rpm' and packageExtension == 'rpm':
-                return "rpm"
-            elif ipm == 'apt-get':
-                return "apt-get"
-            elif ipm == 'yum':
-                return "yum"
-            elif ipm == 'pacman':
-                return "pacman"
-            elif ipm == 'dnf':
-                return "dnf"
-            elif ipm == 'emerge':
-                return "emerge"
-            elif ipm == 'zypper':
-                return "zypper"
-            elif ipm == 'brew':
-                return "brew"
+    packageExtension = packageName.split(".")[-1]
+    for ipm in packageManagers:
+        if ipm == 'gdebi' and packageExtension == 'deb':
+            return "gdebi"
+            # if packageInstall("gdebi", packageName):
+            #     break
+        elif ipm == 'dpkg' and packageExtension == 'deb':
+            return "dpkg"
+        elif ipm == 'rpm' and packageExtension == 'rpm':
+            return "rpm"
+        elif ipm == 'apt-get':
+            return "apt-get"
+        elif ipm == 'yum':
+            return "yum"
+        elif ipm == 'pacman':
+            return "pacman"
+        elif ipm == 'dnf':
+            return "dnf"
+        elif ipm == 'emerge':
+            return "emerge"
+        elif ipm == 'zypper':
+            return "zypper"
+        elif ipm == 'brew':
+            return "brew"
 
 def checkAndUpgradeOSPackageVersions(packageName):
     cdlog(1, f"Searching for package: {packageName}")
