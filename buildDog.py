@@ -240,7 +240,7 @@ def FindOrFetchLibraries(buildName, packageData, platform, tools):
                         if not packageManager:
                             print(f"Unable to find Package Manager.\nPlease install manually : {packageName}")
                         else:
-                            emgr.getPackageManagerCMD(toolName, emgr.findPackageManager(toolName))
+                            emgr.getPackageManagerCMD(toolName, packageManager)
                         runCmdStreaming(actualBuildCmd, downloadedFolder)
 
             if 'installFiles' in buildCmdMap:
