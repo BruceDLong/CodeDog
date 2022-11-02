@@ -30,8 +30,19 @@ def findPackageManager():
     return installedPackageManagerList
     
 def setPackageMgrFlags(packageManager):
-    # There should be some heirarchy for choosing between these depending on the detected OS. We could even
-    # make this a user choice
+    # TODO: There should be some heirarchy for choosing between these depending on the detected OS. We could even
+    # make this a configurable choice
+    """
+    Each package manager utilizes different strings, args, and flags for similar functions. Use the template below to add new ones:
+        pmgrPrepend      = "sudo " # usually will be 'sudo', but not all distros include sudo. This variable is first in the concatinated command string
+        pmgrInstallFlags = "-get install -y " # post-{pmgr} args and flags to induce an installation
+        pmgrQueryFlags   = "-cache policy " # post-{pmgr} args and flags to query for an installed package
+        pmgrRemoveFlags  = "-get remove " # post-{pmgr} args and flags to induce a Removal
+        pmgrUpgradeFlags = "-get upgrade " # post-{pmgr} args and flags to induce an upgrade
+        queryNotInstalled = " | grep -ic none" # end of line filtering. Output expects integer count of queries that return "not installed". 0 indicates the package 'is' installed
+        queryInstalled = " | grep -i Installed" # end of line filtering. Output expects a single token containing the version number of the currently installed version
+        queryCandidate = " | grep -i Candidate" # end of line filtering. Output expects a single token containing the version number of the available or updated version
+    """
     pmgr = packageManager
     if pmgr == 'dpkg':
         pmgrPrepend      = "echo 'yes' | sudo "
