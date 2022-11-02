@@ -161,13 +161,6 @@ def packageInstalled(packageName):
     pmgr = getPackageManagerCMD(packageName, findPackageManager())
     pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags,queryNotInstalled,queryInstalled,queryCandidate = setPackageMgrFlags(pmgr)
     cdlog(1, "Checking for installed Package: "+packageName)
-    # packageInstalled = os.popen(f'apt-cache policy {packageName} | grep Installed')
-    # if packageInstalled.read():
-    #     installedPackage = os.popen(f'apt-cache policy {packageName} | grep Installed')
-    #     candidatePackage = os.popen(f'apt-cache policy {packageName} | grep Candidate')
-    #     installedVersion = installedPackage.read().split(" ")[-1].replace('\n','')
-    #     candidateVersion = candidatePackage.read().split(" ")[-1].replace('\n','')
-    pkgCMD = ''
     print("Package Query Command:")
     print(f'{pmgrPrepend}{pmgr}{pmgrQueryFlags}{packageName}')
     checkInstalled = subprocess.Popen(f'{pmgrPrepend}{pmgr}{pmgrQueryFlags}{packageName}{queryNotInstalled}', stdout=subprocess.PIPE, shell=True)
@@ -232,21 +225,8 @@ def getPackageManagerCMD(packageName, installedPackageManagerList):
 
 def checkAndUpgradeOSPackageVersions(packageName):
     cdlog(1, f"Searching for package: {packageName}")
-    # Choose a package manager from those installed, after applying logic based on extension type
-    # Depreciated, after migrating this to each pmgr function
-    # pmgr = getPackageManagerCMD(packageName, findPackageManager())
-    # Uses a concatanated string from the package manager and flags, returns a boolean result for positive or negative [0|1]
-    # installedPackage = os.popen(f'{pmgr} {pmgrQueryFlags} {packageName} > /dev/null 2>&1 ; echo -e $?')
     currentlyInstalled,installedVersion,candidateVersion = packageInstalled(packageName)
-    # If 0 (detected as installed):
     if currentlyInstalled == 'True':
-        # Pull base label for currently installed package version0
-        #_installedPackage = packageInstalled.installedVersion({pmgr}, {packageName})
-        # Pull base label for candidate installer version
-        #_candidatePackage = packageInstalled.candidateVersion({pmgr}, {packageName})
-        # Parse version number from base labels
-        # installedVersion = _installedPackage.read().split(" ")[-1].replace('\n','')
-        # candidateVersion = _candidatePackage.read().split(" ")[-1].replace('\n','')
         cdlog(1, f"Candidate Package available: {candidateVersion}")
         # Compare versions and apply updates only if needed
         if installedVersion or candidateVersion == '(none)':
