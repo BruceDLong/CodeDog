@@ -150,7 +150,7 @@ def packageInstall(packageName):
 def packageRemove(packageName):
     pmgr = getPackageManagerCMD(packageName, findPackageManager())
     pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags,queryNotInstalled,queryInstalled,queryCandidate = setPackageMgrFlags(pmgr)
-    cdlog(1, "Package Installing: "+packageName)
+    cdlog(1, "Package Removing: "+packageName)
     if subprocess.call(f'{pmgrPrepend}{pmgr}{pmgrRemoveFlags}{packageName}'+" > /dev/null 2>&1", shell=True) == 0:
         cdlog(1, "Package removed Successfully")
         return True
