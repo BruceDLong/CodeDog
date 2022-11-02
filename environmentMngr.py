@@ -171,18 +171,16 @@ def packageInstalled(packageName):
         cdlog(1, "Package Is Currently Installed")
         _installedVersion = subprocess.Popen(f'{pmgrPrepend}{pmgr}{pmgrQueryFlags}{packageName}{queryInstalled}', stdout=subprocess.PIPE, shell=True)
         installedVersion = str(_installedVersion.stdout.read()).split(" ")[-1].replace('\\n\'','')
-        print("is Package Installed ")
-        print(installedVersion)
+        cdlog(1, "Installed Version: "+installedVersion)
         _candidateVersion = subprocess.Popen(f'{pmgrPrepend}{pmgr}{pmgrQueryFlags}{packageName}{queryCandidate}', stdout=subprocess.PIPE, shell=True)
         candidateVersion = str(_candidateVersion.stdout.read()).split(" ")[-1].replace('\\n\'','')
-        print(candidateVersion)
+        cdlog(1, "Candidate Version: "+installedVersion)
         return True,installedVersion,candidateVersion
     else:
         cdlog(1, "Package Is NOT Currently Installed")
         _candidateVersion = subprocess.Popen(f'{pmgrPrepend}{pmgr}{pmgrQueryFlags}{packageName}{queryCandidate}', stdout=subprocess.PIPE, shell=True)
         candidateVersion = str(_candidateVersion.stdout.read()).split(" ")[-1].replace('\\n\'','')
-        print("Available Package Version ")
-        print(candidateVersion)
+        cdlog(1, "Candidate Version: "+installedVersion)
         return False,"(none)",candidateVersion
 
 def packageUpdate(packageName):
