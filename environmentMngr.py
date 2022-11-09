@@ -28,51 +28,6 @@ def findPackageManager():
         if checkToolLinux(pmgr):
             installedPackageManagerList.append(pmgr)
     return installedPackageManagerList
-    
-# TODO: The four definitions below can be optimized into a single definition with a little effort. Will tackle this after it works
-def packageInstall(packageName):
-    pmgrCMD = getPackageManagerCMD(packageName, findPackageManager(),"install")
-    cdlog(1, "Package Installing: "+packageName)
-    if subprocess.call(f'{pmgrCMD}'+" > /dev/null 2>&1", shell=True) == 0:
-        cdlog(1, "Package installed Successfully")
-        return True
-    else:
-        cdErr("Unable to install package. \nPlease install manually : " + packageName)
-
-def packageRemove(packageName):
-    pmgrCMD = getPackageManagerCMD(packageName, findPackageManager(),"remove")
-    cdlog(1, "Package Removing: "+packageName)
-    if subprocess.call(f'{pmgrCMD}'+" > /dev/null 2>&1", shell=True) == 0:
-        cdlog(1, "Package removed Successfully")
-        return True
-    else:
-        cdErr("Unable to remove package. \nPlease remove manually : " + packageName)
-
-def packageInstalled(packageName):
-    # pmgr = getPackageManagerCMD(packageName, findPackageManager())
-    # pmgrPrepend,pmgrInstallFlag,pmgrQueryLocal,pmgrRemoveFlag,pmgrQueryAvail,queryNotInstalled,getLocalVersion,getAvailVersion = setPackageMgrFlags(pmgr, packageName)
-    cdlog(1, "Checking for installed Package: "+packageName)
-    pmgrCMD = getPackageManagerCMD(packageName,findPackageManager(),"queryLocalInstall")
-    checkInstalled = subprocess.Popen(f'{pmgrCMD}', stdout=subprocess.PIPE, shell=True)
-    _packageToCheck = int(checkInstalled.stdout.read())
-    if _packageToCheck == 0:
-        cdlog(1, "Package Is Currently Installed")
-        pmgrCMD = getPackageManagerCMD(packageName,findPackageManager(),"queryLocalVer")
-        _installedVersion = subprocess.Popen(f'{pmgrCMD}', stdout=subprocess.PIPE, shell=True)
-        installedVersion = str(_installedVersion.stdout.read()).split(" ")[-1].replace('\\n\'','')
-        cdlog(1, "Installed Version: "+installedVersion)
-        pmgrCMD = getPackageManagerCMD(packageName,findPackageManager(),"queryAvailVer")
-        _candidateVersion = subprocess.Popen(f'{pmgrCMD}', stdout=subprocess.PIPE, shell=True)
-        candidateVersion = str(_candidateVersion.stdout.read()).split(" ")[-1].replace('\\n\'','')
-        cdlog(1, "Candidate Version: "+candidateVersion)
-        return True,installedVersion,candidateVersion
-    else:
-        cdlog(1, "Package Is NOT Currently Installed")
-        pmgrCMD = getPackageManagerCMD(packageName,findPackageManager(),"queryAvailVer")
-        _candidateVersion = subprocess.Popen(f'{pmgrCMD}', stdout=subprocess.PIPE, shell=True)
-        candidateVersion = str(_candidateVersion.stdout.read()).split(" ")[-1].replace('\\n\'','')
-        cdlog(1, "Candidate Version: "+candidateVersion)
-        return False,"(none)",candidateVersion
 
 # Simple sorting algorithm for packages and package managers
 def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
@@ -227,9 +182,54 @@ def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
         # Return the correct command    
         return pmgrCMD
 
+# TODO: The four definitions below can be optimized into a single definition with a little effort. Will tackle this after it works
+def packageInstall(packageName):
+    pmgrCMD = getPackageManagerCMD(packageName, findPackageManager(),"install")
+    cdlog(1, "Package Installing: "+packageName)
+    if subprocess.call(f'{pmgrCMD}'+" > /dev/null 2>&1", shell=True) == 0:
+        cdlog(1, "Package installed Successfully")
+        return True
+    else:
+        cdErr("Unable to install package. \nPlease install manually : " + packageName)
+
+def packageRemove(packageName):
+    pmgrCMD = getPackageManagerCMD(packageName, findPackageManager(),"remove")
+    cdlog(1, "Package Removing: "+packageName)
+    if subprocess.call(f'{pmgrCMD}'+" > /dev/null 2>&1", shell=True) == 0:
+        cdlog(1, "Package removed Successfully")
+        return True
+    else:
+        cdErr("Unable to remove package. \nPlease remove manually : " + packageName)
+
+def checkPackageStatus(packageName):
+    # pmgr = getPackageManagerCMD(packageName, findPackageManager())
+    # pmgrPrepend,pmgrInstallFlag,pmgrQueryLocal,pmgrRemoveFlag,pmgrQueryAvail,queryNotInstalled,getLocalVersion,getAvailVersion = setPackageMgrFlags(pmgr, packageName)
+    cdlog(1, "Checking for installed Package: "+packageName)
+    pmgrCMD = getPackageManagerCMD(packageName,findPackageManager(),"queryLocalInstall")
+    checkInstalled = subprocess.Popen(f'{pmgrCMD}', stdout=subprocess.PIPE, shell=True)
+    _packageToCheck = int(checkInstalled.stdout.read())
+    if _packageToCheck == 0:
+        cdlog(1, "Package Is Currently Installed")
+        pmgrCMD = getPackageManagerCMD(packageName,findPackageManager(),"queryLocalVer")
+        _installedVersion = subprocess.Popen(f'{pmgrCMD}', stdout=subprocess.PIPE, shell=True)
+        installedVersion = str(_installedVersion.stdout.read()).split(" ")[-1].replace('\\n\'','')
+        cdlog(1, "Installed Version: "+installedVersion)
+        pmgrCMD = getPackageManagerCMD(packageName,findPackageManager(),"queryAvailVer")
+        _candidateVersion = subprocess.Popen(f'{pmgrCMD}', stdout=subprocess.PIPE, shell=True)
+        candidateVersion = str(_candidateVersion.stdout.read()).split(" ")[-1].replace('\\n\'','')
+        cdlog(1, "Candidate Version: "+candidateVersion)
+        return True,installedVersion,candidateVersion
+    else:
+        cdlog(1, "Package Is NOT Currently Installed")
+        pmgrCMD = getPackageManagerCMD(packageName,findPackageManager(),"queryAvailVer")
+        _candidateVersion = subprocess.Popen(f'{pmgrCMD}', stdout=subprocess.PIPE, shell=True)
+        candidateVersion = str(_candidateVersion.stdout.read()).split(" ")[-1].replace('\\n\'','')
+        cdlog(1, "Candidate Version: "+candidateVersion)
+        return False,"(none)",candidateVersion
+
 def checkAndUpgradeOSPackageVersions(packageName):
     cdlog(1, f"Searching for package: {packageName}")
-    currentlyInstalled,installedVersion,candidateVersion = packageInstalled(packageName)
+    currentlyInstalled,installedVersion,candidateVersion = checkPackageStatus(packageName)
     if currentlyInstalled == 'True':
         cdlog(1, f"Candidate Package available: {candidateVersion}")
         # Compare versions and apply updates only if needed
