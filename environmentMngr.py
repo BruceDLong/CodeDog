@@ -33,8 +33,13 @@ def findPackageManager():
 def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
     packageManagers = list(installedPackageManagerList)
     packageExtension = packageName.split(".")[-1]
+    pmgrCMD = ''
+    pre = ''
+    post = ''
     for ipm in packageManagers:
         if ipm == 'dpkg' and packageExtension == 'deb':
+
+            pmgr = ipm
             pre = "echo 'yes' | sudo "
             if commandType == "install":
                 post = "-i "
@@ -54,7 +59,7 @@ def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
             pmgrCMD = pre+ipm+post
             
         elif ipm == 'apt-get' or 'apt':
-            pmgr = "apt"
+            pmgr = ipm
             pre = "sudo "
             if commandType == "install":
                 post = "-get install -y "
@@ -74,6 +79,8 @@ def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
             pmgrCMD = pre+pmgr+post
 
         elif ipm == 'yum' or 'dnf':
+            pmgrCMD = ''
+            post = ''
             pmgr = ipm
             pre = "sudo "
             if commandType == "install":
@@ -94,10 +101,10 @@ def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
             pmgrCMD = pre+pmgr+post
             
         elif ipm == 'pacman':
-            pmgr = "pacman"
+            pmgr = ipm
             pre = "sudo "
             if commandType == "install":
-                post = "-S "
+                post = "-S --noconfirm "
                 return post
             elif commandType == "queryLocalInstall":
                 post = "-Ss | grep '\/"+packageName+"[^-]' | grep -ic 'installed'"
@@ -106,7 +113,7 @@ def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
                 post = "-Ss | grep '\/"+packageName+"[^-]' | grep -i Installed"
                 return post
             elif commandType == "remove":
-                post  = "-R "
+                post  = "-R --noconfirm "
                 return post
             elif commandType == "queryAvail":
                 post = "-Ss | grep '\/"+packageName+"[^-]' | awk '{print $2}'"
