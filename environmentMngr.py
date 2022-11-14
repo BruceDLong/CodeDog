@@ -38,45 +38,37 @@ def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
     post = ''
     for ipm in packageManagers:
         if ipm == 'dpkg' and packageExtension == 'deb':
-
             pmgr = ipm
             pre = "echo 'yes' | sudo "
             if commandType == "install":
                 post = "-i "
-                return post
             elif commandType == "queryLocalInstall":
-                post = "-l  | grep -ic 'no packagesfound\|error'"
-                return post
+                post = "-l  | grep -ic 'no packagesfound\|error'"                
             elif commandType == "queryLocalVer":
-                post = "-l | grep ii"
-                return post
+                post = "-l | grep ii"                
             elif commandType == "remove":
-                post  = "-r "
-                return post
+                post  = "-r "                
             elif commandType == "queryAvailVer":
-                post = "-I | grep -i version"
-                return post
+                post = "-I | grep -i version"                
             pmgrCMD = pre+ipm+post
-            
+            break
         elif ipm == 'apt-get' or 'apt':
             pmgr = ipm
             pre = "sudo "
+            post = ''
+            pCMD = pre+pmgr
             if commandType == "install":
                 post = "-get install -y "
-                return post
             elif commandType == "queryLocalInstall":
-                post = "-cache policy "+packageName+"| grep -ic 'none\|Unable'"
-                return post
+                post = "-cache policy "+packageName+" | grep -ic 'none\|Unable'"
             elif commandType == "queryLocalVersion":
                 post = "-cache policy | grep -i Installed "
-                return post
             elif commandType == "remove":
                 post  = "-get remove -y"
-                return post
             elif commandType == "queryAvail":
                 post = "-I | grep -i version"
-                return post
-            pmgrCMD = pre+pmgr+post
+            pmgrCMD = pCMD+post
+            break
 
         elif ipm == 'yum' or 'dnf':
             pmgrCMD = ''
@@ -84,124 +76,101 @@ def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
             pmgr = ipm
             pre = "sudo "
             if commandType == "install":
-                post = "-get install -y "
-                return post
+                post = "-get install -y "                
             elif commandType == "queryLocalInstall":
-                post = "-cache policy "+packageName+"| grep -ic 'none\|Unable'"
-                return post
+                post = "-cache policy "+packageName+"| grep -ic 'none\|Unable'"                
             elif commandType == "queryLocalVersion":
-                post = "-cache policy | grep -i Installed "
-                return post
+                post = "-cache policy | grep -i Installed "                
             elif commandType == "remove":
-                post  = "-get remove -y"
-                return post
+                post  = "-get remove -y"                
             elif commandType == "queryAvail":
-                post = "-I | grep -i version"
-                return post
+                post = "-I | grep -i version"                
             pmgrCMD = pre+pmgr+post
+            break
             
         elif ipm == 'pacman':
             pmgr = ipm
             pre = "sudo "
             if commandType == "install":
-                post = "-S --noconfirm "
-                return post
+                post = "-S --noconfirm "                
             elif commandType == "queryLocalInstall":
-                post = "-Ss | grep '\/"+packageName+"[^-]' | grep -ic 'installed'"
-                return post
+                post = "-Ss | grep '\/"+packageName+"[^-]' | grep -ic 'installed'"                
             elif commandType == "queryLocalVersion":
-                post = "-Ss | grep '\/"+packageName+"[^-]' | grep -i Installed"
-                return post
+                post = "-Ss | grep '\/"+packageName+"[^-]' | grep -i Installed"                
             elif commandType == "remove":
                 post  = "-R --noconfirm "
-                return post
             elif commandType == "queryAvail":
-                post = "-Ss | grep '\/"+packageName+"[^-]' | awk '{print $2}'"
-                return post
+                post = "-Ss | grep '\/"+packageName+"[^-]' | awk '{print $2}'"                
             pmgrCMD = pre+pmgr+post
+            break
             
-# TODO: All package managers beyond this point need to be reworked to correctly function
+        # TODO: All package managers beyond this point need to be reworked to correctly function
         elif ipm == 'emerge':
             pmgr = "apt"
             pre = "sudo "
             if commandType == "install":
-                post = "-get install -y "
-                return post
+                post = "-get install -y "                
             elif commandType == "queryLocalInstall":
-                post = "-cache policy "+packageName+"| grep -ic 'none\|Unable'"
-                return post
+                post = "-cache policy "+packageName+"| grep -ic 'none\|Unable'"                
             elif commandType == "queryLocalVersion":
-                post = "-cache policy | grep -i Installed "
-                return post
+                post = "-cache policy | grep -i Installed "                
             elif commandType == "remove":
-                post  = "-get remove -y"
-                return post
+                post  = "-get remove -y"                
             elif commandType == "queryAvail":
-                post = "-I | grep -i version"
-                return post
+                post = "-I | grep -i version"                
             pmgrCMD = pre+pmgr+post
+            break
             
         elif ipm == 'zypper':
             pmgr = "apt"
             pre = "sudo "
             if commandType == "install":
-                post = "-get install -y "
-                return post
+                post = "-get install -y "                
             elif commandType == "queryLocalInstall":
-                post = "-cache policy "+packageName+"| grep -ic 'none\|Unable'"
-                return post
+                post = "-cache policy "+packageName+"| grep -ic 'none\|Unable'"                
             elif commandType == "queryLocalVersion":
-                post = "-cache policy | grep -i Installed "
-                return post
+                post = "-cache policy | grep -i Installed "                
             elif commandType == "remove":
-                post  = "-get remove -y"
-                return post
+                post  = "-get remove -y"                
             elif commandType == "queryAvail":
-                post = "-I | grep -i version"
-                return post
+                post = "-I | grep -i version"                
             pmgrCMD = pre+pmgr+post
+            break
             
         elif ipm == 'brew':
             pmgr = "apt"
             pre = "sudo "
             if commandType == "install":
-                post = "-get install -y "
-                return post
+                post = "-get install -y "                
             elif commandType == "queryLocalInstall":
-                post = "-cache policy "+packageName+"| grep -ic 'none\|Unable'"
-                return post
+                post = "-cache policy "+packageName+"| grep -ic 'none\|Unable'"                
             elif commandType == "queryLocalVersion":
-                post = "-cache policy | grep -i Installed "
-                return post
+                post = "-cache policy | grep -i Installed "                
             elif commandType == "remove":
-                post  = "-get remove -y"
-                return post
+                post  = "-get remove -y"                
             elif commandType == "queryAvail":
-                post = "-I | grep -i version"
-                return post
+                post = "-I | grep -i version"                
             pmgrCMD = pre+pmgr+post
+            break
         
         elif ipm == 'gdebi' and packageExtension == 'deb':
             pmgr = "apt"
             pre = "sudo "
+            pCMD = pre+pmgr
             if commandType == "install":
-                post = "-get install -y "
-                return post
+                post = "-get install -y "                
             elif commandType == "queryLocalInstall":
-                post = "-cache policy "+packageName+"| grep -ic 'none\|Unable'"
-                return post
+                post = "-cache policy "+packageName+"| grep -ic 'none\|Unable'"                
             elif commandType == "queryLocalVersion":
-                post = "-cache policy | grep -i Installed "
-                return post
+                post = "-cache policy | grep -i Installed "                
             elif commandType == "remove":
-                post  = "-get remove -y"
-                return post
+                post  = "-get remove -y"                
             elif commandType == "queryAvail":
-                post = "-I | grep -i version"
-                return post
-            pmgrCMD = pre+pmgr+post
-        # Return the correct command    
-        return pmgrCMD
+                post = "-I | grep -i version"                
+            pmgrCMD = pCMD+post
+            break
+    # Return the correct command    
+    return pmgrCMD
 
 # TODO: The four definitions below can be optimized into a single definition with a little effort. Will tackle this after it works
 def packageInstall(packageName):
