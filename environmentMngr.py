@@ -38,7 +38,7 @@ def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
     post = ''
     for ipm in packageManagers:
         if ipm == 'dpkg' and packageExtension == 'deb':
-            pmgr = ipm
+            pmgr = "dpkg"
             pre = "echo 'yes' | sudo "
             if commandType == "install":
                 post = "-i "
@@ -52,11 +52,10 @@ def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
                 post = "-I | grep -i version"                
             pmgrCMD = pre+ipm+post
             break
+        
         elif ipm == 'apt-get' or 'apt':
             pmgr = ipm
             pre = "sudo "
-            post = ''
-            pCMD = pre+pmgr
             if commandType == "install":
                 post = "-get install -y "
             elif commandType == "queryLocalInstall":
@@ -89,7 +88,7 @@ def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
             break
             
         elif ipm == 'pacman':
-            pmgr = ipm
+            pmgr = 'pacman'
             pre = "sudo "
             if commandType == "install":
                 post = "-S --noconfirm "                
