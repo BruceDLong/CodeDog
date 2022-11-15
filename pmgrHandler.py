@@ -1,11 +1,8 @@
-#!/usr/bin/env python3
 import subprocess
 
 def findPackageManager():
-  
     installedPackageManagerList = []
     packageManagers = ["dpkg", "brew", "yum", "gdebi", "apt-get", "pacman", "emerge", "zypper", "dnf", "rpm"]
-
     for pmgr in packageManagers:
         if checkToolLinux(pmgr):
             installedPackageManagerList.append(pmgr)
@@ -22,6 +19,7 @@ def checkToolWindows(toolName):
         return True
     else:
         return None 
+      
 # Simple sorting algorithm for packages and package managers
 def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
     packageManagers = list(installedPackageManagerList)
@@ -49,7 +47,7 @@ def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
                 pre = "sudo "
                 post = " -I "+packageName+" | grep -i version"
             pmgrCMD = pre+ipm+post
-            break
+
         elif ipm == 'apt-get' or 'apt':
             pmgr = "apt"
             pre = "sudo "
@@ -64,7 +62,7 @@ def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
             elif commandType == "queryAvailVer":
                 post = " list "+packageName+" 2>&1 | grep '^"+packageName+"\/' | head -n 1 | awk '{print $2}'"
             pmgrCMD = pre+pmgr+post
-            break
+
         elif ipm == 'yum' or 'dnf':
             pmgr = ipm
             pre = "sudo "
@@ -79,22 +77,22 @@ def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
             elif commandType == "queryAvailVer":
                 post = "-I | grep -i version"
             pmgrCMD = pre+pmgr+post
-            break
+
         elif ipm == 'pacman':
             pmgr = 'pacman'
             pre = "sudo "
             if commandType == "install":
                 post = "-S --noconfirm "
             elif commandType == "queryLocalInstall":
-                post = "-Ss | grep '\/"+packageName+"[^-]' | grep -ic 'installed'"
+                post = "-Ss | grep '\\/"+packageName+"[^-]' | grep -ic 'installed'"
             elif commandType == "queryLocalVersion":
-                post = "-Ss | grep '\/"+packageName+"[^-]' | grep -i Installed"
+                post = "-Ss | grep '\\/"+packageName+"[^-]' | grep -i Installed"
             elif commandType == "remove":
                 post  = "-R --noconfirm "
             elif commandType == "queryAvailVer":
-                post = "-Ss | grep '\/"+packageName+"[^-]' | awk '{print $2}'"
+                post = "-Ss | grep '\\/"+packageName+"[^-]' | awk '{print $2}'"
             pmgrCMD = pre+pmgr+post
-            break
+
         # TODO: All package managers beyond this point need to be reworked to correctly function
         elif ipm == 'emerge':
             pmgr = "apt"
@@ -110,7 +108,7 @@ def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
             elif commandType == "queryAvailVer":
                 post = "-I | grep -i version"
             pmgrCMD = pre+pmgr+post
-            break
+
         elif ipm == 'zypper':
             pmgr = "apt"
             pre = "sudo "
@@ -125,7 +123,7 @@ def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
             elif commandType == "queryAvailVer":
                 post = "-I | grep -i version"
             pmgrCMD = pre+pmgr+post
-            break
+
         elif ipm == 'brew':
             pmgr = "apt"
             pre = "sudo "
@@ -140,7 +138,7 @@ def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
             elif commandType == "queryAvailVer":
                 post = "-I "+packageName+" | grep '^"+packageName+" -"
             pmgrCMD = pre+pmgr+post
-            break
+
         elif ipm == 'gdebi' and packageExtension == 'deb':
             pmgr = "apt"
             pre = "sudo "
@@ -156,7 +154,7 @@ def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
             elif commandType == "queryAvailVer":
                 post = "-I "+packageName+" | grep -i version "
             pmgrCMD = pCMD+post
-            break
+
     # Return the correct command
     return pmgrCMD
   
