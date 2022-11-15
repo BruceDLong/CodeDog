@@ -52,13 +52,13 @@ def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
             pmgr = 'pacman'
             pre = "sudo "
             if commandType == "install":
-                post = " -S --noconfirm "
+                post = " -S --noconfirm "+packageName
             elif commandType == "queryLocalInstall":
                 post = " -Ss | grep '\\/"+packageName+"[^-]' | grep -ic 'installed'"
             elif commandType == "queryLocalVersion":
                 post = " -Ss | grep '\\/"+packageName+"[^-]' | grep -i Installed"
             elif commandType == "remove":
-                post  = " -R --noconfirm "
+                post  = " -R --noconfirm "+packageName
             elif commandType == "queryAvailVer":
                 post = " -Ss | grep '\\/"+packageName+"[^-]' | awk '{print $2}'"
             pmgrCMD = pre+pmgr+post
