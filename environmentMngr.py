@@ -65,11 +65,11 @@ def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
             elif commandType == "queryLocalInstall":
                 post = "-cache policy "+packageName+" | grep -ic 'none\|Unable'"
             elif commandType == "queryLocalVersion":
-                post = "-cache policy "+packageName+" | grep -i Installed "
+                post = "-cache policy "+packageName+" | grep -i Installed | awk '{print $2}'"
             elif commandType == "remove":
                 post  = "-get remove -y "+packageName
-            elif commandType == "queryAvail":
-                post = "-cache search "+packageName+" | grep -i version"
+            elif commandType == "queryAvailVer":
+                post = " list "+packageName+" 2>&1 | grep '^"+packageName+"\/' | head -n 1 | awk '{print $2}'"
             pmgrCMD = pre+pmgr+post
             break
         elif ipm == 'yum' or 'dnf':
@@ -85,7 +85,7 @@ def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
                 post = "-cache policy | grep -i Installed "                
             elif commandType == "remove":
                 post  = "-get remove -y"                
-            elif commandType == "queryAvail":
+            elif commandType == "queryAvailVer":
                 post = "-I | grep -i version"                
             pmgrCMD = pre+pmgr+post
             break
@@ -100,7 +100,7 @@ def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
                 post = "-Ss | grep '\/"+packageName+"[^-]' | grep -i Installed"                
             elif commandType == "remove":
                 post  = "-R --noconfirm "
-            elif commandType == "queryAvail":
+            elif commandType == "queryAvailVer":
                 post = "-Ss | grep '\/"+packageName+"[^-]' | awk '{print $2}'"                
             pmgrCMD = pre+pmgr+post
             break         # TODO: All package managers beyond this point need to be reworked to correctly function
@@ -115,7 +115,7 @@ def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
                 post = "-cache policy | grep -i Installed "                
             elif commandType == "remove":
                 post  = "-get remove -y"                
-            elif commandType == "queryAvail":
+            elif commandType == "queryAvailVer":
                 post = "-I | grep -i version"                
             pmgrCMD = pre+pmgr+post
             break
@@ -130,8 +130,8 @@ def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
                 post = "-cache policy | grep -i Installed "                
             elif commandType == "remove":
                 post  = "-get remove -y"                
-            elif commandType == "queryAvail":
-                post = "-I | grep -i version"                
+            elif commandType == "queryAvailVer":
+                post = "-I | grep -i version"
             pmgrCMD = pre+pmgr+post
             break
         elif ipm == 'brew':
@@ -145,8 +145,8 @@ def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
                 post = "-cache policy "+packageName+" | grep -i Installed "
             elif commandType == "remove":
                 post  = "-get remove -y "+packageName
-            elif commandType == "queryAvail":
-                post = "-I "+packageName+" | grep -i version"
+            elif commandType == "queryAvailVer":
+                post = "-I "+packageName+" | grep '^"+packageName+" -"
             pmgrCMD = pre+pmgr+post
             break
         elif ipm == 'gdebi' and packageExtension == 'deb':
@@ -161,7 +161,7 @@ def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
                 post = "-cache policy "+packageName+" | grep -i Installed "
             elif commandType == "remove":
                 post  = "-get remove -y "+packageName
-            elif commandType == "queryAvail":
+            elif commandType == "queryAvailVer":
                 post = "-I "+packageName+" | grep -i version "
             pmgrCMD = pCMD+post
             break
@@ -202,14 +202,14 @@ def checkPackageStatus(packageName):
         cdlog(1, "Installed Version: "+installedVersion)
         pmgrCMD = getPackageManagerCMD(packageName,findPackageManager(),"queryAvailVer")
         _candidateVersion = subprocess.Popen(f'{pmgrCMD}', stdout=subprocess.PIPE, shell=True)
-        candidateVersion = str(_candidateVersion.stdout.read()).split(" ")[-1].replace('\\n\'','')
+        candidateVersion = str(_candidateVersion.stdout.read()).split("-")[-1].replace('\\n\'','')
         cdlog(1, "Candidate Version: "+candidateVersion)
         return True,installedVersion,candidateVersion
     else:
         cdlog(1, "Package Is NOT Currently Installed")
         pmgrCMD = getPackageManagerCMD(packageName,findPackageManager(),"queryAvailVer")
         _candidateVersion = subprocess.Popen(f'{pmgrCMD}', stdout=subprocess.PIPE, shell=True)
-        candidateVersion = str(_candidateVersion.stdout.read()).split(" ")[-1].replace('\\n\'','')
+        candidateVersion = str(_candidateVersion.stdout.read()).split("-")[-1].replace('\\n\'','')
         cdlog(1, "Candidate Version: "+candidateVersion)
         return False,"(none)",candidateVersion
 
