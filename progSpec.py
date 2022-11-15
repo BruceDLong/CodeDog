@@ -5,7 +5,13 @@ import sys
 import re
 import copy
 from timeit import default_timer as timer
-from pyparsing import ParseResults
+from environmentMngr import DownloadInstallPipModules
+
+try:
+    from pyparsing import ParseResults
+except ModuleNotFoundError:
+    DownloadInstallPipModules("pip3 install -q %s --disable-pip-version-check pyparsing")
+
 
 MaxLogLevelToShow = 1
 
