@@ -28,224 +28,202 @@ def findPackageManager():
         if checkToolLinux(pmgr):
             installedPackageManagerList.append(pmgr)
     return installedPackageManagerList
-    
-def setPackageMgrFlags(packageManager):
-    # TODO: There should be some heirarchy for choosing between these depending on the detected OS. We could even
-    # make this a configurable choice
-    """
-    Each package manager utilizes different strings, args, and flags for similar functions. Use the template below to add new ones:
-        pmgrPrepend      = "sudo " # usually will be 'sudo', but not all distros include sudo. This variable is first in the concatinated command string
-        pmgrInstallFlags = "-get install -y " # post-{pmgr} args and flags to induce an installation
-        pmgrQueryFlags   = "-cache policy " # post-{pmgr} args and flags to query for an installed package
-        pmgrRemoveFlags  = "-get remove " # post-{pmgr} args and flags to induce a Removal
-        pmgrUpgradeFlags = "-get upgrade " # post-{pmgr} args and flags to induce an upgrade
-        queryNotInstalled = " | grep -ic none" # end of line filtering. Output expects integer count of queries that return "not installed". 0 indicates the package 'is' installed
-        queryInstalled = " | grep -i Installed" # end of line filtering. Output expects a single token containing the version number of the currently installed version
-        queryCandidate = " | grep -i Candidate" # end of line filtering. Output expects a single token containing the version number of the available or updated version
-    """
-    pmgr = packageManager
-    if pmgr == 'dpkg':
-        pmgrPrepend      = "echo 'yes' | sudo "
-        pmgrInstallFlags = "-i "
-        pmgrQueryFlags   = "-l "
-        pmgrRemoveFlags  = "-r "
-        pmgrUpgradeFlags = "-i "
-        queryNotInstalled = " | grep -ic 'no packagesfound\|error'"
-        queryInstalled = " | grep ii | awk '{print $3}'"
-        queryCandidate = "-I | grep -i version"
-        return pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags,queryNotInstalled,queryInstalled,queryCandidate
-    elif pmgr == 'apt-get' or 'apt':
-        pmgrPrepend      = "sudo "
-        pmgrInstallFlags = "-get install -y "
-        pmgrQueryFlags   = "-cache policy "
-        pmgrRemoveFlags  = "-get remove "
-        pmgrUpgradeFlags = "-get upgrade "
-        queryNotInstalled = " | grep -ic none"
-        queryInstalled = " | grep -i Installed"
-        queryCandidate = " | grep -i Candidate"
-        return pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags,queryNotInstalled,queryInstalled,queryCandidate
 
-    # TODO: All package managers beyond this point need to be reworked to correctly function
-    elif pmgr == 'gdebi':
-        pmgrPrepend      = "sudo "
-        pmgrInstallFlags = "--q --o install -y "
-        pmgrQueryFlags   = ""
-        pmgrRemoveFlags  = "--q --o remove -y "
-        pmgrUpgradeFlags = "--q --o upgrade -y "
-        queryNotInstalled = " | grep -ic none"
-        queryInstalled = " | grep -i Installed"
-        queryCandidate = " | grep -i Candidate"
-        return pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags,queryNotInstalled,queryInstalled,queryCandidate
-    elif pmgr == 'rpm':
-        pmgrPrepend      = "sudo "
-        pmgrInstallFlags = "-i "
-        pmgrQueryFlags   = "-q "
-        pmgrRemoveFlags  = "-e "
-        pmgrUpgradeFlags = "-U "
-        queryNotInstalled = " | grep -ic none"
-        queryInstalled = " | grep -i Installed"
-        queryCandidate = " | grep -i Candidate"
-        return pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags,queryNotInstalled,queryInstalled,queryCandidate
-    elif pmgr == 'yum':
-        pmgrPrepend      = "sudo "
-        pmgrInstallFlags = "install "
-        pmgrQueryFlags   = "check-update "
-        pmgrRemoveFlags  = "remove "
-        pmgrUpgradeFlags = "upgrade "
-        queryNotInstalled = " | grep -ic none"
-        queryInstalled = " | grep -i Installed"
-        queryCandidate = " | grep -i Candidate"
-        return pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags,queryNotInstalled,queryInstalled,queryCandidate
-    elif pmgr == 'pacman':
-        pmgrPrepend      = "sudo "
-        pmgrInstallFlags = "-S "
-        pmgrQueryFlags   = "-Q "
-        pmgrRemoveFlags  = "-R "
-        pmgrUpgradeFlags = "-U "
-        queryNotInstalled = " | grep -ic none"
-        queryInstalled = " | grep -i Installed"
-        queryCandidate = " | grep -i Candidate"
-        return pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags,queryNotInstalled,queryInstalled,queryCandidate
-    elif pmgr == 'dnf':
-        pmgrPrepend      = "sudo "
-        pmgrInstallFlags = "install "
-        pmgrQueryFlags   = "check "
-        pmgrRemoveFlags  = "remove "
-        pmgrUpgradeFlags = "upgrade "
-        queryNotInstalled = " | grep -ic none"
-        queryInstalled = " | grep -i Installed"
-        queryCandidate = " | grep -i Candidate"
-        return pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags,queryNotInstalled,queryInstalled,queryCandidate
-    elif pmgr == 'emerge':
-        pmgrPrepend      = "sudo "
-        pmgrInstallFlags = "-pv "
-        pmgrQueryFlags   = "-l "
-        pmgrRemoveFlags  = "-r "
-        pmgrUpgradeFlags = "-i "
-        queryNotInstalled = " | grep -ic none"
-        queryInstalled = " | grep -i Installed"
-        queryCandidate = " | grep -i Candidate"
-        return pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags,queryNotInstalled,queryInstalled,queryCandidate
-    elif pmgr == 'zypper':
-        pmgrPrepend      = "sudo "
-        pmgrInstallFlags = "-i "
-        pmgrQueryFlags   = "-l "
-        pmgrRemoveFlags  = "-r "
-        pmgrUpgradeFlags = "-i "
-        queryNotInstalled = " | grep -ic none"
-        queryInstalled = " | grep -i Installed"
-        queryCandidate = " | grep -i Candidate"
-        return pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags,queryNotInstalled,queryInstalled,queryCandidate
-    elif pmgr == 'brew':
-        pmgrPrepend      = "sudo "
-        pmgrInstallFlags = "install --cask "
-        pmgrQueryFlags   = "list "
-        pmgrRemoveFlags  = "uninstall "
-        pmgrUpgradeFlags = "upgrade "
-        queryNotInstalled = " | grep -ic none"
-        queryInstalled = " | grep -i Installed"
-        queryCandidate = " | grep -i Candidate"
-        return pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags,queryNotInstalled,queryInstalled,queryCandidate
+# Simple sorting algorithm for packages and package managers
+def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
+    packageManagers = list(installedPackageManagerList)
+    packageExtension = packageName.split(".")[-1]
+    pmgrCMD = ''
+    pre = ''
+    post = ''
+    for ipm in packageManagers:
+        if ipm == 'dpkg' and packageExtension == 'deb':
+            pmgr = "dpkg"
+            pre = ""
+            if commandType == "install":
+                pre = "echo 'yes' | sudo "
+                post = " -i "
+            elif commandType == "queryLocalInstall":
+                pre = "sudo "
+                post = " -l "+packageName+" | grep -ic 'no packagesfound\|error'"
+            elif commandType == "queryLocalVer":
+                pre = "sudo "
+                post = " -l "+packageName+" | grep ii"
+            elif commandType == "remove":
+                pre = "echo 'yes' | sudo "
+                post  = " -r "
+            elif commandType == "queryAvailVer":
+                pre = "sudo "
+                post = " -I "+packageName+" | grep -i version"
+            pmgrCMD = pre+ipm+post
+            break
+        elif ipm == 'apt-get' or 'apt':
+            pmgr = "apt"
+            pre = "sudo "
+            if commandType == "install":
+                post = "-get install -y "+packageName
+            elif commandType == "queryLocalInstall":
+                post = "-cache policy "+packageName+" | grep -ic 'none\|Unable'"
+            elif commandType == "queryLocalVersion":
+                post = "-cache policy "+packageName+" | grep -i Installed | awk '{print $2}'"
+            elif commandType == "remove":
+                post  = "-get remove -y "+packageName
+            elif commandType == "queryAvailVer":
+                post = " list "+packageName+" 2>&1 | grep '^"+packageName+"\/' | head -n 1 | awk '{print $2}'"
+            pmgrCMD = pre+pmgr+post
+            break
+        elif ipm == 'yum' or 'dnf':
+            pmgr = ipm
+            pre = "sudo "
+            if commandType == "install":
+                post = "-get install -y "
+            elif commandType == "queryLocalInstall":
+                post = "-cache policy "+packageName+"| grep -ic 'none\|Unable'"
+            elif commandType == "queryLocalVersion":
+                post = "-cache policy | grep -i Installed "
+            elif commandType == "remove":
+                post  = "-get remove -y"
+            elif commandType == "queryAvailVer":
+                post = "-I | grep -i version"
+            pmgrCMD = pre+pmgr+post
+            break
+        elif ipm == 'pacman':
+            pmgr = 'pacman'
+            pre = "sudo "
+            if commandType == "install":
+                post = "-S --noconfirm "
+            elif commandType == "queryLocalInstall":
+                post = "-Ss | grep '\/"+packageName+"[^-]' | grep -ic 'installed'"
+            elif commandType == "queryLocalVersion":
+                post = "-Ss | grep '\/"+packageName+"[^-]' | grep -i Installed"
+            elif commandType == "remove":
+                post  = "-R --noconfirm "
+            elif commandType == "queryAvailVer":
+                post = "-Ss | grep '\/"+packageName+"[^-]' | awk '{print $2}'"
+            pmgrCMD = pre+pmgr+post
+            break
+        # TODO: All package managers beyond this point need to be reworked to correctly function
+        elif ipm == 'emerge':
+            pmgr = "apt"
+            pre = "sudo "
+            if commandType == "install":
+                post = "-get install -y "
+            elif commandType == "queryLocalInstall":
+                post = "-cache policy "+packageName+"| grep -ic 'none\|Unable'"
+            elif commandType == "queryLocalVersion":
+                post = "-cache policy | grep -i Installed "
+            elif commandType == "remove":
+                post  = "-get remove -y"
+            elif commandType == "queryAvailVer":
+                post = "-I | grep -i version"
+            pmgrCMD = pre+pmgr+post
+            break
+        elif ipm == 'zypper':
+            pmgr = "apt"
+            pre = "sudo "
+            if commandType == "install":
+                post = "-get install -y "
+            elif commandType == "queryLocalInstall":
+                post = "-cache policy "+packageName+"| grep -ic 'none\|Unable'"
+            elif commandType == "queryLocalVersion":
+                post = "-cache policy | grep -i Installed "
+            elif commandType == "remove":
+                post  = "-get remove -y"
+            elif commandType == "queryAvailVer":
+                post = "-I | grep -i version"
+            pmgrCMD = pre+pmgr+post
+            break
+        elif ipm == 'brew':
+            pmgr = "apt"
+            pre = "sudo "
+            if commandType == "install":
+                post = "-get install -y "+packageName
+            elif commandType == "queryLocalInstall":
+                post = "-cache policy "+packageName+"| grep -ic 'none\|Unable'"
+            elif commandType == "queryLocalVersion":
+                post = "-cache policy "+packageName+" | grep -i Installed "
+            elif commandType == "remove":
+                post  = "-get remove -y "+packageName
+            elif commandType == "queryAvailVer":
+                post = "-I "+packageName+" | grep '^"+packageName+" -"
+            pmgrCMD = pre+pmgr+post
+            break
+        elif ipm == 'gdebi' and packageExtension == 'deb':
+            pmgr = "apt"
+            pre = "sudo "
+            pCMD = pre+pmgr
+            if commandType == "install":
+                post = "-get install -y "+packageName
+            elif commandType == "queryLocalInstall":
+                post = "-cache policy "+packageName+"| grep -ic 'none\|Unable'"
+            elif commandType == "queryLocalVersion":
+                post = "-cache policy "+packageName+" | grep -i Installed "
+            elif commandType == "remove":
+                post  = "-get remove -y "+packageName
+            elif commandType == "queryAvailVer":
+                post = "-I "+packageName+" | grep -i version "
+            pmgrCMD = pCMD+post
+            break
+    # Return the correct command
+    return pmgrCMD
 
-# TODO: The four definitions below can be optimized into a single definition with a little effort. Will tackle this after it works
 def packageInstall(packageName):
-    pmgr = getPackageManagerCMD(packageName, findPackageManager())
-    pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags,queryNotInstalled,queryInstalled,queryCandidate = setPackageMgrFlags(pmgr)
+    pmgrCMD = getPackageManagerCMD(packageName, findPackageManager(),"install")
     cdlog(1, "Package Installing: "+packageName)
-    if subprocess.call(f'{pmgrPrepend}{pmgr}{pmgrInstallFlags}{packageName}'+" > /dev/null 2>&1", shell=True) == 0:
+    if subprocess.call(f'{pmgrCMD}'+" > /dev/null 2>&1", shell=True) == 0:
         cdlog(1, "Package installed Successfully")
         return True
     else:
         cdErr("Unable to install package. \nPlease install manually : " + packageName)
 
 def packageRemove(packageName):
-    pmgr = getPackageManagerCMD(packageName, findPackageManager())
-    pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags,queryNotInstalled,queryInstalled,queryCandidate = setPackageMgrFlags(pmgr)
+    pmgrCMD = getPackageManagerCMD(packageName, findPackageManager(),"remove")
     cdlog(1, "Package Removing: "+packageName)
-    if subprocess.call(f'{pmgrPrepend}{pmgr}{pmgrRemoveFlags}{packageName}'+" > /dev/null 2>&1", shell=True) == 0:
+    if subprocess.call(f'{pmgrCMD}'+" > /dev/null 2>&1", shell=True) == 0:
         cdlog(1, "Package removed Successfully")
         return True
     else:
         cdErr("Unable to remove package. \nPlease remove manually : " + packageName)
 
-def packageInstalled(packageName):
-    pmgr = getPackageManagerCMD(packageName, findPackageManager())
-    pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags,queryNotInstalled,queryInstalled,queryCandidate = setPackageMgrFlags(pmgr)
+def checkPackageStatus(packageName):
+    # pmgr = getPackageManagerCMD(packageName, findPackageManager())
+    # pmgrPrepend,pmgrInstallFlag,pmgrQueryLocal,pmgrRemoveFlag,pmgrQueryAvail,queryNotInstalled,getLocalVersion,getAvailVersion = setPackageMgrFlags(pmgr, packageName)
     cdlog(1, "Checking for installed Package: "+packageName)
-    print("Package Query Command:")
-    print(f'{pmgrPrepend}{pmgr}{pmgrQueryFlags}{packageName}')
-    checkInstalled = subprocess.Popen(f'{pmgrPrepend}{pmgr}{pmgrQueryFlags}{packageName}{queryNotInstalled}', stdout=subprocess.PIPE, shell=True)
+    pmgrCMD = getPackageManagerCMD(packageName,findPackageManager(),"queryLocalInstall")
+    checkInstalled = subprocess.Popen(f'{pmgrCMD}', stdout=subprocess.PIPE, shell=True)
     _packageToCheck = int(checkInstalled.stdout.read())
-    print("Package to check ")
-    print(_packageToCheck)
     if _packageToCheck == 0:
         cdlog(1, "Package Is Currently Installed")
-        _installedVersion = subprocess.Popen(f'{pmgrPrepend}{pmgr}{pmgrQueryFlags}{packageName}{queryInstalled}', stdout=subprocess.PIPE, shell=True)
-        installedVersion = str(_installedVersion.stdout.read()).split(" ")[-1].replace('\\n\'','')
+        pmgrCMD = getPackageManagerCMD(packageName,findPackageManager(),"queryLocalVer")
+        _installedVersion = subprocess.Popen(f'{pmgrCMD}', stdout=subprocess.PIPE, shell=True)
+        installedVersion = str(_installedVersion.stdout.read()).split(" ")[-0].replace('\\n\'','').replace('b\'','')
         cdlog(1, "Installed Version: "+installedVersion)
-        _candidateVersion = subprocess.Popen(f'{pmgrPrepend}{pmgr}{pmgrQueryFlags}{packageName}{queryCandidate}', stdout=subprocess.PIPE, shell=True)
-        candidateVersion = str(_candidateVersion.stdout.read()).split(" ")[-1].replace('\\n\'','')
+        pmgrCMD = getPackageManagerCMD(packageName,findPackageManager(),"queryAvailVer")
+        _candidateVersion = subprocess.Popen(f'{pmgrCMD}', stdout=subprocess.PIPE, shell=True)
+        candidateVersion = str(_candidateVersion.stdout.read()).split("-")[-0].replace('\\n\'','').replace('b\'','')
         cdlog(1, "Candidate Version: "+candidateVersion)
         return True,installedVersion,candidateVersion
     else:
         cdlog(1, "Package Is NOT Currently Installed")
-        _candidateVersion = subprocess.Popen(f'{pmgrPrepend}{pmgr}{pmgrQueryFlags}{packageName}{queryCandidate}', stdout=subprocess.PIPE, shell=True)
-        candidateVersion = str(_candidateVersion.stdout.read()).split(" ")[-1].replace('\\n\'','')
+        pmgrCMD = getPackageManagerCMD(packageName,findPackageManager(),"queryAvailVer")
+        _candidateVersion = subprocess.Popen(f'{pmgrCMD}', stdout=subprocess.PIPE, shell=True)
+        candidateVersion = str(_candidateVersion.stdout.read()).split("-")[-0].replace('\\n\'','').replace('b\'','')
         cdlog(1, "Candidate Version: "+candidateVersion)
         return False,"(none)",candidateVersion
 
-def packageUpdate(packageName):
-    pmgr = getPackageManagerCMD(packageName, findPackageManager())
-    pmgrPrepend,pmgrInstallFlags,pmgrQueryFlags,pmgrRemoveFlags,pmgrUpgradeFlags,queryNotInstalled,queryInstalled,queryCandidate = setPackageMgrFlags(pmgr)
-    cdlog(1, "Package Updating: "+packageName)
-    if subprocess.call(f'{pmgrPrepend}{pmgr}{pmgrUpgradeFlags}{packageName}'+" > /dev/null 2>&1", shell=True) == 0:
-        cdlog(1, "Package updated Successfully")
-        return True
-    else:
-        cdErr("Unable to update package. \nPlease try manually : " + packageName)
-
-# Simple sorting algorithm for packages and package managers
-def getPackageManagerCMD(packageName, installedPackageManagerList):
-    packageManagers = list(installedPackageManagerList)
-    packageExtension = packageName.split(".")[-1]
-    for ipm in packageManagers:
-        if ipm == 'gdebi' and packageExtension == 'deb':
-            return "gdebi"
-            # if packageInstall("gdebi", packageName):
-            #     break
-        elif ipm == 'dpkg' and packageExtension == 'deb':
-            return "dpkg"
-        elif ipm == 'rpm' and packageExtension == 'rpm':
-            return "rpm"
-        elif ipm == 'apt-get':
-            return "apt"
-        elif ipm == 'yum':
-            return "yum"
-        elif ipm == 'pacman':
-            return "pacman"
-        elif ipm == 'dnf':
-            return "dnf"
-        elif ipm == 'emerge':
-            return "emerge"
-        elif ipm == 'zypper':
-            return "zypper"
-        elif ipm == 'brew':
-            return "brew"
-
 def checkAndUpgradeOSPackageVersions(packageName):
     cdlog(1, f"Searching for package: {packageName}")
-    currentlyInstalled,installedVersion,candidateVersion = packageInstalled(packageName)
-    if currentlyInstalled == 'True':
+    currentlyInstalled,installedVersion,candidateVersion = checkPackageStatus(packageName)
+    if currentlyInstalled == False:
+        cdlog(1, f"Candidate Package available: {candidateVersion}")
+        packageInstall(packageName)
+    elif currentlyInstalled == True:
         cdlog(1, f"Candidate Package available: {candidateVersion}")
         # Compare versions and apply updates only if needed
-        if installedVersion or candidateVersion == '(none)':
-            if installedVersion < candidateVersion:
-                packageInstall(packageName)
-            else:
-                cdlog(1, f"Package already Installed: {packageName}")
-    else:
-        packageInstall(packageName)
-
+        if installedVersion < candidateVersion:
+            packageInstall(packageName)
+        else:
+            cdlog(1, f"Package already Installed: {packageName}")
 
 def downloadFile(fileName, downloadURL):
     checkSys.CheckPipModules({'urllib3':'1.25'})
@@ -264,7 +242,6 @@ def downloadFile(fileName, downloadURL):
                     break
                 out.write(data)
         r.release_conn()
-
 
 def installPipPackage():
     from sys import platform
