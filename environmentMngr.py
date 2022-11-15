@@ -39,22 +39,26 @@ def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
     for ipm in packageManagers:
         if ipm == 'dpkg' and packageExtension == 'deb':
             pmgr = "dpkg"
-            pre = "echo 'yes' | sudo "
+            pre = ""
             if commandType == "install":
-                post = "-i "
+                pre = "echo 'yes' | sudo "
+                post = " -i "
             elif commandType == "queryLocalInstall":
-                post = "-l  | grep -ic 'no packagesfound\|error'"                
+                pre = "sudo "
+                post = " -l "+packageName+" | grep -ic 'no packagesfound\|error'"                
             elif commandType == "queryLocalVer":
-                post = "-l | grep ii"                
+                pre = "sudo "
+                post = " -l "+packageName+" | grep ii"                
             elif commandType == "remove":
-                post  = "-r "                
+                pre = "echo 'yes' | sudo "
+                post  = " -r "                
             elif commandType == "queryAvailVer":
-                post = "-I | grep -i version"                
+                pre = "sudo "
+                post = " -I "+packageName+" | grep -i version"                
             pmgrCMD = pre+ipm+post
             break
-        
         elif ipm == 'apt-get' or 'apt':
-            pmgr = ipm
+            pmgr = "apt"
             pre = "sudo "
             if commandType == "install":
                 post = "-get install -y "
@@ -66,9 +70,8 @@ def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
                 post  = "-get remove -y"
             elif commandType == "queryAvail":
                 post = "-I | grep -i version"
-            pmgrCMD = pCMD+post
+            pmgrCMD = pre+pmgr+post
             break
-
         elif ipm == 'yum' or 'dnf':
             pmgrCMD = ''
             post = ''
@@ -86,7 +89,6 @@ def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
                 post = "-I | grep -i version"                
             pmgrCMD = pre+pmgr+post
             break
-            
         elif ipm == 'pacman':
             pmgr = 'pacman'
             pre = "sudo "
@@ -101,9 +103,7 @@ def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
             elif commandType == "queryAvail":
                 post = "-Ss | grep '\/"+packageName+"[^-]' | awk '{print $2}'"                
             pmgrCMD = pre+pmgr+post
-            break
-            
-        # TODO: All package managers beyond this point need to be reworked to correctly function
+            break         # TODO: All package managers beyond this point need to be reworked to correctly function
         elif ipm == 'emerge':
             pmgr = "apt"
             pre = "sudo "
@@ -119,7 +119,6 @@ def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
                 post = "-I | grep -i version"                
             pmgrCMD = pre+pmgr+post
             break
-            
         elif ipm == 'zypper':
             pmgr = "apt"
             pre = "sudo "
@@ -135,7 +134,6 @@ def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
                 post = "-I | grep -i version"                
             pmgrCMD = pre+pmgr+post
             break
-            
         elif ipm == 'brew':
             pmgr = "apt"
             pre = "sudo "
@@ -151,7 +149,6 @@ def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
                 post = "-I | grep -i version"                
             pmgrCMD = pre+pmgr+post
             break
-        
         elif ipm == 'gdebi' and packageExtension == 'deb':
             pmgr = "apt"
             pre = "sudo "
