@@ -242,6 +242,7 @@ def CheckPipModules(requiredMinimumModulesList):
         import pkg_resources
     except ModuleNotFoundError:
         DownloadInstallPipModules("pip3 install -q %s --disable-pip-version-check pkg_resources")
+        import pkg_resources
     
     # Check environment first
     AddSystemPath()

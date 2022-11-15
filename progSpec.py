@@ -11,6 +11,7 @@ try:
     from pyparsing import ParseResults
 except ModuleNotFoundError:
     DownloadInstallPipModules("pip3 install -q %s --disable-pip-version-check pyparsing")
+    from pyparsing import ParseResults
 
 
 MaxLogLevelToShow = 1
