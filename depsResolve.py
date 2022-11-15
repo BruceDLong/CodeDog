@@ -2,7 +2,6 @@
 import subprocess
 import os
 import sys
-from progSpec import cdErr, cdlog
 from pmgrHandler import findPackageManager
 
 def checkToolLinux(toolName):
@@ -20,11 +19,13 @@ def checkToolWindows(toolName):
 def downloadFile(fileName, downloadURL):
     import urllib3
     try:
-        cdlog(1, "Downloading file: " + fileName)
+        #cdlog(1, "Downloading file: " + fileName)
+        print("Downloading file: " + fileName)
         http = urllib3.PoolManager()
         r = http.request('GET', downloadURL, preload_content=False)
     except:
-        cdErr("URL not found: " + downloadURL)
+        #cdErr("URL not found: " + downloadURL)
+        print("URL not found:" + downloadURL)
     else:
         with open(fileName, 'wb') as out:
             while True:
@@ -37,12 +38,13 @@ def downloadFile(fileName, downloadURL):
 def packageInstall(packageName):
     from pmgrHandler import getPackageManagerCMD
     pmgrCMD = getPackageManagerCMD(packageName, findPackageManager(),"install")
-    cdlog(1, "Package Installing: "+packageName)
+    #cdlog(1, "Package Installing: "+packageName)
+    print("Package Installing: "+packageName)
     if subprocess.call(f'{pmgrCMD}'+" > /dev/null 2>&1", shell=True) == 0:
-        cdlog(1, "Package installed Successfully")
+        print("Package installed Successfully")
         return True
     else:
-        cdErr("Unable to install package. \nPlease install manually : " + packageName)
+        print("Unable to install package. \nPlease install manually : " + packageName)
 
 def installPipPackage():
     from sys import platform
