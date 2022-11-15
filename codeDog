@@ -1,12 +1,9 @@
 #!/usr/bin/env python3
 # CodeDog Program Maker
 import sys;  sys.dont_write_bytecode = True
-from checkSys import installPipPackage
-installPipPackage()
 import environmentMngr as envmgr
-import checkSys
 
-checkSys.CheckPipModules({'pyparsing':'2.0'})
+envmgr.CheckPipModules({'pyparsing':'2.0'})
 
 import progSpec
 import codeDogParser
