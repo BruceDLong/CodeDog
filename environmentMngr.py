@@ -216,16 +216,17 @@ def checkPackageStatus(packageName):
 def checkAndUpgradeOSPackageVersions(packageName):
     cdlog(1, f"Searching for package: {packageName}")
     currentlyInstalled,installedVersion,candidateVersion = checkPackageStatus(packageName)
-    if currentlyInstalled == 'True':
+    if currentlyInstalled == 'False':
+        cdlog(1, f"Candidate Package available: {candidateVersion}")
+        packageInstall(packageName)
+    elif currentlyInstalled == 'True':
         cdlog(1, f"Candidate Package available: {candidateVersion}")
         # Compare versions and apply updates only if needed
-        if installedVersion or candidateVersion == '(none)':
-            if installedVersion < candidateVersion:
-                packageInstall(packageName)
-            else:
-                cdlog(1, f"Package already Installed: {packageName}")
-    elif currentlyInstalled == 'False':
-        packageInstall(packageName)
+        if installedVersion < candidateVersion:
+            packageInstall(packageName)
+        else:
+            cdlog(1, f"Package already Installed: {packageName}")
+
 
 
 def downloadFile(fileName, downloadURL):
