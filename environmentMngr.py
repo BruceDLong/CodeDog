@@ -3,19 +3,6 @@ import subprocess
 from progSpec import cdlog, cdErr
 import checkSys
 
-
-def checkToolLinux(toolName):
-    if subprocess.call(["which", toolName], stdout=subprocess.PIPE, stderr=subprocess.PIPE) == 0:
-        return True
-    else:
-        return None
-
-def checkToolWindows(toolName):
-    if subprocess.call(["Where", toolName], stdout=subprocess.PIPE, stderr=subprocess.PIPE) == 0:
-        return True
-    else:
-        return None
-
 #def detPackageNomenclature(packageName)
     #TODO: add OS-specific detection to handle different package nomenclatures
     # package base-names can be fed through a package manager query to identify the most common package names

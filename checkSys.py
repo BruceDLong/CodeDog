@@ -1,6 +1,18 @@
 import subprocess
 import os
 
+def checkToolLinux(toolName):
+    if subprocess.call(["which", toolName], stdout=subprocess.PIPE, stderr=subprocess.PIPE) == 0:
+        return True
+    else:
+        return None
+
+def checkToolWindows(toolName):
+    if subprocess.call(["Where", toolName], stdout=subprocess.PIPE, stderr=subprocess.PIPE) == 0:
+        return True
+    else:
+        return None
+
 def installPipPackage():
     from sys import platform
     toolName = "pip3"
