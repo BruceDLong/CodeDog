@@ -69,7 +69,7 @@ def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
             elif commandType == "remove":
                 post  = "-get remove -y "+packageName
             elif commandType == "queryAvail":
-                post = "-I "+packageName+" | grep -i version"
+                post = "-cache search "+packageName+" | grep -i version"
             pmgrCMD = pre+pmgr+post
             break
         elif ipm == 'yum' or 'dnf':
@@ -224,7 +224,7 @@ def checkAndUpgradeOSPackageVersions(packageName):
                 packageInstall(packageName)
             else:
                 cdlog(1, f"Package already Installed: {packageName}")
-    else:
+    elif currentlyInstalled == 'False':
         packageInstall(packageName)
 
 
