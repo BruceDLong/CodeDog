@@ -245,7 +245,7 @@ def CheckPipModules(requiredMinimumModulesList):
     
     try:
         import pyparsing
-    except ModuleNotFoundError
+    except ModuleNotFoundError:
         DownloadInstallPipModules("pip3 install -q %s --disable-pip-version-check pyparsing")
     # Check environment first
     AddSystemPath()
