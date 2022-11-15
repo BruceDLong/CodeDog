@@ -1,6 +1,31 @@
 import subprocess
-import pkg_resources
 import os
+
+def installPipPackage():
+    from sys import platform
+    toolName = "pip3"
+    downloadUrl = "https://bootstrap.pypa.io/get-pip.py"
+    fileName = "get-pip.py"
+    
+    if platform == "linux" or platform == "linux2" or platform == "linux-gnu":
+        if not checkToolLinux(toolName):
+            checkAndUpgradeOSPackageVersions('python3-pip') # Install PIP3
+        # If package manager fails to install, try using the bootstrap script
+        if not checkToolLinux(toolName):
+            downloadFile(fileName, downloadUrl)
+            os.system('python3 get-pip.py') # Install PIP3
+
+    elif platform == "darwin":
+        if not checkToolLinux(toolName):
+            downloadFile(fileName, downloadUrl)
+            os.system('python get-pip.py') # Install PIP3
+
+    elif platform == "win32" or platform == "win64":
+        if not checkToolWindows(toolName):
+            downloadFile(fileName, downloadUrl)
+            os.system('py get-pip.py') # Install PIP3
+
+import pkg_resources
 
 def AddSystemPath():
     from sys import platform
