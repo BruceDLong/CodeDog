@@ -11,6 +11,10 @@ except ModuleNotFoundError:
     else:
         depsResolve.installPipPackage()
         depsResolve.installPyparsing()
+        try:
+            import pyparsing
+        except:
+            print("Error attempting to reimport pyparsing")
 #envmgr.CheckPipModules({'pyparsing':'2.0'})
 
 import progSpec
