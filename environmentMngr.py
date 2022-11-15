@@ -252,6 +252,10 @@ def installPipPackage():
     if platform == "linux" or platform == "linux2" or platform == "linux-gnu":
         if not checkToolLinux(toolName):
             checkAndUpgradeOSPackageVersions('python3-pip') # Install PIP3
+        # If package manager fails to install, try using the bootstrap script
+        if not checkToolLinux(toolName):
+            downloadFile(fileName, downloadUrl)
+            os.system('python3 get-pip.py') # Install PIP3
 
     elif platform == "darwin":
         if not checkToolLinux(toolName):
