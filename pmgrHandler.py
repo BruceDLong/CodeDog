@@ -54,13 +54,13 @@ def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
             if commandType == "install":
                 post = " -S --noconfirm "+packageName
             elif commandType == "queryLocalInstall":
-                post = " -Ss | grep '\\/"+packageName+"[^-]' | grep -ic 'installed'"
+                post = " -Ss "+packageName+" | grep '\\/"+packageName+"[^-]' | grep -ic 'installed'"
             elif commandType == "queryLocalVersion":
-                post = " -Ss | grep '\\/"+packageName+"[^-]' | grep -i Installed"
+                post = " -Ss "+packageName+" | grep '\\/"+packageName+"[^-]' | grep -i Installed"
             elif commandType == "remove":
                 post  = " -R --noconfirm "+packageName
             elif commandType == "queryAvailVer":
-                post = " -Ss | grep '\\/"+packageName+"[^-]' | awk '{print $2}'"
+                post = " -Ss "+packageName+" | grep '\\/"+packageName+"[^-]' | awk '{print $2}'"
             pmgrCMD = pre+pmgr+post
 
         elif ipm == 'apt-get' or 'apt':
