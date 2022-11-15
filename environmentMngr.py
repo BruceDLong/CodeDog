@@ -138,15 +138,15 @@ def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
             pmgr = "apt"
             pre = "sudo "
             if commandType == "install":
-                post = "-get install -y "                
+                post = "-get install -y "+packageName               
             elif commandType == "queryLocalInstall":
                 post = "-cache policy "+packageName+"| grep -ic 'none\|Unable'"                
             elif commandType == "queryLocalVersion":
-                post = "-cache policy | grep -i Installed "                
+                post = "-cache policy "+packageName+" | grep -i Installed "                
             elif commandType == "remove":
-                post  = "-get remove -y"                
+                post  = "-get remove -y "+packageName           
             elif commandType == "queryAvail":
-                post = "-I | grep -i version"                
+                post = "-I "+packageName+" | grep -i version"                
             pmgrCMD = pre+pmgr+post
             break
         elif ipm == 'gdebi' and packageExtension == 'deb':
@@ -154,15 +154,15 @@ def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
             pre = "sudo "
             pCMD = pre+pmgr
             if commandType == "install":
-                post = "-get install -y "                
+                post = "-get install -y "+packageName
             elif commandType == "queryLocalInstall":
-                post = "-cache policy "+packageName+"| grep -ic 'none\|Unable'"                
+                post = "-cache policy "+packageName+"| grep -ic 'none\|Unable'"
             elif commandType == "queryLocalVersion":
-                post = "-cache policy | grep -i Installed "                
+                post = "-cache policy "+packageName+" | grep -i Installed "
             elif commandType == "remove":
-                post  = "-get remove -y"                
+                post  = "-get remove -y "+packageName
             elif commandType == "queryAvail":
-                post = "-I | grep -i version"                
+                post = "-I "+packageName+" | grep -i version "
             pmgrCMD = pCMD+post
             break
     # Return the correct command    

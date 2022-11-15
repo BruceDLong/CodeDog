@@ -17,6 +17,9 @@ interface={
         { packageName = 'libpango1.0-dev'
           fetchMethod = 'sys:'
         }
+        { packageName = 'pkg-config'
+          fetchMethod = 'sys:'
+        }
     ]
     provides=[GameToolkit_implementation]
     libFiles=[`pkg-config --cflags --libs sdl2`, SDL2_mixer, `pkg-config --cflags --libs cairo`, `pkg-config --cflags --libs pangocairo`]
