@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from depsResolve import checkToolLinux
+import subprocess
 
 def findPackageManager():
   
@@ -10,7 +10,18 @@ def findPackageManager():
         if checkToolLinux(pmgr):
             installedPackageManagerList.append(pmgr)
     return installedPackageManagerList
-  
+
+def checkToolLinux(toolName):
+    if subprocess.call(["which", toolName], stdout=subprocess.PIPE, stderr=subprocess.PIPE) == 0:
+        return True
+    else:
+        return None
+
+def checkToolWindows(toolName):
+    if subprocess.call(["Where", toolName], stdout=subprocess.PIPE, stderr=subprocess.PIPE) == 0:
+        return True
+    else:
+        return None 
 # Simple sorting algorithm for packages and package managers
 def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
     packageManagers = list(installedPackageManagerList)

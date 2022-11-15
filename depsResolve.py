@@ -2,19 +2,7 @@
 import subprocess
 import os
 import sys
-from pmgrHandler import findPackageManager
-
-def checkToolLinux(toolName):
-    if subprocess.call(["which", toolName], stdout=subprocess.PIPE, stderr=subprocess.PIPE) == 0:
-        return True
-    else:
-        return None
-
-def checkToolWindows(toolName):
-    if subprocess.call(["Where", toolName], stdout=subprocess.PIPE, stderr=subprocess.PIPE) == 0:
-        return True
-    else:
-        return None
+from pmgrHandler import checkToolLinux, checkToolWindows, findPackageManager
 
 def downloadFile(fileName, downloadURL):
     import urllib3
