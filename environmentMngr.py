@@ -216,10 +216,10 @@ def checkPackageStatus(packageName):
 def checkAndUpgradeOSPackageVersions(packageName):
     cdlog(1, f"Searching for package: {packageName}")
     currentlyInstalled,installedVersion,candidateVersion = checkPackageStatus(packageName)
-    if currentlyInstalled == 'False':
+    if currentlyInstalled == False:
         cdlog(1, f"Candidate Package available: {candidateVersion}")
         packageInstall(packageName)
-    elif currentlyInstalled == 'True':
+    elif currentlyInstalled == True:
         cdlog(1, f"Candidate Package available: {candidateVersion}")
         # Compare versions and apply updates only if needed
         if installedVersion < candidateVersion:
