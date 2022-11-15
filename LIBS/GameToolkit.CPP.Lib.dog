@@ -16,7 +16,7 @@ interface={
         },
         { packageName = 'libpango1.0-dev'
           fetchMethod = 'sys:'
-        }
+        },
         { packageName = 'pkg-config'
           fetchMethod = 'sys:'
         }
