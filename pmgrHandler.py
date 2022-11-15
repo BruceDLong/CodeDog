@@ -54,16 +54,16 @@ def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
             if commandType == "install":
                 post = " -S --noconfirm "+packageName
             elif commandType == "queryLocalInstall":
-                post = " -Ss "+packageName+" | grep '\\/"+packageName+"[^-]' | grep -ic 'installed'"
+                post = " -Ss "+packageName+" | grep '/"+packageName+"[^-,^_]' | grep -ic 'installed'"
             elif commandType == "queryLocalVersion":
-                post = " -Ss "+packageName+" | grep '\\/"+packageName+"[^-]' | grep -i Installed"
+                post = " -Ss "+packageName+" | grep '/"+packageName+"[^-,^_]' | grep -i Installed"
             elif commandType == "remove":
                 post  = " -R --noconfirm "+packageName
             elif commandType == "queryAvailVer":
-                post = " -Ss "+packageName+" | grep '\\/"+packageName+"[^-]' | awk '{print $2}'"
+                post = " -Ss "+packageName+" | grep '/"+packageName+"[^-,^_]' | awk '{print $2}'"
             pmgrCMD = pre+pmgr+post
 
-        elif ipm == 'apt-get' or 'apt':
+        elif ipm == 'apt-get' or ipm == 'apt':
             pmgr = "apt"
             pre = "sudo "
             if commandType == "install":
@@ -78,19 +78,19 @@ def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
                 post = " list "+packageName+" 2>&1 | grep '^"+packageName+"\/' | head -n 1 | awk '{print $2}'"
             pmgrCMD = pre+pmgr+post
 
-        elif ipm == 'yum' or 'dnf':
+        elif ipm == 'yum' or ipm == 'dnf':
             pmgr = ipm
             pre = "sudo "
             if commandType == "install":
-                post = "-get install -y "
+                post = "-get install -y "+packageName
             elif commandType == "queryLocalInstall":
                 post = "-cache policy "+packageName+"| grep -ic 'none\|Unable'"
             elif commandType == "queryLocalVersion":
-                post = "-cache policy | grep -i Installed "
+                post = "-cache policy "+packageName+" | grep -i Installed "
             elif commandType == "remove":
-                post  = "-get remove -y"
+                post  = "-get remove -y"+packageName
             elif commandType == "queryAvailVer":
-                post = "-I | grep -i version"
+                post = "-I "+packageName+" | grep -i version"
             pmgrCMD = pre+pmgr+post
 
 
