@@ -5,10 +5,19 @@ import sys;  sys.dont_write_bytecode = True
 try:
     import pyparsing
 except ModuleNotFoundError:
-    subprocess.Popen(f'python3 -m pip install pyparsing', stdout=subprocess.PIPE, shell=True)
+    print("pyparsingmodule not found")
+    if subprocess.call(["which", "pip3"], stdout=subprocess.PIPE, stderr=subprocess.PIPE) == 0:
+        if subprocess.call(f'python3 -m pip install pyparsing > /dev/null 2>&1', shell=True) == 0:
+            print("Installed PyParsing Module")
+    else:
+        print("python3-pip is not currently installed")
+        from environmentMngr import installPipPackage
+        installPipPackage()
+        subprocess.call(f'python3 -m pip install pyparsing > /dev/null 2>&1', shell=True)
+
 import environmentMngr as envmgr
 
-envmgr.CheckPipModules({'pyparsing':'2.0'})
+#envmgr.CheckPipModules({'pyparsing':'2.0'})
 
 import progSpec
 import codeDogParser
