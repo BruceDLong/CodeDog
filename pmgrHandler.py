@@ -28,7 +28,7 @@ def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
     pre = ''
     post = ''
     for ipm in packageManagers:
-        if ipm == 'dpkg' and packageExtension == 'deb':
+        if packageExtension == 'deb' and ipm == 'dpkg':
             pmgr = "dpkg"
             pre = ""
             if commandType == "install":
@@ -47,6 +47,21 @@ def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
                 pre = "sudo "
                 post = " -I "+packageName+" | grep -i version"
             pmgrCMD = pre+ipm+post
+
+        elif ipm == 'pacman':
+            pmgr = 'pacman'
+            pre = "sudo "
+            if commandType == "install":
+                post = "-S --noconfirm "
+            elif commandType == "queryLocalInstall":
+                post = "-Ss | grep '\\/"+packageName+"[^-]' | grep -ic 'installed'"
+            elif commandType == "queryLocalVersion":
+                post = "-Ss | grep '\\/"+packageName+"[^-]' | grep -i Installed"
+            elif commandType == "remove":
+                post  = "-R --noconfirm "
+            elif commandType == "queryAvailVer":
+                post = "-Ss | grep '\\/"+packageName+"[^-]' | awk '{print $2}'"
+            pmgrCMD = pre+pmgr+post
 
         elif ipm == 'apt-get' or 'apt':
             pmgr = "apt"
@@ -78,20 +93,6 @@ def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
                 post = "-I | grep -i version"
             pmgrCMD = pre+pmgr+post
 
-        elif ipm == 'pacman':
-            pmgr = 'pacman'
-            pre = "sudo "
-            if commandType == "install":
-                post = "-S --noconfirm "
-            elif commandType == "queryLocalInstall":
-                post = "-Ss | grep '\\/"+packageName+"[^-]' | grep -ic 'installed'"
-            elif commandType == "queryLocalVersion":
-                post = "-Ss | grep '\\/"+packageName+"[^-]' | grep -i Installed"
-            elif commandType == "remove":
-                post  = "-R --noconfirm "
-            elif commandType == "queryAvailVer":
-                post = "-Ss | grep '\\/"+packageName+"[^-]' | awk '{print $2}'"
-            pmgrCMD = pre+pmgr+post
 
         # TODO: All package managers beyond this point need to be reworked to correctly function
         elif ipm == 'emerge':
