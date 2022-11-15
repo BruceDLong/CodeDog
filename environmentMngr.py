@@ -198,18 +198,18 @@ def checkPackageStatus(packageName):
         cdlog(1, "Package Is Currently Installed")
         pmgrCMD = getPackageManagerCMD(packageName,findPackageManager(),"queryLocalVer")
         _installedVersion = subprocess.Popen(f'{pmgrCMD}', stdout=subprocess.PIPE, shell=True)
-        installedVersion = str(_installedVersion.stdout.read()).split(" ")[-1].replace('\\n\'','')
+        installedVersion = str(_installedVersion.stdout.read()).split(" ")[-0].replace('\\n\'','').replace('b\'','')
         cdlog(1, "Installed Version: "+installedVersion)
         pmgrCMD = getPackageManagerCMD(packageName,findPackageManager(),"queryAvailVer")
         _candidateVersion = subprocess.Popen(f'{pmgrCMD}', stdout=subprocess.PIPE, shell=True)
-        candidateVersion = str(_candidateVersion.stdout.read()).split("-")[-1].replace('\\n\'','')
+        candidateVersion = str(_candidateVersion.stdout.read()).split("-")[-0].replace('\\n\'','').replace('b\'','')
         cdlog(1, "Candidate Version: "+candidateVersion)
         return True,installedVersion,candidateVersion
     else:
         cdlog(1, "Package Is NOT Currently Installed")
         pmgrCMD = getPackageManagerCMD(packageName,findPackageManager(),"queryAvailVer")
         _candidateVersion = subprocess.Popen(f'{pmgrCMD}', stdout=subprocess.PIPE, shell=True)
-        candidateVersion = str(_candidateVersion.stdout.read()).split("-")[-1].replace('\\n\'','')
+        candidateVersion = str(_candidateVersion.stdout.read()).split("-")[-0].replace('\\n\'','').replace('b\'','')
         cdlog(1, "Candidate Version: "+candidateVersion)
         return False,"(none)",candidateVersion
 
