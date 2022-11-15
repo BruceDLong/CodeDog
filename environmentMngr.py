@@ -242,7 +242,11 @@ def CheckPipModules(requiredMinimumModulesList):
         import pkg_resources
     except ModuleNotFoundError:
         DownloadInstallPipModules("pip3 install -q %s --disable-pip-version-check pkg_resources")
-        
+    
+    try:
+        import pyparsing
+    except ModuleNotFoundError
+        DownloadInstallPipModules("pip3 install -q %s --disable-pip-version-check pyparsing")
     # Check environment first
     AddSystemPath()
     # Initialize array of modules
