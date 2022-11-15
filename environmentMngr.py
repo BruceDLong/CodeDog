@@ -2,6 +2,8 @@ import os
 import subprocess
 from progSpec import cdlog, cdErr
 import checkSys
+import pkg_resources
+
 
 #def detPackageNomenclature(packageName)
     #TODO: add OS-specific detection to handle different package nomenclatures
@@ -12,7 +14,7 @@ def findPackageManager():
     packageManagers = ["dpkg", "brew", "yum", "gdebi", "apt-get", "pacman", "emerge", "zypper", "dnf", "rpm"]
 
     for pmgr in packageManagers:
-        if checkToolLinux(pmgr):
+        if checkSys.checkToolLinux(pmgr):
             installedPackageManagerList.append(pmgr)
     return installedPackageManagerList
 
@@ -230,5 +232,68 @@ def downloadFile(fileName, downloadURL):
                 out.write(data)
         r.release_conn()
 
+def DownloadInstallPipModules(pipCMD):
+    # Start a sub-process to run pip and a communications pipe to capture stdout and errors for display
+    pipe = subprocess.Popen(pipCMD, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    out, err = pipe.communicate()
+    decodedOut = bytes.decode(err)
+    if err:
+        print("\n\n", decodedOut)
 
-            
+def CheckPipModules(requiredMinimumModulesList):
+    # Check environment first
+    checkSys.AddSystemPath()
+    # Initialize array of modules
+    modulesList = []
+    # Iterate through list of modules 
+    for moduleName in requiredMinimumModulesList:
+        
+        try:
+            # Check available package versions
+            # version = importlib_metadata.version(moduleName)
+            version = pkg_resources.get_distribution(moduleName).version
+        except:
+            # Add each module that string matches from requiredMinimumModulesList with the avoilable packages to the modulesList array
+            # Each string match is a module that is on the required list and also available from distributions
+            modulesList.append("%s~=%s" % (moduleName, requiredMinimumModulesList[moduleName]))
+        else:
+            # If unmatched...
+            # Initialize a splitting function
+            version = version.split(".")
+            # Parse version currently installed
+            installedModuleVersion = float(".".join(version[:2]))
+            # Load package name from module list
+            moduleVersion = requiredMinimumModulesList[moduleName].split(".")
+            # Parse required package version
+            requiredModuleVersion = float(".".join(moduleVersion[:2]))
+            # Compare required to installed
+            if installedModuleVersion < requiredModuleVersion:
+                modulesList.append("%s==%s" % (moduleName, requiredMinimumModulesList[moduleName]))
+
+    # For any modules required and available
+    if modulesList:
+        print("This program must be used with Python Modules")
+        # Iterate through list of modules and print list
+        for module in modulesList:
+            print("     %s" % module)
+
+        # Request permissions to install from user
+        installationPermission = input("Do you want to install? [Y/n] ")
+        if installationPermission.lower() == 'y' or installationPermission.lower() == 'yes' or installationPermission == '':
+            # If user accepts, Iterate through modules:
+            for module in modulesList:
+                # set the module base name (omitting versions)
+                moduleBaseName = module[:module.find("==")]
+                # Parse the module's latest version
+                latestModule = module.replace('==','~=')
+                print("\nInstalling package: ", moduleBaseName)
+                # send module installation to pip via subprocess
+                pipCMD = 'pip3 install -q %s --disable-pip-version-check' % latestModule
+                DownloadInstallPipModules(pipCMD)
+        else:
+            # If user declines:
+            print("\n\nERROR: CodeDog must be used with python modules\n")
+            # Iterate and list required modules
+            for module in modulesList:
+                print("     %s" % module)
+            exit(1)
