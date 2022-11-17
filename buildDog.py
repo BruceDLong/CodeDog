@@ -10,7 +10,7 @@ import errno
 import shutil
 from progSpec import cdlog, cdErr
 from pathlib import Path
-import checkSys
+
 import environmentMngr as emgr
 
 importantFolders = {}
@@ -117,7 +117,7 @@ def copyRecursive(src, dst, symlinks=False):
         # ~ if errors:
             # ~ raise shutil.Error(errors)
 def gitClone(cloneUrl, packageName, packageDirectory):
-    checkSys.CheckPipModules({'GitPython':'3.1'})
+    emgr.CheckPipModules({'GitPython':'3.1'})
     import urllib.request
     from git import Repo
     packagePath = packageDirectory + '/' + packageName + '/' + packageName
@@ -315,7 +315,8 @@ def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
     copyRecursive("Resources", buildName+"/assets")
     (includeFolders, libFolders) = FindOrFetchLibraries(buildName, packageData, platform, tools)
     packageDirectory = os.getcwd() + '/' + buildName
-    fetchPackages(packageData, packageDirectory)
+    for packageName in packageData:
+        fetchPackages(packageName, packageDirectory)
 
     #building scons file
     SconsFile = "import os\n"
