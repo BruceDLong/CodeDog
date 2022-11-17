@@ -43,11 +43,28 @@ def installPipPackage():
     
     if platform == "linux" or platform == "linux2" or platform == "linux-gnu":
         if subprocess.call(["which", "pip3"], stdout=subprocess.PIPE, stderr=subprocess.PIPE) != 0:
-            packageInstall('python3-pip') # Install PIP3
-        # If package manager fails to install, try using the bootstrap script
-        if not checkToolLinux(toolName):
-            downloadFile(fileName, downloadUrl)
-            os.system('python3 get-pip.py') # Install PIP3
+            from pmgrHandler import getPackageManagerCMD
+            pmgrCMD = getPackageManagerCMD("python-pip", findPackageManager(),"install")
+            print("Package Installing: python3-pip") # Install PIP3
+            if subprocess.call(f'{pmgrCMD}'+" > /dev/null 2>&1", shell=True) == 0:
+                print("pip3 installed Successfully")
+                return True
+            # If package manager fails to install, try using the bootstrap script
+            elif not checkToolLinux(toolName):
+                print("Package install of pip3 failed...")
+                print("Attempting install using bootstrap script.")
+                downloadFile(fileName, downloadUrl)
+                if os.system('python3 get-pip.py') == 0:
+                    print("pip3 installed Successfully")
+                    return True
+                else:
+                    print("Unable to install package. \nPlease install manually : python3-pip")
+                    return False
+        # # If package manager fails to install, try using the bootstrap script
+        # if not checkToolLinux(toolName):
+        #     downloadFile(fileName, downloadUrl)
+        #     os.system('python3 get-pip.py') # Install PIP3
+        #     return True
 
     elif platform == "darwin":
         if not checkToolLinux(toolName):
@@ -61,5 +78,3 @@ def installPipPackage():
 
 def installPyparsing():
     subprocess.check_call([sys.executable, "-m", "pip", "install", "pyparsing"])
-    
-        

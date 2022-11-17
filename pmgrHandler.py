@@ -156,8 +156,8 @@ def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
                 post = "-I "+packageName+" | grep -i version "
             pmgrCMD = pCMD+post
         
-        else:
-            return False
+        # else:
+        #     return False
 
     # Return the correct command
     return pmgrCMD
