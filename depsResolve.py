@@ -4,7 +4,7 @@ import os
 import sys
 from pmgrHandler import checkToolLinux, checkToolWindows, findPackageManager
 
-def downloadFile(fileName, downloadURL):
+def downloadFileNoLog(fileName, downloadURL):
     import urllib3
     try:
         #cdlog(1, "Downloading file: " + fileName)
@@ -23,7 +23,7 @@ def downloadFile(fileName, downloadURL):
                 out.write(data)
         r.release_conn()
 
-def packageInstall(packageName):
+def packageInstallNoLog(packageName):
     from pmgrHandler import getPackageManagerCMD
     pmgrCMD = getPackageManagerCMD(packageName, findPackageManager(),"install")
     #cdlog(1, "Package Installing: "+packageName)
@@ -53,7 +53,7 @@ def installPipPackage():
             elif not checkToolLinux(toolName):
                 print("Package install of pip3 failed...")
                 print("Attempting install using bootstrap script.")
-                downloadFile(fileName, downloadUrl)
+                downloadFileNoLog(fileName, downloadUrl)
                 if os.system('python3 get-pip.py') == 0:
                     print("pip3 installed Successfully")
                     return True
@@ -68,12 +68,12 @@ def installPipPackage():
 
     elif platform == "darwin":
         if not checkToolLinux(toolName):
-            downloadFile(fileName, downloadUrl)
+            downloadFileNoLog(fileName, downloadUrl)
             os.system('python get-pip.py') # Install PIP3
 
     elif platform == "win32" or platform == "win64":
         if not checkToolWindows(toolName):
-            downloadFile(fileName, downloadUrl)
+            downloadFileNoLog(fileName, downloadUrl)
             os.system('py get-pip.py') # Install PIP3
 
 def installPyparsing():

@@ -2,7 +2,6 @@ import os
 import subprocess
 from progSpec import cdlog, cdErr
 from pmgrHandler import getPackageManagerCMD, findPackageManager
-from depsResolve import packageInstall
 
 def checkToolLinux(toolName):
     if subprocess.call(["which", toolName], stdout=subprocess.PIPE, stderr=subprocess.PIPE) == 0:
@@ -15,6 +14,34 @@ def checkToolWindows(toolName):
         return True
     else:
         return None
+    
+def downloadFile(fileName, downloadURL):
+    import urllib3
+    try:
+        cdlog(1, "Downloading file: " + fileName)
+        http = urllib3.PoolManager()
+        r = http.request('GET', downloadURL, preload_content=False)
+    except:
+        cdErr("URL not found: " + downloadURL)
+    else:
+        with open(fileName, 'wb') as out:
+            while True:
+                data = r.read(1028)
+                if not data:
+                    break
+                out.write(data)
+        r.release_conn()
+
+def packageInstall(packageName):
+    from pmgrHandler import getPackageManagerCMD
+    pmgrCMD = getPackageManagerCMD(packageName, findPackageManager(),"install")
+    cdlog(1, "Package Installing: "+packageName)
+    if subprocess.call(f'{pmgrCMD}'+" > /dev/null 2>&1", shell=True) == 0:
+        print("Package installed Successfully")
+        return True
+    else:
+        print("Unable to install package. \nPlease install manually : " + packageName)
+
 
 def checkPackageStatus(packageName):
     # pmgr = getPackageManagerCMD(packageName, findPackageManager())
