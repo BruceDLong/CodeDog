@@ -18,15 +18,10 @@ Python, Pip & Pyparsing Installs
 #. Python3 is required for CodeDog to run. To install open terminal and enter the following commands::
 
     $ sudo apt install python3
-    $ sudo apt install python3-pip
 
 #. Check Python version is 3 or higher::
 
     $ python3 --version
-
-#. Install the pyparsing pip module::
-
-    $ pip install --user pyparsing
 
 Clone Git Repos
 ^^^^^^^^^^^^^^^
