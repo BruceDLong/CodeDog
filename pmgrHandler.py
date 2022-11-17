@@ -56,7 +56,7 @@ def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
             elif commandType == "queryLocalInstall":
                 post = " -Ss "+packageName+" | grep '/"+packageName+"[^-,^_]' | grep -ic 'installed'"
             elif commandType == "queryLocalVersion":
-                post = " -Ss "+packageName+" | grep '/"+packageName+"[^-,^_]' | grep -i Installed"
+                post = " -Ss "+packageName+" | grep '/"+packageName+"[^-,^_]' | grep -i Installed | awk '{print $2}'"
             elif commandType == "remove":
                 post  = " -R --noconfirm "+packageName
             elif commandType == "queryAvailVer":
