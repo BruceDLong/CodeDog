@@ -78,3 +78,14 @@ def installPipPackage():
 
 def installPyparsing():
     subprocess.check_call([sys.executable, "-m", "pip", "install", "pyparsing"])
+
+def packageNameResolve(packageName, pmgr):
+    if pmgr == 'apt' or pmgr == 'apt-get' or pmgr == 'gdebi':
+        packageNameFull = "lib"+packageName+"-dev"
+    elif pmgr == 'yum' or pmgr == 'dnf':
+        packageNameFull = packageName
+    elif pmgr == 'pacman':
+        packageNameFull = packageName
+    else:
+        pass
+    return packageNameFull
