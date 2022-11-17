@@ -58,7 +58,7 @@ def installPipPackage():
                     print("pip3 installed Successfully")
                     return True
                 else:
-                    print("Unable to install package. \nPlease install manually : " + packageName)
+                    print("Unable to install package. \nPlease install manually : python3-pip")
                     return False
         # # If package manager fails to install, try using the bootstrap script
         # if not checkToolLinux(toolName):
