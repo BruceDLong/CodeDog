@@ -4,6 +4,23 @@ requirements = [
 ]
 
 interface={
+    packages = [
+        { packageName = 'libsdl2-dev'
+          fetchMethod = 'sys:'
+        },
+        { packageName = 'libsdl2-mixer-dev'
+          fetchMethod = 'sys:'
+        },
+        { packageName = 'libcairo2-dev'
+          fetchMethod = 'sys:'
+        },
+        { packageName = 'libpango1.0-dev'
+          fetchMethod = 'sys:'
+        },
+        { packageName = 'pkg-config'
+          fetchMethod = 'sys:'
+        }
+    ]
     provides=[GameToolkit_implementation]
     libFiles=[`pkg-config --cflags --libs sdl2`, SDL2_mixer, `pkg-config --cflags --libs cairo`, `pkg-config --cflags --libs pangocairo`]
     headers=[SDL.h, SDL_mixer.h, cairo.h, pango/pangocairo.h]

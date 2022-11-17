@@ -1,0 +1,31 @@
+// environmentSetup.dog
+
+LinuxBuild: Platform='Linux' CPU='amd64' Lang='Python' optimize='speed';
+//WindowsBuild: Platform='Windows' CPU='amd64' Lang='CPP' LangVersion='MSVC' optimize='speed';
+//SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';
+//AndroidBuild: Platform='Android' CPU='JavaVM' Lang='Java' optimize='power';
+//iPhoneBuild: Platform='IOS' CPU='amd64' Lang='Swift' optimize='speed';
+
+Title = "CodeDog Environment Setup"
+FileName = "environmentSetup  "
+Version = "1.0"
+CopyrightMesg = "Public Domain"
+Authors = "Bruce Long, Alan Weinstock"
+Description = "This is simple script to set up CodeDog's environment"
+ProgramOrLibrary = "program"
+
+featuresNeeded = [Logger, Unicode]
+
+LicenseText = `Public Domain`
+
+runCode=`runInstall()`
+////////////   A p p l i c a t i o n   a n d   G l o b a l s
+
+struct GLOBAL{
+    void: runProg()<-{
+        print("Hello World!\n")
+        withEach num in RANGE(1..10){
+            print("value = ", num)
+        }
+    }
+}
