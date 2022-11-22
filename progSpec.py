@@ -210,10 +210,16 @@ def appendToAncestorList(objRef, className, subClassMode, parentClassList):
     global classImplementationOptions
     #subClassMode ="inherits" or "implements"
     #objRef = objSpecs[className]
+    tmpList = []
     if not subClassMode in objRef:
         objRef[subClassMode] = []
-    parentClassList = parentClassList.replace(" ", "")
-    tmpList = parentClassList.split(",")
+    if isinstance(parentClassList,str):
+        parentClassList = parentClassList.replace(" ", "")
+        tmpList = parentClassList.split(",")
+    elif isinstance(parentClassList,list):
+        for itm in parentClassList:
+            itm = itm.replace(" ", "")
+            tmpList.append(itm)
     for parentClass in tmpList:
         if subClassMode=='inherits': processParentClass(className, parentClass)
         if (not parentClass in objRef[subClassMode]):
@@ -410,8 +416,6 @@ def searchATagStore(tagStore, tagToFind):
             item=crntStore[seg]
             crntStore=item
         else: return None
-        #print seg, item
-    #print item
     return [item]
 
 def doesClassHaveProperty(classes, fType, propToFind):
@@ -533,6 +537,7 @@ def populateCallableStructFields(fieldList, classes, className):  # e.g. 'type::
     classInherits = searchATagStore(structSpec['tags'], 'implements')
     if classInherits!=None:
         for classParent in classInherits:
+            if isinstance(classParent, list): classParent = classParent[0]
             populateCallableStructFields(fieldList, classes, classParent)
 
     modelSpec=findSpecOf(classes[0], className, 'model')
