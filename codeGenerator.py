@@ -468,9 +468,7 @@ class CodeGenerator(object):
                 if tagName in self.codeDogSpecificImpl:
                     implTags.remove(tagName)
                 else:
-                    print("tagName ",tagName)
                     tagName = self.xlator.getLangSpecificImplements(tagName)
-                    print("tagName ",tagName)
                     if tagName=="":
                         implTags.remove(implTag)
             if len(implTags)==0: implTags = None
@@ -1595,8 +1593,11 @@ class CodeGenerator(object):
         argList      = progSpec.getArgList(field)
         sizeArgList  = len(argList)
         overRideOper = False
+        isStatic     = False
         if fieldName[0:2] == "__" and self.xlator.iteratorsUseOperators:
-            fieldName    = self.xlator.specialFunction(fieldName, sizeArgList)
+            fieldNameIn  = fieldName
+            fieldName    = self.xlator.specialFunction(fieldName, classDef)
+            if fieldNameIn != fieldName: isStatic = True
             overRideOper = True
         #### ARGLIST
         argListText  = ""
@@ -1639,7 +1640,7 @@ class CodeGenerator(object):
         # ####################################################################
         cvrtType     = self.convertType(tSpec, 'func', genericArgs)
         if(cvrtType=='none'): cvrtType = ''
-        [structCode, funcDefCode, globalFuncs]=self.xlator.codeFuncHeaderStr(className, fieldName, field, cvrtType, argListText, self.localArgsAllocated, inheritMode, typeArgList, self.isNestedClass, overRideOper, indent)
+        [structCode, funcDefCode, globalFuncs]=self.xlator.codeFuncHeaderStr(className, fieldName, field, cvrtType, argListText, self.localArgsAllocated, inheritMode, typeArgList, self.isNestedClass, overRideOper, isStatic, indent)
         #### FUNC BODY #############################################
         if abstractFunction: # i.e., if no function body is given.
             cdlog(5, "Function "+fieldID+" has no implementation defined.")

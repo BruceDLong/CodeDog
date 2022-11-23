@@ -36,7 +36,7 @@ model Map<keyType, valueType>{
 ////////////////////////////////////////////////////////
 struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={insert=logarithmic find=logarithmic at=logarithmic}{// find=logarithmic at=logarithmic}{  // constant
     // Thanks to: https://www.programiz.com/dsa/red-black-tree
-    const struct: Node_RBTree(keyType: key, valueType: value): implements=MapNode <- {
+    const struct: Node_RBTree(keyType: key, valueType: value): implements=[MapNode, Equatable] <- {
         me keyType: key
         me valueType: value
         me bool: isBlack

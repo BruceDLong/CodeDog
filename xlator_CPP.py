@@ -872,7 +872,7 @@ void SetBits(CopyableAtomic<uint64_t>& target, uint64_t mask, uint64_t value) {
     def codeSuperConstructorCall(self, parentClassName):
         return parentClassName+'()'
 
-    def specialFunction(self, fieldName, sizeArgList):
+    def specialFunction(self, fieldName, classDef):
         if fieldName == "__plus": newFieldName = "operator+"
         elif fieldName == "__minus": newFieldName = "operator-"
         elif fieldName == "__times": newFieldName = "operator*"
@@ -893,7 +893,7 @@ void SetBits(CopyableAtomic<uint64_t>& target, uint64_t mask, uint64_t value) {
         else:  newFieldName = fieldName
         return newFieldName
 
-    def codeFuncHeaderStr(self, className, fieldName, field, cvrtType, argListText, localArgsAlloc, inheritMode, typeArgList, isNested, overRideOper, indent):
+    def codeFuncHeaderStr(self, className, fieldName, field, cvrtType, argListText, localArgsAlloc, inheritMode, typeArgList, isNested, overRideOper, isStatic, indent):
         structCode=''; funcDefCode=''; globalFuncs='';
         tSpec        = progSpec.getTypeSpec(field)
         fTypeKW      = progSpec.fieldTypeKeyword(tSpec)
@@ -901,7 +901,7 @@ void SetBits(CopyableAtomic<uint64_t>& target, uint64_t mask, uint64_t value) {
         overRideOper = False
         if fieldName[0:2] == "__" and self.iteratorsUseOperators:
             sizeArgList  = len(progSpec.getArgList(field))
-            fieldName    = self.specialFunction(fieldName, sizeArgList)
+            fieldName    = self.specialFunction(fieldName, className)
             overRideOper = True
         if(className=='GLOBAL'):
             if fieldName=='main':

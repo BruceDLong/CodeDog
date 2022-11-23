@@ -326,15 +326,32 @@ def getClassesDependancies(className):
     if className in DependanciesMarked:   retList.extend(DependanciesMarked[className])
     return retList
 
+def appendActionList(fields, fieldID, newActions):
+    for field in fields:
+        if 'fieldID' in field and fieldOnlyID(field['fieldID']) == fieldOnlyID(fieldID):
+            if 'typeSpec' in field and field['typeSpec']!=None: tSpec=field['typeSpec']
+            else: tSpec=None
+            fieldIsAFunction = fieldIsFunction(tSpec)
+            if fieldIsAFunction and 'value' in field and field['value']!=None:
+                for action in newActions:
+                    field['value'][0].append(copy.copy(action))
+
+    return
+
+def appendExtractedStruct(objSpecs, className, newActions):
+    fields = objSpecs[className]['fields']
+    for action in newActions:
+        fields.append(copy.copy(action['fieldDef']))
+
 def addField(objSpecs, className, stateType, packedField):
     global MarkItems
     global MarkedObjects
     global MarkedFields
     global ModifierCommands
-    thisName  = packedField['fieldName']
     fieldID   = packedField['fieldID']
     tSpec     = getTypeSpec(packedField)
     fTypeKW   = fieldTypeKeyword(tSpec)
+    owner     = getOwner(tSpec)
 
     if stateType=='model': taggedClassName='%'+className
     elif stateType=='string': taggedClassName='$'+className
@@ -348,6 +365,10 @@ def addField(objSpecs, className, stateType, packedField):
             if not ('value' in field) or field['value']==None: return
             if not ('value' in packedField)   or packedField['value']  ==None: return
             if field['value']==packedField['value']: return
+            if owner=='const' and fTypeKW=='struct': # append inner struct & extracted struct
+                appendActionList(objSpecs[taggedClassName]["fields"], fieldID, packedField['value'][0])
+                appendExtractedStruct(objSpecs, fieldID.split('::')[1].split('(')[0], packedField['value'][0])
+                return
             cdErr(fieldID+" is being contradictorily redefined.")
 
         # Don't override flags and modes in derived Classes

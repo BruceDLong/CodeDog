@@ -183,7 +183,7 @@ class Xlator(object):
     def codeSuperConstructorCall(self, parentClassName):
         cdErr("In base class Xlator::codeSuperConstructorCall.")
 
-    def codeFuncHeaderStr(self, className, fieldName, field, cvrtType, argListText, localArgsAlloc, inheritMode, typeArgList, isNested, overRideOper, indent):
+    def codeFuncHeaderStr(self, className, fieldName, field, cvrtType, argListText, localArgsAlloc, inheritMode, typeArgList, isNested, overRideOper, isStatic, indent):
         cdErr("In base class Xlator::codeFuncHeaderStr.")
 
     def getVirtualFuncText(self, field):

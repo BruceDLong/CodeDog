@@ -891,7 +891,7 @@ class Xlator_Swift(Xlator):
     def codeSuperConstructorCall(self, parentClassName):
         return '        super.init();\n'
 
-    def specialFunction(self, fieldName, sizeArgList):
+    def specialFunction(self, fieldName, classDef):
         if fieldName == "__plus": newFieldName = fieldName
         elif fieldName == "__minus": newFieldName = fieldName
         elif fieldName == "__times": newFieldName = fieldName
@@ -903,8 +903,12 @@ class Xlator_Swift(Xlator):
         elif fieldName == "__greaterThan": newFieldName = fieldName
         elif fieldName == "__greaterOrEq": newFieldName = fieldName
         elif fieldName == "__isEqual":
-            if sizeArgList==2: newFieldName = "=="
-            else: newFieldName = fieldName
+            newFieldName = fieldName
+            if 'tags' in classDef:
+                classImplements = progSpec.searchATagStore(classDef['tags'], 'implements')
+                if classImplements!=None:
+                    if 'Equatable' in classImplements[0]:
+                        newFieldName = "=="
         elif fieldName == "__notEqual": newFieldName = fieldName
         elif fieldName == "__inc": newFieldName = fieldName
         elif fieldName == "__opAssign": newFieldName = fieldName
@@ -914,7 +918,7 @@ class Xlator_Swift(Xlator):
         else:  newFieldName = fieldName
         return newFieldName
 
-    def codeFuncHeaderStr(self, className, fieldName, field, cvrtType, argListText, localArgsAlloc, inheritMode, typeArgList, isNested, overRideOper, indent):
+    def codeFuncHeaderStr(self, className, fieldName, field, cvrtType, argListText, localArgsAlloc, inheritMode, typeArgList, isNested, overRideOper, isStatic, indent):
         structCode='\n'; funcDefCode=''; globalFuncs='';
         tSpec        = progSpec.getTypeSpec(field)
         fTypeKW      = progSpec.fieldTypeKeyword(tSpec)
@@ -942,7 +946,7 @@ class Xlator_Swift(Xlator):
                     fieldTypeMod = self.makePtrOpt(tSpec)
                     funcAttrs = ''
                     staticKW  = ''
-                    if overRideOper: staticKW = 'static '
+                    if isStatic: staticKW = 'static '
                     if inheritMode=='override': funcAttrs='override '
                     structCode += indent + funcAttrs + staticKW + "func " + fieldName +"("+argListText+") " + cvrtType + fieldTypeMod
         return [structCode, funcDefCode, globalFuncs]

@@ -14,7 +14,13 @@ LibDescription ={
     useStatus   = dynamic
     description = 'Map in routines for Swift'
 }
-
+struct RBTreeMap<keyType, valueType>{
+    const struct: Node_RBTree(keyType: key, valueType: value): implements=[MapNode, Equatable] <- {
+        me bool: __isEqual(Node_RBTree<keyType, valueType>: LHS, Node_RBTree<keyType, valueType>: RHS) <- {
+            return(LHS.value == RHS.value)
+        }
+    }
+}
 /*
 struct Swift_Map<keyType, valueType>: implements=Map wraps=`NSMutableOrderedSet` specs={insert=logarithmic}{
     valueType: at(keyType)                      <- <%!%>
