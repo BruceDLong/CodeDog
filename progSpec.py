@@ -210,10 +210,16 @@ def appendToAncestorList(objRef, className, subClassMode, parentClassList):
     global classImplementationOptions
     #subClassMode ="inherits" or "implements"
     #objRef = objSpecs[className]
+    tmpList = []
     if not subClassMode in objRef:
         objRef[subClassMode] = []
-    parentClassList = parentClassList.replace(" ", "")
-    tmpList = parentClassList.split(",")
+    if isinstance(parentClassList,str):
+        parentClassList = parentClassList.replace(" ", "")
+        tmpList = parentClassList.split(",")
+    elif isinstance(parentClassList,list):
+        for itm in parentClassList:
+            itm = itm.replace(" ", "")
+            tmpList.append(itm)
     for parentClass in tmpList:
         if subClassMode=='inherits': processParentClass(className, parentClass)
         if (not parentClass in objRef[subClassMode]):
@@ -320,15 +326,32 @@ def getClassesDependancies(className):
     if className in DependanciesMarked:   retList.extend(DependanciesMarked[className])
     return retList
 
+def appendActionList(fields, fieldID, newActions):
+    for field in fields:
+        if 'fieldID' in field and fieldOnlyID(field['fieldID']) == fieldOnlyID(fieldID):
+            if 'typeSpec' in field and field['typeSpec']!=None: tSpec=field['typeSpec']
+            else: tSpec=None
+            fieldIsAFunction = fieldIsFunction(tSpec)
+            if fieldIsAFunction and 'value' in field and field['value']!=None:
+                for action in newActions:
+                    field['value'][0].append(copy.copy(action))
+
+    return
+
+def appendExtractedStruct(objSpecs, className, newActions):
+    fields = objSpecs[className]['fields']
+    for action in newActions:
+        fields.append(copy.copy(action['fieldDef']))
+
 def addField(objSpecs, className, stateType, packedField):
     global MarkItems
     global MarkedObjects
     global MarkedFields
     global ModifierCommands
-    thisName  = packedField['fieldName']
     fieldID   = packedField['fieldID']
     tSpec     = getTypeSpec(packedField)
     fTypeKW   = fieldTypeKeyword(tSpec)
+    owner     = getOwner(tSpec)
 
     if stateType=='model': taggedClassName='%'+className
     elif stateType=='string': taggedClassName='$'+className
@@ -342,6 +365,10 @@ def addField(objSpecs, className, stateType, packedField):
             if not ('value' in field) or field['value']==None: return
             if not ('value' in packedField)   or packedField['value']  ==None: return
             if field['value']==packedField['value']: return
+            if owner=='const' and fTypeKW=='struct': # append inner struct & extracted struct
+                appendActionList(objSpecs[taggedClassName]["fields"], fieldID, packedField['value'][0])
+                appendExtractedStruct(objSpecs, fieldID.split('::')[1].split('(')[0], packedField['value'][0])
+                return
             cdErr(fieldID+" is being contradictorily redefined.")
 
         # Don't override flags and modes in derived Classes
@@ -410,8 +437,6 @@ def searchATagStore(tagStore, tagToFind):
             item=crntStore[seg]
             crntStore=item
         else: return None
-        #print seg, item
-    #print item
     return [item]
 
 def doesClassHaveProperty(classes, fType, propToFind):
@@ -533,6 +558,7 @@ def populateCallableStructFields(fieldList, classes, className):  # e.g. 'type::
     classInherits = searchATagStore(structSpec['tags'], 'implements')
     if classInherits!=None:
         for classParent in classInherits:
+            if isinstance(classParent, list): classParent = classParent[0]
             populateCallableStructFields(fieldList, classes, classParent)
 
     modelSpec=findSpecOf(classes[0], className, 'model')

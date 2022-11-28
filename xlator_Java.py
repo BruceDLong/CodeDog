@@ -30,6 +30,14 @@ class Xlator_Java(Xlator):
     hasMacros             = False
     useNestedClasses      = False
     nullValue             = "null"
+    langSpecificImpl      = {
+                                "Equatable": "",
+                            }
+
+    def getLangSpecificImplements(self, implName):
+        if implName in self.langSpecificImpl:
+            return self.langSpecificImpl[implName]
+        return None
 
     ###################################################### CONTAINERS
     def codeArrayIndex(self, idx, containerType, LorR_Val, previousSegName, idxTypeSpec):
@@ -716,8 +724,8 @@ class Xlator_Java(Xlator):
             # TODO: verify if classImplements is used
             #print(className, "Implements: " , classImplements)
             parentClass+=' implements '
-            count =0
-            for item in classImplements[0]:
+            count = 0
+            for item in classImplements:
                 if count>0:
                     parentClass+= ', '
                 parentClass+= item
@@ -892,11 +900,10 @@ class Xlator_Java(Xlator):
     def codeSuperConstructorCall(self, parentClassName):
         return '        '+parentClassName+'();\n'
 
-    def codeFuncHeaderStr(self, className, field, cvrtType, argListText, localArgsAlloc, inheritMode, typeArgList, isNested, indent):
+    def codeFuncHeaderStr(self, className, fieldName, field, cvrtType, argListText, localArgsAlloc, inheritMode, typeArgList, isNested, overRideOper, isStatic, indent):
         structCode='\n'; funcDefCode=''; globalFuncs='';
         tSpec        = progSpec.getTypeSpec(field)
         fTypeKW      = progSpec.fieldTypeKeyword(tSpec)
-        fieldName    = field['fieldName']
         if(className=='GLOBAL'):
             if inheritMode=='pure-virtual': structCode=''
             elif fieldName=='main':

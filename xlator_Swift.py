@@ -23,13 +23,21 @@ class Xlator_Swift(Xlator):
     MakeConstructors      = True
     blockPrefix           = "do"
     usePrefixOnStatics    = True
-    iteratorsUseOperators = False
+    iteratorsUseOperators = True
     renderGenerics        = "True"
     renameInitFuncs       = True
     useAllCtorArgs        = False
     hasMacros             = False
     useNestedClasses      = False
     nullValue             = "nil"
+    langSpecificImpl      = {
+                                "Equatable": "Equatable",
+                            }
+
+    def getLangSpecificImplements(self, implName):
+        if implName in self.langSpecificImpl:
+            return self.langSpecificImpl[implName]
+        return None
 
     ###################################################### CONTAINERS
     def codeArrayIndex(self, idx, containerType, LorR_Val, previousSegName, idxTypeSpec):
@@ -631,12 +639,22 @@ class Xlator_Swift(Xlator):
             parentClass = ': '+parentClass+' '
             parentClass = progSpec.getUnwrappedClassFieldTypeKeyWord(className)
         if classInherits!=None:
-            parentClass=': '
-            count =0
+            if parentClass != "": parentClass+= ', '
+            else: parentClass=': '
+            count = 0
             for item in classInherits[0]:
                 if count>0:
                     parentClass+= ', '
                 parentClass+= progSpec.getUnwrappedClassFieldTypeKeyWord(classes, item)
+                count += 1
+        if classImplements!=None:
+            if parentClass != "": parentClass+= ', '
+            else: parentClass=': '
+            count = 0
+            for item in classImplements:
+                if count>0:
+                    parentClass+= ', '
+                parentClass+= item
                 count += 1
         typeArgList = progSpec.getTypeArgList(className)
         if(typeArgList != None):
@@ -873,11 +891,37 @@ class Xlator_Swift(Xlator):
     def codeSuperConstructorCall(self, parentClassName):
         return '        super.init();\n'
 
-    def codeFuncHeaderStr(self, className, field, cvrtType, argListText, localArgsAlloc, inheritMode, typeArgList, isNested, indent):
+    def specialFunction(self, fieldName, classDef):
+        if fieldName == "__plus": newFieldName = fieldName
+        elif fieldName == "__minus": newFieldName = fieldName
+        elif fieldName == "__times": newFieldName = fieldName
+        elif fieldName == "__divide": newFieldName = fieldName
+        elif fieldName == "__negate": newFieldName = fieldName
+        elif fieldName == "__plusEqual": newFieldName = fieldName
+        elif fieldName == "__lessThan": newFieldName = fieldName
+        elif fieldName == "__lessOrEq": newFieldName = fieldName
+        elif fieldName == "__greaterThan": newFieldName = fieldName
+        elif fieldName == "__greaterOrEq": newFieldName = fieldName
+        elif fieldName == "__isEqual":
+            newFieldName = fieldName
+            if 'tags' in classDef:
+                classImplements = progSpec.searchATagStore(classDef['tags'], 'implements')
+                if classImplements!=None:
+                    if 'Equatable' in classImplements[0]:
+                        newFieldName = "=="
+        elif fieldName == "__notEqual": newFieldName = fieldName
+        elif fieldName == "__inc": newFieldName = fieldName
+        elif fieldName == "__opAssign": newFieldName = fieldName
+        elif fieldName == "__derefPtr": newFieldName = fieldName
+        elif fieldName == "__index": newFieldName = fieldName
+        elif fieldName == "__opPtr": newFieldName = fieldName
+        else:  newFieldName = fieldName
+        return newFieldName
+
+    def codeFuncHeaderStr(self, className, fieldName, field, cvrtType, argListText, localArgsAlloc, inheritMode, typeArgList, isNested, overRideOper, isStatic, indent):
         structCode='\n'; funcDefCode=''; globalFuncs='';
         tSpec        = progSpec.getTypeSpec(field)
         fTypeKW      = progSpec.fieldTypeKeyword(tSpec)
-        fieldName    = field['fieldName']
         if fTypeKW =='none': isCtor = True
         else: isCtor = False
         if typeArgList:
@@ -900,9 +944,11 @@ class Xlator_Swift(Xlator):
                     structCode += indent + "init "  +"("+argListText+") " + cvrtType
                 else:
                     fieldTypeMod = self.makePtrOpt(tSpec)
-                    funcAttrs=''
+                    funcAttrs = ''
+                    staticKW  = ''
+                    if isStatic: staticKW = 'static '
                     if inheritMode=='override': funcAttrs='override '
-                    structCode += indent + funcAttrs + "func " + fieldName +"("+argListText+") " + cvrtType + fieldTypeMod
+                    structCode += indent + funcAttrs + staticKW + "func " + fieldName +"("+argListText+") " + cvrtType + fieldTypeMod
         return [structCode, funcDefCode, globalFuncs]
 
     def getVirtualFuncText(self, field):

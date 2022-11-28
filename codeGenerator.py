@@ -42,6 +42,7 @@ class CodeGenerator(object):
     nestedClasses      = {}
     isNestedClass      = False
     genericStructsGenerated = [ {}, [] ]
+    codeDogSpecificImpl     = ["List", "Map", "MapNode","MapItr", "Multimap", ]
     ForwardDeclsForGlobalFuncs = ''
     listOfFuncsWithUnknownArgTypes = {}
 
@@ -453,6 +454,26 @@ class CodeGenerator(object):
                 retVal[itm] = copy.copy(classDef[itm])
         return retVal
 
+    def removeCodeDogImplTags(self, className, genericStructName, implTags):
+        if isinstance(implTags,str):
+            tagName = implTags
+            if tagName in self.codeDogSpecificImpl:
+                implTags = None
+            if implTags!=None:
+                implTags = self.xlator.getLangSpecificImplements(implTags)
+                if implTags=="": implTags = None
+        elif isinstance(implTags,list):
+            for implTag in implTags:
+                tagName = implTag
+                if tagName in self.codeDogSpecificImpl:
+                    implTags.remove(tagName)
+                else:
+                    tagName = self.xlator.getLangSpecificImplements(tagName)
+                    if tagName=="":
+                        implTags.remove(implTag)
+            if len(implTags)==0: implTags = None
+        return implTags
+
     def generateGenericStructName(self, className, reqTagList, genericArgs):
         classDef = progSpec.findSpecOf(self.classStore[0], className, "struct")
         if classDef == None: classDef = progSpec.findSpecOf(self.classStore[0], className, "model")
@@ -478,9 +499,16 @@ class CodeGenerator(object):
             self.genericStructsGenerated[1].append(genericStructName)
             self.classStore[1].append(genericStructName)
             genericClassDef = self.copyClassDef(classDef)
-            if 'implements' in genericClassDef: genericClassDef.pop('implements')
             if 'vFields' in genericClassDef: genericClassDef['vFields'] = None
-            if 'tags' in genericClassDef and 'implements' in genericClassDef['tags']:genericClassDef['tags'].pop('implements')
+            if 'implements' in genericClassDef:
+                implTags = self.removeCodeDogImplTags(className, genericStructName, genericClassDef['implements'])
+                genericClassDef['tags'].pop('implements')
+                if implTags!=None: genericClassDef['tags']['implements'] = implTags
+            if 'tags' in genericClassDef and 'implements' in genericClassDef['tags']:
+                implTags = self.removeCodeDogImplTags(className, genericStructName, genericClassDef['tags']['implements'])
+                genericClassDef['tags'].pop('implements')
+                if implTags!=None:
+                    genericClassDef['tags']['implements'] = implTags
             genericClassDef['name'] = genericStructName
             genericClassDef['genericArgs'] = genericArgs
             for field in genericClassDef["fields"]: # handle constructors and function return types
@@ -1562,15 +1590,19 @@ class CodeGenerator(object):
         fTypeKW      = progSpec.fieldTypeKeyword(tSpec)
         fieldName    = field['fieldName']
         fieldID      = field['fieldID']
+        argList      = progSpec.getArgList(field)
+        sizeArgList  = len(argList)
         overRideOper = False
+        isStatic     = False
         if fieldName[0:2] == "__" and self.xlator.iteratorsUseOperators:
-            fieldName    = self.xlator.specialFunction(fieldName)
+            fieldNameIn  = fieldName
+            fieldName    = self.xlator.specialFunction(fieldName, classDef)
+            if fieldNameIn != fieldName: isStatic = True
             overRideOper = True
         #### ARGLIST
         argListText  = ""
         argListCount = 0
-        argList      = progSpec.getArgList(field)
-        if len(argList)==0: argListText='' #'void'
+        if sizeArgList==0: argListText='' #'void'
         elif argList[0]=='<%': argListText=argList[1][0]        # Verbatim.arguments
         else:
             for arg in argList:
@@ -1588,7 +1620,6 @@ class CodeGenerator(object):
         #### RETURN TYPE ###########################################
         FirstReturnType = copy.copy(tSpec) # TODO: Un-Hardcode FirstReturnType, typeSpec?
         if(fTypeKW[0] != '<%'): pass #self.registerType(className, fieldName, cvrtType, typeDefName)
-
 
         #### FUNC HEADER: for both decl and defn. ##################
         inheritMode='normal'
@@ -1609,8 +1640,7 @@ class CodeGenerator(object):
         # ####################################################################
         cvrtType     = self.convertType(tSpec, 'func', genericArgs)
         if(cvrtType=='none'): cvrtType = ''
-        [structCode, funcDefCode, globalFuncs]=self.xlator.codeFuncHeaderStr(className, field, cvrtType, argListText, self.localArgsAllocated, inheritMode, typeArgList, self.isNestedClass, indent)
-
+        [structCode, funcDefCode, globalFuncs]=self.xlator.codeFuncHeaderStr(className, fieldName, field, cvrtType, argListText, self.localArgsAllocated, inheritMode, typeArgList, self.isNestedClass, overRideOper, isStatic, indent)
         #### FUNC BODY #############################################
         if abstractFunction: # i.e., if no function body is given.
             cdlog(5, "Function "+fieldID+" has no implementation defined.")
@@ -1851,6 +1881,11 @@ class CodeGenerator(object):
                     if classInherits is None: classInherits=progSpec.searchATagStore(modelDef, 'inherits')
                     else: classInherits.append(progSpec.searchATagStore(modelDef, 'inherits'))
                 classImplements=progSpec.searchATagStore(classDef, 'implements')
+                if isinstance(classImplements, list):
+                    if len(classImplements)==0:   classImplements = None
+                    elif len(classImplements)==1:
+                        classImplements = classImplements[0]
+                        if len(classImplements)==0:   classImplements = None
 
                 if (className in progSpec.structsNeedingModification):
                     cdlog(3, "structsNeedingModification: {}".format(str(structsNeedingModification[className])))

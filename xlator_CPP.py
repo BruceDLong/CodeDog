@@ -30,6 +30,14 @@ class Xlator_CPP(Xlator):
     hasMacros             = True
     useNestedClasses      = True
     nullValue             = "nullptr"
+    langSpecificImpl      = {
+                                "Equatable": "",
+                            }
+
+    def getLangSpecificImplements(self, implName):
+        if implName in self.langSpecificImpl:
+            return self.langSpecificImpl[implName]
+        return None
 
     ###################################################### CONTAINERS
     def getIteratorValueCodeConverter(self, tSpec, prevNameSeg):
@@ -864,7 +872,7 @@ void SetBits(CopyableAtomic<uint64_t>& target, uint64_t mask, uint64_t value) {
     def codeSuperConstructorCall(self, parentClassName):
         return parentClassName+'()'
 
-    def specialFunction(self, fieldName):
+    def specialFunction(self, fieldName, classDef):
         if fieldName == "__plus": newFieldName = "operator+"
         elif fieldName == "__minus": newFieldName = "operator-"
         elif fieldName == "__times": newFieldName = "operator*"
@@ -885,14 +893,15 @@ void SetBits(CopyableAtomic<uint64_t>& target, uint64_t mask, uint64_t value) {
         else:  newFieldName = fieldName
         return newFieldName
 
-    def codeFuncHeaderStr(self, className, field, cvrtType, argListText, localArgsAlloc, inheritMode, typeArgList, isNested, indent):
+    def codeFuncHeaderStr(self, className, fieldName, field, cvrtType, argListText, localArgsAlloc, inheritMode, typeArgList, isNested, overRideOper, isStatic, indent):
         structCode=''; funcDefCode=''; globalFuncs='';
         tSpec        = progSpec.getTypeSpec(field)
         fTypeKW      = progSpec.fieldTypeKeyword(tSpec)
         fieldName    = field['fieldName']
         overRideOper = False
         if fieldName[0:2] == "__" and self.iteratorsUseOperators:
-            fieldName    = self.specialFunction(fieldName)
+            sizeArgList  = len(progSpec.getArgList(field))
+            fieldName    = self.specialFunction(fieldName, className)
             overRideOper = True
         if(className=='GLOBAL'):
             if fieldName=='main':
