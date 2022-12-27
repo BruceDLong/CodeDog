@@ -514,7 +514,7 @@ def getBuildSting (fileName, buildStr_libs, platform, buildName):
         buildStr = "swiftc -suppress-warnings " + fileName + fileExtension
     elif platform == 'Windows':
         codeDogPath = os.path.dirname(os.path.realpath(__file__))
-        buildStr = f"python3 {codeDogPath}/Scons/scons.py -Q -f "+fileName+".scons"
+        buildStr = f"python {codeDogPath}/Scons/scons.py -Q -f "+fileName+".scons"
     elif platform == 'MacOS':
         buildStr = "// swift build -Xswiftc -suppress-warnings \n"
         buildStr += "// swift run  -Xswiftc -suppress-warnings \n"
@@ -546,7 +546,7 @@ def buildWithScons(name, cmdLineArgs):
 
         codeDogPath = os.path.dirname(os.path.realpath(__file__))
         otherSconsArgs = ' '.join(cmdLineArgs)
-        sconsCMD = "python3 "+codeDogPath+"/Scons/scons.py -Q -f "+sconsFile + ' '+ otherSconsArgs
+        sconsCMD = "python "+codeDogPath+"/Scons/scons.py -Q -f "+sconsFile + ' '+ otherSconsArgs
         result = runCmdStreaming(sconsCMD, basepath)
         if result==0:
             print("\nSUCCESS\n")
