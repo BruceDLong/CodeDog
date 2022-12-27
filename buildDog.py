@@ -492,7 +492,7 @@ def getBuildSting (fileName, buildStr_libs, platform, buildName):
         """
 
         codeDogPath = os.path.dirname(os.path.realpath(__file__))
-        buildStr = f"python3 {codeDogPath}/Scons/scons.py -Q -f "+fileName+".scons"
+        buildStr = f"python {codeDogPath}/Scons/scons.py -Q -f "+fileName+".scons"
     elif platform == 'Java' or  platform == 'Swing':
         buildStr = ''
         libStr = ''
