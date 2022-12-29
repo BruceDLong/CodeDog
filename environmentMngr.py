@@ -49,7 +49,11 @@ def checkPackageStatus(packageName):
     cdlog(1, "Checking for installed Package: "+packageName)
     pmgrCMD = getPackageManagerCMD(packageName,findPackageManager(),"queryLocalInstall")
     checkInstalled = subprocess.Popen(f'{pmgrCMD}', stdout=subprocess.PIPE, shell=True)
-    _packageToCheck = int(checkInstalled.stdout.read())
+    if checkInstalled.isdigit():
+        _packageToCheck = int(checkInstalled.stdout.read())
+    else:
+        _packageToCheck = 1
+
     if _packageToCheck == 0:
         cdlog(1, "Package Is Currently Installed")
         pmgrCMD = getPackageManagerCMD(packageName,findPackageManager(),"queryLocalVer")
