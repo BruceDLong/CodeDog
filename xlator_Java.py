@@ -108,14 +108,14 @@ class Xlator_Java(Xlator):
         loopCntrName = ""
         firstOwner   = progSpec.getOwner(ctnrTSpec)
         firstType    = progSpec.getNewContainerFirstElementTypeTempFunc(ctnrTSpec)
-        firstTSpec   = {'owner':firstOwner, 'fieldType':firstType}
+        repTSpec     = {'owner':firstOwner, 'fieldType':firstType}
         reqTagList   = progSpec.getReqTagList(ctnrTSpec)
         containerCat = progSpec.getContaineCategory(self.codeGen.classStore, ctnrTSpec)
         if containerCat=="Map" or containerCat=="Multimap":
             valueFieldType = progSpec.fieldTypeKeyword(ctnrTSpec)
             if(reqTagList != None):
-                firstTSpec['owner']     = progSpec.getOwner(reqTagList[1])
-                firstTSpec['fieldType'] = progSpec.fieldTypeKeyword(reqTagList[1])
+                repTSpec['owner']     = progSpec.getOwner(reqTagList[1])
+                repTSpec['fieldType'] = progSpec.fieldTypeKeyword(reqTagList[1])
                 idxTypeKW      = progSpec.fieldTypeKeyword(reqTagList[0])
                 valueFieldType = progSpec.fieldTypeKeyword(reqTagList[1])
             keyVarSpec = {'owner':ctnrTSpec['owner'], 'fieldType':firstType}
@@ -125,7 +125,7 @@ class Xlator_Java(Xlator):
             idxTypeKW = self.adjustBaseTypes(idxTypeKW, True)
             valueFieldType = self.adjustBaseTypes(valueFieldType, True)
             localVarsAlloc.append([loopCntrName, keyVarSpec])  # Tracking local vars for scope
-            localVarsAlloc.append([repName, firstTSpec]) # Tracking local vars for scope
+            localVarsAlloc.append([repName, repTSpec]) # Tracking local vars for scope
             if '__RB' in datastructID:
                 actionText += (indent + 'for('+itrTypeKW+' '+repName+'Entry = '+ctnrName+'.lower_bound('+StartKey+'); '+repName+'Entry.node !='+ctnrName+'.upper_bound('+EndKey+').node; '+repName+'Entry.__inc()){\n' +
                            indent + '    '+valueFieldType+' '+ repName + ' = ' + repName+'Entry.node.value;\n' +
@@ -142,43 +142,41 @@ class Xlator_Java(Xlator):
     def iterateContainerStr(self, classes,localVarsAlloc,ctnrTSpec,repName,ctnrName,isBackward,indent,genericArgs):
         #TODO: handle isBackward
         willBeModifiedDuringTraversal=True   # TODO: Set this programatically later.
-        [datastructID, __ctnrOwner]=progSpec.getContainerType_Owner(ctnrTSpec)
+        [datastructID, ctnrOwner]=progSpec.getContainerType_Owner(ctnrTSpec)
         actionText   = ""
         loopCntrName = repName+'_key'
         itrIncStr    = ""
         firstOwner   = progSpec.getContainerFirstElementOwner(ctnrTSpec)
         firstType    = progSpec.getContainerFirstElementType(ctnrTSpec)
-        firstTSpec   = {'owner':firstOwner, 'fieldType':firstType}
+        repTSpec     = {'owner':firstOwner, 'fieldType':firstType}
         reqTagList   = progSpec.getReqTagList(ctnrTSpec)
         itrTSpec     = self.codeGen.getDataStructItrTSpec(datastructID)
-        itrOwner     = progSpec.getOwner(itrTSpec)
         itrName      = repName
         containerCat = progSpec.getContaineCategory(self.codeGen.classStore, ctnrTSpec)
-        [LDeclP, RDeclP, LDeclA, RDeclA] = self.ChoosePtrDecorationForSimpleCase(firstOwner)
-        [LNodeP, RNodeP, LNodeA, RNodeA] = self.ChoosePtrDecorationForSimpleCase(itrOwner)
+        [LDeclP, RDeclP, LDeclA, RDeclA] = self.ChoosePtrDecorationForSimpleCase(ctnrOwner)
         if containerCat=='Map' or containerCat=="Multimap":
             reqTagStr    = self.getReqTagString(classes, ctnrTSpec)
             if(reqTagList != None):
-                firstTSpec['owner']     = progSpec.getOwner(reqTagList[1])
-                firstTSpec['fieldType'] = progSpec.fieldTypeKeyword(reqTagList[1])
+                repTSpec['owner']     = progSpec.getOwner(reqTagList[1])
+                repTSpec['fieldType'] = progSpec.fieldTypeKeyword(reqTagList[1])
             if datastructID=='TreeMap' or datastructID=='Java_Map':
                 keyVarSpec  = {'owner':firstOwner, 'fieldType':firstType, 'codeConverter':(repName+'.getKey()')}
-                firstTSpec['codeConverter'] = (repName+'.getValue()')
-                iteratorTypeStr="Map.Entry"+reqTagStr
-                actionText += indent + "for("+iteratorTypeStr+" " + repName+' :'+ ctnrName+".entrySet()){\n"
+                repTSpec['codeConverter'] = (repName+'.getValue()')
+                iteratorTypeStr = "Map.Entry"+reqTagStr+' '
+                actionText += indent+'for('+iteratorTypeStr + repName+' :'+ ctnrName+'.entrySet()){\n'
             else:
                 keyVarSpec = {'owner':firstOwner, 'fieldType':firstType, 'codeConverter':(repName+'.node.key')}
-                firstTSpec['codeConverter'] = (repName+'.node.value')
-                itrType    = self.codeGen.convertType(itrTSpec, 'var', genericArgs)+' '
+                repTSpec['codeConverter'] = (repName+'.node.value')
+                iteratorTypeStr    = self.codeGen.convertType(itrTSpec, 'var', genericArgs)+' '
                 frontItr   = ctnrName+'.front()'
-                if not 'generic' in ctnrTSpec: itrType += reqTagStr
-                actionText += (indent + 'for('+itrType + itrName+' ='+frontItr + '; ' + itrName + '.node!='+ctnrName+'.end().node'+'; '+repName+'.goNext()){\n')
-               #actionText += (indent + "for("+itrType + itrName+' ='+frontItr + "; " + itrName + " !=" + ctnrName+RDeclP+'end()' +"; ++"+itrName  + " ){\n"
-                    # + indent+"    "+itrType+repName+" = *"+itrName+";\n")
+                if not 'generic' in ctnrTSpec: iteratorTypeStr += reqTagStr
+                actionText += indent+'for('+iteratorTypeStr + repName+' ='+frontItr + '; ' + repName + '.node!='+ctnrName+'.end().node'+'; '+repName+'.goNext()){\n'
+               #actionText += (indent + "for("+iteratorTypeStr + repName+' ='+frontItr + "; " + repName + " !=" + ctnrName+RDeclP+'end()' +"; ++"+repName  + " ){\n"
+                    # + indent+"    "+iteratorTypeStr+repName+" = *"+repName+";\n")
         elif containerCat=="List":
             containedOwner = progSpec.getOwner(ctnrTSpec)
             keyVarSpec     = {'owner':containedOwner, 'fieldType':firstType}
-            iteratorTypeStr = self.codeGen.convertType(firstTSpec, 'var', genericArgs)
+            iteratorTypeStr = self.codeGen.convertType(repTSpec, 'var', genericArgs)
             loopVarName=repName+"Idx";
             if(isBackward):
                 actionText += (indent + "for(int "+loopVarName+'='+ctnrName+'.size()-1; ' + loopVarName +' >=0; --' + loopVarName+'){\n'
@@ -188,12 +186,12 @@ class Xlator_Java(Xlator):
                             + indent + indent + iteratorTypeStr+' '+repName+" = "+ctnrName+".get("+loopVarName+");\n")
         elif containerCat=='string':
             keyVarSpec   = {'owner':'me', 'fieldType':'char'}
-            firstTSpec   = {'owner':'me', 'fieldType':'char'}
+            repTSpec     = {'owner':'me', 'fieldType':'char'}
             actionText += indent + "for(int i = 0; i < "+ ctnrName + ".length(); i++){\n"
             actionText += indent + "    char "  + repName + " = " + ctnrName + ".charAt(i);\n"
         else: cdErr("iterateContainerStr() datastructID = " + datastructID)
         localVarsAlloc.append([loopCntrName, keyVarSpec])  # Tracking local vars for scope
-        localVarsAlloc.append([repName, firstTSpec]) # Tracking local vars for scope
+        localVarsAlloc.append([repName, repTSpec]) # Tracking local vars for scope
         return [actionText, loopCntrName, itrIncStr]
 
     def codeSwitchExpr(self, switchKeyExpr, switchKeyTypeSpec):

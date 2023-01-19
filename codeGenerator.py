@@ -370,13 +370,15 @@ class CodeGenerator(object):
     def chooseStructImplementationToUse(self, tSpec,className,fieldName):
         fType = progSpec.getFieldType(tSpec)
         if not isinstance(fType, str) and  len(fType) >1:
-            ctnrCat = fType[0]
+            fTypeKW  = progSpec.fieldTypeKeyword(tSpec)
+            classDef = progSpec.findSpecOf(self.classStore[0], fTypeKW, "struct")
+            ctnrCat  = progSpec.getTagSpec(self.classStore, fTypeKW, 'implements')
             if ('chosenType' in fType):
-                return(None, None, None)
-            implOptions = progSpec.getImplementationOptionsFor(ctnrCat)
+                return(None, None, None, None)
+            implOptions = progSpec.getImplementationOptionsFor(fTypeKW)
             if(implOptions == None):
-                if ctnrCat=="List" or ctnrCat=="Map" or ctnrCat=="Multimap" :
-                    print("******WARNING: no implementation options found for container ", ctnrCat ,className,"::",fieldName)
+                if fTypeKW=="List" or fTypeKW=="Map" or fTypeKW=="Multimap" :
+                    print("******WARNING: no implementation options found for container ", fTypeKW ,className,"::",fieldName)
                     # Check to confirm container type is in features needed
             else:
                 reqTags = progSpec.getReqTags(fType)
@@ -399,17 +401,18 @@ class CodeGenerator(object):
                 if hiScoreName != None:
                     implTArgs = progSpec.getTypeArgList(hiScoreName)
                 else: implTArgs = None
-                #print("IMPLEMENTS:", ctnrCat, '->', hiScoreName)
+                #print("IMPLEMENTS:", fTypeKW, '->', hiScoreName)
                 if hiScoreName!=None:progSpec.addDependencyToStruct(className,hiScoreName)
-                return(hiScoreName,ctnrCat,implTArgs)
-        return(None, None, None)
+                return(hiScoreName,fTypeKW,ctnrCat,implTArgs)
+        return(None, None, None, None)
 
     def applyStructImplemetation(self, tSpec,className,fieldName):
         self.checkForReservedWord(fieldName, className)
-        [structToImplement, fromImpl, implTArgs] = self.chooseStructImplementationToUse(tSpec,className,fieldName)
+        [structToImplement, cntrTypeKW, ctnrCat, implTArgs] = self.chooseStructImplementationToUse(tSpec,className,fieldName)
         if(structToImplement != None):
             tSpec['fieldType'][0] = structToImplement
-            if fromImpl != None:tSpec['fromImplemented'] = fromImpl
+            if cntrTypeKW != None:tSpec['fromImplemented'] = cntrTypeKW
+            if ctnrCat != None:tSpec['containerCategory'] = ctnrCat
             if implTArgs != None:tSpec['implTypeArgs'] = implTArgs
         return tSpec
 
@@ -584,6 +587,9 @@ class CodeGenerator(object):
                 tArgList = progSpec.getTypeArgList(fTypeKW)
                 tSpecOut['fromImplemented'] = fTypeKW
                 tSpecOut['implTypeArgs']    = tArgList
+            ctnrCat  = progSpec.getTagSpec(self.classStore, fTypeKW, 'implements')
+            if ctnrCat:
+                tSpecOut['containerCategory'] = ctnrCat
             tSpecOut['generic'] = True
         else: #renderGenerics=='False'
             tSpecOut = self.getGenericFieldsTypeSpec(genericArgs, tSpec)

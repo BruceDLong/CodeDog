@@ -869,8 +869,7 @@ def getDatastructID(tSpec):
         return(tSpec['arraySpec']['datastructID'][0])
 
 def getContaineCategory(classStore, ctnrTSpec):
-    fromImpl = getFromImpl(ctnrTSpec)
-    if fromImpl: return fromImpl
+    if 'containerCategory' in ctnrTSpec: return ctnrTSpec['containerCategory']
     fTypeKW = fieldTypeKeyword(ctnrTSpec)
     if fTypeKW=='string':     return 'string'
     structSpec = findSpecOf(classStore[0], fTypeKW, 'struct')

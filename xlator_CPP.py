@@ -85,20 +85,20 @@ class Xlator_CPP(Xlator):
         loopCntrName = ""
         firstOwner   = progSpec.getContainerFirstElementOwner(ctnrTSpec)
         firstType    = progSpec.fieldTypeKeyword(ctnrTSpec)
-        firstTSpec   = {'owner':firstOwner, 'fieldType':firstType}
+        repTSpec     = {'owner':firstOwner, 'fieldType':firstType}
         reqTagList   = progSpec.getReqTagList(ctnrTSpec)
         containerCat = progSpec.getContaineCategory(self.codeGen.classStore, ctnrTSpec)
         if progSpec.ownerIsPointer(ctnrOwner): connector="->"
         else: connector = "."
         if containerCat=="Map" or containerCat=="Multimap":
             if(reqTagList != None):
-                firstTSpec['owner']     = progSpec.getOwner(reqTagList[1])
-                firstTSpec['fieldType'] = progSpec.fieldTypeKeyword(reqTagList[1])
+                repTSpec['owner']     = progSpec.getOwner(reqTagList[1])
+                repTSpec['fieldType'] = progSpec.fieldTypeKeyword(reqTagList[1])
             keyVarSpec = {'owner':'itr', 'fieldType':firstType, 'codeConverter':(repName+'.first')}
             loopCntrName  = repName+'_key'
-            firstTSpec['codeConverter'] = (repName+'->second')
+            repTSpec['codeConverter'] = (repName+'->second')
             localVarsAlloc.append([loopCntrName, keyVarSpec])  # Tracking local vars for scope
-            localVarsAlloc.append([repName, firstTSpec]) # Tracking local vars for scope
+            localVarsAlloc.append([repName, repTSpec]) # Tracking local vars for scope
             actionText += indent+"for(auto "+repName+' ='+ctnrName+connector+'lower_bound('+StartKey+'); '+repName+'!='+ctnrName+connector+'upper_bound('+EndKey+'); ++'+repName+'){\n'
         elif datastructID=='List' and not willBeModifiedDuringTraversal: pass;
         elif datastructID=='List' and willBeModifiedDuringTraversal: pass;
@@ -114,11 +114,9 @@ class Xlator_CPP(Xlator):
         itrIncStr    = ""
         firstOwner   = progSpec.getContainerFirstElementOwner(ctnrTSpec)
         firstType    = progSpec.getContainerFirstElementType(ctnrTSpec)
-        firstTSpec   = {'owner':firstOwner, 'fieldType':firstType}
+        repTSpec     = {'owner':firstOwner, 'fieldType':firstType}
         reqTagList   = progSpec.getReqTagList(ctnrTSpec)
         itrTSpec     = self.codeGen.getDataStructItrTSpec(datastructID)
-        itrTypeKW    = progSpec.fieldTypeKeyword(itrTSpec)
-        itrOwner     = progSpec.getOwner(itrTSpec)
         itrName      = repName + "Itr"
         containerCat = progSpec.getContaineCategory(self.codeGen.classStore, ctnrTSpec)
         [LDeclP, RDeclP, LDeclA, RDeclA] = self.ChoosePtrDecorationForSimpleCase(ctnrOwner)
@@ -127,10 +125,9 @@ class Xlator_CPP(Xlator):
                 valOwner  = progSpec.getOwner(reqTagList[1])
                 valTypeKW = progSpec.fieldTypeKeyword(reqTagList[1])
             else: cdErr("TODO: handle value type owner and keyword in iterateContainerStr().")
-            valTSpec    = {'owner':valOwner, 'fieldType':valTypeKW}
-            [LNodeP, RNodeP, LNodeA, RNodeA] = self.ChoosePtrDecorationForSimpleCase(valOwner)
-            valTSpec['codeConverter'] = self.getIteratorValueCodeConverter(ctnrTSpec, repName)
-            localVarsAlloc.append([repName, valTSpec]) # Tracking local vars for scope
+            repTSpec    = {'owner':valOwner, 'fieldType':valTypeKW}
+            repTSpec['codeConverter'] = self.getIteratorValueCodeConverter(ctnrTSpec, repName)
+            localVarsAlloc.append([repName, repTSpec]) # Tracking local vars for scope
             frontItr    = progSpec.getCodeConverterByFieldID(self.codeGen.classStore, datastructID, "front" , ctnrName , RDeclP)
             actionText += indent + "for(auto "+repName+'='+frontItr + '; '+repName+'!='+ctnrName+RDeclP+'end(); ++'+repName+'){\n'
         elif containerCat=='List':
@@ -139,7 +136,7 @@ class Xlator_CPP(Xlator):
                 lvName=repName+"Idx"
                 idxVarSpec = {'owner':'itr', 'fieldType':firstType}
                 localVarsAlloc.append([loopCntrName, keyVarSpec])  # Tracking local vars for scope
-                localVarsAlloc.append([repName, firstTSpec]) # Tracking local vars for scope
+                localVarsAlloc.append([repName, repTSpec]) # Tracking local vars for scope
                 localVarsAlloc.append([lvName, idxVarSpec]) # Tracking local vars for scope
                 if isBackward: actionText += (indent + "for( int64_t " + lvName+' = '+ctnrName+RDeclP+'size()-1; ' + lvName+" >= 0; "+" --"+lvName+" ){\n")
                 else: actionText += (indent + "for( uint64_t " + lvName+' = 0; ' + lvName+" < " +  ctnrName+RDeclP+'size();' +" ++"+lvName+" ){\n")
@@ -147,7 +144,7 @@ class Xlator_CPP(Xlator):
             else:
                 keyVarSpec = {'owner':firstOwner, 'fieldType':firstType}
                 localVarsAlloc.append([loopCntrName, keyVarSpec])  # Tracking local vars for scope
-                localVarsAlloc.append([repName, firstTSpec]) # Tracking local vars for scope
+                localVarsAlloc.append([repName, repTSpec]) # Tracking local vars for scope
                 if isBackward: actionText += (indent + "for( auto " + itrName+' ='+ ctnrName+RDeclP+'rbegin()' + "; " + itrName + " !=" + ctnrName+RDeclP+'rend()' +"; ++"+ itrName + " ){\n")
                 else: actionText += (indent + "for( auto " + itrName+' ='+ ctnrName+RDeclP+'begin()' + "; " + itrName + " !=" + ctnrName+RDeclP+'end()' +"; ++"+ itrName + " ){\n")
                 actionText += indent+"    "+"auto "+repName+" = *"+itrName+";\n"
@@ -155,7 +152,6 @@ class Xlator_CPP(Xlator):
             loopCntrName = ''
             actionText += indent + "for(char const &" + repName +": " + ctnrName + " ){\n"
         else: cdErr("iterateContainerStr() datastructID = " + datastructID)
-
         return [actionText, loopCntrName, itrIncStr]
 
     def codeSwitchExpr(self, switchKeyExpr, switchKeyTypeSpec):

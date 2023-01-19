@@ -1,4 +1,6 @@
 LinuxBuild: Platform='Linux' Lang='CPP' LangVersion='GNU';
+//JavaBuild: Platform='Swing' Lang='Java';
+//SwiftBuild: Platform='Swift' Lang='Swift';
 BuildCmd = ""
 Title = "Infomage - DataDog"
 FileName = "rbTreeMapTest"

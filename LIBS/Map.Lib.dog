@@ -103,8 +103,8 @@ struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={inser
         their iterator_RBTreeMap<keyType, valueType>: __opPtr() <- {
             return(self)
         }
-        me valueType: val()                         <- <%!%0.node->value%>
-        me valueType: key()                         <- <%!%0.node->key%>
+        me valueType: val()                         <- {return(node.value)}
+        me keyType: key()                           <- {return(node.key)}
     }
 
     our Node_RBTree<keyType, valueType>: Root
