@@ -118,6 +118,7 @@ def copyRecursive(src, dst, symlinks=False):
             # ~ raise shutil.Error(errors)
 def gitClone(cloneUrl, packageName, packageDirectory):
     emgr.CheckPipModules({'GitPython':'3.1'})
+    emgr.CheckPipModules({'gcg':'0.2.0'})
     import urllib.request
     from git import Repo
     packagePath = packageDirectory + '/' + packageName + '/' + packageName
