@@ -6,6 +6,24 @@ requirements = [
 interface={
     provides=[Quic_implementation]
     packages = [
+        { packageName = 'cmake'
+          fetchMethod = 'sys:'
+        },
+        { packageName = 'libunwind-dev'
+          fetchMethod = 'sys:'
+        },
+        { packageName = 'libgtk-3-dev'
+          fetchMethod = 'sys:'
+        },
+        { packageName = 'libgmp3-dev'
+          fetchMethod = 'sys:'
+        },
+        { packageName = 'golang-go'
+          fetchMethod = 'zip:https://go.dev/dl/go1.19.6.linux-amd64.tar.gz'
+          buildCmds   = {
+              Linux     = { buildCmd = 'rm -rf /usr/local/go && tar -C /usr/local -xzf go1.19.6.linux-amd64.tar.gz && export PATH=$PATH:/usr/local/go/bin && sudo ln -s /usr/local/go/bin/go /usr/bin/go'}
+            }
+        }
         { packageName = 'boringssl'
           fetchMethod = 'git:https://github.com/google/boringssl@commit=251b516'
           updateWhen  = 'never'    // Updating isn't implemented
