@@ -385,6 +385,14 @@ def addField(objSpecs, className, stateType, packedField):
     if (fieldOwner=='me' or fieldOwner=='we' or fieldOwner=='const') and fieldsTypeCategory(tSpec)=='struct':
         addDependencyToStruct(className, tSpec)
 
+    if 'typeSpec' in packedField and 'argList' in packedField['typeSpec']:
+        argList = packedField['typeSpec']['argList']
+        if argList:
+            for arg in argList:
+                argOwner = getOwner(arg)
+                if (argOwner=='me' or argOwner=='we' or argOwner=='const') and fieldsTypeCategory(arg)=='struct':
+                    addDependencyToStruct(className, arg)
+
     if MarkItems:
         if not (taggedClassName in MarkedObjects):
             MarkedFields.append([taggedClassName, fieldID])
