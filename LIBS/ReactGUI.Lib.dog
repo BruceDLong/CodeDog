@@ -248,7 +248,7 @@ struct Presenter{
         else if (symbol=="<") {
             dr.addXY(cmdMoveTo, posX + radius, posY + radius - stickLen * sqrt(2.0))
             dr.addXY(cmdLineTo, posX + radius - stickLen * sqrt(2), posY + radius)
-            dr.addXY(cmdMoveTo, posX + radius, posY + radius + stickLen * sqrt(2.0))
+            dr.addXY(cmdLineTo, posX + radius, posY + radius + stickLen * sqrt(2.0))
         }
         else if (symbol==">") {
             dr.addXY(cmdMoveTo, posX + radius, posY + radius - stickLen * sqrt(2.0))

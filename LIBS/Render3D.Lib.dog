@@ -273,6 +273,7 @@ struct Triangle3D{
     me Point3D: p1
     me Point3D: p2
     me Point3D: p3
+    their cdColor: color        // add a pointer to a cdColor, if Null do nothing, else change color
     void: initFromVecs(their Vec3D: v1, their Vec3D: v2, their Vec3D: v3, me bool: normalOut) <- {
         if(!normalOut){
             their Vec3D: tmp <- v2
@@ -383,13 +384,15 @@ struct Thing3D{
 struct Mesh{
     me List<Triangle3D>: tris
 
-    void: draw(their GUI_ctxt: cr, their Matrix4: parentMatx, their cdColor: color, me double: interpolation) <- {
+    void: draw(their GUI_ctxt: cr, their Matrix4: parentMatx, their cdColor: startColor, me double: interpolation) <- {
         me uint64: triangleDrawnCount <- 0
         me float: halfScreenWidth  <- 0.5 * windowWidth3D
         me float: halfScreenHeight <- 0.5 * windowHeight3D
         me Vec3D: vOffsetView{ windowXPos, windowYPos, 0 }
         //print("WINDOW X/Y:",vOffsetView.x,"/",vOffsetView.y,"\n")
         withEach tri in tris{
+            me cdColor: color <- startColor
+            if(tri.color!=NULL){color <- tri.color}
             me Triangle3D: TriXlated
             me Triangle3D: TriPrj
             matrixTimesTri(tri, TriXlated, parentMatx)
