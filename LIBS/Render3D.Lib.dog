@@ -20,21 +20,15 @@ Description = "Toy 3D rendering engine"
 featuresNeeded = []
 ProgramOrLibrary = "library"
 
-struct GLOBAL{
-    me MeshGenerator: meshGenerator
-    me bool: renderWireFrame <- false   // Otherwise render solid shapes
-    me bool: RENDER_LIGHTING <- true
-    me bool: CULL_GZ <- true            // Cull triangles when norm is Greater than Zero
-    me bool: CULL_LZ <- false           // Cull triangles when norm is Less than Zero
+struct Window3D{
     me Matrix4: worldMatx
     me Matrix4: matProj
-    me Matrix4: mat4ID
     me int: windowXPos
     me int: windowYPos
     me int: windowWidth3D
     me int: windowHeight3D
 
-    me List<their LightSource>: lightSources
+    their List<their LightSource>: lightSources
 
     void: setUpMatrixes(me float: fFovDegrees, me int: xPos, me int: yPos, me int: width, me int: height) <- {
         windowXPos <- xPos
@@ -52,8 +46,15 @@ struct GLOBAL{
         //~ print("windowWidth3D:",windowWidth3D,"  windowHeight3D:",windowHeight3D,"   fAspectRatio:",fAspectRatio,"\n")
         //~ print("PROJ:\n",matProj.stringify())
         mat4ID.makeIdentity()
-
     }
+}
+struct GLOBAL{
+    me MeshGenerator: meshGenerator
+    me Matrix4: mat4ID
+    me bool: renderWireFrame <- false   // Otherwise render solid shapes
+    me bool: RENDER_LIGHTING <- true
+    me bool: CULL_GZ <- true            // Cull triangles when norm is Greater than Zero
+    me bool: CULL_LZ <- false           // Cull triangles when norm is Less than Zero
 
     void: matrixTimesVec3(their Point3D: pIn, their Point3D: pOut, their Matrix4: m) <- {
              pOut.x <- pIn.x * m.m00 + pIn.y * m.m10 + pIn.z * m.m20 + m.m30
@@ -361,13 +362,13 @@ struct Thing3D{
         parts[thing.name] <- thing
     }
 
-    void: draw(their GUI_ctxt: cr, their Matrix4: parentMatx, me double: interpolation) <- {
+    void: draw(their GUI_ctxt: cr, their Matrix4: parentMatx, me double: interpolation, our Window3D: win3D) <- {
         withEach mesh in meshes{
             //cr.setColor(color)
-            mesh.draw(cr, thingMatx, color, interpolation)
+            mesh.draw(cr, thingMatx, color, interpolation, win3D)
         }
         withEach part in parts{
-            part.draw(cr, thingMatx, interpolation)
+            part.draw(cr, thingMatx, interpolation, win3D)
         }
     }
 
@@ -384,11 +385,11 @@ struct Thing3D{
 struct Mesh{
     me List<Triangle3D>: tris
 
-    void: draw(their GUI_ctxt: cr, their Matrix4: parentMatx, their cdColor: startColor, me double: interpolation) <- {
+    void: draw(their GUI_ctxt: cr, their Matrix4: parentMatx, their cdColor: startColor, me double: interpolation, our Window3D: win3D) <- {
         me uint64: triangleDrawnCount <- 0
-        me float: halfScreenWidth  <- 0.5 * windowWidth3D
-        me float: halfScreenHeight <- 0.5 * windowHeight3D
-        me Vec3D: vOffsetView{ windowXPos, windowYPos, 0 }
+        me float: halfScreenWidth  <- 0.5 * win3D.windowWidth3D
+        me float: halfScreenHeight <- 0.5 * win3D.windowHeight3D
+        me Vec3D: vOffsetView{ win3D.windowXPos, win3D.windowYPos, 0 }
         //print("WINDOW X/Y:",vOffsetView.x,"/",vOffsetView.y,"\n")
         withEach tri in tris{
             me cdColor: color <- startColor
@@ -418,7 +419,7 @@ TriXlated.p3.z <+- 3.0
                 me float: nRed; me float: nGreen; me float: nBlue;        // Combined directed lights
                 me uint: nLightSources <- 0
 
-                withEach light in lightSources{
+                withEach light in win3D.lightSources{
                     switch(light.type){
                         case lsOff:{}
                         case lsAmbient:{
@@ -451,7 +452,7 @@ TriXlated.p3.z <+- 3.0
 
             // 6. FOR each clipped triangle (Either 1 or 2{
                 // 6a. Project and adjust Each vertex;   Later, project to texture coords also.
-                matrixTimesTri(TriXlated, TriPrj, matProj)
+                matrixTimesTri(TriXlated, TriPrj, win3D.matProj)
 
                 // 6b. Clip the 4 sides. THis may create new triangles
 
