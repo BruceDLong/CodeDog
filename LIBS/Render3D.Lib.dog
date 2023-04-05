@@ -274,7 +274,12 @@ struct Triangle3D{
     me Point3D: p1
     me Point3D: p2
     me Point3D: p3
-    their cdColor: color        // add a pointer to a cdColor, if Null do nothing, else change color
+    me cdColor: color        // add a pointer to a cdColor, if Null do nothing, else change color
+    me bool: setsColor
+    void: setColor(their cdColor: clr) <-{
+        color <- clr
+        setsColor <- true
+    }
     void: initFromVecs(their Vec3D: v1, their Vec3D: v2, their Vec3D: v3, me bool: normalOut) <- {
         if(!normalOut){
             their Vec3D: tmp <- v2
@@ -391,9 +396,11 @@ struct Mesh{
         me float: halfScreenHeight <- 0.5 * win3D.windowHeight3D
         me Vec3D: vOffsetView{ win3D.windowXPos, win3D.windowYPos, 0 }
         //print("WINDOW X/Y:",vOffsetView.x,"/",vOffsetView.y,"\n")
+        me cdColor: color <- startColor
         withEach tri in tris{
-            me cdColor: color <- startColor
-            if(tri.color!=NULL){color <- tri.color}
+            if(tri.setsColor){
+                color <- tri.color
+            }
             me Triangle3D: TriXlated
             me Triangle3D: TriPrj
             matrixTimesTri(tri, TriXlated, parentMatx)
