@@ -328,7 +328,7 @@ struct Thing3D{
     me Vec3D:   scale
 
     me List<our Mesh>: meshes
-    me Map<string, our Thing3D>: parts
+    me List<our Thing3D>: parts
 
     me Matrix4: locMatx
     me Matrix4: XoriMatx
@@ -364,7 +364,7 @@ struct Thing3D{
     }
 
     void: addPart(our Thing3D: thing) <- {
-        parts[thing.name] <- thing
+        parts.append(thing)
     }
 
     void: draw(their GUI_ctxt: cr, their Matrix4: parentMatx, me double: interpolation, our Window3D: win3D) <- {
