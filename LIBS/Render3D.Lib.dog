@@ -193,6 +193,16 @@ struct Matrix4{
         m32 <- z
     }
 
+    void: makeInverseTranslation(me float: x, me float: y, me float: z) <- {
+        m00 <- 1.0
+        m11 <- 1.0
+        m22 <- 1.0
+        m33 <- 1.0
+        m30 <- -x
+        m31 <- -y
+        m32 <- -z
+    }
+
     void: MakeProjection(me float: fFovDegrees, me float: fAspectRatio, me float: fNear, me float: fFar) <- {
         me float: fFovRad <- 1.0 / tanf(fFovDegrees * 0.5 / 180.0 * 3.14159);
         zero();
@@ -368,12 +378,14 @@ struct Thing3D{
     }
 
     void: draw(their GUI_ctxt: cr, their Matrix4: parentMatx, me double: interpolation, our Window3D: win3D) <- {
+        me Matrix4: xFormMatx
+        xFormMatx.MultiplyMatrix(thingMatx, parentMatx)
         withEach mesh in meshes{
             //cr.setColor(color)
-            mesh.draw(cr, thingMatx, color, interpolation, win3D)
+            mesh.draw(cr, xFormMatx, color, interpolation, win3D)
         }
         withEach part in parts{
-            part.draw(cr, thingMatx, interpolation, win3D)
+            part.draw(cr, xFormMatx, interpolation, win3D)
         }
     }
 
