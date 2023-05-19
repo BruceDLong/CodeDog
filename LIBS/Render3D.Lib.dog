@@ -338,7 +338,7 @@ struct Thing3D{
     me Vec3D:   scale
 
     me List<our Mesh>: meshes
-    me List<our Thing3D>: parts
+    me Multimap<me float, our Thing3D>: parts
 
     me Matrix4: locMatx
     me Matrix4: XoriMatx
@@ -374,7 +374,7 @@ struct Thing3D{
     }
 
     void: addPart(our Thing3D: thing) <- {
-        parts.append(thing)
+        parts.insert(thing.location.z, thing)
     }
 
     void: draw(their GUI_ctxt: cr, their Matrix4: parentMatx, me double: interpolation, our Window3D: win3D) <- {
@@ -409,6 +409,7 @@ struct Mesh{
         me Vec3D: vOffsetView{ win3D.windowXPos, win3D.windowYPos, 0 }
         //print("WINDOW X/Y:",vOffsetView.x,"/",vOffsetView.y,"\n")
         me cdColor: color <- startColor
+        me Multimap<me float, our Triangle2D>: trianglesToDraw
         withEach tri in tris{
             if(tri.setsColor){
                 color <- tri.color
