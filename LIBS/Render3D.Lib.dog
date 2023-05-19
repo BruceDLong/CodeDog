@@ -338,7 +338,7 @@ struct Thing3D{
     me Vec3D:   scale
 
     me List<our Mesh>: meshes
-    me Multimap<me float, our Thing3D>: parts
+    me List<our Thing3D>: parts
 
     me Matrix4: locMatx
     me Matrix4: XoriMatx
@@ -374,7 +374,7 @@ struct Thing3D{
     }
 
     void: addPart(our Thing3D: thing) <- {
-        parts.insert(thing.location.z, thing)
+        parts.append(thing)
     }
 
     void: draw(their GUI_ctxt: cr, their Matrix4: parentMatx, me double: interpolation, our Window3D: win3D) <- {
@@ -384,8 +384,13 @@ struct Thing3D{
             //cr.setColor(color)
             mesh.draw(cr, xFormMatx, color, interpolation, win3D)
         }
+        me Multimap<me float, our Thing3D>: sortedParts
         withEach part in parts{
-            part.draw(cr, xFormMatx, interpolation, win3D)
+            part.calcThingMatx(xFormMatx)
+            sortedParts.insert(-part.location.z, part)
+        }
+        withEach sortedPart in sortedParts{
+            sortedPart.draw(cr, xFormMatx, interpolation, win3D)
         }
     }
 
