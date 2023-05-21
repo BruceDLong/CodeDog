@@ -377,20 +377,26 @@ struct Thing3D{
         parts.append(thing)
     }
 
-    void: draw(their GUI_ctxt: cr, their Matrix4: parentMatx, me double: interpolation, our Window3D: win3D) <- {
+    void: preDraw(their Matrix4: parentMatx, me float: zPos, their Multimap<me float, our Mesh>: meshList) <- {
         me Matrix4: xFormMatx
         xFormMatx.MultiplyMatrix(thingMatx, parentMatx)
         withEach mesh in meshes{
-            //cr.setColor(color)
-            mesh.draw(cr, xFormMatx, color, interpolation, win3D)
+            mesh.xForm <- xFormMatx
+            meshList.insert(-zPos, mesh)
         }
-        me Multimap<me float, our Thing3D>: sortedParts
+        me Matrix4: partLoc1
+        me Vec3D: partLoc2
         withEach part in parts{
-            part.calcThingMatx(xFormMatx)
-            sortedParts.insert(-part.location.z, part)
+            partLoc1.MultiplyMatrix(part.thingMatx, xFormMatx)
+            matrixTimesVec3(part.location, partLoc2, partLoc1)
+            part.preDraw(xFormMatx, partLoc2.z, meshList)
         }
-        withEach sortedPart in sortedParts{
-            sortedPart.draw(cr, xFormMatx, interpolation, win3D)
+    }
+    void: draw(their GUI_ctxt: cr, their Matrix4: parentMatx, me double: interpolation, our Window3D: win3D) <- {
+        me Multimap<me float, our Mesh>: meshList
+        preDraw(parentMatx, 0.0, meshList)
+        withEach mesh in meshList{
+            mesh.draw(cr, NULL, color, interpolation, win3D)
         }
     }
 
@@ -406,8 +412,10 @@ struct Thing3D{
 
 struct Mesh{
     me List<Triangle3D>: tris
+    me Matrix4: xForm
 
     void: draw(their GUI_ctxt: cr, their Matrix4: parentMatx, their cdColor: startColor, me double: interpolation, our Window3D: win3D) <- {
+        if(parentMatx==NULL){parentMatx <- xForm}
         me uint64: triangleDrawnCount <- 0
         me float: halfScreenWidth  <- 0.5 * win3D.windowWidth3D
         me float: halfScreenHeight <- 0.5 * win3D.windowHeight3D
@@ -421,7 +429,7 @@ struct Mesh{
             }
             me Triangle3D: TriXlated
             me Triangle3D: TriPrj
-            matrixTimesTri(tri, TriXlated, parentMatx)
+            matrixTimesTri(tri, TriXlated, xForm)
 
 // Remove when camera compensates:
 TriXlated.p1.z <+- 3.0
