@@ -310,7 +310,9 @@ class Xlator_CPP(Xlator):
         LeftOwner =progSpec.getOwner(LTSpec)
         RightOwner=progSpec.getOwner(RTSpec)
         if not isinstance(assignTag, str):
+            #print("################## >>assignTag:", assignTag)
             assignTag = assignTag[0]
+            if assignTag=='d': print("################## <<assignTag:", assignTag) #remove when opAssignd bug is fixed.
         if progSpec.typeIsPointer(LTSpec) and progSpec.typeIsPointer(RTSpec):
             if assignTag=='deep' :return ['(*',')',  '(*',')']
             elif LeftOwner=='their' and (RightOwner=='our' or RightOwner=='my'): return ['','', '','.get()']
