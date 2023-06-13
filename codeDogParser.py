@@ -660,19 +660,57 @@ def extractObjectsOrPatterns(ProgSpec, clsNames, macroDefs, objectSpecResults,de
 
 
 # # # # # # # # # # # # #   P a r s e r   I n t e r f a c e   # # # # # # # # # # # # #
-
-def comment_remover(text):
-    def replacer(match):
-        s = match.group(0)
-        if s.startswith('/'):
-            return " " # note: a space and not an empty string
-        else:
-            return s
-    pattern = re.compile(
-        r'//.*?$|/\*.*?\*/|\'(?:\\.|[^\\\'])*\'|"(?:\\.|[^\\"])*"',
-        re.DOTALL | re.MULTILINE
-    )
-    return re.sub(pattern, replacer, text)
+def scanQuoteStr(text, idx, endChar):
+    size = len(text)
+    quoteStr = ""
+    while idx < size:
+        char = text[idx]
+        quoteStr += char
+        if char=="\\":
+            if idx+2 >=size: cdErr("Quote Not Ended at end of file: '"+quoteStr[:30]+" ...'")
+            nextChar = text[idx+1]
+            if nextChar==endChar or nextChar=="\\":
+                idx+=2
+                continue
+        elif char==endChar: return idx
+        if idx+1 >= size: cdErr("Quote Not Ended: '"+quoteStr[:30]+" ...'")
+        idx += 1
+    return idx
+def comment_remover(textIn):
+    text = textIn
+    size = len(text)
+    commentType = None
+    idx = 0
+    while idx < size:
+        char = text[idx]
+        if char=='"' or char=="'":
+            idx = scanQuoteStr(text, idx+1, char)
+        elif char=="/":
+            if size <= idx: continue
+            nextChar    = text[idx+1]
+            commentType = None
+            if nextChar=="/":   commentType = "//"
+            elif nextChar=="*": commentType = "/*"
+            if commentType!=None:
+                text = text[:idx] + "  " + text[idx+2:]
+                cmtStr = ""
+                idx += 2
+                while idx < size:
+                    char = text[idx]
+                    if commentType=="//" and (char=="\n" or idx+1==size): commentType = None; break
+                    elif commentType=="/*":
+                        if idx+1 >= size: break
+                        nextChar = char + text[idx+1]
+                        if nextChar=="*/":
+                            text = text[:idx] + "  " + text[idx+2:]
+                            commentType = None
+                            break
+                    cmtStr += char
+                    text = text[:idx] + " " + text[idx+1:]
+                    idx += 1
+                if commentType!=None: cdErr("Comment did not end:'"+cmtStr+"'")
+        idx += 1
+    return(text)
 
 def parseCodeDogLibTags(inputString):
     tmpMacroDefs={}
