@@ -739,6 +739,10 @@ class CodeGenerator(object):
             else: cdErr("ERROR: looking for T1Type in codeConverter but reqTagList found in TypeSpec.")
         return [newName, paramList]
 
+    def codeComment(self, commentType, commentStr):
+        if commentType=='/**': return '\n/* ' + commentStr+ '*/'
+        elif commentType=='//*': return '// ' + commentStr + '\n'
+        else: cdErr("unknown comment type: "+ commentType)
     ################################  C o d e   E x p r e s s i o n s
     def codeNameSeg(self, segSpec, tSpecIn, connector, LorR_Val, previousSegName, previousTypeSpec, returnType, LorRorP_Val, genericArgs):
         # if tSpecIn has 'dummyType', this is a non-member (or self) and the first segment of the reference.
@@ -1917,6 +1921,12 @@ class CodeGenerator(object):
                 if classAttrs!='': attrList.append(classAttrs)  # TODO: should append all items from classAttrs
                 LangFormOfObjName = progSpec.flattenObjectName(className)
                 [structCodeOut, forwardDeclsOut] = self.xlator.codeStructText(self.classStore, attrList, parentClass, classInherits, classImplements, LangFormOfObjName, structCode, tags)
+                comments = classDef['comments']
+                commentStr = ''
+                if comments:
+                    for comment in comments:
+                        commentStr += self.codeComment(comment[0], comment[1])
+                    structCodeOut = commentStr + structCodeOut
             classRecord = [constsEnums, forwardDeclsOut, structCodeOut, funcCode, className, dependancies]
         self.currentObjName=''
         return classRecord
@@ -2386,7 +2396,7 @@ class CodeGenerator(object):
                             newArgList.append(argTypeKW)
                         progSpec.addTypeArgList(fieldName, newArgList)
 
-                    progSpec.addObject(fileClasses[0], fileClasses[1], fieldName, 'struct', 'SEQ',fileClasses[0][className]['libName'])
+                    progSpec.addObject(fileClasses[0], fileClasses[1], fieldName, 'struct', 'SEQ',fileClasses[0][className]['libName'],["//*", "Added nested class."])
                     fieldTags = []
                     if 'tags' in field: fieldTags = field['tags']
                     progSpec.addObjTags(fileClasses[0], fieldName, 'struct', fieldTags)

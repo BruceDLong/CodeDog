@@ -853,7 +853,7 @@ def CreateStructsForStringModels(classes, newClasses, tags):
     # Define fieldResult struct
     #~ structsName = 'fetchResult'
     #~ StructFieldStr = "mode [fetchOK, fetchNotReady, fetchSyntaxError, FetchIO_Error] : FetchResult"
-    #~ progSpec.addObject(classes[0], classes[1], structsName, 'struct', 'SEQ')
+    #~ progSpec.addObject(classes[0], classes[1], structsName, 'struct', 'SEQ',["//*", "Added parser class: "+structsName])
     #~ codeDogParser.AddToObjectFromText(classes[0], classes[1], progSpec.wrapFieldListInObjectDef(structsName, StructFieldStr))
     global startSymbol
     if len(newClasses)==0: return
@@ -902,5 +902,5 @@ def CreateStructsForStringModels(classes, newClasses, tags):
     codeDogParser.AddToObjectFromText(classes[0], classes[1], parserCode, 'Parser for '+className)
 
     structsName='EGrammar'
-    progSpec.addObject(classes[0], classes[1], structsName, 'struct', 'SEQ')
+    progSpec.addObject(classes[0], classes[1], structsName, 'struct', 'SEQ',["//*", "Added parser class: "+structsName])
     codeDogParser.AddToObjectFromText(classes[0], classes[1], progSpec.wrapFieldListInObjectDef(structsName, ExtracterCode), 'class '+structsName)

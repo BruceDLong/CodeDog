@@ -995,7 +995,7 @@ void SetBits(CopyableAtomic<uint64_t>& target, uint64_t mask, uint64_t value) {
         }
 
     """
-        progSpec.addObject(classes[0], classes[1], 'GLOBAL', 'struct', 'SEQ')
+        progSpec.addObject(classes[0], classes[1], 'GLOBAL', 'struct', 'SEQ',["//*", "Main class"])
         codeDogParser.AddToObjectFromText(classes[0], classes[1], progSpec.wrapFieldListInObjectDef('GLOBAL',  mainFuncCode ), "C++ main()")
 
     def __init__(self):

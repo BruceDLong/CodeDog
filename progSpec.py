@@ -148,7 +148,7 @@ def fieldIdentifierString(className, packedField):
         fieldID+=')'
     return fieldID
 
-def addObject(objSpecs, objectNameList, name, stateType, configType, libName = None):
+def addObject(objSpecs, objectNameList, name, stateType, configType, libName = None, comments = None):
     global MarkItems
     global MarkedObjects
     global libLevels
@@ -163,7 +163,7 @@ def addObject(objSpecs, objectNameList, name, stateType, configType, libName = N
     if(name in objSpecs):
         cdlog(4, "Note: The struct '{}' is being added but already exists.".format(name))
         return None
-    objSpecs[name]={'name':name, "attrList":[], "attr":{}, "fields":[], "vFields":None, 'stateType':stateType, 'configType':configType,'libLevel':level, 'libName':libName}
+    objSpecs[name]={'name':name, "attrList":[], "attr":{}, "fields":[], "vFields":None, 'stateType':stateType, 'configType':configType,'libLevel':level, 'libName':libName, 'comments':comments}
     objectNameList.append(name)
     if MarkItems: MarkedObjects[name]=1
     return name

@@ -23,6 +23,8 @@ def logFieldDef(s, loc, toks):
 # # # # # # # # # # # # #   BNF Parser Productions for CodeDog syntax   # # # # # # # # # # # # #
 ParserElement.enablePackrat()
 #######################################   T A G S   A N D   B U I L D - S P E C S
+docComment    = Group("/**" + SkipTo("*/") + Suppress("*/") | "//*" + restOfLine)
+actComment    = Group("/*:" + SkipTo("*/") + Suppress("*/") | "//:" + restOfLine)
 identifier    = Word(alphanums + "_")
 tagID         = identifier("tagID")
 tagDefList    = Forward()
@@ -122,7 +124,7 @@ repeatedAction = Group(
             + actionSeq
         )("repeatedAction")
 
-action         = Group((assign("assign") | swap('swap') | varRef("funcCall") | fieldDef('fieldDef') ) + Optional(comment)) + Optional(";").suppress()
+action         = Group((actComment('actComment') | assign("assign") | swap('swap') | varRef("funcCall") | fieldDef('fieldDef')) + Optional(comment)) + Optional(";").suppress()
 actionSeq    <<= Group(Literal("{")("actSeqID") - (ZeroOrMore(switchStmt | conditionalAction | repeatedAction | whileAction | protectAction | actionSeq | action))("actionList") + "}")("actionSeq")
 rValueVerbatim = Group("<%" + SkipTo("%>", include=True))("rValueVerbatim")
 funcBody       = Group(actionSeq | rValueVerbatim)("funcBody")
@@ -161,7 +163,7 @@ modelTypes   = (Keyword("model") | Keyword("struct") | Keyword("string") | Keywo
 classDef     = Group(modelTypes + classDefID + Optional(Literal(":")("optionalTag") + tagDefList) + (Keyword('auto') | anonModel))("classDef")
 doPattern    = Group(Keyword("do") + classSpec + Suppress("(") + CIDList + Suppress(")"))("doPattern")
 macroDef     = Group(Keyword("#define") + CID('macroName') + Suppress("(") + Optional(CIDList('macroArgs')) + Suppress(")") + Group("<%" + SkipTo("%>", include=True))("macroBody"))
-classList    = Group(ZeroOrMore(classDef | doPattern | macroDef))("classList")
+classList    = Group(ZeroOrMore(docComment | classDef | doPattern | macroDef))("classList")
 classDef.setParseAction(logObj)
 fieldDef.setParseAction(logFieldDef)
 
@@ -467,6 +469,9 @@ def extractActItem(funcName, actionItem):
         critSectionIn   = actionItem.criticalSection
         critSectionOut  = extractActSeq(funcName, critSectionIn)
         thisActionItem = {'typeOfAction':"protect", 'mutex':mutex, 'criticalSection':critSectionOut}
+    elif actionItem.actComment:
+        actComment = actionItem.actComment
+        print("actComment: " ,actComment)
     else:
         cdErr("problem in extractActItem: actionItem:".format(str(actionItem)))
         exit(1)
@@ -518,7 +523,7 @@ def extractBuildSpecs(buildSpecResults):    # buildSpecResults is sometimes a pa
             resultOfExtractBuildSpecs.append(spec)
     return resultOfExtractBuildSpecs
 
-def extractObjectSpecs(ProgSpec, classNames, spec, stateType,description):
+def extractObjectSpecs(ProgSpec, classNames, spec, stateType,description, latestComment):
     className=spec.classDefID[0]
     configType="unknown"
     if(spec.sequenceEl): configType="SEQ"
@@ -528,7 +533,7 @@ def extractObjectSpecs(ProgSpec, classNames, spec, stateType,description):
         #print("spec.tagDefList = ",spec.tagDefList)
         objTags = extractTagDefs(spec.tagDefList)
     else: objTags = {}
-    taggedName = progSpec.addObject(ProgSpec, classNames, className, stateType, configType,description)
+    taggedName = progSpec.addObject(ProgSpec, classNames, className, stateType, configType,description, latestComment)
     progSpec.addObjTags(ProgSpec, className, stateType, objTags)
     extractFieldDefs(ProgSpec, className, stateType, spec.fieldDefs)
     ############Grab optional typeArgList
@@ -645,15 +650,19 @@ def doMacroSubstitutions(macros, inputString):
 
 def extractObjectsOrPatterns(ProgSpec, clsNames, macroDefs, objectSpecResults,description):
     newClassNames = []
+    comments = []
     for spec in objectSpecResults:
         s=spec[0]
         if s == "model" or s == "struct" or s == "string" or s == "stream":
-            newName=extractObjectSpecs(ProgSpec, clsNames, spec, s,description)
+            newName=extractObjectSpecs(ProgSpec, clsNames, spec, s,description, comments)
             if newName!=None: newClassNames.append(newName)
+            comments = []
         elif s == "do":
             extractPatternSpecs(ProgSpec, clsNames, spec)
         elif s == "#define":
             extractMacroSpec(macroDefs, spec)
+        elif s == '/**' or s == '//*':
+            comments.append(spec)
         else:
             cdErr("Error in extractObjectsOrPatterns; expected 'object' or 'do' and got '{}'".format(spec[0]))
     return newClassNames
@@ -692,7 +701,12 @@ def comment_remover(textIn):
             if nextChar=="/":   commentType = "//"
             elif nextChar=="*": commentType = "/*"
             if commentType!=None:
-                text = text[:idx] + "  " + text[idx+2:]
+                keepComments = False
+                if idx+2 < size:
+                    nextChar2 = text[idx+2]
+                    if nextChar2==":" or nextChar2=="*":
+                        keepComments = True
+                if not keepComments: text = text[:idx] + "  " + text[idx+2:]
                 cmtStr = ""
                 idx += 2
                 while idx < size:
@@ -702,11 +716,11 @@ def comment_remover(textIn):
                         if idx+1 >= size: break
                         nextChar = char + text[idx+1]
                         if nextChar=="*/":
-                            text = text[:idx] + "  " + text[idx+2:]
+                            if not keepComments: text = text[:idx] + "  " + text[idx+2:]
                             commentType = None
                             break
                     cmtStr += char
-                    text = text[:idx] + " " + text[idx+1:]
+                    if not keepComments: text = text[:idx] + " " + text[idx+1:]
                     idx += 1
                 if commentType!=None: cdErr("Comment did not end:'"+cmtStr+"'")
         idx += 1

@@ -989,7 +989,7 @@ class Xlator_Java(Xlator):
                 """ + runCode + """
             }
         """
-        progSpec.addObject(classes[0], classes[1], 'GLOBAL', 'struct', 'SEQ')
+        progSpec.addObject(classes[0], classes[1], 'GLOBAL', 'struct', 'SEQ',["//*", "Main class"])
         codeDogParser.AddToObjectFromText(classes[0], classes[1], progSpec.wrapFieldListInObjectDef('GLOBAL',  mainFuncCode ), 'Java start-up code')
 
     def __init__(self):
