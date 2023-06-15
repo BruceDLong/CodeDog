@@ -23,7 +23,7 @@ def logFieldDef(s, loc, toks):
 # # # # # # # # # # # # #   BNF Parser Productions for CodeDog syntax   # # # # # # # # # # # # #
 ParserElement.enablePackrat()
 #######################################   T A G S   A N D   B U I L D - S P E C S
-docComment    = Group("/**" + SkipTo("*/") + Suppress("*/") | "//*" + restOfLine)
+docComment    = Group("/*^" + SkipTo("*/") + Suppress("*/") | "//^" + restOfLine)
 actComment    = Group("/*:" + SkipTo("*/") + Suppress("*/") | "//:" + restOfLine)
 identifier    = Word(alphanums + "_")
 tagID         = identifier("tagID")
@@ -94,14 +94,15 @@ parameters <<= "(" - Optional(Group(delimitedList(rValue, ','))) + Suppress(")")
 initParams   = "{" + Optional(Group(delimitedList(rValue, ','))("initParams")) + Suppress("}")
 
 ########################################   F U N C T I O N S
-verbatim    = Group(Literal(r"<%") + SkipTo(r"%>", include=True))
-fieldDef    = Forward()
-argList     = Group(verbatim | Optional(delimitedList(Group(fieldDef))))("argList")
-actionSeq   = Forward()
-defaultCase = Group(Keyword("default") + Suppress(":") + actionSeq("caseAction"))("defaultCase")
-switchCase  = Group(Keyword("case") + OneOrMore(rValue + Suppress(":"))("caseValues") - actionSeq("caseAction"))
-switchStmt  = Group(Keyword("switch")("switchStmt") - "(" - rValue("switchKey") - ")" - "{" - OneOrMore(switchCase)("switchCases") - Optional(defaultCase)("optionalDefaultCase") + "}")
-conditionalAction   = Forward()
+verbatim          = Group(Literal(r"<%") + SkipTo(r"%>", include=True))
+fieldDef          = Forward()
+commentedFieldDef = Group(Optional(docComment) + fieldDef('fieldDef'))
+argList           = Group(verbatim | Optional(delimitedList(Group(fieldDef))))("argList")
+actionSeq         = Forward()
+defaultCase       = Group(Keyword("default") + Suppress(":") + actionSeq("caseAction"))("defaultCase")
+switchCase        = Group(Keyword("case") + OneOrMore(rValue + Suppress(":"))("caseValues") - actionSeq("caseAction"))
+switchStmt        = Group(Keyword("switch")("switchStmt") - "(" - rValue("switchKey") - ")" - "{" - OneOrMore(switchCase)("switchCases") - Optional(defaultCase)("optionalDefaultCase") + "}")
+conditionalAction = Forward()
 conditionalAction <<= Group(
             Group(Keyword("if") - "(" + rValue("ifCondition") + ")" + actionSeq("ifBody"))("ifStatement")
             + Optional(Group((Keyword("else") | Keyword("but")) + Group(actionSeq | conditionalAction)("elseBody"))("optionalElse"))
@@ -150,7 +151,7 @@ flagDef      = Optional(meOrMy)('owner') + Keyword("flag")("flagIndicator") - na
 baseType     = cppType | numRange
 
 #########################################   O B J E C T   D E S C R I P T I O N S
-fieldDefs    = ZeroOrMore(fieldDef)("fieldDefs")
+fieldDefs    = ZeroOrMore(commentedFieldDef)("fieldDefs")
 SetFieldStmt = Group(Word(alphanums + "_.") + '=' + Word(alphanums + r"_. */+-(){}[]\|<>,./?`~@#$%^&*=:!'" + '"'))
 coFactualEl  = Group("(" + Group(fieldDef + "<=>" + Group(OneOrMore(SetFieldStmt + Suppress(';'))))  + ")")("coFactualEl")
 sequenceEl   = "{" - fieldDefs + "}"
@@ -216,7 +217,7 @@ def extractTypeArgList(typeArgList):
     return localListStore
 
 nameIDX=1
-def packFieldDef(fieldResult, className, indent):
+def packFieldDef(fieldResult, className, indent, comment=None):
     global nameIDX
     #  ['(', [['>', 'me', ['CID'], [':', 'tag']], '<=>', [[[['hasTag']], '=', [[[[[[[['54321'], []], []], []], []], []], []]]]]], ')']
     coFactuals=None
@@ -354,6 +355,7 @@ def packFieldDef(fieldResult, className, indent):
     if len(innerDefs)>0:   fieldDef['innerDefs']  = innerDefs
     if coFactuals!=None:   fieldDef['coFactuals'] = coFactuals
     if optionalTags!=None: fieldDef['tags']       = optionalTags
+    if comment!=None:      fieldDef['comment']    = comment
     return fieldDef
 
 def parseResultsToListOfParseResults(parseSegment):
@@ -506,7 +508,9 @@ def extractFuncBody(funcName, funcBodyIn):
 def extractFieldDefs(ProgSpec, className, stateType, fieldResults):
     cdlog(logLvl(), "EXTRACTING {}".format(className))
     for fieldResult in fieldResults:
-        fieldDef=packFieldDef(fieldResult, className, '')
+        comment = None
+        if(fieldResult[0][0]=='/*^' or fieldResult[0][0]=='//^' ): comment = fieldResult[0]
+        fieldDef=packFieldDef(fieldResult.fieldDef, className, '', comment)
         progSpec.addField(ProgSpec, className, stateType, fieldDef)
 
 def extractBuildSpecs(buildSpecResults):    # buildSpecResults is sometimes a parseResult, often an empty string
@@ -523,7 +527,7 @@ def extractBuildSpecs(buildSpecResults):    # buildSpecResults is sometimes a pa
             resultOfExtractBuildSpecs.append(spec)
     return resultOfExtractBuildSpecs
 
-def extractObjectSpecs(ProgSpec, classNames, spec, stateType,description, latestComment):
+def extractObjectSpecs(ProgSpec, classNames, spec, stateType,description, comments):
     className=spec.classDefID[0]
     configType="unknown"
     if(spec.sequenceEl): configType="SEQ"
@@ -533,7 +537,7 @@ def extractObjectSpecs(ProgSpec, classNames, spec, stateType,description, latest
         #print("spec.tagDefList = ",spec.tagDefList)
         objTags = extractTagDefs(spec.tagDefList)
     else: objTags = {}
-    taggedName = progSpec.addObject(ProgSpec, classNames, className, stateType, configType,description, latestComment)
+    taggedName = progSpec.addObject(ProgSpec, classNames, className, stateType, configType,description, comments)
     progSpec.addObjTags(ProgSpec, className, stateType, objTags)
     extractFieldDefs(ProgSpec, className, stateType, spec.fieldDefs)
     ############Grab optional typeArgList
@@ -548,7 +552,7 @@ def extractPatternSpecs(ProgSpec, classNames, spec):
     progSpec.addPattern(ProgSpec, classNames, patternName, patternArgWords)
     return
 
-def extractMacroSpec(macroDefs, spec):
+def extractMacroSpec(macroDefs, spec, comments):
     MacroName=spec.macroName
     if 'macroArgs' in spec: MacroArgs=spec.macroArgs
     else: MacroArgs=[]
@@ -563,7 +567,7 @@ def extractMacroDefs(macroDefMap, inputString):
         except ParseException as pe:
             cdErr("Error Extracting Macro: {} In: {}".format(pe, macroStr))
             exit(1)
-        extractMacroSpec(macroDefMap, localResults[0])
+        extractMacroSpec(macroDefMap, localResults[0], ["//^", ""])
 
 def isCID(ch):
     return (ch.isalnum() or ch=='_')
@@ -659,9 +663,11 @@ def extractObjectsOrPatterns(ProgSpec, clsNames, macroDefs, objectSpecResults,de
             comments = []
         elif s == "do":
             extractPatternSpecs(ProgSpec, clsNames, spec)
+            comments = []
         elif s == "#define":
-            extractMacroSpec(macroDefs, spec)
-        elif s == '/**' or s == '//*':
+            extractMacroSpec(macroDefs, spec, comments)
+            comments = []
+        elif s == '/*^' or s == '//^':
             comments.append(spec)
         else:
             cdErr("Error in extractObjectsOrPatterns; expected 'object' or 'do' and got '{}'".format(spec[0]))
@@ -702,11 +708,13 @@ def comment_remover(textIn):
             elif nextChar=="*": commentType = "/*"
             if commentType!=None:
                 keepComments = False
+                startPos     = idx
+                replaceStr   = ""
                 if idx+2 < size:
                     nextChar2 = text[idx+2]
-                    if nextChar2==":" or nextChar2=="*":
+                    if nextChar2==":" or nextChar2=="^":
                         keepComments = True
-                if not keepComments: text = text[:idx] + "  " + text[idx+2:]
+                if not keepComments: replaceStr += "  " #text = text[:idx] + "  " + text[idx+2:]
                 cmtStr = ""
                 idx += 2
                 while idx < size:
@@ -716,12 +724,17 @@ def comment_remover(textIn):
                         if idx+1 >= size: break
                         nextChar = char + text[idx+1]
                         if nextChar=="*/":
-                            if not keepComments: text = text[:idx] + "  " + text[idx+2:]
+                            if not keepComments: replaceStr += "  "
                             commentType = None
                             break
                     cmtStr += char
-                    if not keepComments: text = text[:idx] + " " + text[idx+1:]
+                    if not keepComments:
+                         if text[idx]!="\n": replaceStr += " "
+                         else: replaceStr += "\n"
                     idx += 1
+                if not keepComments:
+                    endPos = startPos + len(replaceStr)
+                    text = text[:startPos]+replaceStr+text[endPos:]
                 if commentType!=None: cdErr("Comment did not end:'"+cmtStr+"'")
         idx += 1
     return(text)

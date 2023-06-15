@@ -739,9 +739,9 @@ class CodeGenerator(object):
             else: cdErr("ERROR: looking for T1Type in codeConverter but reqTagList found in TypeSpec.")
         return [newName, paramList]
 
-    def codeComment(self, commentType, commentStr):
-        if commentType=='/**': return '\n/* ' + commentStr+ '*/'
-        elif commentType=='//*': return '// ' + commentStr + '\n'
+    def codeComment(self, commentType, commentStr, indent):
+        if commentType=='/*^': return '\n'+ indent + '/* ' + commentStr+ '*/'
+        elif commentType=='//^': return indent + '// ' + commentStr
         else: cdErr("unknown comment type: "+ commentType)
     ################################  C o d e   E x p r e s s i o n s
     def codeNameSeg(self, segSpec, tSpecIn, connector, LorR_Val, previousSegName, previousTypeSpec, returnType, LorRorP_Val, genericArgs):
@@ -1784,6 +1784,10 @@ class CodeGenerator(object):
                 [structCode, funcDefCode, globalFuncs, topFuncDefCode] = self.codeSpaceSeq(className, field, indent)
             else:
                 [structCode, funcDefCode, globalFuncs, topFuncDefCode] = self.codeTimeSeq(className, classDef, field, typeArgList, genericArgs, tags, indent)
+            if 'comment' in field:
+                comment = field['comment']
+                commentStr = self.codeComment(comment[0], comment[1], indent)
+                structCode = commentStr + "\n" + structCode
             ## Accumulate field code
             structCodeAcc     += structCode
             funcDefCodeAcc    += funcDefCode
@@ -1925,7 +1929,7 @@ class CodeGenerator(object):
                 commentStr = ''
                 if comments:
                     for comment in comments:
-                        commentStr += self.codeComment(comment[0], comment[1])
+                        commentStr += self.codeComment(comment[0], comment[1], '')
                     structCodeOut = commentStr + structCodeOut
             classRecord = [constsEnums, forwardDeclsOut, structCodeOut, funcCode, className, dependancies]
         self.currentObjName=''
@@ -2396,7 +2400,7 @@ class CodeGenerator(object):
                             newArgList.append(argTypeKW)
                         progSpec.addTypeArgList(fieldName, newArgList)
 
-                    progSpec.addObject(fileClasses[0], fileClasses[1], fieldName, 'struct', 'SEQ',fileClasses[0][className]['libName'],["//*", "Added nested class."])
+                    progSpec.addObject(fileClasses[0], fileClasses[1], fieldName, 'struct', 'SEQ',fileClasses[0][className]['libName'],["//^", "Added nested class."])
                     fieldTags = []
                     if 'tags' in field: fieldTags = field['tags']
                     progSpec.addObjTags(fileClasses[0], fieldName, 'struct', fieldTags)
