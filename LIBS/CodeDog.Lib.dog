@@ -125,6 +125,7 @@ struct GLOBAL{
     me uint: AndBits(me uint: bits, me uint: shft)
     me uint: OrBits (me uint: bits, me uint: shft)
     // me void: endFunc()               // TODO: endFunc is erroneously populating to callable struct fields progSpec.populateCallableStructFields()
+    me int64: currentTimeStamp()
 }
 struct GLOBAL{  /////////  STRING & CHAR HANDLING  /////////////////////
     me int: findString(me string: toSearch, me string: toFind)

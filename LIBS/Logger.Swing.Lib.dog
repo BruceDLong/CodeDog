@@ -22,12 +22,3 @@ struct logManager{
     me void: openLogFile() <- {}
     me void: writeToLog(me string: txt) <- {}
 }
-
-struct GLOBAL{
-    me void: log(me string: MSG) <- {}
-    me void: logInfo(me string: MSG) <- {}
-    me void: logCritical(me string: MSG) <- {}
-    me void: logFatalError(me string: MSG) <- {}
-    me void: logWarn(me string: MSG) <- {}
-    me void: logDbg(me string: MSG) <- {}
-}

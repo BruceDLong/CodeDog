@@ -123,6 +123,7 @@ struct GLOBAL{
     me uint: shiftRight(me uint: bits, me uint: shft) <- <%!(%1 >> %2)%>
     me uint: AndBits(me uint: bits, me uint: shft)    <- <%!(%1 & %2)%>
     me uint: OrBits (me uint: bits, me uint: shft)    <- <%!(%1 | %2)%>
+    me int64: currentTimeStamp()                      <- <%!time(NULL)%>
 }
 struct GLOBAL{  /////////  STRING & CHAR HANDLING  /////////////////////
     me int: findString(me string: toSearch, me string: toFind)  <-  <%!%G%1.find(%2)%>

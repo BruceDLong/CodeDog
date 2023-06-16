@@ -627,7 +627,7 @@ struct QuicEngine{
     }
 
     void: start() <- <%{
-        if(isServer && protocols.size()==0){logMgr.FatalError.LogEntry("FATAL ERROR: ", "No protocls given for Quic."); exit(1);}
+        if(isServer && protocols.size()==0){logFatalError("No protocls given for Quic.","Quic",0);}
         ev_async_send(EV_DEFAULT_ eventLoopThread.async_w);  // Wake up the event loop
         process_conns(&quicMgr);
     }%>

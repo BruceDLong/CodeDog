@@ -27,5 +27,6 @@ struct GLOBAL{
         withEach num in RANGE(1..10){
             print("value = ", num)
         }
+        print("\n")
     }
 }

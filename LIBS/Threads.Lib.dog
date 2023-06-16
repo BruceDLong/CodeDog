@@ -17,6 +17,9 @@ LibDescription  ={
     platforms   =[Linux, OS-X_Devices, Windows]
 }
 
+struct GLOBAL{
+    me string: thisThreadID()
+}
 struct Threads{
     me bool: notDone <- true
     void: run()

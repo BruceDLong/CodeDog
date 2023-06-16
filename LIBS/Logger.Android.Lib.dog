@@ -24,12 +24,3 @@ struct logManager{
         System.out.println(txt+"\n");
     }%>
 }
-
-struct GLOBAL{
-    me void: log(me string: MSG)            <- <%!%GLog.v("GLOBAL",%1)%>
-    me void: logInfo(me string: MSG)        <- <%!%GLog.i("GLOBAL",%1)%>
-    me void: logCritical(me string: MSG)    <- <%!%GLog.e("GLOBAL",%1)%>
-    me void: logFatalError(me string: MSG)  <- <%!%GLog.e("GLOBAL",%1); System.exit(1);%>
-    me void: logWarn(me string: MSG)        <- <%!%GLog.w("GLOBAL",%1)%>
-    me void: logDbg(me string: MSG)         <- <%!%GLog.d("GLOBAL",%1)%>
-}

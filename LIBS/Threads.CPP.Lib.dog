@@ -47,6 +47,19 @@ private:
     unsigned int m_count;
 };
 `
+
+struct GLOBAL{
+    me string: thisThreadID() <- <%{
+        string retVal;
+        int rc;
+        char threadName[16];
+        pthread_t thId = pthread_self();
+        rc = pthread_getname_np(thId, threadName, 16);
+        if(rc != 0){retVal = "error";}
+        else{retVal = threadName;}
+        return(retVal);
+    }%>
+}
 struct Threads{
     me bool: notDone <- true
     me string: name // The threads name if it was set; max 15 chars

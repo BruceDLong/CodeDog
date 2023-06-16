@@ -8,26 +8,30 @@ featuresNeeded = [List, Threads]
 initCode = `
     logMgr.init(OFile)
 `
-
+struct LogLevel: inherits=<mode[Mesg, Info, Critical, FatalError, Warning, Debug]> {}
 struct logger{
     me string: logStr
-    me bool: isVisible
+    me bool: showTimeStamp
+    me bool: showLogLevel
+    me bool: showThreadID
+    me LogLevel: logLevel
+    me Map<me string, me bool>: filters
     me Mutex: loggerMutex
-    me void: Show()             <- {isVisible <- true}
-    me void: Hide()             <- {isVisible <- false}
     me void: Route(me string: routeSpec)
-    me void: LogEntry(me string: loggerName, me string: logText) <- {me MutexMngr: MtxMgr{loggerMutex}; logMgr.writeToLog(loggerName+logText)}
-//me void: LogEntry(me string: loggerName, me string: logText) <- {logMgr.writeToLog(loggerName+logText)}
+    me void: LogEntry(me int: level, me string: category, me string: logText, me int: indent<-0) <- {
+        me MutexMngr: MtxMgr{loggerMutex}
+        me string: logMsg
+        if(showLogLevel) {logMsg <+- ":" + LogLevelStrings[level].subStr(0,1)}
+        if(showTimeStamp){logMsg <+- ":" + toString(currentTimeStamp())}
+        if(showThreadID) {logMsg <+- ":" + thisThreadID()}
+        logMsg <+- ":" + logText
+        logMgr.writeToLog(logMsg)
+    }
 }
 
 struct logManager{
     me string: logFileName  <- "codeDog.log"
-    me logger: Mesg
-    me logger: Info
-    me logger: Critical
-    me logger: FatalError
-    me logger: Warning
-    me logger: Debug
+    me logger: logger
     me mode [ONone, OConsole, OFile, OBoth]: outputMode
     me bool: useLogFile
     me bool: useConsole
@@ -51,23 +55,23 @@ struct logManager{
 struct GLOBAL{
     me logManager: logMgr
 
-    void: logSeg(me string: logTxt) <- {me MutexMngr: MtxMgr{logMgr.Mesg.loggerMutex}; logMgr.Mesg.logStr <+- logTxt}
-    void: logSegIn(me string: segID)<-{me MutexMngr: MtxMgr{logMgr.Mesg.loggerMutex}; logMgr.Mesg.logStr <+- "-"+segID+":["}
-    void: logSegOut(me string: retID)<-{me MutexMngr: MtxMgr{logMgr.Mesg.loggerMutex}; if(retID!=""){retID<-":"+retID} logMgr.Mesg.logStr <+- "]"+retID}
+    void: logSeg(me string: logTxt) <- {me MutexMngr: MtxMgr{logMgr.logger.loggerMutex}; logMgr.logger.logStr <+- logTxt}
+    void: logSegIn(me string: segID)<-{me MutexMngr: MtxMgr{logMgr.logger.loggerMutex}; logMgr.logger.logStr <+- "--"+segID+":["}
+    void: logSegOut(me string: retID)<-{me MutexMngr: MtxMgr{logMgr.logger.loggerMutex}; if(retID!=""){retID<-":"+retID} logMgr.logger.logStr <+- "]"+retID}
     void: logSegStartCol(me string: logTxt, me int: startPos) <- {
-        me MutexMngr: MtxMgr{logMgr.Mesg.loggerMutex};
-        me int: strLength <- logMgr.Mesg.logStr.size()
+        me MutexMngr: MtxMgr{logMgr.logger.loggerMutex};
+        me int: strLength <- logMgr.logger.logStr.size()
         if(strLength < startPos){
             me int: lenDiff <- startPos - strLength
             withEach i in RANGE(0..lenDiff){
-                logMgr.Mesg.logStr <+- " "
+                logMgr.logger.logStr <+- " "
             }
         }
-        logMgr.Mesg.logStr <+- logTxt
+        logMgr.logger.logStr <+- logTxt
     }
-    void: logSegClear() <- {me MutexMngr: MtxMgr{logMgr.Mesg.loggerMutex}; logMgr.Mesg.logStr <+- ""}
-    void: logFlush() <- {me MutexMngr: MtxMgr{logMgr.Mesg.loggerMutex}; logMgr.writeToLog("MESG: "+logMgr.Mesg.logStr); logMgr.Mesg.logStr <- ""}
-    //void: logFlush() <- {logMgr.writeToLog("MESG: "+logMgr.Mesg.logStr); logMgr.Mesg.logStr <- ""}
+    void: logSegClear() <- {me MutexMngr: MtxMgr{logMgr.logger.loggerMutex}; logMgr.logger.logStr <+- ""}
+    void: logFlush() <- {me MutexMngr: MtxMgr{logMgr.logger.loggerMutex}; logMgr.writeToLog("MESG: "+logMgr.logger.logStr); logMgr.logger.logStr <- ""}
+    //void: logFlush() <- {logMgr.writeToLog("MESG: "+logMgr.logger.logStr); logMgr.logger.logStr <- ""}
     //me void: assert(me string: condition) <- {}
 
     me string: shortedStr(me string: str, me int: len) <- {
@@ -76,10 +80,11 @@ struct GLOBAL{
         me int: startLen  <- len-endLen
         return(str.subStr(0, startLen) + " ### " +str.subStr(str.size()-endLen))
     }
-    me void: log(me string: MSG)
-    me void: logInfo(me string: MSG)
-    me void: logCritical(me string: MSG)
-    me void: logFatalError(me string: MSG)
-    me void: logWarn(me string: MSG)
-    me void: logDbg(me string: MSG)
+
+    me void: log(me string: logText, me string: category<-"", me int: indent<-0)           <- {logMgr.logger.LogEntry(Mesg, category, logText, indent)}
+    me void: logInfo(me string: logText, me string: category<-"", me int: indent<-0)       <- {logMgr.logger.LogEntry(Info, category, logText, indent)}
+    me void: logCritical(me string: logText, me string: category<-"", me int: indent<-0)   <- {logMgr.logger.LogEntry(Critical, category, logText, indent)}
+    me void: logFatalError(me string: logText, me string: category<-"", me int: indent<-0) <- {logMgr.logger.LogEntry(FatalError, category, logText, indent); exit(-1)}
+    me void: logWarn(me string: logText, me string: category<-"", me int: indent<-0)       <- {logMgr.logger.LogEntry(Warning, category, logText, indent)}
+    me void: logDbg(me string: logText, me string: category<-"", me int: indent<-0)        <- {logMgr.logger.LogEntry(Debug, category, logText, indent)}
 }
