@@ -1365,7 +1365,6 @@ class CodeGenerator(object):
                 if AltIDXFormat!=None: # Handle special forms of assignment such as LVal(idx, RVal)
                     actionText = self.xlator.checkIfSpecialAssignmentFormIsNeeded(action, indent, AltIDXFormat, RHS, rhsTypeSpec, LHS, LHSParentType, LHS_FieldType)
                 if actionText=='':     # Handle the normal assignment case
-                    assignTag = assignTag[0]
                     if(assignTag=='deep'):
                         actionText = indent + LHS + " = " + RHS + ";\n"
                     elif(assignTag=='+'):
