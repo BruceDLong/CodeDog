@@ -6,13 +6,18 @@ from progSpec import cdlog, cdErr, logLvl
 from pyparsing import *
 ParserElement.enablePackrat()
 
-
+commentsToActivate = {}
 def logBSL(s, loc, toks):
     cdlog(3,"Parsing Tags...")
 
 def logTags(s, loc, toks):
-    #cdlog(3,"PARSED Tag: {}".format(str(toks[0][0][0])))
-    pass
+    global commentsToActivate
+    for tagValue in toks:
+        for tagList in tagValue:
+            if tagList[0]=="commentsToActivate":
+                for tag in tagList[1][0][1]:
+                    tagName = tag[0][0]
+                    commentsToActivate[tagName] = 'active'
 
 def logObj(s, loc, toks):
     cdlog(3,"PARSED: {}".format(str(toks[0][0])+' '+toks[0][1][0]))
@@ -24,7 +29,6 @@ def logFieldDef(s, loc, toks):
 ParserElement.enablePackrat()
 #######################################   T A G S   A N D   B U I L D - S P E C S
 docComment    = Group("/*^" + SkipTo("*/") + Suppress("*/") | "//^" + restOfLine)
-actComment    = Group("/*:" + SkipTo("*/") + Suppress("*/") | "//:" + restOfLine)
 identifier    = Word(alphanums + "_")
 tagID         = identifier("tagID")
 tagDefList    = Forward()
@@ -59,7 +63,6 @@ value     = Forward()
 listVal   = "[" + delimitedList(expr, ",") + "]"
 strMapVal = "{" + delimitedList(quotedString + ":" + expr, ",")  + "}"
 value   <<= boolValue | floatNum | intNum | quotedString | listVal | strMapVal
-comment   = Suppress(r'//') + restOfLine('comment')
 
 #######################################   E X P R E S S I O N S
 parameters  = Forward()
@@ -125,8 +128,9 @@ repeatedAction = Group(
             + actionSeq
         )("repeatedAction")
 
-action         = Group((actComment('actComment') | assign("assign") | swap('swap') | varRef("funcCall") | fieldDef('fieldDef')) + Optional(comment)) + Optional(";").suppress()
-actionSeq    <<= Group(Literal("{")("actSeqID") - (ZeroOrMore(switchStmt | conditionalAction | repeatedAction | whileAction | protectAction | actionSeq | action))("actionList") + "}")("actionSeq")
+action         = Group((assign("assign") | swap('swap') | varRef("funcCall") | fieldDef('fieldDef'))) + Optional(";").suppress()
+actComment     = Group(Combine("//:"+ Word(alphanums + r"/")("filterTag")+"::")("actComment") + action)
+actionSeq    <<= Group(Literal("{")("actSeqID") - (ZeroOrMore(switchStmt | conditionalAction | repeatedAction | whileAction | protectAction | actionSeq | action | actComment))("actionList") + "}")("actionSeq")
 rValueVerbatim = Group("<%" + SkipTo("%>", include=True))("rValueVerbatim")
 funcBody       = Group(actionSeq | rValueVerbatim)("funcBody")
 
@@ -165,12 +169,12 @@ classDef     = Group(modelTypes + classDefID + Optional(Literal(":")("optionalTa
 doPattern    = Group(Keyword("do") + classSpec + Suppress("(") + CIDList + Suppress(")"))("doPattern")
 macroDef     = Group(Keyword("#define") + CID('macroName') + Suppress("(") + Optional(CIDList('macroArgs')) + Suppress(")") + Group("<%" + SkipTo("%>", include=True))("macroBody"))
 classList    = Group(ZeroOrMore(docComment | classDef | doPattern | macroDef))("classList")
-classDef.setParseAction(logObj)
-fieldDef.setParseAction(logFieldDef)
+classDef.set_parse_action(logObj)
+fieldDef.set_parse_action(logFieldDef)
 
 #########################################   P A R S E R   S T A R T   S Y M B O L
-progSpecParser = Group(Optional(buildSpecList.setParseAction(logBSL)) + tagDefList.setParseAction(logTags) + classList)("progSpecParser")
-libTagParser   = Group(Optional(buildSpecList.setParseAction(logBSL)) + tagDefList.setParseAction(logTags) + (modelTypes|Keyword("do")|Keyword("#define")|StringEnd()))("libTagParser")
+progSpecParser = Group(Optional(buildSpecList.set_parse_action(logBSL)) + tagDefList.set_parse_action(logTags) + classList)("progSpecParser")
+libTagParser   = Group(Optional(buildSpecList.set_parse_action(logBSL)) + tagDefList.set_parse_action(logTags) + (modelTypes|Keyword("do")|Keyword("#define")|StringEnd()))("libTagParser")
 
 # # # # # # # # # # # # #   E x t r a c t   P a r s e   R e s u l t s   # # # # # # # # # # # # #
 def parseInput(inputStr):
@@ -368,7 +372,8 @@ def parseResultsToListOfParseResults(parseSegment):
 
 def extractActItem(funcName, actionItem):
     global funcsCalled
-    thisActionItem='error'
+    global commentsToActivate
+    thisActionItem=None
     if actionItem.fieldDef:
         thisActionItem = {'typeOfAction':"newVar", 'fieldDef':packFieldDef(actionItem.fieldDef, '', '    LOCAL:')}
     elif actionItem.switchStmt:
@@ -472,8 +477,16 @@ def extractActItem(funcName, actionItem):
         critSectionOut  = extractActSeq(funcName, critSectionIn)
         thisActionItem = {'typeOfAction':"protect", 'mutex':mutex, 'criticalSection':critSectionOut}
     elif actionItem.actComment:
-        actComment = actionItem.actComment
-        print("actComment: " ,actComment)
+        filterTag = actionItem.actComment.filterTag
+        for tag in commentsToActivate:
+            if tag[-1]=="/":
+                filterCpy = filterTag+"/"
+                if tag == filterCpy[0:len(tag)]:
+                    thisActionItem = extractActItem(funcName, actionItem[1])
+                    break
+            elif filterTag==tag:
+                thisActionItem = extractActItem(funcName, actionItem[1])
+                break
     else:
         cdErr("problem in extractActItem: actionItem:".format(str(actionItem)))
         exit(1)
@@ -484,7 +497,7 @@ def extractActSeq(funcName, childActSeq):
     actSeq = []
     for actionItem in actionList:
         thisActionItem = extractActItem(funcName, actionItem)
-        actSeq.append(thisActionItem)
+        if thisActionItem!=None: actSeq.append(thisActionItem)
     return actSeq
 
 def extractFuncBody(funcName, funcBodyIn):

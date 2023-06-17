@@ -11,19 +11,26 @@ initCode = `
 struct LogLevel: inherits=<mode[Mesg, Info, Critical, FatalError, Warning, Debug]> {}
 struct logger{
     me string: logStr
-    me bool: showTimeStamp
-    me bool: showLogLevel
-    me bool: showThreadID
+    me bool: timeStampVisible
+    me bool: logLevelVisible
+    me bool: threadIDVisible
     me LogLevel: logLevel
     me Map<me string, me bool>: filters
     me Mutex: loggerMutex
     me void: Route(me string: routeSpec)
+    me void: showTimeStamp(me bool: show) <- {timeStampVisible <- show}
+    me void: showLogLevel(me bool: show)  <- {logLevelVisible <- show}
+    me void: showThreadID(me bool: show)  <- {threadIDVisible <- show}
+    me void: highestLogLevelToShow(me int: lvl) <- {logLevel <- lvl}
+    me void: addFilter(me string: filter, me bool: show) <- {filters[filter] <- show}
+    me void: clearFilters()  <- {filters.clear()}
     me void: LogEntry(me int: level, me string: category, me string: logText, me int: indent<-0) <- {
         me MutexMngr: MtxMgr{loggerMutex}
         me string: logMsg
-        if(showLogLevel) {logMsg <+- ":" + LogLevelStrings[level].subStr(0,1)}
-        if(showTimeStamp){logMsg <+- ":" + toString(currentTimeStamp())}
-        if(showThreadID) {logMsg <+- ":" + thisThreadID()}
+        if(logLevelVisible) {logMsg <+- ":" + LogLevelStrings[level].subStr(0,1)}
+        if(timeStampVisible){logMsg <+- ":" + toString(currentTimeStamp())}
+        if(threadIDVisible) {logMsg <+- ":" + thisThreadID()}
+        withEach num in RANGE(0..indent){logMsg<+-"|   "}
         logMsg <+- ":" + logText
         logMgr.writeToLog(logMsg)
     }

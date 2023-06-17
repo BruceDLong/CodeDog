@@ -25,7 +25,7 @@ struct GLOBAL{
     void: runProg()<-{
         print("Hello World!\n")
         withEach num in RANGE(1..10){
-            print("value = ", num)
+            print("value = ", num,"\n")
         }
         print("\n")
     }
