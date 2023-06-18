@@ -100,8 +100,8 @@ struct Dashboard: inherits=dash{
             child.primaryClick(event)
         }
         withEach Dash in dependentItems{
-            if(! Dash.isHidden){
-                Dash.primaryClick(event)
+            if(! Dash.val.isHidden){
+                Dash.val.primaryClick(event)
             }
         }
         requestRedraw()
@@ -115,8 +115,8 @@ struct Dashboard: inherits=dash{
             child.secondaryClick(event)
         }
         withEach Dash in dependentItems{
-            if(! Dash.isHidden){
-                Dash.secondaryClick(event)
+            if(! Dash.val.isHidden){
+                Dash.val.secondaryClick(event)
             }
         }
         setPos(15, 15, 35)
@@ -131,8 +131,8 @@ struct Dashboard: inherits=dash{
             child.primaryDn(event)
         }
         withEach Dash in dependentItems{
-            if(! Dash.isHidden){
-                Dash.primaryDn(event)
+            if(! Dash.val.isHidden){
+                Dash.val.primaryDn(event)
             }
         }
         return(true)
@@ -145,8 +145,8 @@ struct Dashboard: inherits=dash{
             child.primaryUp(event)
         }
         withEach Dash in dependentItems{
-            if(! Dash.isHidden){
-                Dash.primaryUp(event)
+            if(! Dash.val.isHidden){
+                Dash.val.primaryUp(event)
             }
         }
         return(true)
@@ -159,8 +159,8 @@ struct Dashboard: inherits=dash{
             child.mouseMoved(event)
         }
         withEach Dash in dependentItems{
-            if(! Dash.isHidden){
-                Dash.mouseMoved(event)
+            if(! Dash.val.isHidden){
+                Dash.val.mouseMoved(event)
             }
         }
         return(true)
@@ -189,8 +189,8 @@ struct Dashboard: inherits=dash{
         width <- 10
         height <- 10
         withEach Dash in dependentItems{
-            Dash.isHidden<-true
-            Dash.posIsSet<-false
+            Dash.val.isHidden<-true
+            Dash.val.posIsSet<-false
         }
         withEach child in dashChildren{
             extY <- YCursor+25
@@ -200,9 +200,9 @@ struct Dashboard: inherits=dash{
             YCursor <- child.extY + 30
         }
         withEach depDash in dependentItems{
-            if(!depDash.isHidden){
-                width<-max(width, depDash.extX)
-                height<-max(height, depDash.extY)
+            if(!depDash.val.isHidden){
+                width<-max(width, depDash.val.extX)
+                height<-max(height, depDash.val.extY)
             }
         }
         width <- width +30
@@ -245,8 +245,8 @@ struct Dashboard: inherits=dash{
             childDash.draw(cr)
         }
         withEach depDash in dependentItems{
-            if(!depDash.isHidden){
-                depDash.draw(cr)
+            if(!depDash.val.isHidden){
+                depDash.val.draw(cr)
             }
         }
         withEach decoration in decorations{

@@ -396,7 +396,7 @@ struct Thing3D{
         me Multimap<me float, our Mesh>: meshList
         preDraw(parentMatx, 0.0, meshList)
         withEach mesh in meshList{
-            mesh.draw(cr, NULL, color, interpolation, win3D)
+            mesh.val.draw(cr, NULL, color, interpolation, win3D)
         }
     }
 

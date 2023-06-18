@@ -125,8 +125,8 @@ class Xlator_CPP(Xlator):
                 valOwner  = progSpec.getOwner(reqTagList[1])
                 valTypeKW = progSpec.fieldTypeKeyword(reqTagList[1])
             else: cdErr("TODO: handle value type owner and keyword in iterateContainerStr().")
-            repTSpec    = {'owner':valOwner, 'fieldType':valTypeKW}
-            repTSpec['codeConverter'] = self.getIteratorValueCodeConverter(ctnrTSpec, repName)
+            itrTypeKW   = progSpec.fieldTypeKeyword(itrTSpec)
+            repTSpec    = {'owner':'itr', 'fieldType':itrTypeKW, 'reqTagList': reqTagList, 'fromRep':True}
             localVarsAlloc.append([repName, repTSpec]) # Tracking local vars for scope
             frontItr    = progSpec.getCodeConverterByFieldID(self.codeGen.classStore, datastructID, "front" , ctnrName , RDeclP)
             actionText += indent + "for(auto "+repName+'='+frontItr + '; '+repName+'!='+ctnrName+RDeclP+'end(); ++'+repName+'){\n'

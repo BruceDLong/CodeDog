@@ -805,6 +805,18 @@ class CodeGenerator(object):
             elif(name[0]=='[' and (fTypeKW=='uint' or fTypeKW=='int')):
                 print("Error: integers can't be indexed: ", previousSegName,  ":", name)
                 exit(2)
+            elif owner=="itr" and 'fromRep' in tSpecIn:
+                reqTagList = tSpecIn['reqTagList']
+                if name=="key":
+                    keyOwner  = progSpec.getOwner(reqTagList[0])
+                    keyTypeKW = progSpec.fieldTypeKeyword(reqTagList[0])
+                    tSpecOut={'owner':keyOwner, 'fieldType': keyTypeKW}
+                    name = "first"
+                elif name=="val":
+                    valOwner  = progSpec.getOwner(reqTagList[1])
+                    valTypeKW = progSpec.fieldTypeKeyword(reqTagList[1])
+                    tSpecOut={'owner':valOwner, 'fieldType': valTypeKW}
+                    name = "second"
             else:
                 if fTypeKW!="string":
                     itrTypeKW = progSpec.convertItrType(self.classStore, owner, fTypeKW)

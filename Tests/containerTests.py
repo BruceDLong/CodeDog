@@ -65,7 +65,11 @@ struct testClass{
         print(" ",mapIntString.first())
         print(" ",mapIntString.size())
         print(" ",mapIntString.last())
-        withEach item in mapIntString{print(item)}
+        withEach item in mapIntString{
+            me int: mpKey <- item.key
+            me string: mpVal <- item.val
+            print(mpVal)
+        }
         mapIntString.clear()
         print(" ",mapIntString.size())
     }
@@ -79,7 +83,7 @@ struct testClass{
         mapStringInt.insert("aa",0)
         mapStringInt.insert("bb",1)
         mapStringInt.insert("cc",2)
-        withEach item in mapStringInt{print(item)}
+        withEach item in mapStringInt{print(item.val)}
         print(" at(cc)=",mapStringInt.at("cc"))
         return(mapStringInt.at("cc"))
     }
@@ -109,7 +113,7 @@ struct testClass{
     me void: runTest()<-{
         me Map<me string, me string>:testMap
         testMap["E"]<-"every"\ntestMap["G"]<-"good"\ntestMap["B"]<-"boy"\ntestMap["D"]<-"does"\ntestMap["F"]<-"fine"
-        withEach M in testMap {print(M," ")}
+        withEach M in testMap {print(M.val," ")}
     }
 }''', 'PGBR:boy does every fine good '],
 ###################################################################################################
@@ -124,8 +128,8 @@ struct testClass{
         testMapStrInt.insert("aa",0)
         testMapStrInt.insert("bb",1)
         testMapStrInt.insert("cc",2)
-        withEach strItm in testMapStrStr{print(strItm)}
-        withEach intItm in testMapStrInt{print(intItm)}
+        withEach strItm in testMapStrStr{print(strItm.val)}
+        withEach intItm in testMapStrInt{print(intItm.val)}
     }
 }''', 'PGBR:zeroonetwo012'],
 ###################################################################################################
@@ -137,7 +141,7 @@ struct testClass{
         testMapStringMyString.insert("aa","zero")
         testMapStringMyString.insert("bb","one")
         testMapStringMyString.insert("cc","two")
-        withEach strItm in testMapStringMyString{print(strItm)}
+        withEach strItm in testMapStringMyString{print(strItm.val)}
     }
 }''', 'PGBR:zeroonetwo'],
 ###################################################################################################
@@ -160,8 +164,8 @@ struct testClass{
         txtsOut.insert(1,Tone)
         txtsOut.insert(2,Ttwo)
         withEach itm in txtsOut{
-            if(!itm.isHidden){
-                itm.output()
+            if(!itm.val.isHidden){
+                itm.val.output()
             }
         }
     }
@@ -207,7 +211,7 @@ struct testClass{
         mapIntString.insert(1,"bb")
         mapIntString.insert(2,"cc")
         mapIntString.insert(0,"aa")
-        withEach item in mapIntString{print(item)}
+        withEach item in mapIntString{print(item.val)}
     }
 }''', 'PGBR:aabbccddeeff',
         ['', '']],

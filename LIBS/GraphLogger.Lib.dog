@@ -67,7 +67,7 @@ struct graphLogger{
             out.write(line)
         }
         withEach rankItem in rankSlots{
-            me string: sameRank <- "{rank=same; " + rankItem + "}"
+            me string: sameRank <- "{rank=same; " + rankItem.val + "}"
             out.write(sameRank)
         }
         me string: footer <- "}\n"
