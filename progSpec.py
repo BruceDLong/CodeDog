@@ -148,7 +148,7 @@ def fieldIdentifierString(className, packedField):
         fieldID+=')'
     return fieldID
 
-def addObject(objSpecs, objectNameList, name, stateType, configType, libName = None, comments = None):
+def addClass(objSpecs, objectNameList, name, stateType, configType, libName = None, comments = None):
     global MarkItems
     global MarkedObjects
     global libLevels

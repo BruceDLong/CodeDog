@@ -2411,7 +2411,7 @@ class CodeGenerator(object):
                             newArgList.append(argTypeKW)
                         progSpec.addTypeArgList(fieldName, newArgList)
 
-                    progSpec.addObject(fileClasses[0], fileClasses[1], fieldName, 'struct', 'SEQ',fileClasses[0][className]['libName'],["//^", "Added nested class."])
+                    progSpec.addClass(fileClasses[0], fileClasses[1], fieldName, 'struct', 'SEQ',fileClasses[0][className]['libName'],["//^", "Added nested class."])
                     fieldTags = []
                     if 'tags' in field: fieldTags = field['tags']
                     progSpec.addObjTags(fileClasses[0], fieldName, 'struct', fieldTags)

@@ -550,7 +550,7 @@ def extractObjectSpecs(ProgSpec, classNames, spec, stateType,description, commen
         #print("spec.tagDefList = ",spec.tagDefList)
         objTags = extractTagDefs(spec.tagDefList)
     else: objTags = {}
-    taggedName = progSpec.addObject(ProgSpec, classNames, className, stateType, configType,description, comments)
+    taggedName = progSpec.addClass(ProgSpec, classNames, className, stateType, configType,description, comments)
     progSpec.addObjTags(ProgSpec, className, stateType, objTags)
     extractFieldDefs(ProgSpec, className, stateType, spec.fieldDefs)
     ############Grab optional typeArgList

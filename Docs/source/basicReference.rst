@@ -12,6 +12,19 @@ Comments
 CodeDog supports line and block comments. Line comments are from // to the end of the line.
 Block comments are between /* and */
 
+To make comments that show up in the generated code place an asterisk after the comment symbol.
+For example, //* or /**...*/. These comments can only appear in certain places.
+The very first //* comment in a file is associated with the file.
+The comments before a class definition are associated with the class and can be used to autodoc.
+Comments before class field definitions or comments before lines of code are associated with the item after them.
+
+CodeDog has the following convertions for commenting out code:
+ * //~ or /*~ are used to temporally comment out code for debugging.
+ * //? or /*? are used to comment out code that should be saved "just in case".
+ * //! or /*! are used to comment out 'in progress code' that should be commented out until it works.
+
+ * Comments such as //TODO:, //MUST: or //FIX: (or any of the form "//XXX:") can be automatically writtem to a file to keep track of development tasks or requirements.
+
 #include files
 ^^^^^^^^^^^^^^
 CodeDog files may directly include the contents of other files by with an include directive.
