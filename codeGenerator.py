@@ -714,7 +714,7 @@ class CodeGenerator(object):
                 if S2!='self':S2 += self.xlator.makePtrOpt(argTSpec)
                 if(isinstance(newName, str)):
                     newName=newName.replace(oldTextTag, S2)
-                else: exit(2)
+                else: cdErr("Unknown error in paramater list")
                 count+=1
             paramList=None
         if '%0.' in newName and connector==self.xlator.PtrConnector:
@@ -803,8 +803,8 @@ class CodeGenerator(object):
                 S += self.xlator.codeArrayIndex(S2, 'string', LorR_Val, previousSegName, idxTypeSpec)
                 return [S, tSpecOut, S2, '']  # Here we return S2 for use in code forms other than [idx]. e.g. f(idx)
             elif(name[0]=='[' and (fTypeKW=='uint' or fTypeKW=='int')):
-                print("Error: integers can't be indexed: ", previousSegName,  ":", name)
-                exit(2)
+                cdErr("Error: integers can't be indexed: "+previousSegName+":"+name)
+
             elif owner=="itr" and 'fromRep' in tSpecIn:
                 reqTagList = tSpecIn['reqTagList']
                 if name=="key":
@@ -1066,7 +1066,7 @@ class CodeGenerator(object):
                 if   (i[0] == '*'): op = ' * '
                 elif (i[0] == '/'): op = ' / '
                 elif (i[0] == '%'): op = ' % '
-                else: print("ERROR: One of '*', '/' or '%' expected in code generator."); exit(2)
+                else: cdErr("One of '*', '/' or '%' expected in code generator.")
                 [S2, retType2] = self.xlator.codeFactor(i[1], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
 
                 if not self.xlator.implOperatorsAsFuncs(fType1):
@@ -1094,7 +1094,7 @@ class CodeGenerator(object):
                 else:
                     if   (i[0] == '+'): op = ' + '
                     elif (i[0] == '-'): op = ' - '
-                    else: print("ERROR: '+' or '-' expected in code generator."); exit(2)
+                    else: cdErr("'+' or '-' expected in code generator.")
                     if i[0]=='+' :S2 = self.xlator.checkForTypeCastNeed('string', retType2, S2)
                     S += op+S2
         return [S, retTypeSpec]
@@ -1102,7 +1102,7 @@ class CodeGenerator(object):
     def codeComparison(self, item, returnType, expectedTypeSpec, LorRorP_Val, genericArgs):
         [S, retTypeSpec]=self.codePlus(item[0], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
         if len(item) > 1 and len(item[1])>0:
-            if len(item[1])>1: print("Error: Chained comparisons.\n"); exit(1);
+            if len(item[1])>1: cdErr("Chained comparisons.\n")
             [S, isDerefd]=self.xlator.derefPtr(S, retTypeSpec)
             for i in item[1]:
                 [S2, retType2] = self.codePlus(i[1], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
@@ -1113,7 +1113,7 @@ class CodeGenerator(object):
     def codeIsEQ(self, item, returnType, expectedTypeSpec, LorRorP_Val, genericArgs):
         [S, retTypeSpec]=self.codeComparison(item[0], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
         if len(item) > 1 and len(item[1])>0:
-            if len(item[1])>1: print("Error: Chained == or !=.\n"); exit(1);
+            if len(item[1])>1: cdErr("Chained == or !=.\n")
             if (isinstance(retTypeSpec, int)): cdlog(logLvl(), "Invalid item in ==: {}".format(item[0]))
             for i in item[1]:
                 [S2, retType2] = self.codeComparison(i[1], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
@@ -1165,7 +1165,7 @@ class CodeGenerator(object):
                     S2 = self.xlator.checkForTypeCastNeed('bool', retTypeSpec, S2)
                     [S2, isDerefd]=self.xlator.derefPtr(S2, retTypeSpec)
                     S+=' && ' + S2
-                else: print("ERROR: 'and' expected in code generator."); exit(2)
+                else: cdErr("'and' expected in code generator.")
                 retTypeSpec = {'owner': 'me', 'fieldType': 'bool'}
         return [S, retTypeSpec]
 
@@ -1180,7 +1180,7 @@ class CodeGenerator(object):
                     [S2, isDerefd]=self.xlator.derefPtr(S2, retTypeSpec)
                     S2 = self.xlator.checkForTypeCastNeed('bool', retTypeSpec, S2)
                     S+=' || ' + S2
-                else: print("ERROR: 'or' expected in code generator."); exit(2)
+                else: cdErr("'or' expected in code generator.")
                 retTypeSpec = {'owner': 'me', 'fieldType': 'bool'}
         return [S, retTypeSpec]
 
@@ -1193,7 +1193,7 @@ class CodeGenerator(object):
                     [S2, retTypeSpec] = self.codeLogicalOr(i[1], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
                     [S2, isDerefd]=self.xlator.derefPtr(S2, retTypeSpec)
                     S+=' = ' + S2
-                else: print("ERROR: '<-' expected in code generator."); exit(2)
+                else: cdErr("'<-' expected in code generator.")
                 retTypeSpec = {'owner': 'me', 'fieldType': 'bool'}
         return [S, retTypeSpec]
 
@@ -1309,7 +1309,7 @@ class CodeGenerator(object):
                 elseAction = elseBody[1]['actionList']
                 elseText = self.codeActionSeq(elseAction, indent, returnType, genericArgs)
                 actionText += indent + "else " + elseText.lstrip()
-            else:  print("Unrecognized item after else"); exit(2);
+            else:  cdErr("Unrecognized item after else")
         return actionText
 
     #### codeAction ##################################################
@@ -1424,14 +1424,13 @@ class CodeGenerator(object):
                     elseAction = elseBody[1]['actionList']
                     elseText = self.codeActionSeq(elseAction, indent, returnType, genericArgs)
                     actionText += indent + "else " + elseText.lstrip()
-                else:  print("Unrecognized item after else"); exit(2);
+                else:  cdErr("Unrecognized item after else")
         elif (typeOfAction =='repetition'):
             actionText = self.codeRepetition(action, returnType, indent, genericArgs)
         elif (typeOfAction =='funcCall'):
             calledFunc = action['calledFunc']
             if calledFunc[0][0] == 'if' or calledFunc=='withEach' or calledFunc=='until' or calledFunc=='where':
-                print("\nERROR: It is not allowed to name a function", calledFunc[0][0])
-                exit(2)
+                cdErr("It is not allowed to name a function"+calledFunc[0][0])
             cdlog(5, "Function Call: {}()".format(str(calledFunc[0][0])))
             funcCallText = self.codeFuncCall(calledFunc, returnType, genericArgs)
             funcCallTextStriped = funcCallText.strip()
@@ -1473,8 +1472,7 @@ class CodeGenerator(object):
             [mutex, mtxTypeSpec]=self.codeExpr(mutex, None, None, 'RVAL', genericArgs)
             actionText = self.xlator.codeProtectBlock(mutex, criticalText, indent)
         else:
-            print("error in codeAction: ", action)
-            exit(2)
+            cdErr("Unknown action type: ", str(action))
         return actionText
 
     def codeActionSeq(self, actSeq, indent, returnType, genericArgs):

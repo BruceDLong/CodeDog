@@ -328,12 +328,12 @@ def packFieldDef(fieldResult, className, indent, comment=None):
 
     if(fieldResult.flagDef):
         cdlog(3,"FLAG: {}".format(fieldResult))
-        if(arraySpec): cdErr("Lists of flags are not allowed.\n"); exit(2);
+        if(arraySpec): cdErr("Lists of flags are not allowed")
         fieldDef=progSpec.packField(className, False, owner, 'flag', arraySpec, packedTArgList, fieldName, None, paramList, givenValue, isAllocated, hasFuncBody)
     elif(fieldResult.modeDef):
         cdlog(3,"MODE: {}".format(fieldResult))
         modeList=fieldResult.modeList
-        if(arraySpec): cdErr("Lists of modes are not allowed.\n"); exit(2);
+        if(arraySpec): cdErr("Lists of modes are not allowed")
         fieldDef=progSpec.packField(className, False, owner, 'mode', arraySpec, packedTArgList, fieldName, None, paramList, givenValue, isAllocated, hasFuncBody)
         fieldDef['typeSpec']['enumList']=modeList
     elif(fieldResult.constStr):
