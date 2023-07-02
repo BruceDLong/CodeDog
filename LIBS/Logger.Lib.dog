@@ -9,7 +9,7 @@ initCode = `
     logMgr.init(OFile)
 `
 struct LogLevel: inherits=<mode[Mesg, Info, Critical, FatalError, Warning, Debug]> {}
-struct logger{
+struct Logger{
     me string: logStr
     me bool: timeStampVisible
     me bool: logLevelVisible
@@ -17,11 +17,10 @@ struct logger{
     me LogLevel: logLevel
     me Map<me string, me bool>: filters
     me Mutex: loggerMutex
-    me void: Route(me string: routeSpec)
     me void: showTimeStamp(me bool: show) <- {timeStampVisible <- show}
     me void: showLogLevel(me bool: show)  <- {logLevelVisible <- show}
     me void: showThreadID(me bool: show)  <- {threadIDVisible <- show}
-    me void: highestLogLevelToShow(me int: lvl) <- {logLevel <- lvl}
+    me void: highestLogLevelToShow(me LogLevel: lvl) <- {logLevel <- lvl}
     me void: addFilter(me string: filter, me bool: show) <- {filters[filter] <- show}
     me void: clearFilters()  <- {filters.clear()}
     me void: LogEntry(me int: level, me string: category, me string: logText, me int: indent<-0) <- {
@@ -38,7 +37,7 @@ struct logger{
 
 struct logManager{
     me string: logFileName  <- "codeDog.log"
-    me logger: logger
+    me Logger: logger
     me mode [ONone, OConsole, OFile, OBoth]: outputMode
     me bool: useLogFile
     me bool: useConsole
