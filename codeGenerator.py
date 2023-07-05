@@ -2000,27 +2000,6 @@ class CodeGenerator(object):
                         self.StaticMemberVars[eItem]=className
 
                     bitCursor=bitCursor+numEnumBits;
-                elif inheritsMode:
-                    cdlog(6, "mode inherited: {}[]".format(fieldName))
-                    structEnums += "\n// For Inherited Mode "+fieldName+"\n"
-                    enumSize= len(self.classStore[0][fTypeKW]['tags']['inherits']['fieldType']['altModeList'].asList())
-                    numEnumBits=self.bitsNeeded(enumSize)
-                    enumMask=((1 << numEnumBits) - 1) << bitCursor
-
-                    offsetVarName = fieldName+"Offset"
-                    maskVarName   = fieldName+"Mask"
-                    structEnums += "    "+self.xlator.getConstIntFieldStr(offsetVarName, hex(bitCursor), 64)
-                    structEnums += "    "+self.xlator.getConstIntFieldStr(maskVarName,   hex(enumMask), 64) + "\n"
-
-                    enumList=self.classStore[0][fTypeKW]['tags']['inherits']['fieldType']['altModeList'].asList()
-                    self.StaticMemberVars[offsetVarName]=className
-                    self.StaticMemberVars[maskVarName]  =className
-                    self.StaticMemberVars[fieldName+'Strings']  = className
-                    self.modeStateNames[fieldName+'Strings']=className
-                    for eItem in enumList:
-                        self.StaticMemberVars[eItem]=className
-
-                    bitCursor=bitCursor+numEnumBits;
 
         try:
             if self.classStore[0][className]['tags']['inherits']['fieldType']['altModeIndicator']:
