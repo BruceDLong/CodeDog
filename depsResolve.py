@@ -27,12 +27,12 @@ def packageInstallNoLog(packageName):
     from pmgrHandler import getPackageManagerCMD
     pmgrCMD = getPackageManagerCMD(packageName, findPackageManager(),"install")
     #cdlog(1, "Package Installing: "+packageName)
-    print("Package Installing: "+packageName)
-    if subprocess.call(f'{pmgrCMD}'+" > /dev/null 2>&1", shell=True) == 0:
+    print(f"Package Installing: {packageName}")
+    if subprocess.call(f"{pmgrCMD} > /dev/null 2>&1", shell=True) == 0:
         print("Package installed Successfully")
         return True
     else:
-        print("Unable to install package. \nPlease install manually : " + packageName)
+        print(f"Unable to install package. \nPlease install manually : {packageName}")
 
 def installPipPackage():
     from sys import platform
@@ -46,7 +46,7 @@ def installPipPackage():
             from pmgrHandler import getPackageManagerCMD
             pmgrCMD = getPackageManagerCMD("python-pip", findPackageManager(),"install")
             print("Package Installing: python3-pip") # Install PIP3
-            if subprocess.call(f'{pmgrCMD}'+" > /dev/null 2>&1", shell=True) == 0:
+            if subprocess.call(f"{pmgrCMD} > /dev/null 2>&1", shell=True) == 0:
                 print("pip3 installed Successfully")
                 return True
             # If package manager fails to install, try using the bootstrap script
