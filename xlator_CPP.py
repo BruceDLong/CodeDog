@@ -798,6 +798,7 @@ void SetBits(CopyableAtomic<uint64_t>& target, uint64_t mask, uint64_t value) {
         fieldOwner=progSpec.getOwner(tSpec)
         #TODO: make test case
         if paramList!=None:
+            if len(paramList)==0: print("Error Parameter:",fieldName)
             if paramList[-1] == "^&useCtor//8":
                 del paramList[-1]
             [CPL, paramTypeList] = self.codeGen.codeParameterList(fieldName, paramList, None, genericArgs)

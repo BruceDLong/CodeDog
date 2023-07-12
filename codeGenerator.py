@@ -1430,7 +1430,7 @@ class CodeGenerator(object):
         elif (typeOfAction =='funcCall'):
             calledFunc = action['calledFunc']
             if calledFunc[0][0] == 'if' or calledFunc=='withEach' or calledFunc=='until' or calledFunc=='where':
-                cdErr("It is not allowed to name a function"+calledFunc[0][0])
+                cdErr("Function calls cannot be named '"+calledFunc[0][0]+"'")
             cdlog(5, "Function Call: {}()".format(str(calledFunc[0][0])))
             funcCallText = self.codeFuncCall(calledFunc, returnType, genericArgs)
             funcCallTextStriped = funcCallText.strip()

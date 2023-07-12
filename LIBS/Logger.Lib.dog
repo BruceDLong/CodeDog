@@ -76,7 +76,7 @@ struct GLOBAL{
         logMgr.logger.logStr <+- logTxt
     }
     void: logSegClear() <- {me MutexMngr: MtxMgr{logMgr.logger.loggerMutex}; logMgr.logger.logStr <+- ""}
-    void: logFlush() <- {me MutexMngr: MtxMgr{logMgr.logger.loggerMutex}; logMgr.writeToLog("MESG: "+logMgr.logger.logStr); logMgr.logger.logStr <- ""}
+    void: logFlush() <- {me MutexMngr: MtxMgr{logMgr.logger.loggerMutex}; logMgr.writeToLog("LogSEG: "+logMgr.logger.logStr); logMgr.logger.logStr <- ""}
     //void: logFlush() <- {logMgr.writeToLog("MESG: "+logMgr.logger.logStr); logMgr.logger.logStr <- ""}
     //me void: assert(me string: condition) <- {}
 
