@@ -12,8 +12,8 @@ struct LogLevel: inherits=<mode[Mesg, Info, Critical, FatalError, Warning, Debug
 struct Logger{
     me string: logStr
     me bool: timeStampVisible
-    me bool: logLevelVisible
-    me bool: threadIDVisible
+    me bool: logLevelVisible <- true
+    me bool: threadIDVisible <- true
     me LogLevel: logLevel
     me Map<me string, me bool>: filters
     me Mutex: loggerMutex
@@ -76,9 +76,7 @@ struct GLOBAL{
         logMgr.logger.logStr <+- logTxt
     }
     void: logSegClear() <- {me MutexMngr: MtxMgr{logMgr.logger.loggerMutex}; logMgr.logger.logStr <+- ""}
-    void: logFlush() <- {me MutexMngr: MtxMgr{logMgr.logger.loggerMutex}; logMgr.writeToLog("LogSEG: "+logMgr.logger.logStr); logMgr.logger.logStr <- ""}
-    //void: logFlush() <- {logMgr.writeToLog("MESG: "+logMgr.logger.logStr); logMgr.logger.logStr <- ""}
-    //me void: assert(me string: condition) <- {}
+    void: logFlush() <- {logMgr.logger.LogEntry(Info, "", logMgr.logger.logStr); logMgr.logger.logStr <- ""}
 
     me string: shortedStr(me string: str, me int: len) <- {
         if(str.size()<=len){return(str)}
