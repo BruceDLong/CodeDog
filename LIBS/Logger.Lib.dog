@@ -23,8 +23,7 @@ struct Logger{
     me void: highestLogLevelToShow(me LogLevel: lvl) <- {logLevel <- lvl}
     me void: addFilter(me string: filter, me bool: show) <- {filters[filter] <- show}
     me void: clearFilters()  <- {filters.clear()}
-    me void: LogEntry(me int: level, me string: category, me string: logText, me int: indent<-0) <- {
-        me MutexMngr: MtxMgr{loggerMutex}
+    me void: __LogEntry(me int: level, me string: category, me string: logText, me int: indent) <- {
         me string: logMsg
         if(logLevelVisible) {logMsg <+- ":" + LogLevelStrings[level].subStr(0,1)}
         if(timeStampVisible){logMsg <+- ":" + toString(currentTimeStamp())}
@@ -32,6 +31,10 @@ struct Logger{
         withEach num in RANGE(0..indent){logMsg<+-"|   "}
         logMsg <+- ":" + logText
         logMgr.writeToLog(logMsg)
+    }
+    me void: LogEntry(me int: level, me string: category, me string: logText, me int: indent<-0) <- {
+        me MutexMngr: MtxMgr{loggerMutex}
+        __LogEntry(level, category, logText, indent)
     }
 }
 
@@ -76,7 +79,7 @@ struct GLOBAL{
         logMgr.logger.logStr <+- logTxt
     }
     void: logSegClear() <- {me MutexMngr: MtxMgr{logMgr.logger.loggerMutex}; logMgr.logger.logStr <+- ""}
-    void: logFlush() <- {logMgr.logger.LogEntry(Info, "", logMgr.logger.logStr); logMgr.logger.logStr <- ""}
+    void: logFlush() <- {me MutexMngr: MtxMgr{logMgr.logger.loggerMutex}; logMgr.logger.__LogEntry(Info, "", logMgr.logger.logStr, 0); logMgr.logger.logStr <- ""}
 
     me string: shortedStr(me string: str, me int: len) <- {
         if(str.size()<=len){return(str)}
