@@ -80,6 +80,16 @@ struct GLOBAL{
     }
     void: logSegClear() <- {me MutexMngr: MtxMgr{logMgr.logger.loggerMutex}; logMgr.logger.logStr <+- ""}
     void: logFlush() <- {me MutexMngr: MtxMgr{logMgr.logger.loggerMutex}; logMgr.logger.__LogEntry(Info, "", logMgr.logger.logStr, 0); logMgr.logger.logStr <- ""}
+    me string: setTextColor(me int: number) <- {
+        me string: S
+        S <- "\x1b[38;5;"+toString(number)+"m"
+        return(S)
+    }
+    me string: setDefaultColor() <- {
+        me string: S
+        S <- "\x1b[39;m"
+        return(S)
+    }
 
     me string: shortedStr(me string: str, me int: len) <- {
         if(str.size()<=len){return(str)}
