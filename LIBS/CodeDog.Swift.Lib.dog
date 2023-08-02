@@ -83,7 +83,7 @@ struct GLOBAL{  /////////  STRING & CHAR HANDLING  /////////////////////
     me bool: isspace(me char: ch)<- <%{
         return ch == " " || ch == "\t" || ch == "\n" || ch == "\r"
     }%>
-    //me bool: isxdigit(me string: input)                       <- {}
+    //me bool: isxdigit(me char: input)                       <- {}
     me char: toLower(me char: ch)                               <- <%!%1.lowercased()%>
     me char: toUpper(me char: ch)                               <- <%!%1.uppercased()%>
 }
