@@ -57,13 +57,13 @@ def collectLibFilenamesFromFolder(folderPath):
             libPaths.append(os.path.join(folderPath, filename))
         elif filename.endswith("Lib.dog.proxy"):
             line = open(os.path.join(folderPath, filename)).readline()
-            line=line.strip()
+            line = line.strip()
             baseName = os.path.basename(line)
-            #print("baseName: {}".format(baseName))
+            #print(f"baseName: {baseName}")
             if (filename.strip('.proxy') == baseName):
                 libPaths.append(os.path.realpath(line))
             else:
-                cdErr("File name "+filename+" does not match path name.")
+                cdErr(f"File name {filename} does not match path name.")
 
 def collectFromFolderOrLIB(pathName):
     collectLibFilenamesFromFolder(pathName)
@@ -75,17 +75,16 @@ def findLibraryFiles():
     dogFileFolder = os.getcwd()
     codeDogFolder = os.path.dirname(os.path.realpath(__file__))
     collectFromFolderOrLIB(dogFileFolder)
-    if(dogFileFolder!=codeDogFolder and dogFileFolder!=codeDogFolder+"/LIBS"):
+    if dogFileFolder != codeDogFolder and dogFileFolder != f"{codeDogFolder}/LIBS":
         collectFromFolderOrLIB(codeDogFolder)
 
 def findLibrary(feature):
     """Returns the filepath of LIB that matches '[input].Lib.dog'. If no match
     is found returns empty string"""
-
     for libPath in libPaths:
-        if isinstance(feature, ParseResults) and len(feature)==1:
+        if isinstance(feature, ParseResults) and len(feature) == 1:
             feature = feature[0]
-        if os.path.basename(libPath) == feature+".Lib.dog":
+        if os.path.basename(libPath).lower() == f"{feature.lower()}.Lib.dog":
             return libPath
     return ""
 
@@ -105,14 +104,14 @@ def replaceFileName(fileMatch):
     global currentFilesPath
     fileName = fileMatch.group(1)
     currentWD = os.getcwd()
-    pathName = abspath(currentWD) +"/"+fileName
+    pathName = f"{abspath(currentWD)}/{fileName}"
     if not os.path.isfile(pathName):
         dirname, filename = os.path.split(abspath(getsourcefile(lambda:0)))
-        pathName = dirname +"/"+fileName
+        pathName = f"{dirname}/{fileName}"
         if not os.path.isfile(pathName):
-            pathName = currentFilesPath +"/"+fileName
+            pathName = f"{currentFilesPath}/{fileName}"
             if not os.path.isfile(pathName):
-                cdErr("Cannot find include file '"+fileName+"'")
+                cdErr(f"Cannot find include file '{fileName}'")
 
     includedStr = progSpec.stringFromFile(pathName)
     includedStr = processIncludedFiles(includedStr, pathName)
@@ -128,7 +127,7 @@ def processIncludedFiles(fileString, fileName):
 def loadTagsFromFile(fileName):
     codeDogStr = progSpec.stringFromFile(fileName)
     codeDogStr = processIncludedFiles(codeDogStr, fileName)
-    cdlog(2, "Parsing file: "+str(fileName))
+    cdlog(2, f"Parsing file: {fileName}")
     return codeDogParser.parseCodeDogLibTags(codeDogStr)
 
 def filterReqTags(ReqTags):
@@ -167,12 +166,13 @@ def extractLibTags(library):
     return [ReqTags,interfaceTags,featuresNeeded]
 
 def libListType(libList):
-    if isinstance(libList, str): return "STRING"
-    op=libList[0]
-    if (op=='AND' or op=='OR'):
+    if isinstance(libList, str):
+        return "STRING"
+    op = libList[0]
+    if op == 'AND' or op == 'OR':
         return op
-    print("WHILE EXAMINING:", libList)
-    cdErr('Invalid type encountered for a library identifier:'+str(op))
+    print(f"WHILE EXAMINING: {libList}")
+    cdErr(f"Invalid type encountered for a library identifier: {op}")
 
 def reduceSolutionOptions(options, indent):
     #print indent+"OPTIONS:", options
@@ -209,31 +209,32 @@ def fetchFeaturesNeededByLibrary(feature):
     return []
 
 def checkIfLibFileMightSatisyNeedWithRequirements(tags, need, libFile, indent):
-    [ReqTags,interfaceTags,featuresNeeded] = extractLibTags(libFile)
+    [ReqTags, interfaceTags, featuresNeeded] = extractLibTags(libFile)
     Requirements = []
-    LibCanWork=True
+    LibCanWork = True
     if need[0] == 'require':
-        LibCanWork=False
+        LibCanWork = False
         if 'provides' in interfaceTags:
             if need[1] in interfaceTags['provides']:
-                #print(indent, '{}REQUIRE: {} in {}'.format(indent, need[1], interfaceTags['provides']))
+                #print(indent, f'REQUIRE: {need[1]} in {interfaceTags['provides']}')
                 LibCanWork = True
 
     for ReqTag in ReqTags:
-        #print("REQUIREMENT: {}".format(ReqTag))
-        if ReqTag[0]=='feature':
-            print("\n    Nested Features should be implemented. Please implement them. (", ReqTag[1], ")n")
+        #print(f"REQUIREMENT: {ReqTag}")
+        if ReqTag[0] == 'feature':
+            print(f"\n    Nested Features should be implemented. Please implement them. ({ReqTag[1]})\n")
             exit(2)
-        elif ReqTag[0]=='require':
+        elif ReqTag[0] == 'require':
             Requirements.append(ReqTag)
-        elif ReqTag[0]=='tagOneOf':
+        elif ReqTag[0] == 'tagOneOf':
             tagToCheck = ReqTag[1]
             validValues = progSpec.extractListFromTagList(ReqTag[2])
             parentTag = progSpec.fetchTagValue(tags, tagToCheck)  # E.g.: "platform"
-            if parentTag==None:
-                LibCanWork=False
-                cdErr("ERROR: The tag '"+ tagToCheck + "' was not found in" + libFile + ".\n")
-            if not parentTag in validValues: LibCanWork=False
+            if parentTag == None:
+                LibCanWork = False
+                cdErr(f"ERROR: The tag '{tagToCheck}' was not found in {libFile}.\n")
+            if not parentTag in validValues:
+                LibCanWork = False
     return [LibCanWork, Requirements, featuresNeeded]
 
 def constructORListFromFiles(tags, need, files, indent):
@@ -260,17 +261,18 @@ def constructANDListFromNeeds(tags, needs, files, indent):
     for need in needs:
         #print(indent, "**need*: ", need)
         if need[0] == 'feature':
-            if need[1] in featuresHandled: continue
-            cdlog(1, "FEATURE: "+str(need[1]))
+            if need[1] in featuresHandled:
+                continue
+            cdlog(1, f"FEATURE: {need[1]}")
             featuresHandled.append(need[1])
             filesToTry = [findLibrary(need[1])]
-            if filesToTry[0]=='': cdErr('Could not find a dog file for feature '+need[1])
+            if filesToTry[0] == '':
+                cdErr(f"Could not find a dog file for feature {need[1]}")
         else:
             filesToTry = files
-
-        if len(filesToTry)>0:
+        if len(filesToTry) > 0:
             solutionOptions = constructORListFromFiles(tags, need, filesToTry, indent + "|   ")
-            if len(solutionOptions[1])>0:
+            if len(solutionOptions[1]) > 0:
                 AND_List[1].append(solutionOptions)
     progSpec.setLibLevels(childLibList)
     return AND_List
@@ -287,13 +289,13 @@ def ChooseLibs(classes, buildTags, tags):
     initialNeeds1 = []
     for feature in featuresNeeded:
         featuresNeeded.extend(fetchFeaturesNeededByLibrary(feature))
-        if not feature in initialNeeds1: initialNeeds1.append(feature)
-
-    initialNeeds2 =[]
+        if feature not in initialNeeds1:
+            initialNeeds1.append(feature)
+    initialNeeds2 = []
     for feature in initialNeeds1:
-        initialNeeds2.append(['feature',feature])
+        initialNeeds2.append(['feature', feature])
     solutionOptions = constructANDListFromNeeds([tags, buildTags], initialNeeds2, [], "")
     reduceSolutionOptions(solutionOptions, '')
     for libPath in solutionOptions[1]:
-        cdlog(2, "USING LIBRARY:"+str(libPath))
+        cdlog(2, f"USING LIBRARY: {libPath}")
     return solutionOptions[1]

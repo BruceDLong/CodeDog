@@ -8,12 +8,12 @@ def downloadFileNoLog(fileName, downloadURL):
     import urllib3
     try:
         #cdlog(1, "Downloading file: " + fileName)
-        print("Downloading file: " + fileName)
+        print(f"Downloading file: fileName")
         http = urllib3.PoolManager()
         r = http.request('GET', downloadURL, preload_content=False)
     except:
         #cdErr("URL not found: " + downloadURL)
-        print("URL not found:" + downloadURL)
+        print(f"URL not found: {downloadURL}")
     else:
         with open(fileName, 'wb') as out:
             while True:

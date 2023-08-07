@@ -18,11 +18,11 @@ def checkToolWindows(toolName):
 def downloadFile(fileName, downloadURL):
     import urllib3
     try:
-        cdlog(1, "Downloading file: " + fileName)
+        cdlog(1, f"Downloading file: {fileName}")
         http = urllib3.PoolManager()
         r = http.request('GET', downloadURL, preload_content=False)
     except:
-        cdErr("URL not found: " + downloadURL)
+        cdErr(f"URL not found: {downloadURL}")
     else:
         with open(fileName, 'wb') as out:
             while True:
@@ -35,8 +35,8 @@ def downloadFile(fileName, downloadURL):
 def packageInstall(packageName):
     from pmgrHandler import getPackageManagerCMD
     pmgrCMD = getPackageManagerCMD(packageName, findPackageManager(),"install")
-    cdlog(1, "Package Installing: "+packageName)
-    if subprocess.call(f'{pmgrCMD}'+" > /dev/null 2>&1", shell=True) == 0:
+    cdlog(1, f"Package Installing: {packageName}")
+    if subprocess.call(f"{pmgrCMD}> /dev/null 2>&1", shell=True) == 0:
         print("Package installed Successfully")
         return True
     else:
@@ -59,18 +59,18 @@ def checkPackageStatus(packageName):
         pmgrCMD = getPackageManagerCMD(packageName,findPackageManager(),"queryLocalVer")
         _installedVersion = subprocess.Popen(f'{pmgrCMD}', stdout=subprocess.PIPE, shell=True)
         installedVersion = str(_installedVersion.stdout.read()).split(" ")[-0].replace('\\n\'','').replace('b\'','')
-        cdlog(1, "Installed Version: "+installedVersion)
+        cdlog(1, f"Installed Version: {installedVersion}")
         pmgrCMD = getPackageManagerCMD(packageName,findPackageManager(),"queryAvailVer")
         _candidateVersion = subprocess.Popen(f'{pmgrCMD}', stdout=subprocess.PIPE, shell=True)
         candidateVersion = str(_candidateVersion.stdout.read()).split("-")[-0].replace('\\n\'','').replace('b\'','')
-        cdlog(1, "Candidate Version: "+candidateVersion)
+        cdlog(1, f"Candidate Version: {candidateVersion}")
         return True,installedVersion,candidateVersion
     else:
         cdlog(1, "Package Is NOT Currently Installed")
         pmgrCMD = getPackageManagerCMD(packageName,findPackageManager(),"queryAvailVer")
         _candidateVersion = subprocess.Popen(f'{pmgrCMD}', stdout=subprocess.PIPE, shell=True)
         candidateVersion = str(_candidateVersion.stdout.read()).split("-")[-0].replace('\\n\'','').replace('b\'','')
-        cdlog(1, "Candidate Version: "+candidateVersion)
+        cdlog(1, f"Candidate Version: {candidateVersion}")
         return False,"(none)",candidateVersion
 
 def checkAndUpgradeOSPackageVersions(packageName):
@@ -91,11 +91,11 @@ def downloadFile(fileName, downloadURL):
     CheckPipModules({'urllib3':'1.25'})
     import urllib3
     try:
-        cdlog(1, "Downloading file: " + fileName)
+        cdlog(1, f"Downloading file: {fileName}")
         http = urllib3.PoolManager()
         r = http.request('GET', downloadURL, preload_content=False)
     except:
-        cdErr("URL not found: " + downloadURL)
+        cdErr(f"URL not found: {downloadURL}")
     else:
         with open(fileName, 'wb') as out:
             while True:
@@ -275,7 +275,7 @@ def AddSystemPath():
             addPathPermission = input("Do you want to add CodeDog to the System Path? [Y/n] ")
             if addPathPermission.lower() == 'y' or addPathPermission.lower() == 'yes' or addPathPermission == '':
                 codeDogPath = os.getcwd()
-                value += ";" + codeDogPath + "\CodeDog;"
+                value += print(f";{codeDogPath}\codeDog;")
                 reg.SetValueEx(key, 'PATH', 0, reg.REG_EXPAND_SZ, value)
                 reg.CloseKey(key)
             else:

@@ -25,16 +25,14 @@ if sys.version_info[0] < 3:
     exit(1)
 
 codeDogVersion = '2.0'
-
-
-if(len(sys.argv) < 2):
+if len(sys.argv) < 2:
     print("\n    usage: codeDog [-v] filename\n")
     exit(1)
 arg1 = sys.argv[1]
-if arg1=="-v" or arg1=='--version':
-    print("\n    CodeDog application compiler version "+ codeDogVersion+"\n")
+if arg1 == "-v" or arg1 == "--version":
+    print(f"\n    CodeDog application compiler version {codeDogVersion}\n")
     exit(1)
-if arg1[0]=='-':
+if arg1[0] == '-':
     print("Unsupported argument:", arg1)
     exit(1)
 
@@ -50,10 +48,11 @@ def writeFile(libPath):
     dirName = "testLibResults"
     makeDir(dirName)
     libsDir, libName = os.path.split(abspath(libPath))
-    base=os.path.basename(libPath)
-    fileName = dirName+"/"+libName+".info"
-    cdlog(1, "WRITING FILE: "+fileName)
-    with open(fileName, 'wt') as out: pprint(libsFields, stream=out)
+    base = os.path.basename(libPath)
+    fileName = f"{dirName}/{libName}.info"
+    cdlog(1, f"WRITING FILE: {fileName}")
+    with open(fileName, 'wt') as out:
+        pprint(libsFields, stream=out)
 
 def addToLibFieldsList(filename, fileClasses, newClasses):
     global libsFields
@@ -64,7 +63,6 @@ def addToLibFieldsList(filename, fileClasses, newClasses):
         if 'fields' in classDef:
             for fieldDef in classDef['fields']:
                 if progSpec.fieldIsFunction(fieldDef['typeSpec']):
-                    #print("VALUE: ", fieldDef['value'])
                     if fieldDef['hasFuncBody'] and (fieldDef['value'][0] or fieldDef['value'][1]):
                         status = 'Impl'
                     elif not fieldDef['hasFuncBody']:
@@ -76,12 +74,13 @@ def addToLibFieldsList(filename, fileClasses, newClasses):
                     elif 'codeConverter' in fieldDef['typeSpec']:
                         status = 'Impl'
                     else:
-                        print("Unknown: ", fieldDef['value'])
+                        print(f"Unknown: {fieldDef['value']}")
                         status = 'Unknown'
-                    fieldIDandStatus = {'fieldID':fieldDef['fieldID'], 'status':status}
-                else: fieldIDandStatus = {'fieldID':fieldDef['fieldID']}
+                    fieldIDandStatus = {'fieldID': fieldDef['fieldID'], 'status': status}
+                else:
+                    fieldIDandStatus = {'fieldID': fieldDef['fieldID']}
                 fieldsList.append(fieldIDandStatus)
-        libraryClass = {'className':className, 'fields': fieldsList}
+        libraryClass = {'className': className, 'fields': fieldsList}
         libraryClasses.append(libraryClass)
     library = [filename, libraryClasses]
     libsFields.append(library)
