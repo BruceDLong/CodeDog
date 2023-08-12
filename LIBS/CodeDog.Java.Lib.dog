@@ -61,7 +61,7 @@ struct GLOBAL{
     me string: replaceCharAt(me string: s, me int: pos, me char: c)<- <%{
        return s.substring(0,pos) + c + s.substring(pos+1);
     }%>
-    me bool: isxdigit(me string: input) <- <%{
+    me bool: isxdigit(me char: input) <- <%{
         try {
             Long.parseLong(input, 16);
             return true;

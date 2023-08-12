@@ -134,7 +134,7 @@ struct GLOBAL{  /////////  STRING & CHAR HANDLING  /////////////////////
     me bool: isdigit(me char: ch)
     me bool: isprint(me char: ch)
     me bool: isspace(me char: ch)
-    me bool: isxdigit(me string: input)
+    me bool: isxdigit(me char: input)
     me char: toLower(me char: ch)
     me char: toUpper(me char: ch)
     me string: readAssetAsString(me string: filename)
