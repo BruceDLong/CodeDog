@@ -61,7 +61,41 @@ struct logManager{
     }
 }
 
+//////// Simple text attribute control
+struct textAttrMgr{
+
+    me string: setTextColor(me int: colorID) <- {
+        if(colorID == -1){return(setDefaultColor())}
+        me string: S
+        S <- "\x1b[38;5;"+toString(colorID)+"m"
+        return(S)
+    }
+    me string: setDefaultColor() <- {
+        me string: S
+        S <- "\x1b[39;m"
+        return(S)
+    }
+    me string: pushColor(me int: colorID) <- {
+        if(colorStack.isEmpty()){crntColor<- -1} // store default color
+        colorStack.append(crntColor)
+        crntColor<-colorID
+        return(setTextColor(colorID))
+    }
+    me string: popColor() <- {
+        if(colorStack.isEmpty()){
+            crntColor <- -1
+            return(setDefaultColor())
+        }
+        me int: colorID <- colorStack.popLast()
+        crntColor<-colorID
+        return(setTextColor(colorID))
+    }
+    me int: crntColor
+    me List<int>: colorStack
+}
+
 struct GLOBAL{
+    me textAttrMgr: tam  // Use to control text colors
     me logManager: logMgr
 
     void: logSeg(me string: logTxt) <- {me MutexMngr: MtxMgr{logMgr.logger.loggerMutex}; logMgr.logger.logStr <+- logTxt}
@@ -80,16 +114,6 @@ struct GLOBAL{
     }
     void: logSegClear() <- {me MutexMngr: MtxMgr{logMgr.logger.loggerMutex}; logMgr.logger.logStr <+- ""}
     void: logFlush() <- {me MutexMngr: MtxMgr{logMgr.logger.loggerMutex}; logMgr.logger.__LogEntry(Info, "", logMgr.logger.logStr, 0); logMgr.logger.logStr <- ""}
-    me string: setTextColor(me int: number) <- {
-        me string: S
-        S <- "\x1b[38;5;"+toString(number)+"m"
-        return(S)
-    }
-    me string: setDefaultColor() <- {
-        me string: S
-        S <- "\x1b[39;m"
-        return(S)
-    }
 
     me string: shortedStr(me string: str, me int: len) <- {
         if(str.size()<=len){return(str)}
@@ -104,4 +128,5 @@ struct GLOBAL{
     me void: logFatalError(me string: logText, me string: category<-"", me int: indent<-0) <- {logMgr.logger.LogEntry(FatalError, category, logText, indent); exit(-1)}
     me void: logWarn(me string: logText, me string: category<-"", me int: indent<-0)       <- {logMgr.logger.LogEntry(Warning, category, logText, indent)}
     me void: logDbg(me string: logText, me string: category<-"", me int: indent<-0)        <- {logMgr.logger.LogEntry(Debug, category, logText, indent)}
+
 }
