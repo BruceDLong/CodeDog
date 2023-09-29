@@ -384,12 +384,12 @@ struct Thing3D{
             mesh.xForm <- xFormMatx
             meshList.insert(-zPos, mesh)
         }
-        me Matrix4: partLoc1
-        me Vec3D: partLoc2
+        me Matrix4: partLocM
+        me Vec3D: partLocV
         withEach part in parts{
-            partLoc1.MultiplyMatrix(part.thingMatx, xFormMatx)
-            matrixTimesVec3(part.location, partLoc2, partLoc1)
-            part.preDraw(xFormMatx, partLoc2.z, meshList)
+            partLocM.MultiplyMatrix(part.thingMatx, xFormMatx)
+            matrixTimesVec3(part.location, partLocV, partLocM)
+            part.preDraw(xFormMatx, partLocV.z, meshList)
         }
     }
     void: draw(their GUI_ctxt: cr, their Matrix4: parentMatx, me double: interpolation, our Window3D: win3D) <- {
@@ -422,7 +422,6 @@ struct Mesh{
         me Vec3D: vOffsetView{ win3D.windowXPos, win3D.windowYPos, 0 }
         //print("WINDOW X/Y:",vOffsetView.x,"/",vOffsetView.y,"\n")
         me cdColor: color <- startColor
-        me Multimap<me float, our Triangle2D>: trianglesToDraw
         withEach tri in tris{
             if(tri.setsColor){
                 color <- tri.color
@@ -595,24 +594,27 @@ struct MeshGenerator{
         result.tris.clear()
         if(meshType=="cube"){  // arg: side length
             me Triangle3D: t1;
+            me double: hArg <- arg/2
+            me double: nArg <- -hArg
+
             // SOUTH
-            t1.INIT(0.0, 0.0, 0.0,    0.0, arg, 0.0,    arg, arg, 0.0);   result.tris.append(t1)
-            t1.INIT(0.0, 0.0, 0.0,    arg, arg, 0.0,    arg, 0.0, 0.0);   result.tris.append(t1)
+            t1.INIT(nArg, nArg, nArg,    nArg, hArg, nArg,    hArg, hArg, nArg);   result.tris.append(t1)
+            t1.INIT(nArg, nArg, nArg,    hArg, hArg, nArg,    hArg, nArg, nArg);   result.tris.append(t1)
             // EAST
-            t1.INIT(arg, 0.0, 0.0,    arg, arg, 0.0,    arg, arg, arg);   result.tris.append(t1)
-            t1.INIT(arg, 0.0, 0.0,    arg, arg, arg,    arg, 0.0, arg);   result.tris.append(t1)
+            t1.INIT(hArg, nArg, nArg,    hArg, hArg, nArg,    hArg, hArg, hArg);   result.tris.append(t1)
+            t1.INIT(hArg, nArg, nArg,    hArg, hArg, hArg,    hArg, nArg, hArg);   result.tris.append(t1)
             // NORTH
-            t1.INIT(arg, 0.0, arg,    arg, arg, arg,    0.0, arg, arg);   result.tris.append(t1)
-            t1.INIT(arg, 0.0, arg,    0.0, arg, arg,    0.0, 0.0, arg);   result.tris.append(t1)
+            t1.INIT(hArg, nArg, hArg,    hArg, hArg, hArg,    nArg, hArg, hArg);   result.tris.append(t1)
+            t1.INIT(hArg, nArg, hArg,    nArg, hArg, hArg,    nArg, nArg, hArg);   result.tris.append(t1)
             // WEST
-            t1.INIT(0.0, 0.0, arg,    0.0, arg, arg,    0.0, arg, 0.0);   result.tris.append(t1)
-            t1.INIT(0.0, 0.0, arg,    0.0, arg, 0.0,    0.0, 0.0, 0.0);   result.tris.append(t1)
+            t1.INIT(nArg, nArg, hArg,    nArg, hArg, hArg,    nArg, hArg, nArg);   result.tris.append(t1)
+            t1.INIT(nArg, nArg, hArg,    nArg, hArg, nArg,    nArg, nArg, nArg);   result.tris.append(t1)
             // TOP
-            t1.INIT(0.0, arg, 0.0,    0.0, arg, arg,    arg, arg, arg);   result.tris.append(t1)
-            t1.INIT(0.0, arg, 0.0,    arg, arg, arg,    arg, arg, 0.0);   result.tris.append(t1)
+            t1.INIT(nArg, hArg, nArg,    nArg, hArg, hArg,    hArg, hArg, hArg);   result.tris.append(t1)
+            t1.INIT(nArg, hArg, nArg,    hArg, hArg, hArg,    hArg, hArg, nArg);   result.tris.append(t1)
             // BOTTOM
-            t1.INIT(arg, 0.0, arg,    0.0, 0.0, arg,    0.0, 0.0, 0.0);   result.tris.append(t1)
-            t1.INIT(arg, 0.0, arg,    0.0, 0.0, 0.0,    arg, 0.0, 0.0);   result.tris.append(t1)
+            t1.INIT(hArg, nArg, hArg,    nArg, nArg, hArg,    nArg, nArg, nArg);   result.tris.append(t1)
+            t1.INIT(hArg, nArg, hArg,    nArg, nArg, nArg,    hArg, nArg, nArg);   result.tris.append(t1)
         }
         else if(meshType=="Cylinder"){
         }
