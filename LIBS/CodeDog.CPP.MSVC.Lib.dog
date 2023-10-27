@@ -6,7 +6,7 @@ requirements = [
 interface={
     provides = [CodeDog_langVersion_implementation]
     libFiles = []
-    headers  = [vector, chrono, direct.h]
+    headers  = [vector, chrono, direct.h, thread]
 }
 
 LibDescription ={
