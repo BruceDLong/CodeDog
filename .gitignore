@@ -75,6 +75,7 @@ AndroidBuild/
 MacBuild/
 LinuxTestBuild/
 WindowsBuild/
+SCons*/
 
 # Testing
 xlatorTests/
@@ -83,3 +84,9 @@ testLibResults/
 LibraryAnalysisReport.txt
 
 .idea
+
+.gitignore~
+
+..gitignore.un~
+
+Examples/.sconsign.dblite

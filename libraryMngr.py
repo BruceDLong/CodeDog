@@ -113,7 +113,6 @@ def replaceFileName(fileMatch):
             pathName = currentFilesPath +"/"+fileName
             if not os.path.isfile(pathName):
                 cdErr("Cannot find include file '"+fileName+"'")
-
     includedStr = progSpec.stringFromFile(pathName)
     includedStr = processIncludedFiles(includedStr, pathName)
     return includedStr
@@ -127,6 +126,7 @@ def processIncludedFiles(fileString, fileName):
 
 def loadTagsFromFile(fileName):
     codeDogStr = progSpec.stringFromFile(fileName)
+    if codeDogStr == None: return None
     codeDogStr = processIncludedFiles(codeDogStr, fileName)
     cdlog(2, "Parsing file: "+str(fileName))
     return codeDogParser.parseCodeDogLibTags(codeDogStr)
@@ -150,6 +150,7 @@ def filterReqTags(ReqTags):
 
 def extractLibTags(library):
     libTags = loadTagsFromFile(library)
+    if libTags == None: cdErr("No library found for feature: " + feature)
     tagsFromLibFiles[library] = libTags
     ReqTags = progSpec.fetchTagValue([libTags], 'requirements')
     if ReqTags == None:
@@ -203,6 +204,7 @@ def reduceSolutionOptions(options, indent):
 def fetchFeaturesNeededByLibrary(feature):
     libFile = findLibrary(feature)
     libTags = loadTagsFromFile(libFile)
+    if libTags == None: cdErr("No library found for feature: " + feature)
     if 'featuresNeeded' in libTags:
         featuresNeeded = libTags['featuresNeeded']
         return featuresNeeded

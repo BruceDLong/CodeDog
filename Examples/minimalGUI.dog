@@ -114,7 +114,7 @@ struct APP{
         drawing_area  <- gui.newCanvas()
         drawing_area.setParent(drawAnX)
         gui.setWidgetSize(drawing_area, 1200, 1200)
-        drawAnX.EventDispatcher.registerWidgetForEventDispatcher(drawing_area, drawAnX)
+        EventDispatcher.registerWidgetForEventDispatcher(drawing_area, drawAnX)
         addToContainerAndExpand (frame, drawing_area)
     }
 }

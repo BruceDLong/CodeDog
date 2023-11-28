@@ -1281,13 +1281,13 @@ def flattenObjectName(objName):
     return objName.replace('::', '_')
 
 def stringFromFile(filename):
-#    try:
+    try:
         f=open(filename)
         Str = f.read()
         f.close()
-#    except IOError as e:
-#        cdErr("I/O error({0}): {1}: {2}".format(e.errno, e.strerror, filename))
-        return Str
+    except IOError as e:
+        return None
+    return Str
 
 #############################################################  Logging functions
 lastLogMesgs=['','','','','','','','','','']

@@ -628,7 +628,7 @@ def doMacroSubstitutions(macros, inputString):
     while(subsWereMade ==True):
         subsWereMade=False
         for thisMacro in macros:
-            macRefPattern=re.compile(r'(?<!#define)([^a-zA-Z0-9_]+)('+thisMacro+')(\s*)\(([^)]*)\)')
+            macRefPattern=re.compile(r'(?<!#define)([^a-zA-Z0-9_]+)('+thisMacro+')(\\s*)\\(([^)]*)\\)')
             #print("MACRO NAME:", thisMacro)
             newString=''
             currentPos=0
@@ -762,7 +762,7 @@ def parseCodeDogLibTags(inputString):
     try:
         localResults = libTagParser.parseString(inputString, parseAll = False)
     except ParseException as pe:
-        cdErr( "While parsing lib tags: {}".format( pe))
+        cdErr("While parsing lib tags: {}".format(pe))
 
     tagStore = extractTagDefs(localResults.libTagParser.tagDefList)
     return tagStore

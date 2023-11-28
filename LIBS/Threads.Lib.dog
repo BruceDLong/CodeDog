@@ -6,8 +6,8 @@ requirements = [
 
 interface={
     provides=[Threads]
-    libFiles=[]
-    headers=[] //threads
+    //libFiles=[]
+    //headers=[] //threads
 }
 
 LibDescription  ={

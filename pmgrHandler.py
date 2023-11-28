@@ -36,7 +36,7 @@ def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
                 post = " -i "
             elif commandType == "queryLocalInstall":
                 pre = "sudo "
-                post = " -l "+packageName+" | grep -ic 'no packagesfound\|error'"
+                post = " -l "+packageName+" | grep -ic 'no packagesfound\\|error'"
             elif commandType == "queryLocalVer":
                 pre = "sudo "
                 post = " -l "+packageName+" | grep ii"
@@ -70,13 +70,13 @@ def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
             if commandType == "install":
                 post = "-get install -y "+packageName
             elif commandType == "queryLocalInstall":
-                post = "-cache policy "+packageName+" | grep -ic 'none\|Unable'"
+                post = "-cache policy "+packageName+" | grep -ic 'none\\|Unable'"
             elif commandType == "queryLocalVersion":
                 post = "-cache policy "+packageName+" | grep -i Installed | awk '{print $2}'"
             elif commandType == "remove":
                 post  = "-get remove -y "+packageName
             elif commandType == "queryAvailVer":
-                post = " list "+packageName+" 2>&1 | grep '^"+packageName+"\/' | head -n 1 | awk '{print $2}'"
+                post = " list "+packageName+" 2>&1 | grep '^"+packageName+"\\/' | head -n 1 | awk '{print $2}'"
             pmgrCMD = pre+pmgr+post
 
         elif ipm == 'yum' or ipm == 'dnf':
@@ -85,7 +85,7 @@ def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
             if commandType == "install":
                 post = "-get install -y "+packageName
             elif commandType == "queryLocalInstall":
-                post = "-cache policy "+packageName+"| grep -ic 'none\|Unable'"
+                post = "-cache policy "+packageName+"| grep -ic 'none\\|Unable'"
             elif commandType == "queryLocalVersion":
                 post = "-cache policy "+packageName+" | grep -i Installed "
             elif commandType == "remove":
@@ -102,7 +102,7 @@ def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
             if commandType == "install":
                 post = "-get install -y "
             elif commandType == "queryLocalInstall":
-                post = "-cache policy "+packageName+"| grep -ic 'none\|Unable'"
+                post = "-cache policy "+packageName+"| grep -ic 'none\\|Unable'"
             elif commandType == "queryLocalVersion":
                 post = "-cache policy | grep -i Installed "
             elif commandType == "remove":
@@ -117,7 +117,7 @@ def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
             if commandType == "install":
                 post = "-get install -y "
             elif commandType == "queryLocalInstall":
-                post = "-cache policy "+packageName+"| grep -ic 'none\|Unable'"
+                post = "-cache policy "+packageName+"| grep -ic 'none\\|Unable'"
             elif commandType == "queryLocalVersion":
                 post = "-cache policy | grep -i Installed "
             elif commandType == "remove":
@@ -132,7 +132,7 @@ def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
             if commandType == "install":
                 post = "-get install -y "+packageName
             elif commandType == "queryLocalInstall":
-                post = "-cache policy "+packageName+"| grep -ic 'none\|Unable'"
+                post = "-cache policy "+packageName+"| grep -ic 'none\\|Unable'"
             elif commandType == "queryLocalVersion":
                 post = "-cache policy "+packageName+" | grep -i Installed "
             elif commandType == "remove":
@@ -148,7 +148,7 @@ def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
             if commandType == "install":
                 post = "-get install -y "+packageName
             elif commandType == "queryLocalInstall":
-                post = "-cache policy "+packageName+"| grep -ic 'none\|Unable'"
+                post = "-cache policy "+packageName+"| grep -ic 'none\\|Unable'"
             elif commandType == "queryLocalVersion":
                 post = "-cache policy "+packageName+" | grep -i Installed "
             elif commandType == "remove":

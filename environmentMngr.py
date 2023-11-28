@@ -275,7 +275,7 @@ def AddSystemPath():
             addPathPermission = input("Do you want to add CodeDog to the System Path? [Y/n] ")
             if addPathPermission.lower() == 'y' or addPathPermission.lower() == 'yes' or addPathPermission == '':
                 codeDogPath = os.getcwd()
-                value += ";" + codeDogPath + "\CodeDog;"
+                value += ";" + codeDogPath + "\\CodeDog;"
                 reg.SetValueEx(key, 'PATH', 0, reg.REG_EXPAND_SZ, value)
                 reg.CloseKey(key)
             else:

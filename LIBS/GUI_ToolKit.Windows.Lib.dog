@@ -41,6 +41,7 @@ wstring s2ws(const string& s) {
         delete[] buf;
         return r;
     }
+
 `
 
 // Injecting some GUI minimal test code here
@@ -123,8 +124,8 @@ int CALLBACK WinMain(
         MessageBox(NULL, _T("Call to CreateWindow failed!"), _T("Windows Desktop Guided Tour"), NULL);
         return 1;
     }
-
-    activate(hWnd);
+    
+    activate(&hWnd);
 
     // The parameters to ShowWindow explained:
     // hWnd: the value returned from CreateWindow
@@ -154,7 +155,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_PAINT: {
         hdc = BeginPaint(hWnd, &ps);
         BeginPath(hdc);
-        EventDispatcher.topWidget->draw(hdc);
+        EventDispatcher.topWidget->draw(&hdc);
         EndPath(hdc);
         EndPaint(hWnd, &ps);
         break; }
@@ -374,18 +375,31 @@ struct ListManagerBox{
 }
 */
 
-/*
+
 /////////////////////////////////  HIGHER LEVEL WIDGETS
 struct GLOBAL{
     // Widgets
-    their HWND: makeBoolWidget(me string: label)        <- <%!%Ggtk_entry_new()%>
-    their HWND: makeFloatWidget(me string: label)       <- <%!%Ggtk_entry_new()%>
-    their HWND: makeNumRangeWidget(me string: label)    <- <%!%Ggtk_entry_new()%>
-    their HWND: makeRangeWidget(me string: label)       <- <%!%Ggtk_entry_new()%>
-    their HWND: makeTimeWidget(me string: label)        <- <%!%Ggtk_entry_new()%>
-    their HWND: makeDateWidget(me string: label)        <- <%!%Ggtk_entry_new()%>
-    their HWND: makeTimeWidget()        <- <%!%Ggtk_entry_new()%>
-    their HWND: makeDateWidget()        <- <%!%Ggtk_entry_new()%>
+    //their HWND: makeBoolWidget(me string: label)        <- <%! %>
+    //their HWND: makeFloatWidget(me string: label)       <- <%!%Ggtk_entry_new()%>
+    //their HWND: makeNumRangeWidget(me string: label)    <- <%!%Ggtk_entry_new()%>
+    //their HWND: makeRangeWidget(me string: label)       <- <%!%Ggtk_entry_new()%>
+    //their HWND: makeTimeWidget(me string: label)        <- <%!%Ggtk_entry_new()%>
+    //their HWND: makeDateWidget(me string: label)        <- <%!%Ggtk_entry_new()%>
+    //their HWND: makeTimeWidget()        <- <%!%Ggtk_entry_new()%>
+    //their HWND: makeDateWidget()        <- <%!%Ggtk_entry_new()%>
+    me int: widgetHeight(their HWND: window) <- <%{
+        RECT rect;
+        GetClientRect(*drawing_area, &rect);
+        int height = rect.bottom - rect.top;
+        return height;
+    }%>
+    me int: widgetWidth(their HWND: window) <- <%{
+        RECT rect;
+        GetClientRect(*drawing_area, &rect);
+        int width = rect.right - rect.left;
+        return width;
+    }%>
+
 
     their HWND: makeListWidget(me string: label)        <- <%!%Ggtk_list_box_new()%>
     their HWND: makeRowWidget(me string: label)         <- <%!%Ggtk_list_box_row_new()%>
@@ -397,7 +411,14 @@ struct GLOBAL{
     me void: setListWidgetSelectionMode(their listWidget: listWid, me string: mode) <- <%!gtk_list_box_set_selection_mode((GtkListBox *)%1, GTK_SELECTION_SINGLE)%>
     me int: getListRowIndex() <- <%!%Ggtk_list_box_row_get_index((GtkListBoxRow *)%1)%>
     their HWND: getListRowSelected(their listWidget: listWid) <- <%!%G(HWND*)gtk_list_box_get_selected_row((GtkListBox *)%1)%>
+    me HWND: __CreateWindowEx1() <- <%{return CreateWindowExA(WS_EX_MDICHILD, nullptr, nullptr, WS_CHILD, 0, 0, 0, 0, nullptr, nullptr, nullptr, nullptr);}%>
+    their HWND: __CreateWindowEx() <- {
+        their HWND:: drawingArea
+        drawingArea <deep- __CreateWindowEx1();
+        return (drawingArea);
+    }
 
+    /*
     their HWND: makeListEditorWidget(their HWND: listWidget) <- <%{
         HWND* box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
         gtk_box_pack_start(GTK_BOX(box), listWidget, true, true, 0);
@@ -413,7 +434,9 @@ struct GLOBAL{
         gtk_box_pack_start(GTK_BOX(box), btnBox, false, true, 0);
         return box;
     }%>
+    */
 }
+/*
 struct GLOBAL{
     void: ListEditorHandleListClick(their GtkListBox: box, their GtkListBoxRow: row, their void: user_data) <- <% {
         ListManagerBox *listMgrBox =(ListManagerBox *)user_data;
@@ -439,7 +462,7 @@ struct GLOBAL{
 struct GUI_eventDispatcher{
     // Windows events are dispatched via one giant switch stmt. So this is fairly simple.
     their widget: topWidget
-    me void: registerWidgetForEventDispatcher(me GUI_item: Widget, their widget: masterWidget) <- <%{topWidget = masterWidget;}%>
+    me void: registerWidgetForEventDispatcher(their GUI_item: Widget, their widget: masterWidget) <- <%{topWidget = masterWidget;}%>
 }
 
 /////////////////////////////////   Event callbacks
@@ -448,7 +471,7 @@ struct GLOBAL{
 }
 
 /////////////////////////////////  HANDLE GUI
-struct GUI_canvas{
+struct GUI_canvas: ownerMe = me{
     me void: setParent(our DashboardWidget: wid) <- <%!%G%>
 }
 struct GUI{
@@ -474,13 +497,17 @@ struct GUI{
 // TODO: newScrollingWindow
 struct GUI{
     //me void: showWidget(me GUI_item: widget) <- <%!gtk_widget_show(%1)%>
-    me GUI_item: newCanvas() <- <%!%Ggtk_drawing_area_new()%>
-    me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%Ggtk_widget_set_size_request(%1, %2, %3)%>
-    me int: widgetHeight() <- <%!gtk_widget_get_allocated_height(%1)%>
-    me int: widgetWidth() <- <%!gtk_widget_get_allocated_width(%1)%>
+    their GUI_item: newCanvas() <- <%!%G__CreateWindowEx()%>
+    //me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%Ggtk_widget_set_size_request(%1, %2, %3)%>
+    me void: setWidgetSize(their GUI_item: widget, me uint32: width, me uint32: height) <- <% {
+        tagRECT crect;
+        GetWindowRect(*widget, &crect);
+        SetWindowPos(*widget, NULL, crect.left, crect.top, width, height, SWP_SHOWWINDOW);
+        } %>
     me GUI_item: newScrollingWindow() <- <%!%Ggtk_scrolled_window_new(0, 0)%>
     //me void: addToContainer(me GUI_container: container, me GUI_item: widget) <-<%!%Ggtk_container_add(GTK_CONTAINER(%1), %2)%>
     //me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <-<%!%Ggtk_box_pack_start(GTK_BOX(%1), %2, TRUE, TRUE, 0)%>
+    //me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <-<%%>
     //me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%G %>
     //me void: create_MenuItem(me GUI_menu: ParentMenu, me string: label)<- <%!%Gcreate_MenuItem(%1, %2)%>
     //me void: create_TopSubMenu(me GUI_menuBar: ParentMenu, me string: label)<- <%!%Gcreate_SubMenu(%1, %2)%>
@@ -489,21 +516,21 @@ struct GUI{
     //me GUI_ctxt: newPDF_ctxt(me sting: filename, me double: inchesWide, me double: inchesHigh) <- <%!%Gcairo_create(cairo_pdf_surface_create(%1.data(), %2*70, %3*70))%>
 }
 
-struct GUI_ctxt {
-    me HDC:GUI_ctxt
+struct GUI_ctxt: wraps = HDC ownerMe = me {
+    me GUI_ctxt: HDC
     me void: reset() <- <%!BeginPath(%0)%>
     // me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!Color(%3, %0, %1, %2)%>          // Input RGBA, Color(alpha, red, green, blue)
     me void: setRGB (me double: red, me double: green, me double: blue) <- <%!%GobjectColor = RGB(%1, %2, %3)%>
-    me void: setColor(me cdColor: color) <- <%!RGB(%1.red, %1.green, %1.blue)%>
+    me void: setColor(me cdColor: color) <- <%!setRGB(%1.red, %1.green, %1.blue)%>
     me void: setLineWidth(me double: width) <- <%!%G
         penWidth = %1;
         hPen = CreatePen(PS_SOLID, penWidth, objectColor);
-        SelectObject(cr, hPen);
+        SelectObject(*cr, hPen);
     %>      // maybe separate out an updatePen function?
     me void: setRoundLineCap() <- <%!pen.SetStartCap(LineCapRound); pen.SetEndCap(LineCapRound)%>
     me void: setEdgedLineCap() <- <%!pen.SetStartCap(LineCapFlat); pen.SetEndCap(LineCapFlat)%>
-    me void: moveTo(me double: x, me double: y) <- <%!MoveToEx(%0, %1, %2, NULL)%>          // (x, y, [speed])
-    me void: lineTo(me double: x, me double: y) <- <%!LineTo(%0, %1, %2)%>          // (hdc, xEnd, yEnd) , uses current pen
+    me void: moveTo(me double: x, me double: y) <- <%!MoveToEx(*%0, %1, %2, NULL)%>          // (x, y, [speed])
+    me void: lineTo(me double: x, me double: y) <- <%!LineTo(*%0, %1, %2)%>          // (hdc, xEnd, yEnd) , uses current pen
     me void: moveRel(me double: dx, me double: dy) <- <%!
         GetCurrentPositionEx(cr, &_tagPOINT);
         MoveToEx(%0, _tagPOINT.x + %1, _tagPOINT.y + %2, NULL)
@@ -512,37 +539,37 @@ struct GUI_ctxt {
         GetCurrentPositionEx(cr, &_tagPOINT);
         LineTo(%0, _tagPOINT.x + %1, _tagPOINT.y + %2)
     %>
-    me void: closePath() <- <%!CloseFigure(%0)%>
-    me void: rectangle() <- <%!Rectangle(%0, %1, %2, %1+%3, %2+%4)%>
+    me void: closePath() <- <%!CloseFigure(*%0)%>
+    me void: rectangle() <- <%!Rectangle(*%0, %1, %2, %1+%3, %2+%4)%>
     me void: paintNow() <- <%!
         RECT clientSize;
         HBRUSH backgroundBrush;
-        GetClientRect(hWnd, &clientSize);
+        GetClientRect(*hWnd, &clientSize);
         backgroundBrush = CreateSolidBrush(RGB(122,122,0));
         FillRect(%0, &clientSize, backgroundBrush);%>
     me void: strokeNow() <- <%!
-        EndPath(%0);
+        EndPath(*%0);
         hPen = CreatePen(PS_SOLID, penWidth, objectColor);
-        SelectObject(cr, hPen);
-        StrokePath(%0);
+        SelectObject(*cr, hPen);
+        StrokePath(*%0);
         DeleteObject(hPen);
-        BeginPath(%0)
+        BeginPath(*%0)
     %>
     me void: fillNow() <- <%!
-        EndPath(%0);
+        EndPath(*%0);
         hBrush = CreateSolidBrush(objectColor);
-        SelectObject(cr, hBrush);
-        FillPath(%0);
+        SelectObject(*cr, hBrush);
+        FillPath(*%0);
         DeleteObject(hBrush);
-        BeginPath(%0)
+        BeginPath(*%0)
     %>                  // Don't need CloseFigure
     me void: strokeAndFillPath() <- <%!
-        EndPath(%0);;
+        EndPath(*%0);
         hBrush = CreateSolidBrush(objectColor);
-        SelectObject(cr, hBrush);
-        StrokeAndFillPath(%0);
+        SelectObject(*cr, hBrush);
+        StrokeAndFillPath(*%0);
         DeleteObject(hBrush);
-        BeginPath(%0)
+        BeginPath(*%0)
     %>
     // GRADIENT IS NOT YET FUNCTIONAL
     me void: setFillPattern() <- <%!
@@ -672,35 +699,35 @@ struct GLOBAL{
         std::wstring stemp2 = s2ws(text);
         LPCWSTR outputTextPtr = stemp2.c_str();
 
-        BeginPath(cr);
+        BeginPath(*cr);
         hFont = CreateFontW(font.size, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_TT_ONLY_PRECIS,
             CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, VARIABLE_PITCH, fontNamePtr);
-        SelectObject(cr, hFont);
+        SelectObject(*cr, hFont);
 
-        SetBkMode(cr, TRANSPARENT);
-        //SetTextColor(cr, RGB(0, 0, 0));
+        SetBkMode(*cr, TRANSPARENT);
+        //SetTextColor(*cr, RGB(0, 0, 0));
 
-        EndPath(cr);
-        TextOutW(cr, 50, 50, outputTextPtr, text.length());
+        EndPath(*cr);
+        TextOutW(*cr, 50, 50, outputTextPtr, text.length());
         DeleteObject(hFont);
         return 0;
     } %>
 
 
-    me deltaSize: getTextSize(me string: text, their fontSpec: font) <- <%{
-	SIZE sz;
+    me deltaSize: getTextSize(their GUI_ctxt: cr, me string: text, their fontSpec: font) <- <%{
+	LPSIZE sz;
 	int strsLen = text.size();
-	GetTextExtentPoint32(cr, text.data(), strsLen, sz);
+	GetTextExtentPoint32(*cr, text.data(), strsLen, sz);
         deltaSize size;
         size.width=sz.cx;
 	size.height=sz.cy;
         return(size);
     } %>
 
-    me deltaSize: getTextSizeX1024(me string: text, their fontSpec: font) <- <%{
-	SIZE sz;
+    me deltaSize: getTextSizeX1024(their GUI_ctxt: cr, me string: text, their fontSpec: font) <- <%{
+	LPSIZE sz;
 	int strsLen = text.size();
-	GetTextExtentPoint32(cr, text.data(), strsLen, sz);
+	GetTextExtentPoint32(*cr, text.data(), strsLen, sz);
         deltaSize size;
         size.width=sz.cx;
 	size.height=sz.cy;
@@ -892,5 +919,5 @@ struct GLOBAL{ // Constants
 
 struct GLOBAL {
     //their HWND: window
-    me void: activate(me HWND: frame) <- <%{thisApp.createAppArea(frame);}%>
+    me void: activate(their HWND: frame) <- <%{thisApp.createAppArea(frame);}%>
 }
