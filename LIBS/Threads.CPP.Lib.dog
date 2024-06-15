@@ -1,7 +1,7 @@
 // CodeDog Threads Library
 
 requirements = [
-   [tagOneOf, Lang, [CPP]]
+   [tagOneOf, Lang, [CPP]],
    [require, Threads_langVersion_implementation]
 ]
 
@@ -15,42 +15,12 @@ LibDescription  ={
     features    =[Threads]
     Lang        =[CPP]
 }
-embedVeryHigh = `
-typedef  std::unique_lock<std::mutex> Unique_Lock_Mutex;
-typedef  std::unique_lock<std::mutex> Nested_Lock_Mutex;
 
-class __semaphore{
-public:
-    __semaphore(unsigned int count=1) : m_count(count) {}
-    __semaphore(const __semaphore&&) = delete;
-    __semaphore(__semaphore&&) = delete;
-    __semaphore& operator = (const __semaphore&) = delete;
-    __semaphore& operator = (__semaphore&&) = delete;
-    ~__semaphore() = default;
-
-    void post(){
-        std::unique_lock<std::mutex> lock(m_mutex);
-        ++m_count;
-        m_cv.notify_one();
-    }
-
-    void wait(){
-        std::unique_lock<std::mutex> lock(m_mutex);
-        m_cv.wait(lock, [&]{ return m_count > 0; });
-        --m_count;
-    }
-
-private:
-    std::mutex m_mutex;
-    std::condition_variable m_cv;
-    unsigned int m_count;
-};
-`
 
 struct Threads{
     me bool: notDone <- true
     me string: name // The threads name if it was set; max 15 chars
-    bool: isActive()             <- {return(true);}     // TODO: Finish Thread::ID(), Thread::isActive() and make active threads automatically join() in destructor.
+    //bool: isActive()             <- {return(true);}     // TODO: Finish Thread::ID(), Thread::isActive() and make active threads automatically join() in destructor.
     void: start()                <- <%{T = std::thread(&Threads::run, this);}%>
     void: start(me string: Name) <- <%{T = std::thread(&Threads::run, this); setName(Name);}%>
     void: waitForExit()          <- <%{if(T.joinable()){T.join();}}%>
