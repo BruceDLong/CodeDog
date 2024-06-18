@@ -804,7 +804,6 @@ class CodeGenerator(object):
                 return [S, tSpecOut, S2, '']  # Here we return S2 for use in code forms other than [idx]. e.g. f(idx)
             elif(name[0]=='[' and (fTypeKW=='uint' or fTypeKW=='int')):
                 cdErr("Error: integers can't be indexed: "+previousSegName+":"+name)
-
             elif owner=="itr" and 'fromRep' in tSpecIn:
                 reqTagList = tSpecIn['reqTagList']
                 if name=="key":
@@ -817,6 +816,8 @@ class CodeGenerator(object):
                     valTypeKW = progSpec.fieldTypeKeyword(reqTagList[1])
                     tSpecOut={'owner':valOwner, 'fieldType': valTypeKW}
                     name = "second"
+                else:
+                    print("Warning! Iterator type not followed by 'key' or 'val' for variable: "+previousSegName+":"+name)
             else:
                 if fTypeKW!="string":
                     itrTypeKW = progSpec.convertItrType(self.classStore, owner, fTypeKW)
