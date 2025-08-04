@@ -203,7 +203,26 @@ struct GUI_ctxt{
     me void: circle(me int: centerX, me int: centerY, me int: radius) <- <%!cairo_arc(%0, %1, %2, %3, 0, 2 * M_PI)%>
     their GUI_ctxt: newPDF_ctxt(me sting: filename, me double: inchesWide, me double: inchesHigh) <- <%!%Gcairo_create(cairo_pdf_surface_create(%1.data(), %2*70, %3*70))%>
 }
-
+struct fontSpec{
+    me int: getCharWidthX1024(me int32: chr) <- {
+        itr Map<int32, int>: chrWidthItr <- charWidths.find(chr)
+        if(chrWidthItr!=charWidths.end()){
+            return(chrWidthItr.val)
+        }
+        me string: text; text <+- chr
+        me deltaSize: ds <- getTextSizeX1024(text, self)
+        me int: width <- ds.width
+        charWidths[chr] <- width
+        return(width)
+    }
+    none: fontSpec(me string: initName, me string: initSize) <- {
+        name      <- initName
+        size      <- stoi(initSize)
+        pp        <- size
+        height    <- getTextSize("gyjqGYM", self).height
+        headerY   <- height*2/3  // TODO: calculate correctly
+    }
+}
 /////////////////////////////////  G L O B A L
 struct GLOBAL{
     // CLIPBOARD ROUTINES:

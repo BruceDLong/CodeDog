@@ -41,18 +41,7 @@ struct fontSpec{
     me int: height
     me Map<int32, int>: charWidths
 
-    me int: getCharWidthX1024(me int32: chr) <- {
-        itr Map<int32, int>: chrWidthItr <- charWidths.find(chr)
-        if(chrWidthItr!=charWidths.end()){
-            return(chrWidthItr.val)
-        }
-        me string: text; text <+- chr
-        print("Crash due to null cr in getTextSizeX1024\n")
-        me deltaSize: ds <- getTextSizeX1024(NULL, text, self)
-        me int: width <- ds.width
-        charWidths[chr] <- width
-        return(width)
-    }
+    me int: getCharWidthX1024(me int32: chr)
 
     me int: getCharWidth(me int32: chr) <- {return(getCharWidthX1024(chr)/1024)}
 
@@ -68,14 +57,7 @@ struct fontSpec{
         }
         return(chPos)
     }
-    none: fontSpec(me string: initName, me string: initSize) <- {
-        name      <- initName
-        size      <- stoi(initSize)
-        pp        <- size
-        print("crash due to NULL cr in getTextSize")
-        height    <- getTextSize(NULL, "gyjqGYM", self).height
-        headerY   <- height*2/3  // TODO: calculate correctly
-    }
+    none: fontSpec(me string: initName, me string: initSize)
 }
 
 struct Styler{
@@ -92,7 +74,7 @@ struct GLOBAL{
 
     // Call setwindowMetrics() early in the top level draw() to populate window metrics
     void: setwindowMetrics()<-{windowW <- widgetWidth(drawing_area); windowH <- widgetHeight(drawing_area)}
-    me string: getClipboardAsText() <- {}
+    me string: getClipboardAsText()
 }
 
 ///////// Widgets and events
@@ -289,6 +271,7 @@ struct GUI_ctxt {
 }
 
 struct GLOBAL{
+    me GUI_eventDispatcher: EventDispatcher
 
     me void: roundedRectangle(their GUI_ctxt: cr, me double: x, me double: y, me double: w, me double: h, me double: r) <- {
         cr.moveTo(x+r,y);                      //# Move to A

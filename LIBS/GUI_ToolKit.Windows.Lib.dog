@@ -124,7 +124,7 @@ int CALLBACK WinMain(
         MessageBox(NULL, _T("Call to CreateWindow failed!"), _T("Windows Desktop Guided Tour"), NULL);
         return 1;
     }
-    
+
     activate(&hWnd);
 
     // The parameters to ShowWindow explained:
@@ -163,7 +163,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         PostQuitMessage(0);
         break; }
     case WM_KEYUP:{
-	GUI_KeyboardEvent event;
+    GUI_KeyboardEvent event;
         event.state;
         event.keyval=LOWORD(wParam);
         break; }
@@ -184,11 +184,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         break; }
 
     case WM_MOUSEMOVE:{
-	GUI_MotionEvent event;
+    GUI_MotionEvent event;
         event.x = GET_X_LPARAM(lParam) / scaleFactor;
         event.y = GET_Y_LPARAM(lParam) / scaleFactor;
         EventDispatcher.topWidget.mouseMoved(&event);
-	break; }
+    break; }
     case WM_CHAR:
         return 0L;
     default:
@@ -685,11 +685,31 @@ struct timeStringer{
 }
 */
 
+struct fontSpec{
+    me int: getCharWidthX1024(me int32: chr) <- {
+        itr Map<int32, int>: chrWidthItr <- charWidths.find(chr)
+        if(chrWidthItr!=charWidths.end()){
+            return(chrWidthItr.val)
+        }
+        me string: text; text <+- chr
+        me deltaSize: ds <- getTextSizeX1024(NULL, text, self)
+        me int: width <- ds.width
+        charWidths[chr] <- width
+        return(width)
+    }
+    none: fontSpec(me string: initName, me string: initSize) <- {
+        name      <- initName
+        size      <- stoi(initSize)
+        pp        <- size
+        height    <- getTextSize(NULL, "gyjqGYM", self).height
+        headerY   <- height*2/3  // TODO: calculate correctly
+    }
+}
 /////////////////////////////////  G L O B A L
 struct GLOBAL{
     // TIME ROUTINES:
     me int64: getCurrentTimeStamp() <- <%!_time64(NULL)%>
-
+    me string: getClipboardAsText() <- {}
     // DRAWING ROUTINES:
     me deltaSize: renderText(their GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y) <- <%{
         HFONT hFont;
@@ -715,22 +735,22 @@ struct GLOBAL{
 
 
     me deltaSize: getTextSize(their GUI_ctxt: cr, me string: text, their fontSpec: font) <- <%{
-	LPSIZE sz;
-	int strsLen = text.size();
-	GetTextExtentPoint32(*cr, text.data(), strsLen, sz);
+        LPSIZE sz;
+        int strsLen = text.size();
+        GetTextExtentPoint32(*cr, text.data(), strsLen, sz);
         deltaSize size;
         size.width=sz.cx;
-	size.height=sz.cy;
+        size.height=sz.cy;
         return(size);
     } %>
 
     me deltaSize: getTextSizeX1024(their GUI_ctxt: cr, me string: text, their fontSpec: font) <- <%{
-	LPSIZE sz;
-	int strsLen = text.size();
-	GetTextExtentPoint32(*cr, text.data(), strsLen, sz);
+        LPSIZE sz;
+        int strsLen = text.size();
+        GetTextExtentPoint32(*cr, text.data(), strsLen, sz);
         deltaSize size;
         size.width=sz.cx;
-	size.height=sz.cy;
+        size.height=sz.cy;
         return(size);
     } %>
 /*
