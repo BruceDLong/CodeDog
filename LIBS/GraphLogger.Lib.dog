@@ -12,7 +12,7 @@ struct graphLogger{
 
     me string: deQuote(me string: S) <-{
         me string: sOut
-        withEach idx in RANGE(0..S.size()){
+        withEach idx in range 0 .. S.size() {
             if(S[idx]=="\""){sOut <+- "\\\""} else{sOut <+- S[idx]}
         }
         return(sOut)

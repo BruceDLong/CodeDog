@@ -20,16 +20,29 @@ def logTags(s, loc, toks):
                     commentsToActivate[tagName] = 'active'
 
 def logObj(s, loc, toks):
-    cdlog(3,"PARSED: {}".format(str(toks[0][0])+' '+toks[0][1][0]))
+    cdlog(3,"PARSED: {}".format(str(toks[0][0])+' ' + str(toks[0][1][0])))
 
 def logFieldDef(s, loc, toks):
     cdlog(4,"Field: {}".format(str(toks)))
+
+reservedWordSet = set([
+    "and", "or", "true", "false",
+    "if", "else", "but", "switch", "case", "default", "void",
+    "while", "withEach", "where", "until",
+    "protect", "do", "mode", "flag",
+   # "Forward", "Backward", "Preorder", "Inorder", "Postorder", "BreadthFirst", "DF_Iterative",
+   # "keys", "index", "iters", "key", "value", "entry", "index", "iter", "FILE",
+   # "void", "bool", "int32", "int64", "double", "char", "uint32", "uint64", "string", "int",
+    #"list", "opt", "map", "multimap", "tree", "graph", "iterableList",
+    "const", "me", "my", "our", "their", "we", "itr", "id_our", "id_their",
+    #"model", "struct", "string"
+])
 
 # # # # # # # # # # # # #   BNF Parser Productions for CodeDog syntax   # # # # # # # # # # # # #
 ParserElement.enablePackrat()
 #######################################   T A G S   A N D   B U I L D - S P E C S
 docComment    = Group("/*^" + SkipTo("*/") + Suppress("*/") | "//^" + restOfLine)
-identifier    = Word(alphanums + "_")
+identifier    = Word(alphanums + "_") .add_condition(lambda tokens: tokens[0] not in reservedWordSet, message="Reserved keyword used as identifier")
 tagID         = identifier("tagID")
 tagDefList    = Forward()
 tagValue      = Forward()

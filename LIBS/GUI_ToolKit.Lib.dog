@@ -59,7 +59,7 @@ struct fontSpec{
         if(text.size()==0){return(0)}
         me int32: wtc <- 0
         me int: chPos <- 0
-        withEach count in RANGE(0..text.size()){
+        withEach count in range 0 .. text.size() {
             me int: chrWidth <- getCharWidth(text[chPos])
             if(wtc+(chrWidth/2) >= maxWidthToCur){break()}
             wtc <+- chrWidth

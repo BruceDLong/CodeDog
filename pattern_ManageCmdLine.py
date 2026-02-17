@@ -101,7 +101,7 @@ def apply(classes, tags):
     // TODO: make this handle multiple options of each kind e.g., as with a compiler having multiple link options.
     //          ALSO: add features from posix's or java's command line style
     //        me char: ch
-    //        withEach p in RANGE(0 .. txtSize){
+    //        withEach p in range 0  ..  txtSize {
     //            ch <- cmdLineText[p]
     //        }
         }

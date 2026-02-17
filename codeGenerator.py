@@ -10,6 +10,7 @@ import buildDog
 from progSpec import cdlog, cdErr, logLvl, dePythonStr
 from progSpec import structsNeedingModification
 from pyparsing import ParseResults
+import threading
 from pprint import pprint
 
 import pattern_GUI_Toolkit

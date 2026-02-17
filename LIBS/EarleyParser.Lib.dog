@@ -166,7 +166,7 @@ struct stateRec{
         S <+- prod.toStr(SeqPosition, originPos, crntPos, EP.syntax.ruleNames)
         if(prod.isTerm){
             S <+- "='"
-            withEach idx in RANGE(originPos..crntPos){S<+- EP.getCharAt(idx)}
+            withEach idx in range originPos .. crntPos {S<+- EP.getCharAt(idx)}
             S <+- "'"
         }
         if(resolved){S<+-"-R"}
@@ -597,7 +597,7 @@ struct EParser{
 
 ///////// Diagnostic functions
     void: dump() <- {
-        withEach crntPos in RANGE(0 .. SSets.size()) {
+        withEach crntPos in range 0  ..  SSets.size() {
             their stateSets: SSet <- SSets[crntPos]
             me string: ch <- "x"
             if(crntPos+1 != SSets.size()) {
@@ -643,7 +643,7 @@ struct EParser{
         grapher.addItem("rankdir=LR;")
         me Map<me string, me string>: rankSlots
         me string: prevHeader <- ""
-        withEach crntPos in RANGE(0 .. SSets.size()) {
+        withEach crntPos in range 0  ..  SSets.size() {
             me int64: curPos <- crntPos
             their stateSets: SSet <- SSets[crntPos]
             me string: ch <- "x"
@@ -743,7 +743,7 @@ struct EParser{
     void: addSlotsToSSets(me int64: numSlots) <- {
         if(numSlots>0){
             me stateSets: newSSet
-            withEach i in RANGE(0 .. numSlots){
+            withEach i in range 0  ..  numSlots {
                 SSets.append(newSSet)
             }
         }
@@ -1207,7 +1207,7 @@ struct EParser{
         errorMesg <- ""
         me int64: lastSSetIDX <- SSets.size()-1
         me int64: lastPosWithItems <- 0
-        withEach ssetIDX in Backward RANGE(0 .. lastSSetIDX+1){
+        withEach ssetIDX in Backward range 0  ..  lastSSetIDX+1 {
             their stateSets: SSet <- SSets[ssetIDX]
             me int64: numItems <- SSet.stateRecs.size()
             //me int64: sidx <- ssetIDX; log("Position "+ toString(sidx)+ " has "+ toString(numItems)+ "items.\n")
@@ -1337,7 +1337,7 @@ struct EParser{
               //  if(pedSR!=NULL){log(indent+"       ped.cause:"+pedSR.stringify(self) + " SYM:" + pedSR.mySymbol())}
             } else{log("NO_PED")}
         } else if(seqPos>0){
-            withEach subItem in Backward RANGE(0..seqPos){
+            withEach subItem in Backward range 0 .. seqPos {
                 me int: pedToFollow <- choosePedigreeToFollow(prodID, crntRec.pedigrees)
                 me pedigree: ped <- crntRec.pedigrees[pedToFollow]
                 if(ped.pred.next==NULL){
@@ -1360,7 +1360,7 @@ struct EParser{
     }
 
     void: docPos(me int: indent, our stateRec: SRec, me string: tag) <- {
-        withEach i in RANGE(0 .. indent){ print("|    ")}
+        withEach i in range 0  ..  indent { print("|    ")}
         if(SRec){
             print(SRec.stringify(self))
         } else {print(" NULL ")}
@@ -1371,7 +1371,7 @@ struct EParser{
         their production: prod <- grammar[SRec.productionID]
         if(prod.isTerm){
             print(indent, "'")
-            withEach i in RANGE(SRec.originPos .. SRec.crntPos){
+            withEach i in range SRec.originPos  ..  SRec.crntPos {
                 print(text.at(i))
             }
             print("'\n")

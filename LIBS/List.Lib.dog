@@ -7,7 +7,7 @@ requirements = [
 model List<nodeType>{   //model is abstract class
     const model: ListItr(nodeType: node) <- {
         me nodeType: val
-        our ListItr<nodeType>: goNext()
+        void: goNext()
     }
     void: append()
     nodeType: at()
@@ -34,6 +34,7 @@ model List<nodeType>{   //model is abstract class
     me void: begin()
     me void: rEnd()
     nodeType: back()
+    me bool: contains()
 }
 
 ////////////////////////////////////////////////////////
@@ -64,7 +65,7 @@ struct CDList<nodeType>: implements=List native=codeDog specs={append=constant r
     nodeType: at(me int64: pos) <- {
         if(head == NULL){logFatalError("List access out of range in List::at().")}
         our CDListItr<nodeType>: retVal <- head
-        withEach x in RANGE(0..pos){
+        withEach x in range 0 .. pos {
             retVal <- retVal.next
             if (retVal == NULL){logFatalError("List access out of range in List::at().")}
         }
@@ -115,7 +116,7 @@ struct CDList<nodeType>: implements=List native=codeDog specs={append=constant r
     our CDListItr<nodeType>: nthItr(me int64: pos) <- {
         if(head == NULL){return(NULL)}
         our CDListItr<nodeType>: retVal <- head
-        withEach x in RANGE(0..pos){
+        withEach x in range 0 .. pos {
             retVal <- retVal.next
             if (retVal == NULL){return(NULL)}
         }

@@ -1,3 +1,4 @@
+#! /usr/bin/env python3
 # Code dog module for generating unit tests
 
 # TODO: Capture and analyze the stdout
@@ -64,7 +65,7 @@ def setUtilityCode(TestArrayText, SwitchCaseText):
             // fetch and return results
             if(verboseMode=="1"){
                 me string: spaces <- ""
-                withEach spc in RANGE(0..40-lineLength){spaces <+- " "}
+                withEach spc in range 0 .. 40-lineLength {spaces <+- " "}
                 print(spaces)
                 if(Tstat=="."){print("OK\n")}
                 else if(Tstat=="?"){print("TEST NAME NOT RECOGNIZED\n")}

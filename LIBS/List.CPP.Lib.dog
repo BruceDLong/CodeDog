@@ -17,7 +17,7 @@ LibDescription ={
 struct CPP_Deque<nodeType>: implements=List wraps=deque native=lang specs={insert=linear append=constant prepend=constant}{
     const struct: iterator_CPP_Deque(nodeType: node): implements=ListItr wraps=iterator native=lang <- {
         me nodeType: val                           <- <%!*%0%>
-        our iterator_CPP_Deque<nodeType>: goNext() <- <%!++%0%>
+        void: goNext() <- <%!++%0%>
     }
     void: append(nodeType: value)               <- <%!push_back(%1)%>
     nodeType: at(me int: position)              <- <%!at(%1)%>
@@ -45,6 +45,7 @@ struct CPP_Deque<nodeType>: implements=List wraps=deque native=lang specs={inser
     /////////////////////////////////////////
     me void: pushFirst(nodeType: value)         <- <%!push_front(%1)%>
     me void: pushLast(nodeType: value)          <- <%!push_back(%1)%>
+    me bool: contains(nodeType: value)          <- <%!(find(%0.begin(), %0.end(), %1)!=%0.end())%>
     // TODO: need Reverse Iterators working first
     //itr nodeType: back() <- <%!rbegin()%>             // returns reverse iterator to the reverse beginning of the sequence container
 }

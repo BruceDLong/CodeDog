@@ -40,7 +40,7 @@ struct verticalScale: inherits=graphScale{
         me string:    justify <- ""
 
         // AXIS VALUE LABELS
-        withEach val in RANGE(0.. (hiVal-lowVal)/step+1){
+        withEach val in range 0 ..  (hiVal-lowVal)/step+1 {
             label <- dblToString(val*step+lowVal, 2)
             size <- getTextSize(label, styler.smallFont)
             YPoint <- yOrig-(val*step*span/(hiVal-lowVal)-size.height/3)
@@ -60,7 +60,7 @@ struct verticalScale: inherits=graphScale{
         if(ticksPerStep>0){
             tickStep <- step/ticksPerStep
             cr.setLineWidth(1)
-            withEach val in RANGE(0.. (hiVal-lowVal)/tickStep+1){
+            withEach val in range 0 ..  (hiVal-lowVal)/tickStep+1 {
                 if (tickOffset > 0){XPoint <- xOrig+3}
                 else               {XPoint <- xOrig-3}
                 YPoint <- yOrig - convertToGUIScalar(val)*tickStep*span/(hiVal-lowVal)
@@ -118,7 +118,7 @@ struct horizontalScale: inherits=graphScale{
         }
 
         // AXIS VALUE LABELS
-        withEach val in RANGE(0.. (hiVal-lowVal)/step){
+        withEach val in range 0 ..  (hiVal-lowVal)/step {
             if(isDate){label <- unicodeMgr.dateToIntlString(val*step+firstTick, hiVal-lowVal, loc)}
             else      {label <- dblToString(val*step+firstTick, 2)}
             size <- getTextSize(title, styler.smallFont)
@@ -431,7 +431,7 @@ struct dataPlotter {
             me int: widthOfRtSegs   <- convertToIntVal(prevY.confidenceInterval/numOfSegs)
             me GUI_Scalar: crntLftY <- convertToGUIScalar(prevY.value - prevY.confidenceInterval/2)
             me GUI_Scalar: crntRtY  <- convertToGUIScalar(toY.value - toY.confidenceInterval/2)
-            withEach seg in RANGE(0..numOfSegs){
+            withEach seg in range 0 .. numOfSegs {
                 cr.setRGBA(plotColor.red, plotColor.green, plotColor.blue, alpha)
                 cr.moveTo(prevX, crntLftY)
                 cr.lineTo(toX, crntRtY)
@@ -545,7 +545,7 @@ struct graph: inherits=dash COMMAND_addCallProxy=["bundledArgs:applyDataRange"]{
             curH <- curH - bottomScale.height
         }
 
-        withEach dstream in RANGE(0.. dataStreamSrcs.dataStreams.size()) {
+        withEach dstream in range 0 ..  dataStreamSrcs.dataStreams.size() {
             if (streamToggle1.state == dstream + 1 or streamToggle2.state == dstream + 1) {dataStreamSrcs.dataStreams[dstream].isVisible <- true}
             else {dataStreamSrcs.dataStreams[dstream].isVisible <- false}
             if (streamToggle1.state == 0 or streamToggle2.state == 0) {dataStreamSrcs.dataStreams[dstream].hasGradient <- true}

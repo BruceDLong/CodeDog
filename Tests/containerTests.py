@@ -93,9 +93,9 @@ struct testClass{
 struct testClass{
     me void: runTest()<-{
         print("RANGE:")
-        withEach spec in RANGE(2..6) {print(spec," ")}
+        withEach spec in range 2 .. 6 {print(spec," ")}
         print(" RANGEBKWD:")
-        withEach RB in Backward RANGE(2..6) {print(RB," ")}
+        withEach RB in Backward range 2 .. 6 {print(RB," ")}
         me List<me int>:testList<-[2,13,-22,188]
         print(" LIST:")
         withEach T in testList {print(T," ")}

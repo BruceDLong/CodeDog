@@ -39,7 +39,7 @@ struct GLOBAL{
         print("TEST THREADS!\n")
         me ThreadTester: tester
         tester.start()
-        withEach num in RANGE(1..1000){
+        withEach num in range 1 .. 1000 {
             print("\nVALUE:", num)
         }
         printThread <- false
@@ -49,7 +49,7 @@ struct GLOBAL{
         print("TEST P_THREAD MUTEX!\n")
         me PT_MTX_TESTER: tester
         tester.start()
-        withEach num in RANGE(1..10000){
+        withEach num in range 1 .. 10000 {
             if(num==1){printThread<-true}
             if(num % 5 == 0){
                 pthread_mutex_lock(pMtx)
@@ -76,7 +76,7 @@ struct GLOBAL{
         print("TEST MUTEX!\n")
         me MutexTester: tester
         tester.start()
-        withEach num in RANGE(1..10000){
+        withEach num in range 1 .. 10000 {
             if(num==1){printThread<-true}
             if(num % 5 == 0){
                 mtx.lock()
@@ -103,7 +103,7 @@ struct GLOBAL{
         print("TEST MUTEXMGR!\n")
         me MutexMgrTester: tester
         tester.start()
-        withEach num in RANGE(1..10000){
+        withEach num in range 1 .. 10000 {
             if(num==1){printThread<-true}
             if(num % 5 == 0){
                 protect(mtx){
@@ -135,7 +135,7 @@ struct GLOBAL{
             pthread_cond_wait(pT_condV, pMtx);
         }
         pthread_mutex_unlock(pMtx)
-        withEach num in RANGE(1..500){
+        withEach num in range 1 .. 500 {
             if(printValue){
                 pthread_mutex_lock(pMtx)
                     print("\nVALUE:", num)
@@ -153,7 +153,7 @@ struct GLOBAL{
                 syncLk.wait(mtxMgr);
             }
         }
-        withEach num in RANGE(1..500){
+        withEach num in range 1 .. 500 {
             if(printValue){
                 protect(mtx){
                     print("\nVALUE:", num)
@@ -166,7 +166,7 @@ struct GLOBAL{
 
 struct ThreadTester: inherits=Threads{
     void: run()<-{
-        withEach n in RANGE(1..1000){
+        withEach n in range 1 .. 1000 {
             print("\n            THREAD:", n)
         }
         printValue  <- false
@@ -175,7 +175,7 @@ struct ThreadTester: inherits=Threads{
 }
 /*struct PT_MTX_TESTER: inherits=Threads{
     void: run()<-{
-        withEach n in RANGE(1..1000){
+        withEach n in range 1 .. 1000 {
             if(n==1){printValue<-true}
             pthread_mutex_lock(pMtx)
             if(printThread){print("\n            THREAD:", n)}
@@ -186,7 +186,7 @@ struct ThreadTester: inherits=Threads{
 }*/
 struct MutexTester: inherits=Threads{
     void: run()<-{
-        withEach n in RANGE(1..1000){
+        withEach n in range 1 .. 1000 {
             if(n==1){printValue<-true}
             mtx.lock()
             if(printThread){print("\n            THREAD:", n)}
@@ -197,7 +197,7 @@ struct MutexTester: inherits=Threads{
 }
 struct MutexMgrTester: inherits=Threads{
     void: run()<-{
-        withEach n in RANGE(1..1000){
+        withEach n in range 1 .. 1000 {
             if(n==1){printValue<-true}
             protect(mtx){
                 if(printThread){print("\n            THREAD:", n)}
@@ -208,7 +208,7 @@ struct MutexMgrTester: inherits=Threads{
 }
 /*struct PT_CONDVAR_TESTER: inherits=Threads{
     void: run()<-{
-        withEach n in RANGE(1..700){
+        withEach n in range 1 .. 700 {
             if(n==1){printValue<-true}
             pthread_mutex_lock(pMtx)
             waitCount <- n
@@ -223,7 +223,7 @@ struct MutexMgrTester: inherits=Threads{
 }*/
 struct SyncLockTester: inherits=Threads{
     void: run()<-{
-        withEach n in RANGE(1..700){
+        withEach n in range 1 .. 700 {
             if(n==1){printValue<-true}
             protect(mtx){
                 waitCount <- n

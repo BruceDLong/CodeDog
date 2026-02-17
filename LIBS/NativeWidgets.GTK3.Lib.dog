@@ -310,7 +310,7 @@ struct DateWidget: COMMAND_addCallProxy=["widgetData:onChanged"]{
         ///// DAY ////////////////////////////////////
         their GUI_Label: dayLabel <- makeLabelWidget("Day")
         dayBox <- makeComboBox()
-        withEach i in RANGE(1..31){
+        withEach i in range 1 .. 31 {
             dayBox.appendComboBox(i, i, dayArrayAdapter)
         }
         ///// RETURN BOX //////////////////////////////
@@ -335,13 +335,13 @@ struct TimeWidget: COMMAND_addCallProxy=["widgetData:onChanged"]{
         ///// HOUR //////////////////////////////////
         their GUI_Label: hourLabel <- makeLabelWidget("Hour");
         hourBox <- makeComboBox()
-        withEach i in RANGE(1..25){
+        withEach i in range 1 .. 25 {
             hourBox.appendComboBox(i, i, hourArrayAdapter)
         }
         ///// MINUTE //////////////////////////////////
         their GUI_Label: minuteLabel <- makeLabelWidget("Minute");
         minuteBox <- makeComboBox()
-        withEach i in RANGE(0..60){
+        withEach i in range 0 .. 60 {
             minuteBox.appendComboBox(i,i, minuteArrayAdapter)
         }
         ///// RETURN BOX //////////////////////////////

@@ -127,7 +127,7 @@ struct linesMngr {
 
     me int: calcWidthToCursor(their List<me charX>: line, me uint: charsToCur) <- {
         me int: wtc <- 0
-        withEach p in RANGE(0..charsToCur){
+        withEach p in range 0 .. charsToCur {
             wtc <- wtc + line[p].chWidth
         }
         return(wtc)
@@ -137,7 +137,7 @@ struct linesMngr {
         me int: wtc <- 0
         me uint: p<-0
         if(chrs.size()==0){charsToCur<-0; widthToCur<-0; return();}
-        withEach count in RANGE(0..chrs.size()){
+        withEach count in range 0 .. chrs.size() {
             if(wtc+chrs[p].chWidth > maxWidthToCur){break()}
             wtc <- wtc +chrs[p].chWidth
             p <- p+1
@@ -254,7 +254,7 @@ struct linesMngr {
         their lineX:: newLine
         me List<me charX>: CrntLine <- crntLine()
         me int: crntLineSize <- CrntLine.size()
-        withEach pos in RANGE(charsToCur .. crntLineSize){newLine.chars.pushLast(CrntLine[pos])}
+        withEach pos in range charsToCur  ..  crntLineSize {newLine.chars.pushLast(CrntLine[pos])}
         me lineIterator: nxtLine <- currentLine
         nxtLine.linesIdx <- nxtLine.linesIdx + 1
         entries[currentLine.entriesIdx].lines.insert(entries[currentLine.entriesIdx].lines.front() + nxtLine.linesIdx, newLine)
@@ -475,7 +475,7 @@ struct readMultiLine {
         getScreenMaxXY(w, h)
         if(msg.size()>=w){msg.resize(w)}
         putStr(stringToWString(msg))
-        withEach p in RANGE(msg.size() .. w){putChar(charConsts[0]);}
+        withEach p in range msg.size()  ..  w {putChar(charConsts[0]);}
         attrOff(A_REVERSE)
 
         movePutStr(mgr.widthToCur+promptWidth, mgr.crntRowInWnd+mgr.wndStartY, "")
@@ -592,7 +592,7 @@ struct readMultiLine {
                     chkEd(mgr.insertChar(chX))
                 } else { // finish unicode character
                     me string: str; str <- cmd;
-                    withEach cnt in RANGE(0..remaining){
+                    withEach cnt in range 0 .. remaining {
                         cmd <- getChar()
                         str <+- cmd
                     }

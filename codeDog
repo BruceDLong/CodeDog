@@ -2,8 +2,17 @@
 # CodeDog Program Maker
 import subprocess
 import sys;  sys.dont_write_bytecode = True
+def _is_required_pyparsing_version(version):
+    try:
+        major, minor = version.split(".")[:2]
+        return (int(major), int(minor)) >= (3, 3)
+    except (ValueError, TypeError, AttributeError):
+        return False
+
 try:
     import pyparsing
+    if not _is_required_pyparsing_version(getattr(pyparsing, "__version__", None)):
+        raise ModuleNotFoundError
 except ModuleNotFoundError:
     import depsResolve
     if subprocess.call(["which", "pip3"], stdout=subprocess.PIPE, stderr=subprocess.PIPE) == 0:
@@ -11,11 +20,10 @@ except ModuleNotFoundError:
     else:
         depsResolve.installPipPackage()
         depsResolve.installPyparsing()
-        try:
-            import pyparsing
-        except:
-            print("Error attempting to reimport pyparsing")
-#envmgr.CheckPipModules({'pyparsing':'2.0'})
+    try:
+        import pyparsing
+    except Exception:
+        print("Error attempting to reimport pyparsing")
 
 import progSpec
 import codeDogParser

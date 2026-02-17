@@ -18,7 +18,7 @@ model Map<keyType, valueType>{
         me valueType: val()
     }
 
-    valueType: at(keyType)
+    valueType: at(keyType: key)
     void: clear()
     me bool: containsKey(keyType: key)
     our MapItr: end()

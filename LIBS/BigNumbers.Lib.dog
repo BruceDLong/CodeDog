@@ -142,7 +142,7 @@ struct FlexNum{
     void: fromString(me string: str) <- {
         me int: size <- str.size()
         me int: dotPos <- -1
-        withEach idx in RANGE(0..size){
+        withEach idx in range 0 .. size {
             if(str[idx]=="."){
                 dotPos <- idx
                 break()
@@ -152,7 +152,7 @@ struct FlexNum{
             decPlaces <- size-dotPos
             me string: numerator   <- str.subStr(0,dotPos)+ str.subStr(dotPos+1,size)
             me string: denominator <- "1"
-            withEach n in RANGE(1..decPlaces){
+            withEach n in range 1 .. decPlaces {
                 denominator <+- "0"
             }
             setNumerator(numerator)

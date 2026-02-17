@@ -28,7 +28,7 @@ struct Logger{
         if(logLevelVisible) {logMsg <+- ":" + LogLevelStrings[level].subStr(0,1)}
         if(timeStampVisible){logMsg <+- ":" + toString(currentTimeStamp())}
         if(threadIDVisible) {logMsg <+- ":" + thisThreadID()}
-        withEach num in RANGE(0..indent){logMsg<+-"|   "}
+        withEach num in range 0 .. indent {logMsg<+-"|   "}
         logMsg <+- ":" + logText
         logMgr.writeToLog(logMsg)
     }
@@ -106,7 +106,7 @@ struct GLOBAL{
         me int: strLength <- logMgr.logger.logStr.size()
         if(strLength < startPos){
             me int: lenDiff <- startPos - strLength
-            withEach i in RANGE(0..lenDiff){
+            withEach i in range 0 .. lenDiff {
                 logMgr.logger.logStr <+- " "
             }
         }

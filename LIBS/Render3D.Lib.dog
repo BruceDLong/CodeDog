@@ -532,7 +532,7 @@ struct MeshGenerator{
     }
 
     void: genRingCap(their Mesh: result, me int: tessellation, me float: yPos, me float: height, me float: radius, me float: thickness, me bool: normalOut) <- {
-        withEach idx in RANGE(0..tessellation){
+        withEach idx in range 0 .. tessellation {
             me Vec3D: v1
             me Vec3D: v2
             me Vec3D: v3
@@ -546,7 +546,7 @@ struct MeshGenerator{
     }
 
     void: genCap(their Mesh: result, me int: tessellation, me float: yPos, me float: height, me float: radius, me bool: normalOut) <- {
-        withEach idx in RANGE(0..tessellation){
+        withEach idx in range 0 .. tessellation {
             me Vec3D: v1
             me Vec3D: v2
             me Vec3D: v3
@@ -566,7 +566,7 @@ struct MeshGenerator{
     }
 
     void: genCylinder(their Mesh: result, me float: height, me float: topRadius, me float: bottomRadius, me int: tessellation, me bool: cap, me bool: normalOut) <- {
-        withEach idx in RANGE(0..tessellation){
+        withEach idx in range 0 .. tessellation {
             me Vec3D: v1
             me Vec3D: v2
             me Vec3D: v3

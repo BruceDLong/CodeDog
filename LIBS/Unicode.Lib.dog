@@ -31,7 +31,7 @@ struct GLOBAL {
         }
         if(remaining>3){return(0)} // Too many bytes.
         out <deep- chr
-        withEach count in RANGE(0..remaining){
+        withEach count in range 0 .. remaining {
             chr <- str[pos]
             pos <+- 1
             if(chr==0){return(0)}

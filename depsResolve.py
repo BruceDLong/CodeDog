@@ -77,4 +77,4 @@ def installPipPackage():
             os.system('py get-pip.py') # Install PIP3
 
 def installPyparsing():
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "pyparsing"])
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "pyparsing>=3.3"])

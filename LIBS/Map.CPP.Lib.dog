@@ -22,7 +22,7 @@ struct CPP_Map<keyType, valueType>: implements=Map wraps=map native=lang specs={
         our RBNode<keyType, valueType>: goPrev() <- <%!--%0%>
     }
 
-    valueType: at(keyType)                      <- <%!at(%1)%>
+    valueType: at(keyType: key)                 <- <%!at(%1)%>
     void: clear()                               <- <%!clear()%>
     me bool: containsKey(keyType: key)          <- <%!count(%1)>0%>
     itr iterator_CPP_Map: end()                 <- <%!end()%>           // returns itr to past-the-end element
@@ -35,6 +35,7 @@ struct CPP_Map<keyType, valueType>: implements=Map wraps=map native=lang specs={
     me bool:  isEmpty()                         <- <%!empty()%>
     valueType: last()                           <- <%!rbegin()->second%>
     itr iterator_CPP_Map<keyType, valueType>: lower_bound(keyType: key)  <- <%!lower_bound(%1)%>
+    itr iterator_CPP_Map<keyType, valueType>: upper_bound(keyType: key)  <- <%!upper_bound(%1)%>
     // itr iterator_CPP_Map: popFirst()              <- <%!%0.front(); %0.pop_front()%>
     // itr iterator_CPP_Map: popLast()               <- <%!%0.back(); %0.pop_back()%>
     me uint:  size()                            <- <%!size()%>

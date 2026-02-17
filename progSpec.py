@@ -292,6 +292,41 @@ def packField(className, thisIsNext, thisOwner, thisType, thisArraySpec, thisReq
     packedField['fieldID']=fieldID
     return packedField
 
+def packParamSpec(thisOwner, thisType, thisArraySpec, thisReqTagList, thisName, defaultValue):
+    """Pack a function parameter specification.
+
+    This is intentionally *not* a full fieldDef.
+
+    We keep a small, stable shape that downstream code (codeGenerator, fieldIdentifierString,
+    type utilities) can consume safely:
+
+      {
+        'fieldName': <name>,
+        'typeSpec': {
+            'owner': <owner>,
+            'fieldType': <type>,
+            'arraySpec': <arraySpec>,
+            'reqTagList': <reqTagList>,
+            'argList': None,
+        },
+        'value': <defaultValue or None>
+      }
+
+    Notes:
+    - defaultValue uses the same representation as fields (ParseResults or ['' , verbatimText])
+      so existing expression/code-converter logic can keep working.
+    """
+    return {
+        'fieldName': thisName,
+        'typeSpec': {
+            'owner': thisOwner,
+            'fieldType': thisType,
+            'arraySpec': thisArraySpec,
+            'reqTagList': thisReqTagList,
+            'argList': None,
+        },
+        'value': defaultValue,
+    }
 def addDependencyToStruct(className, dependency):
     #print("############ addDependencyToStruct:", className, " --> ", dependency)
     global DependanciesMarked
@@ -1288,6 +1323,147 @@ def stringFromFile(filename):
 #    except IOError as e:
 #        cdErr("I/O error({0}): {1}: {2}".format(e.errno, e.strerror, filename))
         return Str
+
+################## Higher level functions
+'''
+iterable / sequence_like (single-pass possible)
+
+collection_like (multi-pass, stable indices)
+
+indexable (has startIndex/endIndex/index(after:) concept)
+
+bidirectional (has index(before:) OR reverse iter)
+
+random_access
+
+mutable_elements
+
+range_replaceable (length-changing ops)
+
+associative (key/value entries)
+
+ordered_keys (supports key range queries like lower/upper bound)
+
+stable_iterator_on_insert/erase + Big-O tags (you already do)
+'''
+def getContainerCapabilities(classes, ctnrTSpec):
+    """
+    Return a capability description for a container type.
+
+    This is intentionally conservative and incomplete.
+    It exists to:
+      - centralize container introspection
+      - decouple container traversal from hard-coded container categories
+      - provide a stable interface for future expansion
+
+    Future versions should:
+      - inspect tags on the container model
+      - inspect resolved implementation members (begin, rbegin, erase, etc.)
+      - account for template specialization and platform-specific containers
+    """
+
+    caps = {
+        # High-level classification
+        "kind": None,           # 'list', 'map', 'multimap', 'string', 'set', etc.
+
+        # Iteration capabilities
+        "hasBeginEnd": False,
+        "hasRBeginREnd": False,
+        "iteratorCategory": None,   # 'forward', 'bidirectional', 'random_access'
+        "supportsBackward": False,
+
+        # Semantic properties
+        "supportsEraseCurrent": False,
+        "isAssociative": False,
+        "isOrdered": False,
+
+        # Entry semantics (important for binding)
+        # 'value'  -> *it is the value
+        # 'entry'  -> *it is a (key,value) pair
+        "entryShape": None,
+    }
+
+    # --- TEMPORARY heuristic fallback ---
+    # Replace this with proper classStore + tag inspection later
+
+    containerCat = getContaineCategory(classes, ctnrTSpec)
+
+    if containerCat == 'List':
+        caps.update({
+            "kind": "list",
+            "hasBeginEnd": True,
+            "hasRBeginREnd": True,      # assumes std::list / vector-like
+            "iteratorCategory": "bidirectional",
+            "supportsBackward": True,
+            "supportsEraseCurrent": True,
+            "entryShape": "value",
+        })
+
+    elif containerCat == 'Map':
+        caps.update({
+            "kind": "map",
+            "hasBeginEnd": True,
+            "hasRBeginREnd": True,      # assumes ordered map
+            "iteratorCategory": "bidirectional",
+            "supportsBackward": True,
+            "supportsEraseCurrent": True,
+            "isAssociative": True,
+            "isOrdered": True,
+            "entryShape": "entry",      # iterator yields pair<key,value>
+        })
+
+    elif containerCat == 'Multimap':
+        caps.update({
+            "kind": "multimap",
+            "hasBeginEnd": True,
+            "hasRBeginREnd": True,
+            "iteratorCategory": "bidirectional",
+            "supportsBackward": True,
+            "supportsEraseCurrent": True,
+            "isAssociative": True,
+            "isOrdered": True,
+            "entryShape": "entry",
+        })
+
+    elif containerCat == 'string':
+        caps.update({
+            "kind": "string",
+            "hasBeginEnd": True,
+            "hasRBeginREnd": True,
+            "iteratorCategory": "random_access",
+            "supportsBackward": True,
+            "supportsEraseCurrent": False,
+            "entryShape": "value",      # char
+        })
+
+    else:
+        # Unknown / user-defined container
+        # Be conservative
+        caps.update({
+            "kind": "unknown",
+            "hasBeginEnd": True,
+            "supportsBackward": False,
+            "entryShape": None,
+        })
+
+    # ---- Backward compatibility: derive "tags" + "iter" for legacy users ----
+    tags = set()
+    if caps.get("isAssociative"):
+        tags.add("associative")
+    if caps.get("isOrdered"):
+        tags.add("ordered_keys")
+    if caps.get("supportsBackward") or caps.get("iteratorCategory") == "bidirectional":
+        tags.add("bidirectional")
+
+    caps["tags"] = tags
+    caps["iter"] = {
+        "hasBeginEnd": caps.get("hasBeginEnd", False),
+        "rbegin_rend": caps.get("hasRBeginREnd", False),
+        "yields": "entry" if caps.get("entryShape") == "entry" else "value",
+        "iteratorCategory": caps.get("iteratorCategory"),
+    }
+
+    return caps
 
 #############################################################  Logging functions
 lastLogMesgs=['','','','','','','','','','']

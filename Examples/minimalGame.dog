@@ -93,7 +93,7 @@ struct AlienArmada{
         me int: rowWidth <- numAliens * (alien1Width + 15)
         me int: rowStart; rowStart <- (windowW - rowWidth) / 2
         me int: crntPos  <- rowStart
-        withEach pos in RANGE (0..numAliens){
+        withEach pos in range 0 .. numAliens {
             our AlienShip:: alien
             alien.x <- crntPos
             alien.y <- yPos

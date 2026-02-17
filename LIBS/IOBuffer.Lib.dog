@@ -152,7 +152,7 @@ struct strBuf{
             errLineNum <- bufWithChar.prev.endingLineNumber
         }
         me int: bufSize <- bufWithChar.buf.size()
-        withEach idx in RANGE(0..bufSize) {
+        withEach idx in range 0 .. bufSize {
             if(bufWithChar.myOffset + idx > charPos){
                 break()
             }
@@ -177,7 +177,7 @@ struct strBuf{
     me int64: numNewlines(me string: data) <- {
         me int64: dataSize <- data.size()
         me int64: newLines <- 0
-        withEach idx in RANGE(0..dataSize){
+        withEach idx in range 0 .. dataSize {
             if(data[idx] == "\n"){
                 newLines <+- 1
             }
@@ -206,8 +206,8 @@ struct strBuf{
         close()
     }
 
-////////////////////////////////////////////////////////
-// Interactive mode utilities
+    ////////////////////////////////////////////////////////
+    // Interactive mode utilities
 
     void: submitForPreParse() <- {
         pre_parse_only  <- true
@@ -252,12 +252,12 @@ struct strBuf{
         }
     }
 
-////////////////////////////////////////////////////////
-// Stream parsing utilities
+    ////////////////////////////////////////////////////////
+    // Stream parsing utilities
     me int64: chkStr(me int64: pos, me string: s) <- {
         me int64: L <- s.size()
         our strBufItr: txtItr <- getItrAt(pos)
-        withEach i in RANGE(0 .. L){
+        withEach i in range 0  ..  L {
             if(txtItr == NULL or txtItr.status!=bfOK or txtItr.ch() != s[i]){return(-1)}
             txtItr.goNext()
         }
@@ -532,7 +532,7 @@ struct strBuf{
             me int64: charsUsed <- scrapeUnicodeWordContinue(pos+bytesUsed)
             if(charsUsed==-1){charsUsed<-0}
             me string:TXT
-            withEach idx in RANGE(pos..pos+charsUsed+bytesUsed){
+            withEach idx in range pos .. pos+charsUsed+bytesUsed {
                 me char: tChr <- at(idx)
                 TXT <+- tChr
             }

@@ -87,13 +87,13 @@ class Xlator(object):
     def codeArrayIndex(self, idx, containerType, LorR_Val, previousSegName, idxTypeSpec):
         cdErr("In base class Xlator::codeArrayIndex.")
 
-    def codeRangeSpec(self, traversalMode, ctrType, repName, S_low, S_hi, indent):
+    def codeRangeSpec(self, traversalMode, ctrType, repName, S_low, S_hi, inclusive, indent):
         cdErr("In base class Xlator::codeRangeSpec.")
 
     def iterateRangeFromTo(self, classes,localVarsAlloc,StartKey,EndKey,ctnrTSpec,repName,ctnrName,indent):
         cdErr("In base class Xlator::iterateRangeFromTo.")
 
-    def iterateContainerStr(self, classes,localVarsAlloc,ctnrTSpec,repName,ctnrName,isBackward,indent,genericArgs):
+    def iterateContainerStr(self, classes,localVarsAlloc,ctnrTSpec,binding,ctnrName,isBackward,indent,genericArgs):
         cdErr("In base class Xlator::iterateContainerStr.")
 
     def codeSwitchExpr(self, switchKeyExpr, switchKeyTypeSpec):

@@ -157,8 +157,8 @@ struct testClass{
 }''', 'PGBR:true false 3',['actions/conditional','actions/switch']],
 #####################################################################################################
 # TODO: make tests for 'actions/deleteMapRep'
-     'actions/rangeRep':     ['struct testClass{me void: runTest()<-{withEach spec in RANGE(2..6){print(spec," ")}}}', 'PGBR:2 3 4 5 '],
-     'actions/backRangeRep': ['struct testClass{me void: runTest()<-{withEach RB in Backward RANGE(2..6){print(RB," ")}}}', 'PGBR:5 4 3 2 '],
+     'actions/rangeRep':     ['struct testClass{me void: runTest()<-{withEach spec in range 2 .. 6 {print(spec," ")}}}', 'PGBR:2 3 4 5 '],
+     'actions/backRangeRep': ['struct testClass{me void: runTest()<-{withEach RB in Backward range 2 .. 6 {print(RB," ")}}}', 'PGBR:5 4 3 2 '],
      'actions/listRep':      ['struct testClass{me void: runTest()<-{me List<me int>:testList<-[2,13,-22,188]\nwithEach T in testList {print(T," ")}}}', 'PGBR:2 13 -22 188 '],
      'actions/backListRep':  ['struct testClass{me void: runTest()<-{me List<me int>:testListBackward<-[2,13,-22,188]\nwithEach TB in Backward testListBackward {print(TB," ")}}}', 'PGBR:188 -22 13 2 '],
      'actions/listKeyRep':   ['struct testClass{me void: runTest()<-{me List<me int>:testKeyList<-[2,3,5,8,13,21]\nwithEach TK in testKeyList {print(TK_key,"-", TK, " ")}}}', 'PGBR:0-2 1-3 2-5 3-8 4-13 5-21 '],
@@ -168,8 +168,8 @@ struct testClass{
      'actions/repetitions':  ['''
 struct testClass{
     me void: runTest()<-{
-        withEach spec in RANGE(2..6) {print(spec," ")}
-        withEach RB in Backward RANGE(2..6) {print(RB," ")}
+        withEach spec in range 2 .. 6 {print(spec," ")}
+        withEach RB in Backward range 2 .. 6 {print(RB," ")}
         me List<me int>:testList<-[2,13,-22,188]
         withEach T in testList {print(T," ")}
         me List<me int>:testListBackward<-[2,13,-22,188]

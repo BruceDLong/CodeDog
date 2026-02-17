@@ -29,7 +29,7 @@ struct GLOBAL{
         // Zero is 0
         if(val==0) {return(" 0")}
 
-        withEach Pos in RANGE(0..sizeS) {
+        withEach Pos in range 0 .. sizeS {
             me char: ch <- S[Pos]
             if(ch != "." and ch != "-") {
                 digits <- digits + 1
@@ -67,7 +67,7 @@ struct GLOBAL{
     me string: dispFieldAsText(me string: label, me int:labelLen) <- {
         me string: S <- ""
         me int: labelSize<-label.size()
-        withEach count in RANGE(0..labelLen){
+        withEach count in range 0 .. labelLen {
             if (count<labelSize){S <- S+label[count]}
             else if(count==labelSize){ S <- S+":"}
             else {S <- S+" "}
@@ -86,7 +86,7 @@ struct GLOBAL{
     }
     me string: indentedStr(me string: mesg, me int: lvl, me int: tabCol) <- {
         me string: strOut <- ""
-        withEach c in RANGE(0..lvl){
+        withEach c in range 0 .. lvl {
             strOut <+- "   |"
         }
         strOut <+- mesg
@@ -97,7 +97,7 @@ struct GLOBAL{
         me string: strOut <- s
         me int: padLen <- colWidth-s.size()
         if(padLen>0){
-            withEach i in RANGE(0..padLen){
+            withEach i in range 0 .. padLen {
                 strOut <+- " "
             }
         }
@@ -169,7 +169,7 @@ struct stringScanner{
     me int: skipWS() <- {       // Skip past 0 or more whitespace characters.  Return the new pos
         me char: ch
         me int: txtSize <- S.size()
-        withEach p in RANGE(pos .. txtSize){
+        withEach p in range pos  ..  txtSize {
             ch <- S[p]
             if(! isspace(ch) or p==txtSize){pos<-p break()}
         }
@@ -179,8 +179,8 @@ struct stringScanner{
     me int: skipPast(me string: findStr) <- {       // Skip past <txt>.  Return pos or -1 if End-of-string reached
         me int: txtSize <- S.size()
         me int: fs <- findStr.size()
-        withEach p in RANGE(pos .. txtSize){
-            withEach i in RANGE(0 .. fs){
+        withEach p in range pos  ..  txtSize {
+            withEach i in range 0  ..  fs {
                 //print(">> fs/p/i:", fs, " ", p, " ", i, ", findStr[i]:", findStr[i], " S[p+i]:", S[p+i], "\n")
                 if( findStr[i] != S[p+i]) {
                     break()
@@ -199,7 +199,7 @@ struct stringScanner{
     me int: scrapeUintSeq() <- {
         me char: ch
         me int: txtSize <- S.size()
-        withEach p in RANGE(pos .. txtSize){
+        withEach p in range pos  ..  txtSize {
             ch <- S[p]
             if(isdigit(ch)){}
             else{
@@ -218,7 +218,7 @@ struct stringScanner{
         me char: ch
         skipWS()
         me int: txtSize <- S.size()
-        withEach p in RANGE(pos .. txtSize){
+        withEach p in range pos  ..  txtSize {
             ch <- S[p]
             pos <- p
             if(isalnum(ch) or ch=="-" or ch=="_"){retStr<+-ch}
@@ -231,7 +231,7 @@ struct stringScanner{
     me int: chkStr(me string: s) <- {
         me int: L <- s.size()
         if(pos+L > S.size()){return(-1)}
-        withEach i in RANGE(0 .. L){
+        withEach i in range 0  ..  L {
             if( s[i] != S[pos+i]) {
                 return(-1)
             }
