@@ -1507,20 +1507,25 @@ def cdlog(lvl, mesg):
         if(lvl==0): print('')
         printAtLvl(lvl, mesg, '|    ')
 
-def cdErr(mesg):
+def cdErr(mesg, showLog=True):
     global lastLogMesgs
     global highestLvl
     highestLvl+=1
-    lastLogMesgs[highestLvl]="\n\nError: "+mesg
+    if not showLog:
+        lastLogMesgs=[]
+        print("\n\nError: "+mesg)
+    else:
+        lastLogMesgs[highestLvl]="\n\nError: "+mesg
     exit(1)
 
 def whenExit():
     endTime = timer()
-    print("\nTIME: {0:.2f} seconds".format(endTime-startTime))
+    print("\nTIME: {0:.2f} seconds\n".format(endTime-startTime))
     global lastLogMesgs
     global highestLvl
     global noError
     if(noError): return;
+    if(len(lastLogMesgs)==0): return
     print("\n\nAn error occured while:", end=' ')
     for i in range(0, highestLvl+1):
         printAtLvl(i, lastLogMesgs[i], '    ')

@@ -1,11 +1,119 @@
 # This module parses CodeDog syntax
 
 from pprint import pprint
+import os
+import sys
 import re
 import progSpec
 from progSpec import cdlog, cdErr, logLvl
 from pyparsing import *
 ParserElement.enablePackrat()
+
+def _supports_ansi_color(stream):
+    if os.environ.get("NO_COLOR"):
+        return False
+    if os.environ.get("CLICOLOR_FORCE", "0") != "0":
+        return True
+    try:
+        if not stream.isatty():
+            return False
+    except Exception:
+        return False
+    term = os.environ.get("TERM", "")
+    if term.lower() == "dumb":
+        return False
+    return True
+
+def _red_caret():
+    if _supports_ansi_color(sys.stderr):
+        return "\x1b[1;91m^\x1b[0m"
+    return "^"
+
+def install_furthest_path_tracer(root: ParserElement):
+    stack = []  # frames: (expr_id, seq, label)
+    best = {"loc": -1, "stack": [], "exc": None}
+    visited = set()
+
+    seq_counter = {}   # expr_id -> next seq
+    open_frames = {}   # (expr_id, loc) -> list[(expr_id, seq)]
+
+    def is_human(nm: str) -> bool:
+        if not nm:
+            return False
+        noisy = ("{", "}", "(", ")", "[", "]", "W:", "Group:", "Suppress:", "Re:", "SkipTo:")
+        return len(nm) <= 60 and not any(t in nm for t in noisy)
+
+    def label(expr: ParserElement):
+        nm = getattr(expr, "name", None)
+        return nm if (nm and is_human(nm)) else None
+
+    def push(expr, loc):
+        lab = label(expr)
+        if lab is None:
+            return
+        eid = id(expr)
+        seq = seq_counter.get(eid, 0) + 1
+        seq_counter[eid] = seq
+
+        stack.append((eid, seq, lab))
+        open_frames.setdefault((eid, loc), []).append((eid, seq))
+
+    def pop(eid, loc):
+        lst = open_frames.get((eid, loc))
+        if not lst:
+            return
+        eid_seq = lst.pop()
+        if not lst:
+            open_frames.pop((eid, loc), None)
+
+        _, seq = eid_seq
+        for i in range(len(stack) - 1, -1, -1):
+            feid, fseq, _ = stack[i]
+            if feid == eid and fseq == seq:
+                del stack[i]
+                return
+
+    def start_action(instring, loc, expr, *args):
+        push(expr, loc)
+
+    def success_action(instring, startloc, endloc, expr, toks, *args):
+        eid = id(expr)
+        pop(eid, startloc)
+
+    def exception_action(instring, loc, expr, exc, *args):
+        if loc > best["loc"]:
+            best["loc"] = loc
+            best["stack"] = [lab for (_eid, _seq, lab) in stack]
+            lab = label(expr)
+            if lab is not None:
+                best["stack"].append(lab)
+            best["exc"] = exc
+
+        # best-effort unwind
+        eid = id(expr)
+        pop(eid, loc)
+
+    def walk(e):
+        if e is None or not isinstance(e, ParserElement):
+            return
+        eid = id(e)
+        if eid in visited:
+            return
+        visited.add(eid)
+
+        # IMPORTANT: no callDuringTry kwarg (not supported)
+        e.setDebugActions(start_action, success_action, exception_action)
+
+        for c in getattr(e, "exprs", None) or []:
+            walk(c)
+        child = getattr(e, "expr", None)
+        if child is not None:
+            walk(child)
+
+    walk(root)
+    return lambda: best
+
+
 
 commentsToActivate = {}
 def logBSL(s, loc, toks):
@@ -177,7 +285,7 @@ withEachAction = Group(
             + Optional(Keyword("take") - rValue("takeExpr"))
             + Optional(Keyword("where") - "(" + expr("whereExpr") + ")")
             + Optional(Keyword("until") - "(" + expr("untilExpr") + ")")
-        + actionSeq)("withEachAction").setName("withEach action")
+        + actionSeq)("withEachAction")
 
 action         = Group((assign("assign") | swap('swap') | varRef("funcCall") | fieldDef('fieldDef'))) + Optional(";").suppress()
 actComment     = Group(Combine(r"//:"- Word(alphanums + r"/")("filterTag") + r"::")("actComment") + action)
@@ -186,7 +294,7 @@ funcBody       = Group(actionSeq | rValueVerbatim)("funcBody")
 
 #########################################   F I E L D   D E S C R I P T I O N S
 nameAndVal   = Group(
-          (":" + CID("fieldName") + "(" + paramList + Literal(")")('paramListTag') + Optional(Literal(":")("optionalTag") + tagDefList) + "<-" - funcBody )         # Function Definition
+          (":" + CID("fieldName") + "(" + paramList + Literal(")")('paramListTag') + Optional(Literal(":")("optionalTag").setName("tag or '<-'") + tagDefList) + "<-" - funcBody )         # Function Definition
         | (":" + CID("fieldName") + Group(initArgs)("arguments"))
         | (":" + CID("fieldName") + "<-" + (rValue("givenValue") | rValueVerbatim))
         | (":" + "<-" - (rValue("givenValue") | funcBody))
@@ -222,23 +330,28 @@ doPattern    = Group(Keyword("do") + classSpec + Suppress("(") + CIDList + Suppr
 macroDef     = Group(Keyword("#define") + CID('macroName') + Suppress("(") + Optional(CIDList('macroArgs')) + Suppress(")") + Group("<%" + SkipTo("%>", include=True))("macroBody"))
 classList    = Group(ZeroOrMore(docComment | classDef | doPattern | macroDef))("classList")
 
+#########################################   P A R S E R   S T A R T   S Y M B O L
+progSpecParser = Group(Optional(buildSpecList.set_parse_action(logBSL)) + tagDefList.set_parse_action(logTags) + classList)("progSpecParser")
+libTagParser   = Group(Optional(buildSpecList.set_parse_action(logBSL)) + tagDefList.set_parse_action(logTags) + (modelTypes|Keyword("do")|Keyword("#define")|StringEnd()))("libTagParser")
+
 classDef.set_parse_action(logObj)
 fieldDef.set_parse_action(logFieldDef)
 
+progSpecParser.setName("Proteus file")
 sequenceEl.setName("sequenceEl")
-fieldDef.setName("fieldDef")
+fieldDef.setName("field definition")
 rangeSpec.set_name("range specification (e.g., start..end)")
-bindingSpec.set_name("loop binding (e.g., x or (key, val))")
+bindingSpec.set_name("loop binding (e.g., item or (key, val))")
 traversalSpec.set_name("container traversal spec")
 fileSpec.set_name("file specification")
 withEachAction.set_name("withEach loop")
 actionSeq.set_name("action sequence block")
 conditionalAction.set_name("if/else conditional")
-protectAction.set_name("protect block")
+protectAction.set_name("protected block")
 funcBody.set_name("function body")
 classDef.set_name("class definition")
 action.setName("action statement")
-nameAndVal.setName("nameAndVal")
+nameAndVal.setName("variable or function declaration")
 
 #########################################   P A R S E R   S T A R T   S Y M B O L
 progSpecParser = Group(Optional(buildSpecList.set_parse_action(logBSL)) + tagDefList.set_parse_action(logTags) + classList)("progSpecParser")
@@ -250,8 +363,34 @@ def parseInput(inputStr):
     progSpec.saveTextToErrFile(inputStr)
     try:
         localResults = progSpecParser.parseString(inputStr, parseAll=True)
+        progSpecParser2 = Group(Optional(buildSpecList.setParseAction(logBSL)) + tagDefList.setParseAction(logTags) + classList)("progSpecParser").setName("Proteus file")
+        get_best = install_furthest_path_tracer(progSpecParser2) # install to track parse path
+        localResults = progSpecParser2.parseString(inputStr, parseAll=True)
     except ParseBaseException as pe:
-        cdErr( "While parsing: {}".format( pe))
+        # Trace the furthest failure
+        best = get_best()
+        # prefer the tracer’s exception if it captured something more specific
+        b_exc = best["exc"] if best["exc"] else pe
+
+        errExplaination = ""
+        prevItem = None
+        for n in best["stack"]:
+            if n.startswith("Forward:"): continue
+            if n == prevItem: continue
+            prevItem = n
+            errExplaination += "  - {}\n".format(n)
+        pointerCol = max(1, int(getattr(b_exc, "column", 1) or 1))
+        errExplaination += "\n{}".format(
+            str(b_exc.line)
+            + "\n"
+            + " " * (pointerCol - 1)
+            + _red_caret()
+            + "\n"
+            + b_exc.msg + ", found "+ (repr(b_exc.found) if hasattr(b_exc, "found") else "end of input")
+            + '    (at line:' + str(getattr(b_exc, "lineno", 1)) + ', col:' + str(getattr(b_exc, "column", 1)) + ')'
+        )
+
+        cdErr( "While parsing:\n{}".format( errExplaination), False)
     return localResults
 
 autoClassNameIdx = 1
@@ -668,7 +807,7 @@ def extractActItem(funcName, actionItem):
                 thisActionItem = extractActItem(funcName, actionItem[1])
                 break
     else:
-        cdErr("problem in extractActItem: actionItem:".format(str(actionItem)))
+        cdErr("problem in extractActItem: actionItem:".format(pprint(actionItem)))
         exit(1)
     return thisActionItem
 
