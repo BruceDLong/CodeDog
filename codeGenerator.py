@@ -91,8 +91,8 @@ class CodeGenerator(object):
                 tSpecOut = progSpec.getTypeSpec(classDef)
                 tSpecOut['owner']='their' # TODO: write test case for containers
                 print("SHOULDNT MATCH:", tSpecOut['owner'],classDef['typeSpec']['owner'])
-            else: tSpecOut={'owner':'their', 'fieldType':retType, 'arraySpec':None, 'argList':None}
-        else: tSpecOut={'owner':retOwner, 'fieldType':retType, 'arraySpec':None, 'argList':None}
+            else: tSpecOut={'owner':'their', 'fieldType':retType, 'arraySpec':None, 'paramList':None}
+        else: tSpecOut={'owner':retOwner, 'fieldType':retType, 'arraySpec':None, 'paramList':None}
         tSpecOut['codeConverter']=code
         return [tSpecOut, 'BUILTIN']
 
@@ -517,7 +517,7 @@ class CodeGenerator(object):
             genericClassDef['genericArgs'] = genericArgs
             for field in genericClassDef["fields"]: # handle constructors and function return types
                 tSpec  = progSpec.getTypeSpec(field)
-                if 'argList' in tSpec:
+                if 'paramList' in tSpec:
                     fieldName = field['fieldName']
                     fTypeKW = progSpec.fieldTypeKeyword(tSpec)
                     if tSpec['reqTagList']: tSpec['reqTagList'] = reqTagList
@@ -533,22 +533,22 @@ class CodeGenerator(object):
             self.currentObjName=previousObjName
         return genericStructName
 
-    def copyGenericsToArgList(self, tSpec, genericArgs):
-        argListIn  = progSpec.getArgList(tSpec)
-        argListOut = None
-        if argListIn and genericArgs:
-            argListOut = []
-            for arg in argListIn:
-                argTypeKW = progSpec.fieldTypeKeyword(arg)
-                if argTypeKW in genericArgs:
-                    argOut = self.copyField(arg)
-                    genericType = genericArgs[argTypeKW]
+    def copyGenericsToParamList(self, tSpec, genericArgs):
+        paramListIn  = progSpec.getParamList(tSpec)
+        paramListOut = None
+        if paramListIn and genericArgs:
+            paramListOut = []
+            for param in paramListIn:
+                paramTypeKW = progSpec.fieldTypeKeyword(param)
+                if paramTypeKW in genericArgs:
+                    paramOut = self.copyField(param)
+                    genericType = genericArgs[paramTypeKW]
                     fTypeOut    = progSpec.fieldTypeKeyword(genericType)
                     ownerOut    = progSpec.getOwner(genericType)
                     tSpecOut    = {'owner':ownerOut, 'fieldType':fTypeOut}
-                    argOut['typeSpec'] = tSpecOut
-                    argListOut.append(argOut)
-        return(argListOut)
+                    paramOut['typeSpec'] = tSpecOut
+                    paramListOut.append(paramOut)
+        return(paramListOut)
 
     def getGenericFieldsTypeSpec(self, genericArgs, tSpec):
         if genericArgs == None: return tSpec
@@ -564,10 +564,10 @@ class CodeGenerator(object):
             tSpec['fieldType'] = fTypeOut
             tSpec['owner']     = ownerOut
             tSpec['generic']   = fTypeKW
-        argListOut = self.copyGenericsToArgList(tSpec, genericArgs)
-        if argListOut and self.xlator.useNestedClasses:
+        paramListOut = self.copyGenericsToParamList(tSpec, genericArgs)
+        if paramListOut and self.xlator.useNestedClasses:
             tSpec = self.copyTypeSpec(tSpec)
-            tSpec['argList']=argListOut
+            tSpec['paramList']=paramListOut
         return tSpec
 
     def getGenericTypeSpec(self, genericArgs, tSpec):
@@ -632,7 +632,6 @@ class CodeGenerator(object):
 
     def convertType(self, tSpec, varMode, genericArgs):
         # varMode is 'var' or 'arg' or 'alloc' or 'func' for function Header. Large items are passed as pointers
-        progSpec.isOldContainerTempFuncErr(tSpec, "convertType")
         tSpec    = self.getGenericFieldsTypeSpec(genericArgs, tSpec)
         fTypeKW  = progSpec.fieldTypeKeyword(tSpec)
         ownerIn  = progSpec.getOwner(tSpec)
@@ -670,18 +669,18 @@ class CodeGenerator(object):
         langType = self.xlator.applyOwner(ownerOut, langType, varMode)
         return langType
 
-    def codeAllocater(self, tSpec, paramList, genericArgs):
+    def codeAllocater(self, tSpec, argList, genericArgs):
         CPL = '()'
-        if paramList!=None:
-            if isinstance(paramList, str): CPL = '('+paramList+')'
-            elif len(paramList)>0:
+        if argList!=None:
+            if isinstance(argList, str): CPL = '('+argList+')'
+            elif len(argList)>0:
                 fTypeKW      = progSpec.fieldTypeKeyword(tSpec)
                 classDef     = progSpec.findSpecOf(self.classStore[0], fTypeKW, "struct")
                 if genericArgs==None: genericArgs  = progSpec.getGenericArgs(classDef)
                 modelParams  = self.getCtorModelParams(fTypeKW)
-                if len(paramList)>len(modelParams): modelParams  = []
-                [CPL, paramTypeList]  = self.codeParameterList('Allocate', paramList, modelParams, genericArgs)
-                if self.xlator.useAllCtorArgs and len(paramList)<len(modelParams):
+                if len(argList)>len(modelParams): modelParams  = []
+                [CPL, paramTypeList]  = self.codeArgList('Allocate', argList, modelParams, genericArgs)
+                if self.xlator.useAllCtorArgs and len(argList)<len(modelParams):
                     CPL2 = '('
                     count = 0
                     for modParam in modelParams:
@@ -692,7 +691,7 @@ class CodeGenerator(object):
                             if modTypeKW!=paramTypeKW and paramTypeKW!=None:
                                 CPL2 = ''
                                 break
-                            [S2, argTSpec]=self.codeExpr(paramList[count][0], None, modParam, 'PARAM', genericArgs)
+                            [S2, argTSpec]=self.codeExpr(argList[count][0], None, modParam, 'ARG', genericArgs)
                             CPL2 += S2
                         else:
                             defaultVal = self.getFieldDefaultVal(modParam, genericArgs)
@@ -703,13 +702,13 @@ class CodeGenerator(object):
         S = self.xlator.codeXlatorAllocater(tSpec, genericArgs) + CPL
         return S
 
-    def convertNameSeg(self, tSpec, name, connector, paramList, reqTagList, genericArgs):
+    def convertNameSeg(self, tSpec, name, connector, argList, reqTagList, genericArgs):
         newName = tSpec['codeConverter']
         fTypeKW = progSpec.fieldTypeKeyword(tSpec)
         if newName == "": cdErr("ERROR: empty codeConverter for: "+name)
-        if paramList != None:
+        if argList != None:
             count=1
-            for P in paramList:
+            for P in argList:
                 oldTextTag='%'+str(count)
                 [S2, argTSpec]=self.codeExpr(P[0], None, None, 'RVAL', genericArgs)
                 if S2!='self':S2 += self.xlator.makePtrOpt(argTSpec)
@@ -717,7 +716,7 @@ class CodeGenerator(object):
                     newName=newName.replace(oldTextTag, S2)
                 else: cdErr("Unknown error in paramater list")
                 count+=1
-            paramList=None
+            argList=None
         if '%0.' in newName and connector==self.xlator.PtrConnector:
             newName = newName.replace('%0.', '%0'+self.xlator.PtrConnector)
         if "%T0Type" in newName:
@@ -738,7 +737,7 @@ class CodeGenerator(object):
                 T1Type  = self.xlator.applyOwner(T1Owner, T1Type,'')
                 newName = newName.replace("%T1Type",T1Type)
             else: cdErr("ERROR: looking for T1Type in codeConverter but reqTagList found in TypeSpec.")
-        return [newName, paramList]
+        return [newName, argList]
 
     def codeComment(self, commentType, commentStr, indent):
         if commentType=='/*^': return '\n'+ indent + '/* ' + commentStr+ '*/'
@@ -753,6 +752,8 @@ class CodeGenerator(object):
         namePrefix = ''  # For static_Global vars
         tSpecOut   = {'owner':'', 'fieldType':'void'}
         name       = segSpec[0]
+        if isinstance(name, (ParseResults, list, tuple)) and len(name) == 1 and isinstance(name[0], str):
+            name = name[0]
         owner      = progSpec.getOwner(tSpecIn)
         fTypeKW    = progSpec.fieldTypeKeyword(tSpecIn)
         progSpec.isOldContainerTempFuncErr(tSpecIn, 'codeNameSeg1 '+self.currentObjName+' ' +str(name))
@@ -760,16 +761,16 @@ class CodeGenerator(object):
         if genericArgs==None and previousTypeSpec!=None: genericArgs = progSpec.getGenericArgsFromTypeSpec(previousTypeSpec)
         if(name=='allocate'): cdErr("Deprecated use of allocate()")
 
-        paramList  = None
+        argList  = None
         if len(segSpec) > 1 and segSpec[1]=='(':
-            if(len(segSpec)==2): paramList=[]
-            else: paramList=segSpec[2]
+            if(len(segSpec)==2): argList=[]
+            else: argList=segSpec[2]
 
         if fTypeKW!=None and not isCtnr:
             if fTypeKW=="string":
-                lenParams = 0
-                if paramList: lenParams = len(paramList)
-                [name, tmpTypeSpec] = self.xlator.recodeStringFunctions(name, tSpecOut, lenParams)
+                lenArgs = 0
+                if argList: lenArgs = len(argList)
+                [name, tmpTypeSpec] = self.xlator.recodeStringFunctions(name, tSpecOut, lenArgs)
                 tSpecOut = copy.copy(tmpTypeSpec)
 
         if isCtnr and name[0]=='[':
@@ -782,7 +783,7 @@ class CodeGenerator(object):
         elif ('dummyType' in tSpecIn): # This is the first segment of a name
             if name=="return":
                 SRC = "RETURN_TYPE"
-                tSpecOut['argList'] = [{'typeSpec':returnType}]
+                tSpecOut['paramList'] = [{'typeSpec':returnType}]
             elif(name=='resetFlagsAndModes'):
                 tSpecOut={'owner':'me', 'fieldType': 'void', 'codeConverter':'flags=0'}
                 # TODO: if flags or modes have a non-zero default this should account for that.
@@ -838,7 +839,7 @@ class CodeGenerator(object):
 
         if tSpecOut and 'codeConverter' in tSpecOut and tSpecOut['codeConverter']!=None:
             reqTagList = progSpec.getReqTagList(tSpecIn)
-            [convertedName, paramList]=self.convertNameSeg(tSpecOut, name, connector, paramList, reqTagList, genericArgs)
+            [convertedName, argList]=self.convertNameSeg(tSpecOut, name, connector, argList, reqTagList, genericArgs)
             #print("codeConverter ",name,"->",convertedName, tSpecOut)
             name = convertedName
             callAsGlobal=name.find("%G")
@@ -847,9 +848,9 @@ class CodeGenerator(object):
         S+=namePrefix+connector+name
 
         # Add parameters if this is a function call
-        if(paramList != None):
-            modelParams = progSpec.getArgList(tSpecOut)
-            [CPL, paramTypeList] = self.codeParameterList(name, paramList, modelParams, genericArgs)
+        if(argList != None):
+            modelParams = progSpec.getParamList(tSpecOut)
+            [CPL, paramTypeList] = self.codeArgList(name, argList, modelParams, genericArgs)
             if self.xlator.renameInitFuncs and name=='init':
                 if not 'dummyType' in tSpecIn:
                     fTypeKW=progSpec.fieldTypeKeyword(tSpecIn)
@@ -860,8 +861,9 @@ class CodeGenerator(object):
         return [S, tSpecOut, None, SRC]
 
     def codeUnknownNameSeg(self, segSpec, genericArgs):
+        print("########## WARNING: unknown name segment:", segSpec)
         S=''
-        paramList=None
+        argList=None
         segName=segSpec[0]
         segConnector = ''
         if(len(segSpec)>1):
@@ -871,15 +873,15 @@ class CodeGenerator(object):
         S += segConnector + segName
         if len(segSpec) > 1 and segSpec[1]=='(':
             if(len(segSpec)==2):
-                paramList=[]
+                argList=[]
             else:
-                paramList=segSpec[2]
+                argList=segSpec[2]
         # Add parameters if this is a function call
-        if(paramList != None):
-            if(len(paramList)==0):
+        if(argList != None):
+            if(len(argList)==0):
                 S+="()"
             else:
-                [CPL, paramTypeList] = self.codeParameterList("", paramList, None, genericArgs)
+                [CPL, paramTypeList] = self.codeArgList("", argList, None, genericArgs)
                 S+= CPL
         print("UNKNOWN NAME SEGMENT:", S)
         return S;
@@ -887,6 +889,13 @@ class CodeGenerator(object):
     #### codeItemRef ##################################################
     def codeItemRef(self, name, LorR_Val, returnType, LorRorP_Val, genericArgs):
         # Returns information related to a variable, function, etc.
+        # NOTE: Some grammars produce extra grouping around identifiers, e.g. segSpec[0] can be
+        # ParseResults([ 'word' ]) instead of 'word'. We only unwrap in the *safe* case:
+        # a single-element list/ParseResults containing a string.
+        def _scalar_ident(x):
+            if isinstance(x, (ParseResults, list, tuple)) and len(x) == 1 and isinstance(x[0], str):
+                return x[0]
+            return x
         previousSegName = ""
         previousTypeSpec = None
         S=''
@@ -903,7 +912,7 @@ class CodeGenerator(object):
         for segSpec in name:
             LHSParentType='#'
             owner=progSpec.getOwner(segTSpec)
-            segName=segSpec[0]
+            segName=_scalar_ident(segSpec[0])
             isLastSeg = numNameSegs == segIDX+1
             if(segIDX>0):
                 # Detect connector to use '.' '->', '', (*...).
@@ -921,6 +930,11 @@ class CodeGenerator(object):
                 if segTSpec and 'fieldType' in segTSpec:
                     LHSParentType = progSpec.fieldTypeKeyword(segTSpec)
                 else: LHSParentType = progSpec.fieldTypeKeyword(self.currentObjName)   # Landed here because this is the first segment
+                # Ensure segSpec[0] is a plain identifier string when it's wrapped as ParseResults(['id']).
+                if len(segSpec) > 0:
+                    seg0 = _scalar_ident(segSpec[0])
+                    if seg0 is not segSpec[0]:
+                        segSpec = [seg0] + list(segSpec[1:])
                 [segStr, segTSpec, AltIDXFormat, nameSource]=self.codeNameSeg(segSpec, segTSpec, connector, LorR_Val, previousSegName, previousTypeSpec, returnType, LorRorP_Val, genericArgs)
                 if nameSource!='': canonicalName+=nameSource
                 if AltIDXFormat!=None:
@@ -1004,11 +1018,11 @@ class CodeGenerator(object):
         S=self.xlator.langStringFormatterCommand(fmtStr, argStr)
         return S
 
-    def codeParameterList(self, name, paramList, modelParams, genericArgs):
+    def codeArgList(self, name, argList, modelParams, genericArgs):
         S=''
         count = 0
         paramTypeList=[]
-        totalParams= len(paramList)
+        totalParams= len(argList)
         totalDefaultValue=0
         if (modelParams==[]):
             modelParams = None
@@ -1021,20 +1035,20 @@ class CodeGenerator(object):
             count=0
             for MP in modelParams:
                 if not(count<totalParams) and MP['value']:
-                    paramList.insert(count, MP['value'])
+                    argList.insert(count, MP['value'])
                 count+=1
 
-        if(len(paramList)==0 ):
+        if(len(argList)==0 ):
             if name != 'return' and name!='break' and name!='continue' and name!='characters.count':
                 S+="()"
         else:
             count = 0
-            for P in paramList:
+            for P in argList:
                 if(count>0): S+=', '
                 modelTSpec = None
                 if modelParams and (len(modelParams)>count) and ('typeSpec' in modelParams[count]):
                     modelTSpec = progSpec.getTypeSpec(modelParams[count])
-                [S2, argTSpec]=self.codeExpr(P[0], None, modelTSpec, 'PARAM', genericArgs)
+                [S2, argTSpec]=self.codeExpr(P[0], None, modelTSpec, 'ARG', genericArgs)
                 paramTypeList.append(argTSpec)
                 if modelTSpec!=None:
                     modelTypeKW   = progSpec.fieldTypeKeyword(modelTSpec)
@@ -1063,7 +1077,6 @@ class CodeGenerator(object):
             [S, isDerefd]=self.xlator.derefPtr(S, retTypeSpec)
             fType1 = progSpec.fieldTypeKeyword(retTypeSpec)
             for i in item[1]:
-                #print '               term:', i
                 if   (i[0] == '*'): op = ' * '
                 elif (i[0] == '/'): op = ' / '
                 elif (i[0] == '%'): op = ' % '
@@ -1132,7 +1145,7 @@ class CodeGenerator(object):
                 [S2, retType2] = self.codeIsEQ(i[1], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
                 S2 = self.xlator.convertToInt(S2, retType2)
                 S+= ' & '+S2
-            retTypeSpec = {'owner': 'me', 'fieldType': 'int', 'arraySpec': None, 'reqTagList': None, 'argList': None}
+            retTypeSpec = {'owner': 'me', 'fieldType': 'int', 'arraySpec': None, 'reqTagList': None, 'paramList': None}
         return [S, retTypeSpec]
 
     def codeBitwiseXOR(self, item, returnType, expectedTypeSpec, LorRorP_Val, genericArgs):
@@ -1199,73 +1212,141 @@ class CodeGenerator(object):
         return [S, retTypeSpec]
 
     #### ACTIONS ###########################################################
-    def codeRepetition(self, action, returnType, indent, genericArgs):
-        actionText = ""
-        repBody    = action['repBody']
-        repName    = action['repName']
-        cdlog(5, "Repetition stmt: loop var is:'{}'".format(repName))
-        traversalMode = action['traversalMode']
-        rangeSpec  = action['rangeSpec']
-        whileSpec  = action['whileSpec']
-        keyRange   = action['keyRange']
-        fileSpec   = False #action['fileSpec']
-        ctrType    = self.xlator.typeForCounterInt
-        itrIncStr  = ""
-        # TODO: add cases for traversing trees and graphs in various orders or ways.
-        loopCounterName=''
-        if(rangeSpec): # iterate over range
-            [S_low, lowValTypeSpec] = self.codeExpr(rangeSpec[2][0], None, None, 'RVAL', genericArgs)
-            [S_hi,   hiValTypeSpec] = self.codeExpr(rangeSpec[4][0], None, None, 'RVAL', genericArgs)
-            ctrlVarsTypeSpec = {'owner': 'me', 'fieldType': ctrType}
-            actionText += self.xlator.codeRangeSpec(traversalMode, ctrType, repName, S_low, S_hi, indent)
-            self.localVarsAllocated.append([repName, ctrlVarsTypeSpec])  # Tracking local vars for scope
-        elif(whileSpec):
-            [whileExpr, whereConditionTypeSpec] = self.codeExpr(whileSpec[2], None, None, 'RVAL', genericArgs)
-            [whileExpr, whereConditionTypeSpec] =  self.xlator.adjustConditional(whileExpr, whereConditionTypeSpec)
-            actionText += indent + "while(" + whileExpr + "){\n"
-            loopCounterName=repName
-        elif(fileSpec):
-            [filenameExpr, filenameTypeSpec] = self.codeExpr(fileSpec[2], None, None, 'RVAL', genericArgs)
-            if filenameTypeSpec!='string':
-                cdErr("Filename must be a string.\n")
-            print("File iteration not implemeted yet.\n")
-            exit(2)
-        elif(keyRange):
-            [ctnrName, ctnrTSpec] = self.codeExpr(keyRange[0][0], None, None, 'RVAL', genericArgs)
-            progSpec.isOldContainerTempFuncErr(ctnrTSpec, 'codeRepetition1 '+self.currentObjName+' '+ctnrName)
-            [StartKey, StartTypeSpec] = self.codeExpr(keyRange[2][0], None, None, 'RVAL', genericArgs)
-            [EndKey,   EndTypeSpec] = self.codeExpr(keyRange[4][0], None, None, 'RVAL', genericArgs)
-            wrappedTypeSpec = progSpec.isWrappedType(self.classStore, progSpec.fieldTypeKeyword(ctnrTSpec)[0])
-            if(wrappedTypeSpec != None):ctnrTSpec=wrappedTypeSpec
-            [actionTextOut, loopCounterName] = self.xlator.iterateRangeFromTo(self.classStore,self.localVarsAllocated, StartKey, EndKey, ctnrTSpec,repName,ctnrName,indent)
-            actionText += actionTextOut
-        else: # interate over a container
-            [ctnrName, ctnrTSpec] = self.codeExpr(action['repList'][0], None, None, 'RVAL', genericArgs)
-            fTypeKW     = progSpec.fieldTypeKeyword(ctnrTSpec)
-            progSpec.isOldContainerTempFuncErr(ctnrTSpec, 'codeRepetition2 '+self.currentObjName+' '+ctnrName)
-            isCtnr = fTypeKW=='string' or progSpec.isNewContainerTempFunc(ctnrTSpec)
-            if ctnrTSpec==None or not isCtnr: cdErr("'"+ctnrName+"' is not a container so cannot be iterated over."+str(ctnrTSpec))
-            isBackward = False
-            if(traversalMode=='Backward'): isBackward=True
-            [actionTextOut, loopCounterName, itrIncStr] = self.xlator.iterateContainerStr(self.classStore,self.localVarsAllocated,ctnrTSpec,repName,ctnrName, isBackward, indent, genericArgs)
-            actionText += actionTextOut
-        if action['whereExpr']:
-            [whereExpr, whereConditionTypeSpec] = self.codeExpr(action['whereExpr'], None, None, 'RVAL', genericArgs)
-            actionText += indent + "    " + 'if (!' + whereExpr + ') continue;\n'
-        if action['untilExpr']:
-            [untilExpr, untilConditionTypeSpec] = self.codeExpr(action['untilExpr'], None, None, 'RVAL', genericArgs)
-            actionText += indent + '    ' + 'if (' + untilExpr + ') break;\n'
-        repBodyText = ''
-        for repAction in repBody:
-            actionOut = self.codeAction(repAction, indent + "    ", returnType, genericArgs)
-            repBodyText += actionOut
-        if loopCounterName!='':
-            actionText=indent + ctrType+" " + loopCounterName + "=0;\n" + actionText
-            repBodyText += indent + "    " + self.xlator.codeIncrement(loopCounterName) + ";\n"
-            ctrlVarsTypeSpec = {'owner':'me', 'fieldType':'uint'}
-            self.localVarsAllocated.append([loopCounterName, ctrlVarsTypeSpec])  # Tracking local vars for scope
-        actionText += repBodyText + itrIncStr + indent + '}\n'
+    def codeWhileRepetition(self, action, returnType, indent, genericArgs):
+        cdlog(5, "While stmt")
+
+        whileSpec = action.get('whileSpec')
+        if not whileSpec:
+            cdErr("While repetition missing whileSpec")
+
+        [whileExpr, condType] = self.codeExpr(whileSpec[2], None, None, 'RVAL', genericArgs)
+        [whileExpr, condType] = self.xlator.adjustConditional(whileExpr, condType)
+
+        actionText = indent + "while(" + whileExpr + "){\n"
+        for repAction in action.get('body', []):
+            actionText += self.codeAction(repAction, indent + "    ", returnType, genericArgs)
+        actionText += indent + "}\n"
         return actionText
+
+    
+    def codeWithEachRepetition(self, action, returnType, indent, genericArgs):
+        actionText = ""
+        body = action.get('body', [])
+        binding = action.get('binding', {})
+        source = action.get('source', {})
+        mods = action.get('mods', {}) or {}
+
+        # ---- Binding check ----
+        bkind = binding.get("kind")
+
+        # Validate binding depending on source kind later
+        # For tuple binding, do NOT require a single name here.
+        if bkind == "single":
+            if not binding.get("name"):
+                cdErr("withEach missing loop variable name")
+        elif bkind == "tuple":
+            # ok: (k,v) binding
+            if not binding.get("keyName") or not binding.get("valName"):
+                cdErr("withEach tuple binding missing keyName/valName")
+        else:
+            cdErr("withEach binding kind missing/unknown")
+
+        kind = source.get("kind")
+
+        if kind == "numRange":
+            if binding.get("kind") != "single":
+                cdErr("Numeric range iteration requires a single binding name (e.g., withEach i in range 1..10 {...})")
+
+            loopVarName = binding.get("name")
+            rs = source.get("rangeSpec")
+            if not rs: cdErr("numRange missing rangeSpec")
+            traversalMode = getattr(rs, "traversalMode", None)
+
+            isInclusive = bool(getattr(rs, "inclusiveOp", False))
+            startPR = rs.get("rangeStart", None)
+            endPR = rs.get("rangeEnd", None)
+
+            if not startPR or not endPR:
+                cdErr("numeric range requires both start and end (use: in range A..B)")
+
+            [S_low, _] = self.codeExpr(startPR[0], None, None, 'RVAL', genericArgs)
+            [S_hi,  _] = self.codeExpr(endPR[0],   None, None, 'RVAL', genericArgs)
+
+            ctrType = self.xlator.typeForCounterInt
+            self.localVarsAllocated.append([loopVarName, {'owner': 'me', 'fieldType': ctrType}])
+            actionText += self.xlator.codeRangeSpec(
+                traversalMode,
+                ctrType,
+                loopVarName,
+                S_low,
+                S_hi,
+                isInclusive,
+                indent,
+                body,
+                returnType,
+                mods,
+                genericArgs,
+            )
+
+        elif kind == "traversal":
+            containerNode = source.get("container")
+            if not containerNode:
+                cdErr("traversal missing container")
+
+            [ctnrName, ctnrTSpec] = self.codeExpr(containerNode[0], None, None, 'RVAL', genericArgs)
+            fTypeKW = progSpec.fieldTypeKeyword(ctnrTSpec)
+
+            isCtnr = (fTypeKW == 'string') or progSpec.isNewContainerTempFunc(ctnrTSpec)
+            if ctnrTSpec is None or not isCtnr:
+                cdErr("'" + ctnrName + "' is not a container so cannot be iterated over. " + str(ctnrTSpec))
+
+            traversalMode = source.get("traversalMode")  # "Backward" or None
+
+            rangeClause = source.get("rangeClause")
+            rangeMode = None
+            rangeSpec = None
+
+            if rangeClause:
+                rangeMode = rangeClause.get("mode")   # "keys" | "index" | "iters"
+                rangeSpec = rangeClause.get("range")
+
+                # semantic rule: iters cannot be inclusive (nicer error here than in xlator)
+                isInclusive = bool(getattr(rangeSpec, "inclusiveOp", False))
+                if rangeMode == "iters" and isInclusive:
+                    cdErr("Inclusive ranges (..=) are not allowed for iters: ranges. Use '..' instead.")
+
+            # Delegate to xlator: loop header + binding + where/until + body
+            actionText += self.xlator.traversalLoopWithBodyStr(
+                self.classStore,
+                self.localVarsAllocated,
+                ctnrTSpec,
+                binding,
+                ctnrName,
+                body,
+                returnType,
+                mods,
+                genericArgs,
+                indent,
+                traversalMode=traversalMode,
+                rangeMode=rangeMode,
+                rangeSpec=rangeSpec,
+            )
+
+        elif kind == "file": cdErr("File iteration not implemented yet.")
+        else: cdErr("Unknown withEach source kind: {}".format(kind))
+
+        return actionText
+
+
+    def codeRepetition(self, action, returnType, indent, genericArgs):
+        kind = action.get('kind', None)
+        if kind == 'while':
+            return self.codeWhileRepetition(action, returnType, indent, genericArgs)
+        elif kind == 'withEach':
+            return self.codeWithEachRepetition(action, returnType, indent, genericArgs)
+        else:
+            cdErr("Unknown repetition kind: {}".format(kind))
+
 
     def codeFuncCall(self, funcCallSpec, returnType, genericArgs):
         [S, tSpec, LHSParentType, AltIDXFormat]=self.codeItemRef(funcCallSpec, 'RVAL', returnType, 'RVAL', genericArgs)
@@ -1324,7 +1405,6 @@ class CodeGenerator(object):
             fieldDef  = action['fieldDef']
             tSpec     = progSpec.getTypeSpec(fieldDef)
             fieldName = fieldDef['fieldName']
-            progSpec.isOldContainerTempFuncErr(tSpec, 'codeAction '+self.currentObjName+' '+fieldName)
             self.applyStructImplemetation(tSpec,self.currentObjName,fieldName)
             cdlog(5, "Action newVar: {}".format(fieldName))
             varDeclareStr = self.xlator.codeNewVarStr(tSpec, fieldName, fieldDef, indent, genericArgs, self.localVarsAllocated)
@@ -1335,6 +1415,7 @@ class CodeGenerator(object):
             cdlog(5, "Pre-assignment... ")
             [LHS, lhsTypeSpec, LHSParentType, AltIDXFormat] = self.codeItemRef(action['LHS'], 'LVAL', returnType, 'LVAL', genericArgs)
             assignTag = action['assignTag']
+            if not isinstance(assignTag, str): assignTag=assignTag[0] # compensate for different versions of pyParser
             cdlog(5, "Assignment: {}".format(LHS))
             [S2, rhsTypeSpec]=self.codeExpr(action['RHS'][0], None, lhsTypeSpec, 'RVAL', genericArgs)
             [LHS_leftMod, LHS_rightMod,  RHS_leftMod, RHS_rightMod]=self.xlator.determinePtrConfigForAssignments(lhsTypeSpec, rhsTypeSpec, assignTag,LHS)
@@ -1393,7 +1474,9 @@ class CodeGenerator(object):
                     elif(assignTag=='&'):  actionText = indent + LHS + " &= " + RHS + ";\n"
                     elif(assignTag=='^'):  actionText = indent + LHS + " ^= " + RHS + ";\n"
                     elif(assignTag=='|'):  actionText = indent + LHS + " |= " + RHS + ";\n"
-                    else: actionText = indent + "opAssign" + assignTag + '(' + LHS + ", " + RHS + ");\n"
+                    else:
+                        print("bad_assign_Tag:",assignTag)
+                        actionText = indent + "opAssign" + assignTag + '(' + LHS + ", " + RHS + ");\n"
         elif (typeOfAction =='swap'):
             LHS   = action['LHS']
             RHS   =  action['RHS']
@@ -1498,16 +1581,16 @@ class CodeGenerator(object):
             fOwner      = progSpec.getOwner(tSpec)
             progSpec.isOldContainerTempFuncErr(tSpec, 'getCtorModelParams '+self.currentObjName)
             isCtnr = progSpec.isNewContainerTempFunc(tSpec)
-            if fType=='flag' or fType=='mode' or fOwner=='const' or fOwner=='we' or (tSpec['argList'] or tSpec['argList']!=None) or (isCtnr and not progSpec.typeIsPointer(tSpec)):
+            if fType=='flag' or fType=='mode' or fOwner=='const' or fOwner=='we' or (tSpec['paramList'] or tSpec['paramList']!=None) or (isCtnr and not progSpec.typeIsPointer(tSpec)):
                 continue
             modelParams.append(field)
         return modelParams
 
-    def chooseCtorModelParams(self, tSpec, paramList,genericArgs):
+    def chooseCtorModelParams(self, tSpec, argList, genericArgs):
         fTypeKW      = progSpec.fieldTypeKeyword(tSpec)
         [argListStr, fieldIDArgList] = self.getFieldIDArgList(fTypeKW, genericArgs)
         REF = self.CheckObjectVars(fTypeKW, fTypeKW, "")
-        if REF: modelParams = progSpec.getArgList(REF)
+        if REF: modelParams = progSpec.getParamList(REF)
         else: modelParams  = self.getCtorModelParams(fTypeKW)
         return modelParams
 
@@ -1610,8 +1693,8 @@ class CodeGenerator(object):
         fTypeKW      = progSpec.fieldTypeKeyword(tSpec)
         fieldName    = field['fieldName']
         fieldID      = field['fieldID']
-        argList      = progSpec.getArgList(field)
-        sizeArgList  = len(argList)
+        paramList      = progSpec.getParamList(field)
+        sizeParamList  = len(paramList)
         overRideOper = False
         isStatic     = False
         if fieldName[0:2] == "__" and self.xlator.iteratorsUseOperators:
@@ -1619,24 +1702,31 @@ class CodeGenerator(object):
             fieldName    = self.xlator.specialFunction(fieldName, classDef)
             if fieldNameIn != fieldName: isStatic = True
             overRideOper = True
-        #### ARGLIST
-        argListText  = ""
-        argListCount = 0
-        if sizeArgList==0: argListText='' #'void'
-        elif argList[0]=='<%': argListText=argList[1][0]        # Verbatim.arguments
+        #### PARAMLIST
+        paramListText  = ""
+        paramListCount = 0
+        if sizeParamList==0: paramListText='' #'void'
+        elif paramList[0]=='<%': paramListText=paramList[1][0]        # Verbatim.parameters
         else:
-            for arg in argList:
-                if(argListCount>0): argListText+=", "
-                argListCount+=1
-                argTSpec     = progSpec.getTypeSpec(arg)
-                argOwner     = progSpec.getOwner(argTSpec)
-                argFieldName = arg['fieldName']
-                argFieldType = progSpec.fieldTypeKeyword(argTSpec)
-                if progSpec.typeIsPointer(argTSpec): arg
-                self.applyStructImplemetation(argTSpec,className,argFieldName)
-                argCvrtType  = self.convertType(argTSpec, 'arg', genericArgs)
-                argListText += self.xlator.codeArgText(argFieldName, argCvrtType, argOwner, argTSpec, overRideOper, typeArgList)
-                self.localArgsAllocated.append([argFieldName, argTSpec])  # localArgsAllocated is a global variable that keeps track of nested function arguments and local vars.
+            for param in paramList:
+                if(paramListCount>0): paramListText+=", "
+                paramListCount += 1
+                paramTSpec     = progSpec.getTypeSpec(param)
+                paramFieldName = param['fieldName']
+
+                paramOwner = progSpec.getOwner(paramTSpec)
+
+                # Ensure any struct impl options get applied consistently
+                self.applyStructImplemetation(paramTSpec, className, paramFieldName)
+
+                paramCvrtType  = self.convertType(paramTSpec, 'arg', genericArgs)
+                paramListText += self.xlator.codeArgText(
+                    paramFieldName, paramCvrtType, paramOwner, paramTSpec, overRideOper, typeArgList
+                )
+
+                # Track for local-arg resolution in expression parsing
+                self.localArgsAllocated.append([paramFieldName, paramTSpec])
+
         #### RETURN TYPE ###########################################
         FirstReturnType = copy.copy(tSpec) # TODO: Un-Hardcode FirstReturnType, typeSpec?
         if(fTypeKW[0] != '<%'): pass #self.registerType(className, fieldName, cvrtType, typeDefName)
@@ -1660,14 +1750,14 @@ class CodeGenerator(object):
         # ####################################################################
         cvrtType     = self.convertType(tSpec, 'func', genericArgs)
         if(cvrtType=='none'): cvrtType = ''
-        [structCode, funcDefCode, globalFuncs]=self.xlator.codeFuncHeaderStr(className, fieldName, field, cvrtType, argListText, self.localArgsAllocated, inheritMode, typeArgList, self.isNestedClass, overRideOper, isStatic, indent)
+        [structCode, funcDefCode, globalFuncs]=self.xlator.codeFuncHeaderStr(className, fieldName, field, cvrtType, paramListText, self.localArgsAllocated, inheritMode, typeArgList, self.isNestedClass, overRideOper, isStatic, indent)
         #### FUNC BODY #############################################
         if abstractFunction: # i.e., if no function body is given.
             cdlog(5, "Function "+fieldID+" has no implementation defined.")
             funcText = self.xlator.getVirtualFuncText(field)
             #cdErr("Function "+fieldID+" has no implementation defined.")
         else:
-            extraCodeForTopOfFuntion = self.xlator.extraCodeForTopOfFuntion(argList)
+            extraCodeForTopOfFuntion = self.xlator.extraCodeForTopOfFuntion(paramList)
             if cvrtType=='' and 'flagsVarNeeded' in classDef and classDef['flagsVarNeeded']==True:
                 extraCodeForTopOfFuntion+="    flags=0;"
             verbatimText=field['value'][1]
@@ -1725,8 +1815,8 @@ class CodeGenerator(object):
         fieldName      = field['fieldName']
         isAllocated    = field['isAllocated']
         fieldValue     = field['value']
-        fieldArglist   = progSpec.getArgList(tSpec)
-        paramList      = field['paramList']
+        fieldParamList = progSpec.getParamList(tSpec)
+        argList        = field['argList']
         cdlog(4, "FieldName: {}".format(fieldName))
 
         self.applyStructImplemetation(tSpec,className,fieldName)
@@ -1746,24 +1836,20 @@ class CodeGenerator(object):
         if(fieldValue == None):
             if className == "GLOBAL" and isAllocated==True: # Allocation for GLOBAL handled in appendGLOBALInitCode()
                 isAllocated = False
-                paramList   = None
-            RHS=self.xlator.codeVarFieldRHS_Str(fieldName, cvrtType, tSpec, paramList, isAllocated, typeArgList, genericArgs)
-            # print("    RHS none: ", RHS)
+                argList     = None
+            RHS=self.xlator.codeVarFieldRHS_Str(fieldName, cvrtType, tSpec, argList, isAllocated, typeArgList, genericArgs)
         elif(fieldOwner=='const'):
             if isinstance(fieldValue, str): RHS = ' = "'+ fieldValue + '"'       #TODO:  make test case
             else: RHS = " = "+ self.codeExpr(fieldValue[0], tSpec, tSpec, 'RVAL', genericArgs)[0]
-            #print("    RHS const: ", RHS)
-        elif(fieldArglist==None):
+        elif(fieldParamList==None):
             RHS = " = " + self.codeExpr(fieldValue[0], tSpec, tSpec, 'RVAL', genericArgs)[0]
-            #print("    RHS var: ", RHS)
         else:
             RHS = " = "+ str(fieldValue)
-            #print("    RHS func or array")
 
         ############ CODE MEMBER VARIABLE ##########################################################
         if(fieldOwner=='const'):
             [structCode, topFuncDefCode] = self.xlator.codeConstField_Str(cvrtType, fieldName, RHS, className, indent)
-        elif(fieldArglist==None):
+        elif(fieldParamList==None):
             [structCode, funcDefCode] = self.xlator.codeVarField_Str(cvrtType, tSpec, fieldName, RHS, className, tags, typeArgList, indent)
         ###### ArgList exists so this is a FUNCTION###########
         else: [structCode, funcDefCode, globalFuncs] = self.codeFunction(className, classDef, field, typeArgList, genericArgs, indent)
@@ -2063,13 +2149,13 @@ class CodeGenerator(object):
                 if calledFuncName in progSpec.funcsCalled:
                     calledFuncInstances = progSpec.funcsCalled[calledFuncName]
                     for funcCalledParams in calledFuncInstances:
-                        paramList = funcCalledParams[0]
+                        argList = funcCalledParams[0]
                         commandArgs = command[2]
-                        if paramList != None:
+                        if argList != None:
                             count=1
-                            for P in paramList:
+                            for P in argList:
                                 oldTextTag='%'+str(count)
-                                [newText, argTSpec]= self.codeExpr(P[0], {}, None, None, 'PARAM', genericArgs)
+                                [newText, argTSpec]= self.codeExpr(P[0], {}, None, None, 'ARG', genericArgs)
                                 commandArgs=commandArgs.replace(oldTextTag, newText)
                                 count+=1
                             #print commandArgs
@@ -2183,11 +2269,11 @@ class CodeGenerator(object):
             isAllocated = field['isAllocated']
             if isAllocated:
                 fieldName =field['fieldName']
-                paramList = field['paramList']
+                argList = field['argList']
                 paramStr  = ''
-                #if paramList != None:
-                    #if(len(paramList)>0 ):
-                        #for param in paramList:
+                #if argList != None:
+                    #if(len(argList)>0 ):
+                        #for arg in argList:
                             # TODO: grab base parameter in codeDog, similar to self.codeExpr but through codeDog self.xlator
                         #paramStr = ' <- (' + paramStr + ')'
                 allocStr = '    Allocate('+fieldName+')' + paramStr
@@ -2376,7 +2462,7 @@ class CodeGenerator(object):
                     fieldName    = field['fieldName']
                     structFields = field['value'][0]
                     fieldTSpec   = progSpec.getTypeSpec(field)
-                    argList      = progSpec.getArgList(field)
+                    argList      = progSpec.getParamList(field)
                     for fieldVal in structFields:
                         if not 'fieldDef' in fieldVal: cdErr("No fieldDef in inner class.")
                         newField = fieldVal['fieldDef']

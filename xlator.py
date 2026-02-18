@@ -24,7 +24,7 @@ class Xlator(object):
     def makePtrOpt(self, tSpec):
         cdErr("In base class Xlator::makePtrOpt.")
 
-    def recodeStringFunctions(self, name, tSpec, lenParams):
+    def recodeStringFunctions(self, name, tSpec, lenArgs):
         cdErr("In base class Xlator::recodeStringFunctions.")
 
     def langStringFormatterCommand(self, fmtStr, argStr):
@@ -153,7 +153,7 @@ class Xlator(object):
     def isNumericType(self, convertedType):
         cdErr("In base class Xlator::isNumericType.")
 
-    def codeVarFieldRHS_Str(self, fieldName, cvrtType, tSpec, paramList, isAllocated, typeArgList, genericArgs):
+    def codeVarFieldRHS_Str(self, fieldName, cvrtType, tSpec, argList, isAllocated, typeArgList, genericArgs):
         cdErr("In base class Xlator::codeVarFieldRHS_Str.")
 
     def codeConstField_Str(self, convertedType, fieldName, fieldValueText, className, indent):
@@ -183,7 +183,7 @@ class Xlator(object):
     def codeSuperConstructorCall(self, parentClassName):
         cdErr("In base class Xlator::codeSuperConstructorCall.")
 
-    def codeFuncHeaderStr(self, className, fieldName, field, cvrtType, argListText, localArgsAlloc, inheritMode, typeArgList, isNested, overRideOper, isStatic, indent):
+    def codeFuncHeaderStr(self, className, fieldName, field, cvrtType, paramListText, localArgsAlloc, inheritMode, typeArgList, isNested, overRideOper, isStatic, indent):
         cdErr("In base class Xlator::codeFuncHeaderStr.")
 
     def getVirtualFuncText(self, field):
@@ -192,7 +192,7 @@ class Xlator(object):
     def codeTemplateHeader(self, className, typeArgList):
         cdErr("In base class Xlator::codeTemplateHeader.")
 
-    def extraCodeForTopOfFuntion(self, argList):
+    def extraCodeForTopOfFuntion(self, paramList):
         cdErr("In base class Xlator::extraCodeForTopOfFuntion.")
 
     def codeSetBits(self, LHS_Left, LHS_FieldType, prefix, bitMask, RHS, rhsType):

@@ -14,7 +14,7 @@ def checkToolWindows(toolName):
         return True
     else:
         return None
-    
+
 def downloadFile(fileName, downloadURL):
     import urllib3
     try:
@@ -119,14 +119,14 @@ def CheckPipModules(requiredMinimumModulesList):
     except ModuleNotFoundError:
         subprocess.Popen("pip3 install -q %s --disable-pip-version-check pkg_resources", stdout=subprocess.PIPE, shell=True)
         import pkg_resources
-    
+
     # Check environment first
     AddSystemPath()
     # Initialize array of modules
     modulesList = []
-    # Iterate through list of modules 
+    # Iterate through list of modules
     for moduleName in requiredMinimumModulesList:
-        
+
         try:
             # Check available package versions
             # version = importlib_metadata.version(moduleName)
@@ -182,7 +182,7 @@ def installPipPackage():
     toolName = "pip3"
     downloadUrl = "https://bootstrap.pypa.io/get-pip.py"
     fileName = "get-pip.py"
-    
+
     if platform == "linux" or platform == "linux2" or platform == "linux-gnu":
         if not checkToolLinux(toolName):
             checkAndUpgradeOSPackageVersions('python3-pip') # Install PIP3
@@ -270,12 +270,12 @@ def AddSystemPath():
         # If CodeDog is detected in the path, set systemflag = 1 (installed)
         if 'CodeDog' in value:
             sytemflag = 1
-        # If parse finds no match (systemflag = 0), ask the user if they want to CodeDog to the system path 
+        # If parse finds no match (systemflag = 0), ask the user if they want to add CodeDog to the system path
         if not sytemflag:
             addPathPermission = input("Do you want to add CodeDog to the System Path? [Y/n] ")
             if addPathPermission.lower() == 'y' or addPathPermission.lower() == 'yes' or addPathPermission == '':
                 codeDogPath = os.getcwd()
-                value += ";" + codeDogPath + "\CodeDog;"
+                value += ";" + codeDogPath + "\\CodeDog;"
                 reg.SetValueEx(key, 'PATH', 0, reg.REG_EXPAND_SZ, value)
                 reg.CloseKey(key)
             else:

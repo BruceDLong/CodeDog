@@ -45,11 +45,13 @@ def apply(classes, tags):
             }
             // Find optionRecord
             me int: recIdx <- -1
+            me int: optRec_key <- 0
             withEach optRec in options{
                 if(optRec.optionID==optionID){
                     recIdx <- optRec_key
                     break()
                 }
+                optRec_key <+- 1
             }
             if(recIdx==-1){return("")}
             me string: shortName <- options[recIdx].shortName

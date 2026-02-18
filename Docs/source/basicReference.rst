@@ -490,6 +490,21 @@ Repetition Actions
 withEach
 ********
 
+The ``withEach`` action is CodeDog’s primary construct for repetition over collections, ranges, and other iterable sources.
+It expresses *intent* rather than a specific loop structure, allowing CodeDog to choose an appropriate implementation for the
+target language and data structure.
+
+At a high level, ``withEach`` has three parts:
+
+1. **Binding** – what variable(s) you want to bind on each iteration
+2. **Source** – what you are iterating over
+3. **Optional modifiers** – conditions that affect loop behavior
+
+Basic container traversal
+=========================
+
+The simplest form iterates over all values in a container.
+
 .. code-block:: codeDog
 
     me List<me int>: data {5, 7, 9}
@@ -497,16 +512,234 @@ withEach
         print(num)
     }
 
-You can also loop over a range
+In this form:
+
+* ``num`` is bound to each element in the container
+* The iteration order depends on the container and target language
+* CodeDog selects an efficient iteration strategy automatically
+
+Traversal direction
+===================
+
+Some containers support reverse traversal.
+You may request this explicitly:
 
 .. code-block:: codeDog
 
-    withEach num in RANGE(5..10){
+    withEach num in data Backward{
         print(num)
     }
 
+If the underlying container does not support backward traversal, CodeDog will issue an error.
+
+Binding modes
+=============
+
+The variable bound by ``withEach`` can represent different aspects of the container element.
+This is controlled by an optional **binding axis specifier** placed before the variable name.
+
+The general form is::
+
+    withEach [axis] name in source { ... }
+
+If no axis is specified, CodeDog chooses a default based on the container type.
+
+Value binding (default)
+.......................
+
+The ``value`` axis binds the loop variable to the element value.
+For list-like containers, this is the default.
+
+.. code-block:: codeDog
+
+    withEach value num in data{
+        print(num)
+    }
+
+This is equivalent to omitting the axis:
+
+.. code-block:: codeDog
+
+    withEach num in data{
+        print(num)
+    }
+
+Entry binding (associative containers)
+......................................
+
+The ``entry`` axis binds the loop variable to the container’s entry object
+(key/value pair for maps and multimaps).
+
+.. code-block:: codeDog
+
+    withEach entry e in myMap{
+        print(e)
+    }
+
+The exact type of ``e`` depends on the container and target language.
+
+Tuple binding (key, value)
+..........................
+
+For associative containers, entries can be destructured directly.
+Tuple binding always implies the ``entry`` axis.
+
+.. code-block:: codeDog
+
+    withEach (key, value) in myMap{
+        print(key)
+        print(value)
+    }
+
+Tuple binding is only valid for containers that yield key/value entries.
+
+Key binding
+...........
+
+The ``key`` axis binds the loop variable to the key of each entry.
+
+.. code-block:: codeDog
+
+    withEach key k in myMap{
+        print(k)
+    }
+
+This form is only valid for associative containers.
+
+Iterator binding
+................
+
+The ``iter`` axis binds the loop variable to the iterator itself.
+
+.. code-block:: codeDog
+
+    withEach iter it in data{
+        it.eraseCurrent()
+    }
+
+This form is intended for advanced use cases such as modifying a container
+during traversal. Whether it is allowed depends on the container’s capabilities.
+
+Notes on binding defaults
+.........................
+
+* If no axis is specified:
+  * List-like containers default to ``value``
+  * Associative containers default to ``entry``
+* Tuple binding always implies ``entry``
+* Invalid axis/container combinations result in a compile-time error
+
+Numeric range traversal
+=======================
+
+You can iterate over an integer range using ``in range`` syntax.
+
+.. code-block:: codeDog
+
+    withEach i in range 1..10{
+        print(i)
+    }
+
+This iterates from ``1`` up to but **not including** ``10``.
+
+Inclusive ranges
+................
+
+Use ``..=`` to include the end value:
+
+.. code-block:: codeDog
+
+    withEach i in range 1..=10{
+        print(i)
+    }
+
+Numeric ranges require:
+
+* A single binding variable
+* Both start and end expressions
+
+Container sub-ranges
+====================
+
+For some containers, you may specify a sub-range of iteration.
+The available range modes depend on container capabilities.
+
+Iterator ranges
+...............
+
+Iterate between two iterators:
+
+.. code-block:: codeDog
+
+    withEach value in data iters: startItr..endItr{
+        print(value)
+    }
+
+Iterator ranges are **exclusive** of the end iterator.
+Inclusive (``..=``) iterator ranges are not allowed.
+
+Key ranges (ordered associative containers)
+...........................................
+
+For ordered associative containers, you may iterate over a key range:
+
+.. code-block:: codeDog
+
+    withEach (k, v) in myMap keys: 10..=20{
+        print(k)
+        print(v)
+    }
+
+This iterates over entries whose keys fall within the specified range.
+
+Loop modifiers
+==============
+
+Modifiers refine the behavior of a ``withEach`` loop.
+
+where
+.....
+
+Skip iterations that do not satisfy a condition:
+
+.. code-block:: codeDog
+
+    withEach num in data where(num > 5){
+        print(num)
+    }
+
+until
+.....
+
+Terminate the loop when a condition becomes true:
+
+.. code-block:: codeDog
+
+    withEach num in data until(num == 9){
+        print(num)
+    }
+
+``where`` and ``until`` conditions are evaluated **after binding** on each iteration.
+
+Notes on semantics
+..................
+
+* ``withEach`` expresses *what* you want to iterate over, not *how*
+* CodeDog selects iteration strategies based on:
+  * Container capabilities
+  * Target language
+  * Performance tags and constraints
+* Some combinations (e.g., backward traversal, tuple binding, iterator mutation)
+  are only valid for certain containers
+* When an unsupported combination is used, CodeDog reports a clear error
+
+
+.. image:: withEach.svg
+
+
 while
 *****
+The while action provides a traditional condition-controlled loop.
 
 .. code-block:: codeDog
 
@@ -514,6 +747,8 @@ while
     while(! done){
         done <- getStatus()
     }
+
+Use while when iteration does not naturally correspond to a collection or range.
 
 Advanced Features
 -----------------

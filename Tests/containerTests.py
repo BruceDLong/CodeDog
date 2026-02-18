@@ -95,16 +95,16 @@ struct testClass{
         print("RANGE:")
         withEach spec in range 2 .. 6 {print(spec," ")}
         print(" RANGEBKWD:")
-        withEach RB in Backward range 2 .. 6 {print(RB," ")}
+        withEach RB in range Backward 2 .. 6 {print(RB," ")}
         me List<me int>:testList<-[2,13,-22,188]
         print(" LIST:")
         withEach T in testList {print(T," ")}
         me List<me int>:testListBackward<-[2,13,-22,188]
         print(" LISTBKWD:")
-        withEach TB in Backward testListBackward {print(TB," ")}
+        withEach TB in testListBackward Backward {print(TB," ")}
         me List<me int>:testKeyList<-[2,3,5,8,13,21]
         print(" LISTKEY:")
-        withEach TK in testKeyList {print(TK_key,"-", TK, " ")}
+        withEach idx in range 0 .. testKeyList.size() {print(idx,"-", testKeyList[idx], " ")}
      }
 }''', 'PGBR:RANGE:2 3 4 5  RANGEBKWD:5 4 3 2  LIST:2 13 -22 188  LISTBKWD:188 -22 13 2  LISTKEY:0-2 1-3 2-5 3-8 4-13 5-21 '],
 ###################################################################################################

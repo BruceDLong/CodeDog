@@ -39,6 +39,17 @@ class Xlator_CPP(Xlator):
             return self.langSpecificImpl[implName]
         return None
 
+    ###################################################### Helpers
+
+    def makeUniqueLocalName(self, base, localVarsAlloc):
+        used = {name for (name, _ts) in localVarsAlloc}
+        if base not in used:
+            return base
+        i = 2
+        while f"{base}_{i}" in used:
+            i += 1
+        return f"{base}_{i}"
+
     ###################################################### CONTAINERS
     def getIteratorValueCodeConverter(self, tSpec, prevNameSeg):
         fTypeKW    = progSpec.fieldTypeKeyword(tSpec)
@@ -57,12 +68,76 @@ class Xlator_CPP(Xlator):
         return S
 
     ###################################################### CONTAINER REPETITIONS
-    def codeRangeSpec(self, traversalMode, ctrType, repName, S_low, S_hi, indent):
-        if(traversalMode=='Forward' or traversalMode==None):
-            S = indent + "for("+ctrType+" " + repName+'='+ S_low + "; " + repName + "!=" + S_hi +"; "+ self.codeIncrement(repName) + "){\n"
-        elif(traversalMode=='Backward'):
-            S = indent + "for("+ctrType+" " + repName+'='+ S_hi + "-1; " + repName + ">=" + S_low +"; --"+ repName + "){\n"
-        return (S)
+    def getRangeLoopParts(self, traversalMode, ctrType, repName, S_low, S_hi, inclusive, indent):
+        mode = traversalMode or 'Forward'
+
+        if mode == 'Backward':
+            init = S_hi if inclusive else f"({S_hi}-1)"
+            cmp  = ">="
+            bound = S_low
+            step = self.codeDecrement(repName)  # e.g. --repName
+        else:
+            # Forward (default)
+            init = S_low
+            cmp  = "<=" if inclusive else "<"
+            bound = S_hi
+            step = self.codeIncrement(repName)  # e.g. ++repName
+
+        return {
+            "kind": "c_for",
+            "init": f"{ctrType} {repName}={init}",
+            "cond": f"{repName} {cmp} {bound}",
+            "step": f"{step}",
+            "prologue": "",
+            "epilogue": "",
+            "needsContinueRewrite": False,
+        }
+
+    def emitLoopWithBody(self, parts, body, returnType, mods, genericArgs, indent):
+        actionText = ""
+
+        # ---- modifiers ----
+        skipExpr = mods.get('skipExpr') if mods else None
+        takeExpr = mods.get('takeExpr') if mods else None
+        whereExprNode = mods.get('whereExpr') if mods else None
+        untilExprNode = mods.get('untilExpr') if mods else None
+
+        if skipExpr or takeExpr:
+            cdErr("skip/take not implemented yet in emitLoopWithBody().")
+
+        # ---- emit loop header ----
+        if parts.get("kind") == "foreach":
+            header = parts.get("foreach")
+            if not header: cdErr("foreach loop missing header")
+            actionText += indent + header + "{\n"
+        else:
+            actionText += indent + f"for({parts['init']}; {parts['cond']}; {parts['step']}){{\n"
+
+        actionText += parts.get("prologue", "")
+
+        # ---- where / until (runs after binding prologue) ----
+        if whereExprNode:
+            whereExprIn = whereExprNode[0] if not isinstance(whereExprNode, str) else whereExprNode
+            [whereExpr, _whereType] = self.codeGen.codeExpr(whereExprIn, None, None, 'RVAL', genericArgs)
+            actionText += indent + "    " + f"if (!({whereExpr})) continue;\n"
+
+        if untilExprNode:
+            untilExprIn = untilExprNode[0] if not isinstance(untilExprNode, str) else untilExprNode
+            [untilExpr, _untilType] = self.codeGen.codeExpr(untilExprIn, None, None, 'RVAL', genericArgs)
+            actionText += indent + "    " + f"if ({untilExpr}) break;\n"
+
+        # ---- body ----
+        for repAction in body:
+            actionText += self.codeGen.codeAction(repAction, indent + "    ", returnType, genericArgs)
+
+        # ---- epilogue + close ----
+        actionText += parts.get("epilogue", "")
+        actionText += indent + "}\n"
+        return actionText
+
+    def codeRangeSpec(self, traversalMode, ctrType, repName, S_low, S_hi, inclusive, indent, body, returnType, mods, genericArgs):
+        parts = self.getRangeLoopParts(traversalMode, ctrType, repName, S_low, S_hi, inclusive, indent)
+        return self.emitLoopWithBody(parts, body, returnType, mods, genericArgs, indent)
 
     def getIdxType(self, tSpec):
         progSpec.isOldContainerTempFuncErr(tSpec,"xlator_CPP.getIdxType()")
@@ -77,90 +152,361 @@ class Xlator_CPP(Xlator):
                 else: idxType=ctnrTSpec['indexType']['idxBaseType'][0][0]
             if idxType[0:4]=='uint': idxType+='_t'
         return idxType
+    
+    # C++ xlator helper: build a for-loop + binding prologue from capabilities + binding + (optional) rangeClause.
+    #
+    # Supports:
+    #   - plain traversal (no rangeClause): begin/end (or rbegin/rend if Backward)
+    #   - iters:   start..end   (iterator to iterator)
+    #   - keys:    k1..k2 / k1..=k2   (ordered associative; lower/upper bound)
+    #
+    # Returns LoopParts dict:
+    #   {
+    #     "kind": "c_for",
+    #     "init": "...",
+    #     "cond": "...",
+    #     "step": "...",
+    #     "prologue": "...",  # already indented with bodyIndent
+    #     "epilogue": "",
+    #     "needsContinueRewrite": False,
+    #   }
+    #
+    # NOTE: This is an internal helper; you can call it from:
+    #   - iterateContainerStr (plain traversal path)
+    #   - rangeTraversalStr   (rangeClause path)
+    #   - or directly from codeWithEachRepetition() if you want
+    #
+    def getForLoopSegStrs(
+        self,
+        classes,
+        localVarsAlloc,
+        ctnrTSpec,
+        ctnrName,
+        binding,
+        traversalMode=None,     # "Backward" or None
+        rangeMode=None,         # None | "iters" | "keys"
+        rangeSpec=None,         # parsed rangeSpec node (has rangeStart/rangeEnd and inclusiveOp/exclusiveOp)
+        genericArgs=None,
+        indent=""
+    ):
+        # ---- capabilities ----
+        caps = progSpec.getContainerCapabilities(classes, ctnrTSpec)
+        tags = caps.get("tags", set())
+        iterCaps = caps.get("iter", {})
+        yields = iterCaps.get("yields", "value")  # "value" or "entry"
+        bodyIndent = indent + "    "
 
-    def iterateRangeFromTo(self, classes,localVarsAlloc,StartKey,EndKey,ctnrTSpec,repName,ctnrName,indent):
-        willBeModifiedDuringTraversal=True   # TODO: Set this programatically later.
-        [datastructID, ctnrOwner]=progSpec.getContainerType_Owner(ctnrTSpec)
-        actionText   = ""
-        loopCntrName = ""
-        firstOwner   = progSpec.getContainerFirstElementOwner(ctnrTSpec)
-        firstType    = progSpec.fieldTypeKeyword(ctnrTSpec)
-        repTSpec     = {'owner':firstOwner, 'fieldType':firstType}
-        reqTagList   = progSpec.getReqTagList(ctnrTSpec)
-        containerCat = progSpec.getContaineCategory(self.codeGen.classStore, ctnrTSpec)
-        if progSpec.ownerIsPointer(ctnrOwner): connector="->"
-        else: connector = "."
-        if containerCat=="Map" or containerCat=="Multimap":
-            if(reqTagList != None):
-                repTSpec['owner']     = progSpec.getOwner(reqTagList[1])
-                repTSpec['fieldType'] = progSpec.fieldTypeKeyword(reqTagList[1])
-            keyVarSpec = {'owner':'itr', 'fieldType':firstType, 'codeConverter':(repName+'.first')}
-            loopCntrName  = repName+'_key'
-            repTSpec['codeConverter'] = (repName+'->second')
-            localVarsAlloc.append([loopCntrName, keyVarSpec])  # Tracking local vars for scope
-            localVarsAlloc.append([repName, repTSpec]) # Tracking local vars for scope
-            actionText += indent+"for(auto "+repName+' ='+ctnrName+connector+'lower_bound('+StartKey+'); '+repName+'!='+ctnrName+connector+'upper_bound('+EndKey+'); ++'+repName+'){\n'
-        elif datastructID=='List' and not willBeModifiedDuringTraversal: pass;
-        elif datastructID=='List' and willBeModifiedDuringTraversal: pass;
-        else: cdErr("DSID iterateRangeFromTo:"+datastructID+" "+containerCat)
-        return [actionText, loopCntrName]
+        isBackward = (traversalMode == "Backward")
 
-    def iterateContainerStr(self, classes,localVarsAlloc,ctnrTSpec,repName,ctnrName,isBackward,indent,genericArgs):
-        #TODO: handle isBackward
-        willBeModifiedDuringTraversal=True   # TODO: Set this programatically later.
-        [datastructID, ctnrOwner]=progSpec.getContainerType_Owner(ctnrTSpec)
-        actionText   = ""
-        loopCntrName = repName+'_key'
-        itrIncStr    = ""
-        firstOwner   = progSpec.getContainerFirstElementOwner(ctnrTSpec)
-        firstType    = progSpec.getContainerFirstElementType(ctnrTSpec)
-        repTSpec     = {'owner':firstOwner, 'fieldType':firstType}
-        reqTagList   = progSpec.getReqTagList(ctnrTSpec)
-        itrTSpec     = self.codeGen.getDataStructItrTSpec(datastructID)
-        itrName      = repName + "Itr"
-        containerCat = progSpec.getContaineCategory(self.codeGen.classStore, ctnrTSpec)
+        #---- So we need . or ->, etc to access members ----
+        [datastructID, ctnrOwner] = progSpec.getContainerType_Owner(ctnrTSpec)
         [LDeclP, RDeclP, LDeclA, RDeclA] = self.ChoosePtrDecorationForSimpleCase(ctnrOwner)
-        if containerCat=='Map' or containerCat=="Multimap":
-            if(reqTagList!=None):
-                valOwner  = progSpec.getOwner(reqTagList[1])
-                valTypeKW = progSpec.fieldTypeKeyword(reqTagList[1])
-            else: cdErr("TODO: handle value type owner and keyword in iterateContainerStr().")
-            itrTypeKW   = progSpec.fieldTypeKeyword(itrTSpec)
-            repTSpec    = {'owner':'itr', 'fieldType':itrTypeKW, 'reqTagList': reqTagList, 'fromRep':True}
-            localVarsAlloc.append([repName, repTSpec]) # Tracking local vars for scope
-            frontItr    = progSpec.getCodeConverterByFieldID(self.codeGen.classStore, datastructID, "front" , ctnrName , RDeclP)
-            actionText += indent + "for(auto "+repName+'='+frontItr + '; '+repName+'!='+ctnrName+RDeclP+'end(); ++'+repName+'){\n'
-        elif containerCat=='List':
-            if willBeModifiedDuringTraversal:
-                keyVarSpec = {'owner':'me', 'fieldType':'uint64_t'}
-                lvName=repName+"Idx"
-                idxVarSpec = {'owner':'itr', 'fieldType':firstType}
-                localVarsAlloc.append([loopCntrName, keyVarSpec])  # Tracking local vars for scope
-                localVarsAlloc.append([repName, repTSpec]) # Tracking local vars for scope
-                localVarsAlloc.append([lvName, idxVarSpec]) # Tracking local vars for scope
-                if isBackward: actionText += (indent + "for( int64_t " + lvName+' = '+ctnrName+RDeclP+'size()-1; ' + lvName+" >= 0; "+" --"+lvName+" ){\n")
-                else: actionText += (indent + "for( uint64_t " + lvName+' = 0; ' + lvName+" < " +  ctnrName+RDeclP+'size();' +" ++"+lvName+" ){\n")
-                actionText += indent+"    "+"auto &"+repName+" = "+LDeclA+ctnrName+RDeclA+"["+lvName+"];\n"
+
+        # ---- basic iterable validation ----
+        if progSpec.fieldTypeKeyword(ctnrTSpec) != "string" and not iterCaps.get("hasBeginEnd", True):
+            cdErr(f"Container '{ctnrName}' is not iterable in C++ backend (missing begin/end).")
+
+        if isBackward and not (("bidirectional" in tags) or iterCaps.get("rbegin_rend", False)):
+            cdErr(f"Container '{ctnrName}' does not support Backward traversal.")
+
+        # ---- binding decode ----
+        bkind = binding.get("kind")
+        axis = binding.get("axis")  # may be None for single; tuple implies entry
+        keyName = None
+        valName = None
+        loopVarName = None
+
+        if bkind == "tuple":
+            keyName = binding.get("keyName")
+            valName = binding.get("valName")
+            if not keyName or not valName: cdErr("Tuple binding missing keyName/valName.")
+            axis = "entry"  # implied
+        elif bkind == "single":
+            loopVarName = binding.get("name")
+            if not loopVarName: cdErr("Single binding missing name.")
+            if axis is None:
+                axis = "value"
+        else:
+            cdErr("Unknown binding kind for withEach.")
+
+        # tuple implies associative entry semantics
+        if bkind == "tuple":
+            if "associative" not in tags and yields != "entry":
+                cdErr("Tuple binding (k,v) requires an associative container yielding entries.")
+
+        # ---- register loop locals for type tracking ----
+        def _make_tspec(owner, ftype):
+            return {'owner': owner, 'fieldType': ftype}
+
+        # Derive key/value specs from container type
+        keySpec = None
+        valSpec = None
+        containerCat = progSpec.getContaineCategory(classes, ctnrTSpec)
+        reqTagList = progSpec.getReqTagList(ctnrTSpec)
+
+        if progSpec.fieldTypeKeyword(ctnrTSpec) == "string":
+            valSpec = _make_tspec('me', 'char')
+        elif reqTagList:
+            if containerCat in ("Map", "Multimap"):
+                if len(reqTagList) > 0:
+                    keySpec = _make_tspec(reqTagList[0]['tArgOwner'], reqTagList[0]['tArgType'])
+                if len(reqTagList) > 1:
+                    valSpec = _make_tspec(reqTagList[1]['tArgOwner'], reqTagList[1]['tArgType'])
             else:
-                keyVarSpec = {'owner':firstOwner, 'fieldType':firstType}
-                localVarsAlloc.append([loopCntrName, keyVarSpec])  # Tracking local vars for scope
-                localVarsAlloc.append([repName, repTSpec]) # Tracking local vars for scope
-                if isBackward: actionText += (indent + "for( auto " + itrName+' ='+ ctnrName+RDeclP+'rbegin()' + "; " + itrName + " !=" + ctnrName+RDeclP+'rend()' +"; ++"+ itrName + " ){\n")
-                else: actionText += (indent + "for( auto " + itrName+' ='+ ctnrName+RDeclP+'begin()' + "; " + itrName + " !=" + ctnrName+RDeclP+'end()' +"; ++"+ itrName + " ){\n")
-                actionText += indent+"    "+"auto "+repName+" = *"+itrName+";\n"
-        elif containerCat=='string':
-            loopCntrName = ''
-            actionText += indent + "for(char const &" + repName +": " + ctnrName + " ){\n"
-        else: cdErr("iterateContainerStr() datastructID = " + datastructID)
-        return [actionText, loopCntrName, itrIncStr]
+                valSpec = _make_tspec(reqTagList[0]['tArgOwner'], reqTagList[0]['tArgType'])
+        else:
+            firstType = progSpec.getContainerFirstElementType(ctnrTSpec)
+            if firstType:
+                firstOwner = progSpec.getContainerFirstElementOwner(ctnrTSpec)
+                valSpec = _make_tspec(firstOwner, firstType)
+
+        if bkind == "tuple":
+            if keyName and keySpec:
+                localVarsAlloc.append([keyName, keySpec])
+            if valName and valSpec:
+                localVarsAlloc.append([valName, valSpec])
+        elif bkind == "single":
+            if axis == "key" and keySpec:
+                localVarsAlloc.append([loopVarName, keySpec])
+            elif axis == "value" and valSpec:
+                localVarsAlloc.append([loopVarName, valSpec])
+            elif axis == "entry" and valSpec:
+                # Best-effort: treat entry as value for type tracking.
+                localVarsAlloc.append([loopVarName, valSpec])
+            elif axis == "iter":
+                itrTSpec = self.codeGen.getDataStructItrTSpec(progSpec.fieldTypeKeyword(ctnrTSpec))
+                if itrTSpec:
+                    localVarsAlloc.append([loopVarName, itrTSpec])
+
+        # ---- helper: choose internal iterator var name ----
+        def _chooseItrName():
+            # If user asked for an iterator variable, prefer using their name as the iterator name
+            # (lets some languages bind without extra statements; in C++ it simplifies too).
+            if bkind == "single" and axis == "iter" and loopVarName:
+                return loopVarName
+
+            if bkind == "tuple":
+                base = f"{keyName}_{valName}"
+            else:
+                base = loopVarName or "it"
+            return self.makeUniqueLocalName(f"__cd_itr_{base}", localVarsAlloc)
+
+        # ---- helper: emit binding prologue from iterator variable ----
+        def _emitBindingFromItr(itrName):
+            pro = ""
+
+            # axis == iter means the loop variable already IS the iterator if we chose itrName==loopVarName.
+            if axis == "iter":
+                # If itrName != loopVarName (because tuple or internal name), alias it
+                if bkind == "single" and axis == "iter" and loopVarName:
+                    # Prefer using the user name if it is unique; otherwise create an internal and alias in prologue.
+                    unique = self.makeUniqueLocalName(loopVarName, localVarsAlloc)
+                    if unique == loopVarName:
+                        return loopVarName
+                    # Use an internal iterator name; prologue will alias loopVarName to it.
+                    return unique
+
+
+            # string special-cased elsewhere; for containers, bind from *itr
+            if axis == "entry":
+                if "associative" not in tags and yields != "entry":
+                    cdErr("entry binding requires an associative container yielding entries.")
+                if bkind == "tuple":
+                    # C++17 structured binding, mutable value
+                    pro += bodyIndent + f"auto& [{keyName}, {valName}] = *{itrName};\n"
+                else:
+                    pro += bodyIndent + f"auto {loopVarName} = *{itrName};\n"
+                return pro
+
+            if axis == "key":
+                if "associative" not in tags and yields != "entry":
+                    cdErr("key binding requires an associative container.")
+                pro += bodyIndent + f"auto {loopVarName} = (*{itrName}).first;\n"
+                return pro
+
+            if axis == "value":
+                if ("associative" in tags or yields == "entry"):
+                    pro += bodyIndent + f"auto {loopVarName} = (*{itrName}).second;\n"
+                else:
+                    pro += bodyIndent + f"auto {loopVarName} = *{itrName};\n"
+                return pro
+
+            if axis == "index":
+                cdErr("index axis not supported in iterator-based C++ lowering yet.")
+
+            cdErr(f"Unknown binding axis: {axis}")
+            return pro
+
+        # ---- rangeSpec helpers ----
+        def _range_is_inclusive(rs):
+            return bool(getattr(rs, "inclusiveOp", False))
+
+        def _range_start_end_exprs(rs):
+            # returns (startNode, endNode) parse results or None
+            startPR = rs.get("rangeStart", None) if rs else None
+            endPR = rs.get("rangeEnd", None) if rs else None
+            return (startPR, endPR)
+
+        # ---- build loop parts ----
+        parts = {
+            "kind": "c_for",
+            "init": "",
+            "cond": "",
+            "step": "",
+            "prologue": "",
+            "epilogue": "",
+            "needsContinueRewrite": False,
+        }
+
+        # ---- string: simplest C++ foreach ----
+        if progSpec.fieldTypeKeyword(ctnrTSpec) == "string":
+            if bkind != "single" or axis not in ("value", None):
+                cdErr("String traversal only supports single value binding.")
+            # Use a "c_for" equivalent? For now, keep it in init/cond/step as empty and put full header in init
+            # but if you prefer, you can add parts["kind"]="foreach" later.
+            # We'll emulate with init as full header and leave others blank (caller must handle if you use this path).
+            parts["kind"] = "foreach"
+            parts["foreach"] = f"for(char const &{loopVarName}: {ctnrName})"
+            parts["prologue"] = ""
+            return parts
+
+        # ---- mode: None => plain traversal ----
+        if rangeMode is None:
+            itrName = _chooseItrName()
+
+            if isBackward:
+                beginExpr = f"{LDeclP}{ctnrName}{RDeclP}rbegin()"
+                endExpr = f"{LDeclP}{ctnrName}{RDeclP}rend()"
+            else:
+                beginExpr = f"{LDeclP}{ctnrName}{RDeclP}begin()"
+                endExpr = f"{LDeclP}{ctnrName}{RDeclP}end()"
+
+            parts["init"] = f"auto {itrName} = {beginExpr}"
+            parts["cond"] = f"{itrName} != {endExpr}"
+            parts["step"] = f"++{itrName}"
+            parts["prologue"] = _emitBindingFromItr(itrName)
+            return parts
+
+        # ---- mode: iters (iterator range) ----
+        if rangeMode == "iters":
+            if not rangeSpec:
+                cdErr("iters: requires a rangeSpec.")
+            if _range_is_inclusive(rangeSpec):
+                cdErr("Inclusive ranges (..=) are not allowed for iters: ranges. Use '..' instead.")
+
+            itrName = _chooseItrName()
+
+            startPR, endPR = _range_start_end_exprs(rangeSpec)
+
+            # Defaults
+            if startPR:
+                [startExpr, _] = self.codeGen.codeExpr(startPR[0], None, None, 'RVAL', genericArgs)
+            else:
+                startExpr = f"{LDeclP}{ctnrName}{RDeclP}begin()"
+
+            if endPR:
+                [endExpr, _] = self.codeGen.codeExpr(endPR[0], None, None, 'RVAL', genericArgs)
+            else:
+                endExpr = f"{LDeclP}{ctnrName}{RDeclP}end()"
+
+            # NOTE: Backward with explicit iterator endpoints is ambiguous (are these reverse iters?).
+            # For now, error rather than guess.
+            if isBackward:
+                cdErr("Backward iters: ranges are not supported yet (ambiguous iterator direction).")
+
+            parts["init"] = f"auto {itrName} = {startExpr}"
+            parts["cond"] = f"{itrName} != {endExpr}"
+            parts["step"] = f"++{itrName}"
+            parts["prologue"] = _emitBindingFromItr(itrName)
+            return parts
+
+        # ---- mode: keys (ordered associative key range) ----
+        if rangeMode == "keys":
+            if "ordered_keys" not in tags:
+                cdErr(f"keys: range requires ordered_keys capability for container '{ctnrName}'.")
+            if not rangeSpec:
+                cdErr("keys: requires a rangeSpec.")
+
+            inclusive = _range_is_inclusive(rangeSpec)
+            startPR, endPR = _range_start_end_exprs(rangeSpec)
+
+            # Compute begin iterator
+            if startPR:
+                [startKeyExpr, _] = self.codeGen.codeExpr(startPR[0], None, None, 'RVAL', genericArgs)
+                beginExpr = f"{LDeclP}{ctnrName}{RDeclP}lower_bound({startKeyExpr})"
+            else:
+                beginExpr = f"{LDeclP}{ctnrName}{RDeclP}begin()"
+
+            # Compute end iterator (exclusive iterator bound).
+            if endPR:
+                [endKeyExpr, _] = self.codeGen.codeExpr(endPR[0], None, None, 'RVAL', genericArgs)
+                if inclusive:
+                    endExpr = f"{LDeclP}{ctnrName}{RDeclP}upper_bound({endKeyExpr})"
+                else:
+                    endExpr = f"{LDeclP}{ctnrName}{RDeclP}lower_bound({endKeyExpr})"
+            else:
+                endExpr = f"{LDeclP}{ctnrName}{RDeclP}end()"
+
+            if isBackward:
+                cdErr("Backward keys: ranges not supported yet (needs reverse-iterator key range design).")
+
+            itrName = _chooseItrName()
+            endName = self.makeUniqueLocalName(f"__cd_end_{itrName}", localVarsAlloc)
+
+            # Declare both iterators in init so cond can reference endName without extra scope tricks
+            parts["init"] = f"auto {itrName} = {beginExpr}, {endName} = {endExpr}"
+            parts["cond"] = f"{itrName} != {endName}"
+            parts["step"] = f"++{itrName}"
+            parts["prologue"] = _emitBindingFromItr(itrName)
+            return parts
+        
+        if rangeMode == "index":
+            cdErr("index: ranges not implemented for C++ yet (needs indexable lowering).")
+
+
+        cdErr(f"Unsupported rangeMode: {rangeMode}")
+        return parts
+
+    def traversalLoopWithBodyStr(
+        self,
+        classes,
+        localVarsAlloc,
+        ctnrTSpec,
+        binding,
+        ctnrName,
+        body,
+        returnType,
+        mods,
+        genericArgs,
+        indent,
+        traversalMode=None,   # "Backward" or None
+        rangeMode=None,       # None | "iters" | "keys" | "index"
+        rangeSpec=None,       # parse node
+    ):
+        # ---- build loop parts ----
+        parts = self.getForLoopSegStrs(
+            classes=classes,
+            localVarsAlloc=localVarsAlloc,
+            ctnrTSpec=ctnrTSpec,
+            ctnrName=ctnrName,
+            binding=binding,
+            traversalMode=traversalMode,
+            rangeMode=rangeMode,
+            rangeSpec=rangeSpec,
+            genericArgs=genericArgs,
+            indent=indent,
+        )
+        return self.emitLoopWithBody(parts, body, returnType, mods, genericArgs, indent)
 
     def codeSwitchExpr(self, switchKeyExpr, switchKeyTypeSpec):
-        if switchKeyTypeSpec['fieldType'] == 'string':
+        switchKeyTypeKW = progSpec.fieldTypeKeyword(switchKeyTypeSpec)
+        if switchKeyTypeKW == 'string':
             switchKeyExpr = '_strHash(' + switchKeyExpr + '.data())'
         return switchKeyExpr
 
     def codeSwitchCase(self, caseKeyValue, caseKeyTypeSpec):
-        if caseKeyTypeSpec == 'string':
+        caseKeyTypeKW = progSpec.fieldTypeKeyword(caseKeyTypeSpec)
+        if caseKeyTypeKW == 'string':
             caseKeyValue = '_strHash(' + caseKeyValue + ')'
         return caseKeyValue
 
@@ -231,7 +577,7 @@ class Xlator_CPP(Xlator):
     def makePtrOpt(self, tSpec):
         return('')
 
-    def recodeStringFunctions(self, name, tSpec, lenParams):
+    def recodeStringFunctions(self, name, tSpec, lenArgs):
         if name == "size": name = "length"
         elif name == "subStr": name = "substr"
         return [name, tSpec]
@@ -396,7 +742,7 @@ class Xlator_CPP(Xlator):
         elif (op == '>'): S+=' > '
         elif (op == '<='): S+=' <= '
         elif (op == '>='): S+=' >= '
-        else: print("ERROR: One of <, >, <= or >= expected in code generator."); exit(2)
+        else: cdErr("ERROR: One of <, >, <= or >= expected in code generator.")
         S2 = self.adjustQuotesForChar(retType1, retType2, S2)
         [S2, isDerefd]=self.derefPtr(S2, retType2)
         S+=S2
@@ -409,11 +755,9 @@ class Xlator_CPP(Xlator):
 
     def codeFactor(self, item, returnType, expectedTypeSpec, LorRorP_Val, genericArgs):
         ####  ( value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varRef("varFunRef"))
-        #print('                  factor: ', item)
         S=''
         retTypeSpec='noType'
         item0 = item[0]
-        #print("ITEM0=", item0, ">>>>>", item)
         if (isinstance(item0, str)):
             if item0=='(':
                 [S2, retTypeSpec] = self.codeGen.codeExpr(item[1], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
@@ -510,38 +854,38 @@ class Xlator_CPP(Xlator):
         retOwner='me'    # default to 'me'
         funcName=segSpec[0]
         if(len(segSpec)>2):  # If there are arguments...
-            paramList=segSpec[2]
+            argList=segSpec[2]
             if(funcName=='print'):
                 # TODO: have a tag to choose cout vs printf()
                 S+='cout'
-                for P in paramList:
-                    [S2, argTypeSpec]=self.codeGen.codeExpr(P[0], None, None, 'PARAM', genericArgs)
+                for P in argList:
+                    [S2, argTypeSpec]=self.codeGen.codeExpr(P[0], None, None, 'ARG', genericArgs)
                     [S2, isDerefd]=self.derefPtr(S2, argTypeSpec)
                     S+=' << '+S2
                 S+=" << flush"
             elif(funcName=='input'):
-                P=paramList[0]
-                [S2, argTypeSpec]=self.codeGen.codeExpr(P[0], None, None, 'PARAM', genericArgs)
+                P=argList[0]
+                [S2, argTypeSpec]=self.codeGen.codeExpr(P[0], None, None, 'ARG', genericArgs)
                 [S2, isDerefd]=self.derefPtr(S2, argTypeSpec)
                 S+='getline(cin, '+S2+')'
             elif(funcName=='AllocateOrClear'):
-                [varName,  varTypeSpec]=self.codeGen.codeExpr(paramList[0][0], None, None, 'PARAM', genericArgs)
+                [varName,  varTypeSpec]=self.codeGen.codeExpr(argList[0][0], None, None, 'ARG', genericArgs)
                 if(varTypeSpec==0): cdErr("Name is undefined: " + varName)
                 S+='if('+varName+'){'+varName+'->clear();} else {'+varName+" = "+self.codeXlatorAllocater(varTypeSpec, genericArgs)+"();}"
             elif(funcName=='Allocate'):
-                [varName,  varTypeSpec]=self.codeGen.codeExpr(paramList[0][0], None, None, 'LVAL', genericArgs)
+                [varName,  varTypeSpec]=self.codeGen.codeExpr(argList[0][0], None, None, 'LVAL', genericArgs)
                 if(varTypeSpec==0): cdErr("Name is Undefined: " + varName)
                 S+=varName+" = "+self.codeXlatorAllocater(varTypeSpec, genericArgs)+'('
-                count=0   # TODO: As needed, make this call CodeParameterList() with modelParams of the constructor.
-                for P in paramList[1:]:
+                count=0   # TODO: As needed, make this call codeArgList() with modelParams of the constructor.
+                for P in argList[1:]:
                     if(count>0): S+=', '
-                    [S2, argTypeSpec]=self.codeGen.codeExpr(P[0], None, None, 'PARAM', genericArgs)
+                    [S2, argTypeSpec]=self.codeGen.codeExpr(P[0], None, None, 'ARG', genericArgs)
                     S+=S2
                     count=count+1
                 S+=")"
             elif(funcName=='callPeriodically'):
-                [objName,  tSpec]=self.codeGen.codeExpr(paramList[1][0], None, None, 'PARAM', genericArgs)
-                [interval,  intTypeSpec]   =self.codeGen.codeExpr(paramList[2][0], None, None, 'PARAM', genericArgs)
+                [objName,  tSpec]=self.codeGen.codeExpr(argList[1][0], None, None, 'ARG', genericArgs)
+                [interval,  intTypeSpec]   =self.codeGen.codeExpr(argList[2][0], None, None, 'ARG', genericArgs)
                 fType = progSpec.fieldTypeKeyword(tSpec)
                 varTypeSpec= fType
                 wrapperName="cb_wraps_"+varTypeSpec
@@ -552,20 +896,20 @@ class Xlator_CPP(Xlator):
                 defn='{'+varTypeSpec+'* self = ('+varTypeSpec+'*)data; self->run(); return true;}\n\n'
                 self.codeGen.appendGlobalFuncAcc(decl, defn)
             elif(funcName=='break'):
-                if len(paramList)==0: S='break'
+                if len(argList)==0: S='break'
             elif(funcName=='return'):
-                if len(paramList)==0: S+='return'
+                if len(argList)==0: S+='return'
             elif(funcName=='toStr'):
-                if len(paramList)==1:
-                    [S2, argTypeSpec]=self.codeGen.codeExpr(P[0][0], None, None, 'PARAM', genericArgs)
+                if len(argList)==1:
+                    [S2, argTypeSpec]=self.codeGen.codeExpr(P[0][0], None, None, 'ARG', genericArgs)
                     [S2, isDerefd]=self.derefPtr(S2, argTypeSpec)
                     S+='to_string('+S2+')'
                     fType='string'
             elif(funcName=='asClass'):
-                if len(paramList)==2:
-                    [newTypeStr, argTypeSpec]=self.codeGen.codeExpr(paramList[0][0], None, None, 'PARAM', genericArgs)
+                if len(argList)==2:
+                    [newTypeStr, argTypeSpec]=self.codeGen.codeExpr(argList[0][0], None, None, 'ARG', genericArgs)
                     [newTypeStr, isDerefd]=self.derefPtr(newTypeStr, argTypeSpec)
-                    [toCvtStr, toCvtTypeSpec]=self.codeGen.codeExpr(paramList[1][0], None, None, 'PARAM', genericArgs)
+                    [toCvtStr, toCvtTypeSpec]=self.codeGen.codeExpr(argList[1][0], None, None, 'ARG', genericArgs)
                    # [toCvtStr, isDerefd]=self.derefPtr(toCvtStr, toCvtTypeSpec)
                     varOwner=progSpec.getOwner(toCvtTypeSpec)
                     if(varOwner=='their'): S="static_cast<"+newTypeStr+"*>("+toCvtStr+")"
@@ -607,8 +951,7 @@ class Xlator_CPP(Xlator):
         cdlog(3, "\n            Generating GLOBAL...")
         if("GLOBAL" in classes[1]):
             if(classes[0]["GLOBAL"]['stateType'] != 'struct'):
-                print("ERROR: GLOBAL must be a 'struct'.")
-                exit(2)
+                cdErr("ERROR: GLOBAL must be a 'struct'.")
             [structCode, funcCode, globalFuncs]=self.codeGen.codeStructFields("GLOBAL", tags, '')
             if(funcCode==''): funcCode="// No main() function.\n"
             if(structCode==''): structCode="// No Main Globals.\n"
@@ -734,10 +1077,10 @@ void SetBits(CopyableAtomic<uint64_t>& target, uint64_t mask, uint64_t value) {
         isAllocated   = fieldDef['isAllocated']
         owner         = progSpec.getOwner(LTSpec)
         useCtor       = False
-        paramList     = None
-        if fieldDef['paramList']: paramList = fieldDef['paramList']
-        if paramList and paramList[-1] == "^&useCtor//8":
-            del paramList[-1]
+        argList       = None
+        if fieldDef['argList']: argList = fieldDef['argList']
+        if argList and argList[-1] == "^&useCtor//8":
+            del argList[-1]
             useCtor = True
         cvrtType = self.codeGen.convertType(LTSpec, 'var', genericArgs)
         localVarsAlloc.append([varName, LTSpec])  # Tracking local vars for scope
@@ -749,15 +1092,14 @@ void SetBits(CopyableAtomic<uint64_t>& target, uint64_t mask, uint64_t value) {
             else: RHS = RHS_leftMod+RHS+RHS_rightMod
             if(isAllocated or useCtor==False): assignValue = " = " + RHS
             else: assignValue = RHS
-        elif paramList!=None:       # call constructor  # curly bracket param list
+        elif argList!=None:
             # Code the constructor's arguments
             ### TODO: CHoose the best constructor and get modelParams to pass in instead of None.
-            modelParams = self.codeGen.chooseCtorModelParams(LTSpec, paramList, genericArgs)
-            [CPL, paramTypeList] = self.codeGen.codeParameterList(varName, paramList, modelParams, genericArgs)
+            modelParams = self.codeGen.chooseCtorModelParams(LTSpec, argList, genericArgs)
+            [CPL, paramTypeList] = self.codeGen.codeArgList(varName, argList, modelParams, genericArgs)
             if len(paramTypeList)==1:
                 if not isinstance(paramTypeList[0], dict):
-                    print("\nPROBLEM: The return type of the parameter '", CPL, "' of "+varName+"(...) cannot be found and is needed. Try to define it.\n",   paramTypeList)
-                    exit(1)
+                    cdErr("\nPROBLEM: The return type of the parameter '", CPL, "' of "+varName+"(...) cannot be found and is needed. Try to define it.\n",   paramTypeList)
                 RTSpec  = paramTypeList[0]
                 rhsType = progSpec.fieldTypeKeyword(RTSpec)
                 # TODO: Remove the 'True' and make this check object heirarchies or similar solution
@@ -773,7 +1115,7 @@ void SetBits(CopyableAtomic<uint64_t>& target, uint64_t mask, uint64_t value) {
         else: # If no value was given:
             if(progSpec.typeIsPointer(LTSpec)):
                 if(isAllocated):
-                    assignValue = " = " + self.codeGen.codeAllocater(LTSpec, paramList, genericArgs)
+                    assignValue = " = " + self.codeGen.codeAllocater(LTSpec, argList, genericArgs)
                 else:
                     assignValue = '= NULL'
             elif(progSpec.isNewContainerTempFunc(LTSpec)):
@@ -793,18 +1135,18 @@ void SetBits(CopyableAtomic<uint64_t>& target, uint64_t mask, uint64_t value) {
     def codeDecrement(self, varName):
         return "--" + varName
 
-    def codeVarFieldRHS_Str(self, fieldName, cvrtType, tSpec, paramList, isAllocated, typeArgList, genericArgs):
+    def codeVarFieldRHS_Str(self, fieldName, cvrtType, tSpec, argList, isAllocated, typeArgList, genericArgs):
         fieldValueText=""
         fieldOwner=progSpec.getOwner(tSpec)
         #TODO: make test case
-        if paramList!=None:
-            if len(paramList)==0: print("Error Parameter:",fieldName)
-            if paramList[-1] == "^&useCtor//8":
-                del paramList[-1]
-            [CPL, paramTypeList] = self.codeGen.codeParameterList(fieldName, paramList, None, genericArgs)
+        if argList!=None:
+            if len(argList)==0: print("Error Parameter:",fieldName)
+            if argList[-1] == "^&useCtor//8":
+                del argList[-1]
+            [CPL, paramTypeList] = self.codeGen.codeArgList(fieldName, argList, None, genericArgs)
             fieldValueText += CPL
         if isAllocated == True:
-            fieldValueText = " = " + self.codeGen.codeAllocater(tSpec, paramList, genericArgs)
+            fieldValueText = " = " + self.codeGen.codeAllocater(tSpec, argList, genericArgs)
         return fieldValueText
 
     def codeConstField_Str(self, convertedType, fieldName, fieldValueText, className, indent):
@@ -890,23 +1232,23 @@ void SetBits(CopyableAtomic<uint64_t>& target, uint64_t mask, uint64_t value) {
         else:  newFieldName = fieldName
         return newFieldName
 
-    def codeFuncHeaderStr(self, className, fieldName, field, cvrtType, argListText, localArgsAlloc, inheritMode, typeArgList, isNested, overRideOper, isStatic, indent):
+    def codeFuncHeaderStr(self, className, fieldName, field, cvrtType, paramListText, localArgsAlloc, inheritMode, typeArgList, isNested, overRideOper, isStatic, indent):
         structCode=''; funcDefCode=''; globalFuncs='';
         tSpec        = progSpec.getTypeSpec(field)
         fTypeKW      = progSpec.fieldTypeKeyword(tSpec)
         fieldName    = field['fieldName']
         overRideOper = False
         if fieldName[0:2] == "__" and self.iteratorsUseOperators:
-            sizeArgList  = len(progSpec.getArgList(field))
+            sizeArgList  = len(progSpec.getParamList(field))
             fieldName    = self.specialFunction(fieldName, className)
             overRideOper = True
         if(className=='GLOBAL'):
             if fieldName=='main':
                 if not isNested:funcDefCode += 'int main(int argc, char *argv[])'
-                localArgsAlloc.append(['argc', {'owner':'me', 'fieldType':'int', 'arraySpec':None, 'argList':None}])
-                localArgsAlloc.append(['argv', {'owner':'their', 'fieldType':'char', 'arraySpec':None,'argList':None}])  # TODO: Wrong. argv should be an array.
+                localArgsAlloc.append(['argc', {'owner':'me', 'fieldType':'int', 'arraySpec':None, 'paramList':None}])
+                localArgsAlloc.append(['argv', {'owner':'their', 'fieldType':'char', 'arraySpec':None,'paramList':None}])  # TODO: Wrong. argv should be an array.
             else:
-                if not isNested:globalFuncs += cvrtType +' ' + fieldName +"("+argListText+")"
+                if not isNested:globalFuncs += cvrtType +' ' + fieldName +"("+paramListText+")"
         else:
             typeArgList = progSpec.getTypeArgList(className)
             if(typeArgList != None):
@@ -918,15 +1260,15 @@ void SetBits(CopyableAtomic<uint64_t>& target, uint64_t mask, uint64_t value) {
                 if fieldName == "operator[]":
                     cvrtType += "&"
             if inheritMode=='normal' or inheritMode=='override':
-                structCode += indent + cvrtType +' ' + fieldName +"("+argListText+")";
+                structCode += indent + cvrtType +' ' + fieldName +"("+paramListText+")";
                 objPrefix = progSpec.flattenObjectName(className) +'::'
-                if not isNested:funcDefCode += templateHeader + cvrtType +' ' + objPrefix + fieldName +"("+argListText+")"
+                if not isNested:funcDefCode += templateHeader + cvrtType +' ' + objPrefix + fieldName +"("+paramListText+")"
             elif inheritMode=='virtual':
-                structCode += indent + 'virtual '+cvrtType +' ' + fieldName +"("+argListText +")";
+                structCode += indent + 'virtual '+cvrtType +' ' + fieldName +"("+paramListText +")";
                 objPrefix = progSpec.flattenObjectName(className) +'::'
-                if not isNested:funcDefCode += templateHeader + cvrtType +' ' + objPrefix + fieldName +"("+argListText+")"
+                if not isNested:funcDefCode += templateHeader + cvrtType +' ' + objPrefix + fieldName +"("+paramListText+")"
             elif inheritMode=='pure-virtual':
-                structCode +=  indent + 'virtual ' + cvrtType +' ' + fieldName +"("+argListText +") = 0";
+                structCode +=  indent + 'virtual ' + cvrtType +' ' + fieldName +"("+paramListText +") = 0";
             else: cdErr("Invalid inherit mode found: "+inheritMode)
             if funcDefCode[:7]=="static ": funcDefCode=funcDefCode[7:]
             if not isNested:structCode += ';\n';
@@ -955,7 +1297,7 @@ void SetBits(CopyableAtomic<uint64_t>& target, uint64_t mask, uint64_t value) {
         templateHeader+=">"
         return(templateHeader)
 
-    def extraCodeForTopOfFuntion(self, argList):
+    def extraCodeForTopOfFuntion(self, paramList):
         return ''
 
     def codeSetBits(self, LHS_Left, LHS_FieldType, prefix, bitMask, RHS, rhsType):

@@ -1,5 +1,6 @@
 # This module parses CodeDog syntax
 
+from pprint import pprint
 import re
 import progSpec
 from progSpec import cdlog, cdErr, logLvl
@@ -78,7 +79,7 @@ strMapVal = "{" + delimitedList(quotedString + ":" + expr, ",")  + "}"
 value   <<= boolValue | floatNum | intNum | quotedString | listVal | strMapVal
 
 #######################################   E X P R E S S I O N S
-parameters  = Forward()
+arguments   = Forward()
 owners      = Forward()
 varSpec     = Group(Optional(owners)("owner") + varType("varType") )("varSpec")
 varSpecList = Group(Optional(delimitedList(varSpec, ',')))("varSpecList")
@@ -87,8 +88,8 @@ reqTagList  = Group(Suppress(Literal("<")) + varSpecList + Optional(Literal(":")
 classSpec <<= Group(className + Optional(reqTagList('reqTagList')))("classSpec")
 classDefID  = Group(className + Optional(typeArgList))("classDefID")
 arrayRef    = Group('[' + expr('startOffset') + Optional(( ':' + expr('endOffset')) | ('..' + expr('itemLength'))) + ']')
-firstRefSeg = NotAny(owners) + Group((CID | arrayRef) + Optional(parameters))
-secondRefSeg= Group((Suppress('.') + CID | arrayRef) + Optional(parameters))
+firstRefSeg = NotAny(owners) + Group((CID | arrayRef) + Optional(arguments))
+secondRefSeg= Group((Suppress('.') + CID | arrayRef) + Optional(arguments))
 varRef = Group(firstRefSeg + ZeroOrMore(secondRefSeg))
 lValue = varRef("lValue")
 factor = Group( value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varRef("varFuncRef"))
@@ -105,15 +106,28 @@ expr <<= Group( logOr + Optional(Group(Group(Literal("<-")("assignAsExpr") + log
 
 swap   = Group(lValue + Literal("<->")("swapID") + lValue ("RightLValue"))("swap")
 rValue = Group(expr)("rValue")
+rValueVerbatim = Group("<%" + SkipTo("%>", include=True))("rValueVerbatim")
 assign = lValue + Combine("<" + (Optional((Word(alphanums + '_') | '+' | ('-' + FollowedBy("-")) | '*' | '/' | '%' | '<<' | '>>' | '&' | '^' | '|')("assignTag"))) + "-")("assignID") + rValue
-parameters <<= "(" - Optional(Group(delimitedList(rValue, ','))) + Suppress(")")
-initParams   = "{" + Optional(Group(delimitedList(rValue, ','))("initParams")) + Suppress("}")
+arguments <<= "(" + Optional(Group(delimitedList(rValue, ','))) + Suppress(")")
+initArgs     = "{" + Optional(Group(delimitedList(rValue, ','))("initArgs")) + Suppress("}")
+
+arraySpec = Forward()
+paramSpec = Group(
+    Optional(owners)("owner")
+    + varType("varType")
+    + Optional(arraySpec)("arraySpec")
+    + Suppress(":")
+    + CID("fieldName")
+    + Optional(Literal("<-") - (rValue("defaultValue") | rValueVerbatim("defaultValueVerbatim")))
+)("paramSpec")
+
+paramSpecList = Group((delimitedList(paramSpec, ",")))("paramSpecList")
 
 ########################################   F U N C T I O N S
 verbatim          = Group(Literal(r"<%") + SkipTo(r"%>", include=True))
 fieldDef          = Forward()
 commentedFieldDef = Group(Optional(docComment) + fieldDef('fieldDef'))
-argList           = Group(verbatim | Optional(delimitedList(Group(fieldDef))))("argList")
+paramList         = Group(verbatim | Optional(paramSpecList))("paramList")
 actionSeq         = Forward()
 defaultCase       = Group(Keyword("default") + Suppress(":") + actionSeq("caseAction"))("defaultCase")
 switchCase        = Group(Keyword("case") + OneOrMore(rValue + Suppress(":"))("caseValues") - actionSeq("caseAction"))
@@ -124,39 +138,62 @@ conditionalAction <<= Group(
             + Optional(Group((Keyword("else") | Keyword("but")) + Group(actionSeq | conditionalAction)("elseBody"))("optionalElse"))
         )("conditionalAction")
 protectAction  = Group(Keyword("protect")("protectStmt") - "(" + rValue("mutex") + ")" + actionSeq("criticalSection"))("protectAction")
+
+########################################   R E P E A T E D   A C T I O N S
+# "withEach n in range startExpr ..= endExpr"
+# "withEach item in container Backward iters: startExpr .. endExpr skip skipExpr take numExpr where (expr) until (expr) { actionSeq }"
 traversalModes = Keyword("Forward") | Keyword("Backward") | Keyword("Preorder") | Keyword("Inorder") | Keyword("Postorder") | Keyword("BreadthFirst") | Keyword("DF_Iterative")
-rangeSpec      = Group(Keyword("RANGE") - '(' + rValue + ".." + rValue + ')')
-whileSpec      = Group(Keyword('WHILE') + '(' + expr + ')')
-newWhileSpec   = Group(Keyword('while') + '(' + expr + ')')
-whileAction    = Group(newWhileSpec('newWhileSpec') + actionSeq)("whileAction")
+stringtraversalModes = Keyword("Forward") | Keyword("Backward") | "byte" | Keyword("rune") | Keyword("grapheme") | Keyword('line')("traversalMode")
+rangeOp        = (Literal("..=")("inclusiveOp") | Literal("..")("exclusiveOp"))
+rangeSpec      = Group(Optional(rValue)('rangeStart') + rangeOp - Optional(rValue)('rangeEnd'))("rangeSpec")
+rangeSpecMode  = Keyword("keys") | Keyword("index") | Keyword("iters")
+rangeClause    = Group(rangeSpecMode("rangeMode") + Suppress(':') + rangeSpec("range"))("rangeClause")
+loopBindMode   = Keyword("key") | Keyword("value") | Keyword("entry")| Keyword("index") | Keyword("iter")
+tupleBinding   = Group(  # (key, val)  binding. Mode is 'entry', associative containers only
+    Suppress("(") + CID("keyName") + Suppress(",") + CID("valName") + Suppress(")")
+)("tupleBinding")
+singleBinding  = Group(Optional(loopBindMode)("axis") + CID("repName"))("singleBinding")
+bindingSpec    = Group(tupleBinding | singleBinding)("bindingSpec")
+whileSpec      = Group(Keyword('while') - '(' + expr + ')')
+whileAction    = Group(whileSpec('whileSpec') + actionSeq)("whileAction")
 fileSpec       = Group(Keyword('FILE')  + '(' + expr + ')')
-keyRange       = Group(rValue("repList") + Keyword('from') + rValue('fromPart')  + Keyword('to') + rValue('toPart'))
-repeatedAction = Group(
-            Keyword("withEach")("repeatedActionID") - CID("repName") + "in"
-            + Optional(traversalModes("traversalMode"))
-            + (whileSpec('whileSpec') | rangeSpec('rangeSpec') | keyRange('keyRange') | fileSpec('fileSpec') | rValue("repList"))
-            + Optional(":")("optionalColon") # TODO: remove. this is deprecated.
-            + Optional(Keyword("where") + "(" + expr("whereExpr") + ")")
-            + Optional(Keyword("until") + "(" + expr("untilExpr") + ")")
-            + actionSeq
-        )("repeatedAction")
+numRangeSpec   = Group(
+    Keyword("in")
+    + Group(
+        (
+            (Keyword("range") + Optional(stringtraversalModes("traversalMode")))
+            | (stringtraversalModes("traversalMode") + Keyword("range"))
+        )
+        + rValue('rangeStart')
+        + rangeOp
+        + rValue('rangeEnd')
+    )("rangeSpec")
+)("numRangeSpec").setName("numeric range spec")
+traversalSpec  = Group( Keyword('in') + rValue("container") + Optional(traversalModes("traversalMode")) + Optional(rangeClause))("traversalSpec")
+withEachAction = Group(
+        Keyword("withEach")("repeatedActionID") - bindingSpec
+            + (numRangeSpec('numRangeSpec') | traversalSpec('traversalSpec') | fileSpec('fileSpec')) 
+            + Optional(Keyword("skip") - rValue("skipExpr"))
+            + Optional(Keyword("take") - rValue("takeExpr"))
+            + Optional(Keyword("where") - "(" + expr("whereExpr") + ")")
+            + Optional(Keyword("until") - "(" + expr("untilExpr") + ")")
+        + actionSeq)("withEachAction").setName("withEach action")
 
 action         = Group((assign("assign") | swap('swap') | varRef("funcCall") | fieldDef('fieldDef'))) + Optional(";").suppress()
-actComment     = Group(Combine("//:"+ Word(alphanums + r"/")("filterTag")+"::")("actComment") + action)
-actionSeq    <<= Group(Literal("{")("actSeqID") - (ZeroOrMore(switchStmt | conditionalAction | repeatedAction | whileAction | protectAction | actionSeq | action | actComment))("actionList") + "}")("actionSeq")
-rValueVerbatim = Group("<%" + SkipTo("%>", include=True))("rValueVerbatim")
+actComment     = Group(Combine(r"//:"- Word(alphanums + r"/")("filterTag") + r"::")("actComment") + action)
+actionSeq    <<= Group(Literal("{")("actSeqID") + (ZeroOrMore(switchStmt | conditionalAction | withEachAction | whileAction | protectAction | actionSeq | action | actComment))("actionList") + "}")("actionSeq").setName("loop body '{ ... }'")
 funcBody       = Group(actionSeq | rValueVerbatim)("funcBody")
 
 #########################################   F I E L D   D E S C R I P T I O N S
 nameAndVal   = Group(
-          (":" + CID("fieldName") + "(" + argList + Literal(")")('argListTag') + Optional(Literal(":")("optionalTag") + tagDefList) + "<-" - funcBody )         # Function Definition
-        | (":" + CID("fieldName") + Group(initParams)("parameters"))
-        | (":" + CID("fieldName") + "<-" - (rValue("givenValue") | rValueVerbatim))
+          (":" + CID("fieldName") + "(" + paramList + Literal(")")('paramListTag') + Optional(Literal(":")("optionalTag") + tagDefList) + "<-" - funcBody )         # Function Definition
+        | (":" + CID("fieldName") + Group(initArgs)("arguments"))
+        | (":" + CID("fieldName") + "<-" + (rValue("givenValue") | rValueVerbatim))
         | (":" + "<-" - (rValue("givenValue") | funcBody))
-        | (":" + CID("fieldName") + Optional("(" + argList + Literal(")")('argListTag')) - ~Word("{"))
-        | (Literal("::")('allocDoubleColon') + CID("fieldName") + Group(initParams)("parameters"))
+        | (":" + CID("fieldName") + Optional("(" + paramList + Literal(")")('paramListTag')) - ~Word("{"))
+        | (Literal("::")('allocDoubleColon') + CID("fieldName") + Group(initArgs)("arguments"))
         | (Literal("::")('allocDoubleColon') + CID("fieldName") + "<-" - (rValue("givenValue")))
-        | (Literal("::")('deprecateDoubleColon') + CID("fieldName") + Group(parameters)("parameters"))# deprecated
+        | (Literal("::")('deprecateDoubleColon') + CID("fieldName") + Group(arguments)("arguments"))# deprecated
         | (Literal("::")('allocDoubleColon') + CID("fieldName"))
     )("nameAndVal")
 datastructID = Group(Keyword("list") | Keyword("opt") | Keyword("map") | Keyword("multimap") | Keyword("tree") | Keyword("graph") | Keyword("iterableList"))('datastructID')
@@ -177,13 +214,31 @@ anonModel    = sequenceEl("sequenceEl") | alternateEl("alternateEl")
 owners     <<= Keyword("const") | Keyword("me") | Keyword("my") | Keyword("our") | Keyword("their") | Keyword("we") | Keyword("itr") | Keyword("id_our") | Keyword("id_their")
 fullFieldDef <<= Optional('>')('isNext') + Optional(owners)('owner') + Group(baseType | altModeSpec | classSpec | Group(anonModel) | datastructID)('fieldType') + Optional(arraySpec) + Optional(nameAndVal)
 fieldDef   <<= Group(flagDef('flagDef') | modeSpec('modeDef') | (quotedString('constStr') + Optional("[opt]") + Optional(":"+CID)) | intNum('constNum') | nameAndVal('nameVal') | fullFieldDef('fullFieldDef'))("fieldDef")
+
+paramDef     = Group(flagDef('flagDef') | modeSpec('modeDef') | nameAndVal('nameVal'))
 modelTypes   = (Keyword("model") | Keyword("struct") | Keyword("string") | Keyword("stream"))
 classDef     = Group(modelTypes + classDefID + Optional(Literal(":")("optionalTag") + tagDefList) + (Keyword('auto') | anonModel))("classDef")
 doPattern    = Group(Keyword("do") + classSpec + Suppress("(") + CIDList + Suppress(")"))("doPattern")
 macroDef     = Group(Keyword("#define") + CID('macroName') + Suppress("(") + Optional(CIDList('macroArgs')) + Suppress(")") + Group("<%" + SkipTo("%>", include=True))("macroBody"))
 classList    = Group(ZeroOrMore(docComment | classDef | doPattern | macroDef))("classList")
+
 classDef.set_parse_action(logObj)
 fieldDef.set_parse_action(logFieldDef)
+
+sequenceEl.setName("sequenceEl")
+fieldDef.setName("fieldDef")
+rangeSpec.set_name("range specification (e.g., start..end)")
+bindingSpec.set_name("loop binding (e.g., x or (key, val))")
+traversalSpec.set_name("container traversal spec")
+fileSpec.set_name("file specification")
+withEachAction.set_name("withEach loop")
+actionSeq.set_name("action sequence block")
+conditionalAction.set_name("if/else conditional")
+protectAction.set_name("protect block")
+funcBody.set_name("function body")
+classDef.set_name("class definition")
+action.setName("action statement")
+nameAndVal.setName("nameAndVal")
 
 #########################################   P A R S E R   S T A R T   S Y M B O L
 progSpecParser = Group(Optional(buildSpecList.set_parse_action(logBSL)) + tagDefList.set_parse_action(logTags) + classList)("progSpecParser")
@@ -234,6 +289,44 @@ def extractTypeArgList(typeArgList):
     return localListStore
 
 nameIDX=1
+def packParamSpec(paramSpec, className, indent):
+    """Convert parsed paramSpec into a packed *parameter* structure.
+
+    IMPORTANT: This is *not* a fieldDef. Keeping params distinct avoids the old
+    "parameter-as-fieldDef" confusion and prevents accidental acceptance of
+    function definitions as parameter specifications.
+    """
+
+    owner = paramSpec.owner if paramSpec.owner else 'me'
+    arraySpec = paramSpec.arraySpec if "arraySpec" in paramSpec and paramSpec.arraySpec else None
+
+    fieldType = None
+    packedTArgList = None
+    if paramSpec.varType:
+        fieldType = paramSpec.varType[0]
+        if not isinstance(fieldType, str) and 'reqTagList' in fieldType:
+            reqTagList = fieldType['reqTagList']
+            packedTArgList = []
+            for reqTag in reqTagList[0]:
+                reqTagVarType = reqTag['varType'][0][0]
+                reqTagOwner = 'me'
+                if 'owner' in reqTag:
+                    reqTagOwner = reqTag['owner']
+                packedTArgList.append({'tArgOwner': reqTagOwner, 'tArgType': reqTagVarType})
+            # Preserve existing convention used by packFieldDef
+            fieldType=[fieldType[0],packedTArgList]
+
+    fieldName = paramSpec.fieldName if "fieldName" in paramSpec else None
+
+    defaultValue = None
+    if "defaultValue" in paramSpec and paramSpec.defaultValue:
+        defaultValue = paramSpec.defaultValue
+    elif "defaultValueVerbatim" in paramSpec and paramSpec.defaultValueVerbatim:
+        # store verbatim text in the same two-element shape used elsewhere
+        defaultValue = ['', paramSpec.defaultValueVerbatim[1]]
+
+    return progSpec.packParamSpec(owner, fieldType, arraySpec, packedTArgList, fieldName, defaultValue)
+
 def packFieldDef(fieldResult, className, indent, comment=None):
     global nameIDX
     #  ['(', [['>', 'me', ['CID'], [':', 'tag']], '<=>', [[[['hasTag']], '=', [[[[[[[['54321'], []], []], []], []], []], []]]]]], ')']
@@ -243,8 +336,8 @@ def packFieldDef(fieldResult, className, indent, comment=None):
         fieldResult= fieldResult[1][0]
 
     fieldDef={}
-    argList=[]
     paramList=[]
+    argList=[]
     innerDefs=[]
     optionalTags=None
     isNext=False;
@@ -316,23 +409,39 @@ def packFieldDef(fieldResult, className, indent, comment=None):
             givenValue = ['', nameAndVal.rValueVerbatim[1]]
         else: givenValue = None;
 
-        if(nameAndVal.argListTag):
-            for argSpec in nameAndVal.argList:
-                argList.append(packFieldDef(argSpec.fieldDef, className, indent+"    "))
-        else: argList=None;
+        if(nameAndVal.paramListTag):
+            # nameAndVal.paramList can be either:
+            #  1) verbatim  -> tokens start with "<%"
+            #  2) paramSpecList
 
-        if 'parameters' in nameAndVal:
+            # Case 1: verbatim inside the parens
+            if len(nameAndVal.paramList) > 0 and nameAndVal.paramList[0] == "<%":
+                paramList = nameAndVal.paramList.asList()
+
+            # Case 2: paramSpecList
+            elif "paramSpecList" in nameAndVal.paramList and nameAndVal.paramList.paramSpecList:
+                for argSpec in nameAndVal.paramList.paramSpecList:
+                    # Skip empty ParseResults just in case
+                    if len(argSpec) == 0:
+                        continue
+                    paramList.append(packParamSpec(argSpec, className, indent + "    "))
+
+            if len(paramList) == 0: paramList = []
+
+        else: paramList=None;
+
+        if 'arguments' in nameAndVal:
             if('deprecateDoubleColon'in nameAndVal):
                 print("            ***deprecated doubleColon in nameAndVal at: ", fieldName)
                 exit(1)
 
-            if(str(nameAndVal.parameters)=="['(']"): prmList={}
-            else: prmList=nameAndVal.parameters[1]
-            for param in prmList:
-                paramList.append(param)
+            if(str(nameAndVal.arguments)=="['(']"): parsedArgs={}
+            else: parsedArgs=nameAndVal.arguments[1]
+            for arg in parsedArgs:
+                argList.append(arg)
             if(isAllocated==False):     # use a constructor instead of assignment
-                paramList.append("^&useCtor//8")
-        else: paramList=None
+                argList.append("^&useCtor//8")
+        else: argList=None
 
         if(nameAndVal.optionalTag): optionalTags=extractTagDefs(nameAndVal.tagDefList)
     else:
@@ -342,12 +451,12 @@ def packFieldDef(fieldResult, className, indent, comment=None):
     if(fieldResult.flagDef):
         cdlog(3,"FLAG: {}".format(fieldResult))
         if(arraySpec): cdErr("Lists of flags are not allowed")
-        fieldDef=progSpec.packField(className, False, owner, 'flag', arraySpec, packedTArgList, fieldName, None, paramList, givenValue, isAllocated, hasFuncBody)
+        fieldDef=progSpec.packField(className, False, owner, 'flag', arraySpec, packedTArgList, fieldName, None, argList, givenValue, isAllocated, hasFuncBody)
     elif(fieldResult.modeDef):
         cdlog(3,"MODE: {}".format(fieldResult))
         modeList=fieldResult.modeList
         if(arraySpec): cdErr("Lists of modes are not allowed")
-        fieldDef=progSpec.packField(className, False, owner, 'mode', arraySpec, packedTArgList, fieldName, None, paramList, givenValue, isAllocated, hasFuncBody)
+        fieldDef=progSpec.packField(className, False, owner, 'mode', arraySpec, packedTArgList, fieldName, None, argList, givenValue, isAllocated, hasFuncBody)
         fieldDef['typeSpec']['enumList']=modeList
     elif(fieldResult.constStr):
         if fieldName==None: fieldName="constStr"+str(nameIDX); nameIDX+=1;
@@ -356,18 +465,18 @@ def packFieldDef(fieldResult, className, indent, comment=None):
             if(len(fieldResult)>3 and fieldResult[3]!=''):
                 fieldName=fieldResult[3]
         givenValue = fieldResult.constStr[1:-1]
-        fieldDef=progSpec.packField(className, True, 'const', 'string', arraySpec, packedTArgList, fieldName, None, paramList, givenValue, isAllocated, hasFuncBody)
+        fieldDef=progSpec.packField(className, True, 'const', 'string', arraySpec, packedTArgList, fieldName, None, argList, givenValue, isAllocated, hasFuncBody)
     elif(fieldResult.constNum):
         cdlog(3,"CONST Num: {}".format(fieldResult))
         if fieldName==None: fieldName="constNum"+str(nameIDX); nameIDX+=1;
-        fieldDef=progSpec.packField(className, True, 'const', 'int', arraySpec, packedTArgList, fieldName, None, paramList, givenValue, isAllocated, hasFuncBody)
+        fieldDef=progSpec.packField(className, True, 'const', 'int', arraySpec, packedTArgList, fieldName, None, argList, givenValue, isAllocated, hasFuncBody)
     elif(fieldResult.nameVal):
         cdlog(3,"NameAndVal: {}".format(fieldResult))
-        fieldDef=progSpec.packField(className, None, None, None, arraySpec, packedTArgList, fieldName, argList, paramList, givenValue, isAllocated, hasFuncBody)
+        fieldDef=progSpec.packField(className, None, None, None, arraySpec, packedTArgList, fieldName, paramList, argList, givenValue, isAllocated, hasFuncBody)
     elif(fieldResult.fullFieldDef):
         fieldTypeStr=str(fieldType)[:50]
         cdlog(3,"FULL FIELD: {}".format(str([isNext, owner, fieldTypeStr+'... ', arraySpec, packedTArgList, fieldName])))
-        fieldDef=progSpec.packField(className, isNext, owner, fieldType, arraySpec, packedTArgList, fieldName, argList, paramList, givenValue, isAllocated, hasFuncBody)
+        fieldDef=progSpec.packField(className, isNext, owner, fieldType, arraySpec, packedTArgList, fieldName, paramList, argList, givenValue, isAllocated, hasFuncBody)
     else: cdErr("Error in packing FieldDefs: {}".format(fieldResult))
     if len(innerDefs)>0:   fieldDef['innerDefs']  = innerDefs
     if coFactuals!=None:   fieldDef['coFactuals'] = coFactuals
@@ -380,7 +489,10 @@ def parseResultsToListOfParseResults(parseSegment):
     """
     myList = []
     for seg in parseSegment:
-        myList.append(seg)
+        if "__len__" in seg and len(seg) > 0 and isinstance(seg[0], (list, ParseResults)):
+            myList.append(seg)
+        else:
+            myList.append(seg)
     return myList
 
 def extractActItem(funcName, actionItem):
@@ -397,8 +509,11 @@ def extractActItem(funcName, actionItem):
             defaultCaseAction = extractActSeq(funcName, actionItem.defaultCase.caseAction)
         casesList=[]
         for sCase in switchCases:
+            caseVals = []
+            for cVal in sCase.caseValues:
+                caseVals.append(cVal)
             CaseActSeq = extractActSeq(funcName, sCase.caseAction)
-            casesList.append([sCase.caseValues, CaseActSeq])
+            casesList.append([caseVals, CaseActSeq])
 
         thisActionItem = {'typeOfAction':'switchStmt', 'switchKey':switchKey, 'switchCases':casesList, 'defaultCase':defaultCaseAction}
     elif actionItem.ifStatement:    # Conditional
@@ -414,37 +529,87 @@ def extractActItem(funcName, actionItem):
                 elseBodyOut = ['action', extractActItem(funcName, elseBodyIn.actionSeq)]
 
         thisActionItem = {'typeOfAction':"conditional", 'ifCondition':ifCondition, 'ifBody':ifBodyOut, 'elseBody':elseBodyOut}
-    # Repeated Action withEach
-    elif actionItem.repeatedActionID or actionItem.newWhileSpec:
-        repName = actionItem.repName
-        repList = actionItem.repList
-        repBodyIn = actionItem.actionSeq
-        repBodyOut = extractActSeq(funcName, repBodyIn)
-        traversalMode=None
-        if actionItem.optionalColon:
-            print("            optionalColon in repeatedAction is deprecated.")
-        if actionItem.traversalMode:
-            traversalMode = actionItem.traversalMode
-        whileSpec=None
-        if actionItem.whileSpec:
-            whileSpec = actionItem.whileSpec
-        if actionItem.newWhileSpec:
-            whileSpec = actionItem.newWhileSpec
-        rangeSpec=None
-        if actionItem.rangeSpec:
-            rangeSpec = actionItem.rangeSpec
-        keyRange=None
-        if actionItem.keyRange:
-            keyRange = actionItem.keyRange
-        whereExpr = ''
-        untilExpr = ''
-        if actionItem.whereExpr:
-            whereExpr = actionItem.whereExpr
-        if actionItem.untilExpr:
-            untilExpr = actionItem.untilExpr
-        thisActionItem = {'typeOfAction':"repetition" ,'repName':repName, 'whereExpr':whereExpr, 'untilExpr':untilExpr, 'repBody':repBodyOut,
-                            'repList':repList, 'traversalMode':traversalMode, 'rangeSpec':rangeSpec, 'whileSpec':whileSpec, 'keyRange':keyRange}
-    # Action sequence
+    elif "whileSpec" in actionItem and actionItem.whileSpec:
+        # WHILE
+        whileSpec = actionItem.whileSpec
+        bodyOut = extractActSeq(funcName, actionItem.actionSeq)
+        thisActionItem = {
+            'typeOfAction': "repetition",
+            'kind': "while",
+            'whileSpec': whileSpec,
+            'body': bodyOut,
+        }
+
+    elif "repeatedActionID" in actionItem and actionItem.repeatedActionID:
+        # withEach
+        bodyOut = extractActSeq(funcName, actionItem.actionSeq)
+
+        # ---- bindingSpec ----
+        bs = actionItem.bindingSpec
+        if "tupleBinding" in bs and bs.tupleBinding:
+            binding = {
+                "kind": "tuple",
+                "keyName": bs.tupleBinding.keyName,
+                "valName": bs.tupleBinding.valName,
+                "axis": "entry",  # implied
+            }
+        else:
+            axis = bs.singleBinding.axis if "axis" in bs.singleBinding and bs.singleBinding.axis else None
+            binding = {
+                "kind": "single",
+                "name": bs.singleBinding.repName,
+                "axis": axis,
+            }
+
+        # ---- source ----
+        if actionItem.numRangeSpec:
+            rangeSpec = actionItem.numRangeSpec.rangeSpec
+            source = {
+                "kind": "numRange",
+                "rangeSpec": rangeSpec,
+            }
+        elif actionItem.traversalSpec:
+            ts = actionItem.traversalSpec
+
+            rangeClause = None
+            if ts.rangeClause:
+                rangeSpec = ts.rangeClause.range
+                rangeClause = {
+                    "mode": ts.rangeClause.rangeMode,  # keys/index/iters
+                    "range": rangeSpec,
+                }
+
+            source = {
+                "kind": "traversal",
+                "container": ts.container,
+                "traversalMode": (ts.traversalMode if ts.traversalMode else None),
+                "rangeClause": rangeClause,
+            }
+        elif actionItem.fileSpec:
+            source = {
+                "kind": "file",
+                "fileSpec": actionItem.fileSpec,
+            }
+        else:
+            source = {"kind": "unknown"}
+
+        # ---- modifiers ----
+        mods = {
+            "skipExpr":  (actionItem.skipExpr if actionItem.skipExpr else None),
+            "takeExpr":  (actionItem.takeExpr if actionItem.takeExpr else None),
+            "whereExpr": (actionItem.whereExpr if actionItem.whereExpr else None),
+            "untilExpr": (actionItem.untilExpr if actionItem.untilExpr else None),
+        }
+
+        thisActionItem = {
+            'typeOfAction': "repetition",
+            'kind': "withEach",
+            'binding': binding,
+            'source': source,
+            'mods': mods,
+            'body': bodyOut,
+        }
+
     elif actionItem.actSeqID:
         actionListIn = actionItem
         actionListOut = extractActSeq(funcName, actionListIn)
@@ -454,9 +619,11 @@ def extractActItem(funcName, actionItem):
         RHS = parseResultsToListOfParseResults(actionItem.rValue)
         LHS = parseResultsToListOfParseResults(actionItem.lValue)
         assignTag = ''
-        if (actionItem.assignID[0] != '<-'):
-            if not isinstance(actionItem.assignID, str):
+        if (actionItem.assignID[0] != '<-'): # e.g.: A <+- B
+            if not isinstance(actionItem.assignID, str): # e.g., A <+- B, assignID is ['<+-']
                 assignTag = actionItem.assignID.assignTag
+                if not isinstance(assignTag, str): # e.g., A <deep- B, assignTag is ['deep']
+                    assignTag = assignTag[0]
 
         #print(RHS, LHS)
         thisActionItem = {'typeOfAction':"assign", 'LHS':LHS, 'RHS':RHS, 'assignTag':assignTag}

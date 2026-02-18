@@ -138,6 +138,17 @@ struct testClass{
 #####################################################################################################
      'actions/conditional':  ['struct testClass{me void: runTest()<-{testFunc(true)}\nme void: testFunc(me bool: isTrue)<-{if (isTrue){print("true")}\nelse{print("false")}}}', 'PGB:'],
      'actions/switch':       ['struct testClass{me void: runTest()<-{me int:myInt<-3\nswitch(myInt){case 3:{print("3")}case 2:{print("2")}default:{print("default")}}}}', 'PGBR:3'],
+     'actions/switchStringArg': ['''
+struct testClass{
+    me void: runTest()<-{route("two")}
+    me void: route(me string: myStr)<-{
+        switch(myStr){
+            case "one":{print("1")}
+            case "two":{print("2")}
+            default:{print("x")}
+        }
+    }
+}''', 'PGBR:2'],
      'actions/misc':         ['''
 struct testClass{
     me void: runTest()<-{
@@ -158,10 +169,10 @@ struct testClass{
 #####################################################################################################
 # TODO: make tests for 'actions/deleteMapRep'
      'actions/rangeRep':     ['struct testClass{me void: runTest()<-{withEach spec in range 2 .. 6 {print(spec," ")}}}', 'PGBR:2 3 4 5 '],
-     'actions/backRangeRep': ['struct testClass{me void: runTest()<-{withEach RB in Backward range 2 .. 6 {print(RB," ")}}}', 'PGBR:5 4 3 2 '],
+     'actions/backRangeRep': ['struct testClass{me void: runTest()<-{withEach RB in range Backward 2 .. 6 {print(RB," ")}}}', 'PGBR:5 4 3 2 '],
      'actions/listRep':      ['struct testClass{me void: runTest()<-{me List<me int>:testList<-[2,13,-22,188]\nwithEach T in testList {print(T," ")}}}', 'PGBR:2 13 -22 188 '],
-     'actions/backListRep':  ['struct testClass{me void: runTest()<-{me List<me int>:testListBackward<-[2,13,-22,188]\nwithEach TB in Backward testListBackward {print(TB," ")}}}', 'PGBR:188 -22 13 2 '],
-     'actions/listKeyRep':   ['struct testClass{me void: runTest()<-{me List<me int>:testKeyList<-[2,3,5,8,13,21]\nwithEach TK in testKeyList {print(TK_key,"-", TK, " ")}}}', 'PGBR:0-2 1-3 2-5 3-8 4-13 5-21 '],
+     'actions/backListRep':  ['struct testClass{me void: runTest()<-{me List<me int>:testListBackward<-[2,13,-22,188]\nwithEach TB in testListBackward Backward {print(TB," ")}}}', 'PGBR:188 -22 13 2 '],
+     'actions/listKeyRep':   ['struct testClass{me void: runTest()<-{me List<me int>:testKeyList<-[2,3,5,8,13,21]\nwithEach idx in range 0 .. testKeyList.size() {print(idx,"-", testKeyList[idx], " ")}}}', 'PGBR:0-2 1-3 2-5 3-8 4-13 5-21 '],
      'actions/mapRep':       ['struct testClass{me void: runTest()<-{me Map<me string, me string>:testMap\ntestMap["E"]<-"every"\ntestMap["G"]<-"good"\ntestMap["B"]<-"boy"\ntestMap["D"]<-"does"\ntestMap["F"]<-"fine"\nwithEach M in testMap {print(M," ")}}}', 'PGBR:boy does every fine good '],
      #'actions/mapKeyRep':    ['struct testClass{me void: runTest()<-{me Map<me string, me string>:testMapKey\ntestMapKey["E"]<-"every"\ntestMapKey["G"]<-"good"\ntestMapKey["B"]<-"boy"\ntestMapKey["D"]<-"does"\ntestMapKey["F"]<-"fine"\nwithEach MK in testMapKey {print(MK_key,"-",MK," ")}}}', 'PGBR:B-boy D-does E-every F-fine G-good '],
      #'actions/deleteListRep':['struct testClass{me void: runTest()<-{me List<me int>:testDelList<-[2,3,5,8,13,21]\nwithEach TD in testDelList {if(TD_key==3){testDelList.erase(TD_key)\nTDIdx<-TDIdx-1}\nelse{print(TD, " ")}}}}', 'PGBR:2 3 5 13 21 '],
@@ -169,18 +180,106 @@ struct testClass{
 struct testClass{
     me void: runTest()<-{
         withEach spec in range 2 .. 6 {print(spec," ")}
-        withEach RB in Backward range 2 .. 6 {print(RB," ")}
+        withEach RB in range Backward 2 .. 6 {print(RB," ")}
         me List<me int>:testList<-[2,13,-22,188]
         withEach T in testList {print(T," ")}
         me List<me int>:testListBackward<-[2,13,-22,188]
-        withEach TB in Backward testListBackward {print(TB," ")}
+        withEach TB in testListBackward Backward {print(TB," ")}
         me List<me int>:testKeyList<-[2,3,5,8,13,21]
-        withEach TK in testKeyList {print(TK_key,"-", TK, " ")}
+        withEach idx in range 0 .. testKeyList.size() {print(idx,"-", testKeyList[idx], " ")}
         me Map<me string, me string>:testMap\ntestMap["E"]<-"every"\ntestMap["G"]<-"good"\ntestMap["B"]<-"boy"\ntestMap["D"]<-"does"\ntestMap["F"]<-"fine"
         withEach M in testMap {print(M," ")}
     }
 }''', 'PGBR:2 3 4 5 5 4 3 2 2 13 -22 188 188 -22 13 2 0-2 1-3 2-5 3-8 4-13 5-21 boy does every fine good ',
     ['actions/rangeRep','actions/backRangeRep','actions/listRep','actions/backListRep','actions/listKeyRep','actions/mapRep']],
+#####################################################################################################
+     'actions/withEachRangeInclusive': ['struct testClass{me void: runTest()<-{withEach i in range 1 ..= 4 {print(i," ")}}}', 'PGBR:1 2 3 4 '],
+     'actions/withEachTupleBinding': ['''
+struct testClass{
+    me void: runTest()<-{
+        me Map<me int, me string>:numToWord
+        numToWord.insert(2, "two")
+        numToWord.insert(1, "one")
+        numToWord.insert(3, "three")
+        withEach (k, v) in numToWord {print(k,":",v," ")}
+    }
+}''', 'PGBR:1:one 2:two 3:three '],
+     'actions/withEachKeyBinding': ['''
+struct testClass{
+    me void: runTest()<-{
+        me Map<me int, me string>:numToWord
+        numToWord.insert(2, "two")
+        numToWord.insert(1, "one")
+        numToWord.insert(3, "three")
+        withEach key k in numToWord {print(k," ")}
+    }
+}''', 'PGBR:1 2 3 '],
+     'actions/withEachWhere': ['''
+struct testClass{
+    me void: runTest()<-{
+        me List<me int>: nums <- [2,5,8,11]
+        withEach n in nums where(n > 5){print(n," ")}
+    }
+}''', 'PGBR:8 11 '],
+     'actions/withEachUntil': ['''
+struct testClass{
+    me void: runTest()<-{
+        me List<me int>: nums <- [2,5,8,11]
+        withEach n in nums until(n == 8){print(n," ")}
+    }
+}''', 'PGBR:2 5 '],
+     'actions/withEachKeysRange': ['''
+struct testClass{
+    me void: runTest()<-{
+        me Map<me int, me string>:numToWord
+        numToWord.insert(1, "one")
+        numToWord.insert(2, "two")
+        numToWord.insert(3, "three")
+        numToWord.insert(4, "four")
+        numToWord.insert(5, "five")
+        withEach (k, v) in numToWord keys: 2 ..= 4 {print(k,":",v," ")}
+    }
+}''', 'PGBR:2:two 3:three 4:four '],
+     'actions/withEachKeysRangeExact': ['''
+struct testClass{
+    me void: runTest()<-{
+        me Map<me string, me int>:wordToCount
+        wordToCount.insert("cat", 7)
+        wordToCount.insert("dog", 8)
+        me string:target <- "cat"
+        withEach (k, v) in wordToCount keys: target ..= target {print(k,":",v," ")}
+    }
+}''', 'PGBR:cat:7 '],
+     'actions/withEachKeysRangeExclusive': ['''
+struct testClass{
+    me void: runTest()<-{
+        me Map<me string, me int>:wordToCount
+        wordToCount.insert("cat", 7)
+        wordToCount.insert("dog", 8)
+        me string:target <- "cat"
+        withEach (k, v) in wordToCount keys: target .. target {print(k,":",v," ")}
+        print("!")
+    }
+}''', 'PGBR:!'],
+     'actions/withEachModes': ['''
+struct testClass{
+    me void: runTest()<-{
+        me List<me int>: nums <- [2,4,6,8]
+        withEach value n in nums {print(n," ")}
+        withEach n in nums where(n > 3){print(n," ")}
+        withEach n in nums until(n == 6){print(n," ")}
+        withEach i in range 1 ..= 4 {print(i," ")}
+        me Map<me int, me string>:numToWord
+        numToWord.insert(2, "two")
+        numToWord.insert(1, "one")
+        numToWord.insert(4, "four")
+        numToWord.insert(3, "three")
+        withEach (k, v) in numToWord {print(k,":",v," ")}
+        withEach key k in numToWord {print(k," ")}
+        withEach (k, v) in numToWord keys: 2 ..= 4 {print(k,":",v," ")}
+    }
+}''', 'PGBR:2 4 6 8 4 6 8 2 4 1 2 3 4 1:one 2:two 3:three 4:four 1 2 3 4 2:two 3:three 4:four ',
+    ['actions/withEachRangeInclusive','actions/withEachTupleBinding','actions/withEachKeyBinding','actions/withEachWhere','actions/withEachUntil','actions/withEachKeysRange','actions/withEachKeysRangeExact','actions/withEachKeysRangeExclusive']],
 ###################################################################################################
      'actions/plusEquals':    ['struct testClass{me void: runTest()<-{me int:A<-2 \n A<+-1 \n print(A)}}', 'PGBR:3'],
      'actions/minusEquals':   ['struct testClass{me void: runTest()<-{me int:A<-2 \n A<--1 \n print(A)}}', 'PGBR:1'],

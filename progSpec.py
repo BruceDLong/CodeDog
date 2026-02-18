@@ -131,17 +131,17 @@ def processParentClass(name, parentClass):
         elif parentClass != prevParentClassName:
             cdErr("The class "+name+" cannot descend from both "+parentClass+" and "+prevParentClassName)
 
-# returns an identifier for functions that accounts for class and argument types
+# returns an identifier for functions that accounts for class and parameter types
 def fieldIdentifierString(className, packedField):
     fieldName = packedField['fieldName']
     if fieldName == None: fieldName =""
     fieldID=className+'::'+fieldName
     if 'typeSpec' in packedField: tSpec = getTypeSpec(packedField)
-    if 'argList' in tSpec and tSpec['argList'] :
-        argList = tSpec['argList']
+    if 'paramList' in tSpec and tSpec['paramList'] :
+        paramList = tSpec['paramList']
         fieldID+='('
         count=0
-        for arg in argList:
+        for arg in paramList:
             if count>0: fieldID+=','
             fieldID += fieldTypeKeyword(arg)
             count+=1
@@ -273,9 +273,9 @@ def appendToFuncsCalled(funcName,funcParams):
         funcsCalled[funcName]= []
     funcsCalled[funcName].append([funcParams, MarkItems])
 
-def packField(className, thisIsNext, thisOwner, thisType, thisArraySpec, thisReqTagList, thisName, thisArgList, paramList, thisValue, isAllocated, hasFuncBody):
+def packField(className, thisIsNext, thisOwner, thisType, thisArraySpec, thisReqTagList, thisName, thisParamList, argList, thisValue, isAllocated, hasFuncBody):
     codeConverter=None
-    packedField = {'isNext': thisIsNext, 'typeSpec':{'owner':thisOwner, 'fieldType':thisType, 'arraySpec':thisArraySpec, 'reqTagList':thisReqTagList, 'argList':thisArgList}, 'fieldName':thisName, 'paramList':paramList, 'value':thisValue, 'isAllocated':isAllocated}
+    packedField = {'isNext': thisIsNext, 'typeSpec':{'owner':thisOwner, 'fieldType':thisType, 'arraySpec':thisArraySpec, 'reqTagList':thisReqTagList, 'paramList':thisParamList}, 'fieldName':thisName, 'argList':argList, 'value':thisValue, 'isAllocated':isAllocated}
     if(thisValue!=None and (not isinstance(thisValue, str)) and len(thisValue)>1 and thisValue[1]!=''):
         if thisValue[1][0]=='!':
             # This is where the definitions of code conversions are loaded. E.g., 'setRGBA' might get 'setColor(new Color(%1, %2, %3, %4))'
@@ -295,26 +295,10 @@ def packField(className, thisIsNext, thisOwner, thisType, thisArraySpec, thisReq
 def packParamSpec(thisOwner, thisType, thisArraySpec, thisReqTagList, thisName, defaultValue):
     """Pack a function parameter specification.
 
-    This is intentionally *not* a full fieldDef.
+    Parameters are stored in a fieldDef-like shape (`fieldName` + nested `typeSpec`)
+    so existing type/owner helpers can operate on params and fields uniformly.
 
-    We keep a small, stable shape that downstream code (codeGenerator, fieldIdentifierString,
-    type utilities) can consume safely:
-
-      {
-        'fieldName': <name>,
-        'typeSpec': {
-            'owner': <owner>,
-            'fieldType': <type>,
-            'arraySpec': <arraySpec>,
-            'reqTagList': <reqTagList>,
-            'argList': None,
-        },
-        'value': <defaultValue or None>
-      }
-
-    Notes:
-    - defaultValue uses the same representation as fields (ParseResults or ['' , verbatimText])
-      so existing expression/code-converter logic can keep working.
+    `value` holds the optional default argument expression.
     """
     return {
         'fieldName': thisName,
@@ -323,7 +307,7 @@ def packParamSpec(thisOwner, thisType, thisArraySpec, thisReqTagList, thisName, 
             'fieldType': thisType,
             'arraySpec': thisArraySpec,
             'reqTagList': thisReqTagList,
-            'argList': None,
+            'paramList': None,
         },
         'value': defaultValue,
     }
@@ -420,13 +404,13 @@ def addField(objSpecs, className, stateType, packedField):
     if (fieldOwner=='me' or fieldOwner=='we' or fieldOwner=='const') and fieldsTypeCategory(tSpec)=='struct':
         addDependencyToStruct(className, tSpec)
 
-    if 'typeSpec' in packedField and 'argList' in packedField['typeSpec']:
-        argList = packedField['typeSpec']['argList']
-        if argList:
-            for arg in argList:
-                argOwner = getOwner(arg)
-                if (argOwner=='me' or argOwner=='we' or argOwner=='const') and fieldsTypeCategory(arg)=='struct':
-                    addDependencyToStruct(className, arg)
+    if 'typeSpec' in packedField and 'paramList' in packedField['typeSpec']:
+        paramList = packedField['typeSpec']['paramList']
+        if paramList:
+            for param in paramList:
+                paramOwner = getOwner(param)
+                if (paramOwner=='me' or paramOwner=='we' or paramOwner=='const') and fieldsTypeCategory(param)=='struct':
+                    addDependencyToStruct(className, param)
 
     if MarkItems:
         if not (taggedClassName in MarkedObjects):
@@ -716,8 +700,8 @@ def doesChildImplementParentClass(classes, parentClassName, childClassName):
     if(parentClassDef == None):parentClassDef = findSpecOf(classes, parentClassName, 'struct')
     if(parentClassDef == None):cdErr("Struct to implement not found:"+parentClassName)
     for field in parentClassDef['fields']:
-        argList = getArgList(field)
-        if(argList != None): # ArgList exists so this is a FUNCTION
+        paramList = getParamList(field)
+        if(paramList != None): # ParamList exists so this is a FUNCTION
             parentFieldID = field['fieldID']
             childFieldID = parentFieldID.replace(parentClassName+"::", childClassName+"::")
             fieldExists = doesClassDirectlyImlementThisField(classes, childClassName, childFieldID)
@@ -1040,11 +1024,11 @@ def getOwner(tSpec):
     if 'typeSpec' in tSpec: tSpec = tSpec['typeSpec']
     return tSpec['owner']
 
-def getArgList(tSpec):
+def getParamList(tSpec):
     if tSpec==None: return None
     if tSpec==0:    return None
     if 'typeSpec' in tSpec: tSpec = tSpec['typeSpec']
-    if 'argList' in tSpec: return tSpec['argList']
+    if 'paramList' in tSpec: return tSpec['paramList']
     return None
 
 def getCodeConverterByFieldID(classStore, className, fieldName, prevNameSeg, connector):
@@ -1083,7 +1067,7 @@ def typeIsPointer(tSpec):
 
 def fieldIsFunction(tSpec):
     if tSpec==None: return False
-    if getArgList(tSpec)!=None: return True
+    if getParamList(tSpec)!=None: return True
     return False
 
 def doesFieldDefHaveValue(fieldDef):
@@ -1104,7 +1088,7 @@ def isWrappedType(objMap, structname):
             retOwner = structToSearch['tags']['ownerMe']
         else: retOwner = 'me'
         wrappedStructName = structToSearch['tags']['wraps']
-        typeSpecRetVal = {'owner':retOwner, 'fieldType':[wrappedStructName], 'arraySpec':None, 'argList':None}
+        typeSpecRetVal = {'owner':retOwner, 'fieldType':[wrappedStructName], 'arraySpec':None, 'paramList':None}
         if ownerMe: typeSpecRetVal['ownerMe'] = retOwner
         #print(typeSpecRetVal)
         return(typeSpecRetVal)
@@ -1116,7 +1100,7 @@ def isWrappedType(objMap, structname):
         return None
     if len(fieldListToSearch)>0:
         for field in fieldListToSearch:
-            if field['fieldName']==structname and getArgList(field)==None:
+            if field['fieldName']==structname and getParamList(field)==None:
                 return getTypeSpec(field)
     return None
 
@@ -1288,7 +1272,7 @@ def varsTypeCategory(tSpec):
     return innerTypeCategory(fType)
 
 def fieldsTypeCategory(tSpec):
-    if getArgList(tSpec)!=None: return 'func'
+    if getParamList(tSpec)!=None: return 'func'
     return varsTypeCategory(tSpec)
 
 def varTypeKeyWord(tSpec):
@@ -1489,12 +1473,12 @@ def dePythonStr(pyItem):
     if(parenPos>=0):
         itemName = S[:parenPos]
         itemName = itemName.replace(',','.')
-        paramList = S[parenPos+1:]
-        if len(paramList)>1 and paramList[0]==",": paramList = paramList[1:]
-       # paramList = paramList.replace(', ', '!')
-       # paramList = paramList.replace(',', '')
-        paramList = paramList.replace(',', ', ')
-        S = itemName[:-1] + '('+paramList+')'
+        argList = S[parenPos+1:]
+        if len(argList)>1 and argList[0]==",": argList = argList[1:]
+       # argList = argList.replace(', ', '!')
+       # argList = argList.replace(',', '')
+        argList = argList.replace(',', ', ')
+        S = itemName[:-1] + '('+argList+')'
     else:
         S=S.replace(',','.')
         S=S.replace('(','')
