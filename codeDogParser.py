@@ -189,8 +189,9 @@ cppType   = Keyword("void") | Keyword("bool") | Keyword("int32") | Keyword("int6
 HexNums   = Combine((Literal("0X") | Literal("0x")) + Word(hexnums))
 BinNums   = Combine((Literal("0B") | Literal("0b")) + Word("01"))
 intNum    = HexNums | BinNums | Word(nums)
-numRange  = Group(intNum + ".." + intNum)("numRange")
-varType   = classSpec | cppType | numRange
+numRangeOp = Literal("..=") | Literal("..")
+numRange  = Group(intNum + numRangeOp + intNum)("numRange")
+varType   = numRange | cppType | classSpec
 boolValue = Keyword("true") | Keyword("false")
 floatNum  = Combine(intNum + "." + intNum)("floatNum")
 value     = Forward()
@@ -519,6 +520,12 @@ def extractTypeArgList(typeArgList):
         localListStore.append(typeArg)
     return localListStore
 
+def _extractReqTagTypeKeyword(reqTag):
+    rawVarType = reqTag['varType'][0]
+    if isinstance(rawVarType, str):
+        return rawVarType
+    return rawVarType[0]
+
 nameIDX=1
 def packParamSpec(paramSpec, className, indent):
     """Convert parsed paramSpec into a packed *parameter* structure.
@@ -539,7 +546,7 @@ def packParamSpec(paramSpec, className, indent):
             reqTagList = fieldType['reqTagList']
             packedTArgList = []
             for reqTag in reqTagList[0]:
-                reqTagVarType = reqTag['varType'][0][0]
+                reqTagVarType = _extractReqTagTypeKeyword(reqTag)
                 reqTagOwner = 'me'
                 if 'owner' in reqTag:
                     reqTagOwner = reqTag['owner']
@@ -586,7 +593,7 @@ def packFieldDef(fieldResult, className, indent, comment=None):
                 reqTagList = fieldType['reqTagList']
                 packedTArgList = []
                 for reqTag in reqTagList[0]:
-                    reqTagVarType = reqTag['varType'][0][0]
+                    reqTagVarType = _extractReqTagTypeKeyword(reqTag)
                     reqTagOwner = 'me'
                     if 'owner' in reqTag: reqTagOwner = reqTag['owner']
                     packedReqTag={'tArgOwner': reqTagOwner, 'tArgType': reqTagVarType}

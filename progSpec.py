@@ -985,7 +985,7 @@ def fieldTypeKeyword(fType):
     if 'fieldType' in fType:                fType = fType['fieldType']  # if var fType is typeSpec
     if 'owner' in fType and fType['owner']=='PTR': return None
     if isinstance(fType, str):              return fType
-    if len(fType)>1 and fType[1]=='..': return 'int'
+    if len(fType)>1 and (fType[1]=='..' or fType[1]=='..='): return 'int'
     if('varType' in fType[0]):              fType = fType[0]['varType']
     if isinstance(fType[0], str):           return fType[0]
     if isinstance(fType[0][0], str):        return fType[0][0]
@@ -1187,7 +1187,7 @@ def isAbstractStruct(classes, className):
 def typeIsNumRange(fType):
     if isinstance(fType, str): return False
     if len(fType)==3:
-        if fType[1]=='..':
+        if fType[1]=='..' or fType[1]=='..=':
             return True
     return False
 
