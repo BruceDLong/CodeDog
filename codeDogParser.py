@@ -7,6 +7,8 @@ import re
 import progSpec
 from progSpec import cdlog, cdErr, logLvl
 from pyparsing import *
+from timeit import default_timer as timer
+
 ParserElement.enablePackrat()
 
 def _supports_ansi_color(stream):
@@ -28,6 +30,13 @@ def _red_caret():
     if _supports_ansi_color(sys.stderr):
         return "\x1b[1;91m^\x1b[0m"
     return "^"
+
+def _flag_enabled(value):
+    return str(value).strip().lower() in ("1", "true", "yes", "on")
+
+TRACE_PARSE_ALWAYS = _flag_enabled(os.environ.get("CODEDOG_TRACE_PARSE"))
+SAVE_ERRFILE_ALWAYS = _flag_enabled(os.environ.get("CODEDOG_SAVE_ERRFILE"))
+MACRO_CALL_NAME_PATTERN = re.compile(r'([A-Za-z_][A-Za-z0-9_]*)\s*\(')
 
 def install_furthest_path_tracer(root: ParserElement):
     stack = []  # frames: (expr_id, seq, label)
@@ -116,6 +125,10 @@ def install_furthest_path_tracer(root: ParserElement):
 
 
 commentsToActivate = {}
+ENABLE_BUILD_SPEC_LOGS = getattr(progSpec, "MaxLogLevelToShow", 1) >= 3
+ENABLE_OBJ_PARSE_LOGS = getattr(progSpec, "MaxLogLevelToShow", 1) >= 3
+ENABLE_FIELD_PARSE_LOGS = getattr(progSpec, "MaxLogLevelToShow", 1) >= 4
+
 def logBSL(s, loc, toks):
     cdlog(3,"Parsing Tags...")
 
@@ -148,7 +161,6 @@ reservedWordSet = set([
 ])
 
 # # # # # # # # # # # # #   BNF Parser Productions for CodeDog syntax   # # # # # # # # # # # # #
-ParserElement.enablePackrat()
 #######################################   T A G S   A N D   B U I L D - S P E C S
 docComment    = Group("/*^" + SkipTo("*/") + Suppress("*/") | "//^" + restOfLine)
 identifier    = Word(alphanums + "_") .add_condition(lambda tokens: tokens[0] not in reservedWordSet, message="Reserved keyword used as identifier")
@@ -331,11 +343,16 @@ macroDef     = Group(Keyword("#define") + CID('macroName') + Suppress("(") + Opt
 classList    = Group(ZeroOrMore(docComment | classDef | doPattern | macroDef))("classList")
 
 #########################################   P A R S E R   S T A R T   S Y M B O L
-progSpecParser = Group(Optional(buildSpecList.set_parse_action(logBSL)) + tagDefList.set_parse_action(logTags) + classList)("progSpecParser")
-libTagParser   = Group(Optional(buildSpecList.set_parse_action(logBSL)) + tagDefList.set_parse_action(logTags) + (modelTypes|Keyword("do")|Keyword("#define")|StringEnd()))("libTagParser")
+buildSpecListForParse = buildSpecList
+if ENABLE_BUILD_SPEC_LOGS:
+    buildSpecListForParse = buildSpecList.copy().set_parse_action(logBSL)
+progSpecParser = Group(Optional(buildSpecListForParse) + tagDefList.set_parse_action(logTags) + classList)("progSpecParser")
+libTagParser   = Group(Optional(buildSpecListForParse) + tagDefList.set_parse_action(logTags) + (modelTypes|Keyword("do")|Keyword("#define")|StringEnd()))("libTagParser")
 
-classDef.set_parse_action(logObj)
-fieldDef.set_parse_action(logFieldDef)
+if ENABLE_OBJ_PARSE_LOGS:
+    classDef.set_parse_action(logObj)
+if ENABLE_FIELD_PARSE_LOGS:
+    fieldDef.set_parse_action(logFieldDef)
 
 progSpecParser.setName("Proteus file")
 sequenceEl.setName("sequenceEl")
@@ -353,22 +370,91 @@ classDef.set_name("class definition")
 action.setName("action statement")
 nameAndVal.setName("variable or function declaration")
 
-#########################################   P A R S E R   S T A R T   S Y M B O L
-progSpecParser = Group(Optional(buildSpecList.set_parse_action(logBSL)) + tagDefList.set_parse_action(logTags) + classList)("progSpecParser")
-libTagParser   = Group(Optional(buildSpecList.set_parse_action(logBSL)) + tagDefList.set_parse_action(logTags) + (modelTypes|Keyword("do")|Keyword("#define")|StringEnd()))("libTagParser")
+################## parser metrics
+parseTime = 0
+macroSubTime = 0
+macroSubCalls = 0
+macroSubPasses = 0
+macroRegexCache = {}
+
+BUILTIN_MACROS = {
+    'BlowPOP': {'ArgList': ['dummyArg'], 'Body': 'dummyArg'},
+    'DESLASH': {'ArgList': ['dummyArg'], 'Body': 'dummyArg'},
+}
+
+def _saveErrFileMaybe(text):
+    if SAVE_ERRFILE_ALWAYS:
+        progSpec.saveTextToErrFile(text)
+
+def _find_macro_calls_outside_defines(text, candidateNames):
+    if not candidateNames:
+        return set()
+    candidateSet = set(candidateNames)
+    calledNames = set()
+    for line in text.splitlines():
+        if line.lstrip().startswith("#define"):
+            continue
+        for match in MACRO_CALL_NAME_PATTERN.finditer(line):
+            macroName = match.group(1)
+            if macroName in candidateSet:
+                calledNames.add(macroName)
+    return calledNames
+
+def _expand_macro_dependencies(seedNames, macroSpecMap):
+    macroNames = set(macroSpecMap.keys())
+    expandedNames = set(seedNames)
+    pendingNames = list(seedNames)
+    while pendingNames:
+        macroName = pendingNames.pop()
+        if macroName not in macroNames:
+            continue
+        macroBody = macroSpecMap[macroName]['Body']
+        for match in MACRO_CALL_NAME_PATTERN.finditer(macroBody):
+            depName = match.group(1)
+            if depName in macroNames and depName not in expandedNames:
+                expandedNames.add(depName)
+                pendingNames.append(depName)
+    return expandedNames
+
+def _build_traced_prog_parser():
+    buildSpecForTrace = buildSpecList
+    if ENABLE_BUILD_SPEC_LOGS:
+        buildSpecForTrace = buildSpecList.copy().setParseAction(logBSL)
+    tracedParser = Group(
+        Optional(buildSpecForTrace) + tagDefList.setParseAction(logTags) + classList
+    )("progSpecParser").setName("Proteus file")
+    return tracedParser, install_furthest_path_tracer(tracedParser)
 
 # # # # # # # # # # # # #   E x t r a c t   P a r s e   R e s u l t s   # # # # # # # # # # # # #
 def parseInput(inputStr):
+    global parseTime
     cdlog(2, "Parsing build-specs...")
-    progSpec.saveTextToErrFile(inputStr)
+    _saveErrFileMaybe(inputStr)
+    startTime = timer()
+    get_best = None
+    localResults = None
     try:
-        localResults = progSpecParser.parseString(inputStr, parseAll=True)
-        progSpecParser2 = Group(Optional(buildSpecList.setParseAction(logBSL)) + tagDefList.setParseAction(logTags) + classList)("progSpecParser").setName("Proteus file")
-        get_best = install_furthest_path_tracer(progSpecParser2) # install to track parse path
-        localResults = progSpecParser2.parseString(inputStr, parseAll=True)
+        if TRACE_PARSE_ALWAYS:
+            tracedParser, get_best = _build_traced_prog_parser()
+            localResults = tracedParser.parseString(inputStr, parseAll=True)
+        else:
+            localResults = progSpecParser.parseString(inputStr, parseAll=True)
+        parseTime += timer()-startTime
+        #print("P_TIME-a:",parseTime)
     except ParseBaseException as pe:
+        parseTime += timer()-startTime
+        best = {"stack": [], "exc": pe}
+        if TRACE_PARSE_ALWAYS and get_best is not None:
+            best = get_best()
+        else:
+            tracedParser, trace_get_best = _build_traced_prog_parser()
+            try:
+                tracedParser.parseString(inputStr, parseAll=True)
+            except ParseBaseException:
+                pass
+            best = trace_get_best()
+
         # Trace the furthest failure
-        best = get_best()
         # prefer the tracer’s exception if it captured something more specific
         b_exc = best["exc"] if best["exc"] else pe
 
@@ -389,7 +475,7 @@ def parseInput(inputStr):
             + b_exc.msg + ", found "+ (repr(b_exc.found) if hasattr(b_exc, "found") else "end of input")
             + '    (at line:' + str(getattr(b_exc, "lineno", 1)) + ', col:' + str(getattr(b_exc, "column", 1)) + ')'
         )
-
+        progSpec.saveTextToErrFile(inputStr)
         cdErr( "While parsing:\n{}".format( errExplaination), False)
     return localResults
 
@@ -892,10 +978,14 @@ def extractMacroSpec(macroDefs, spec, comments):
     macroDefs[MacroName] = {'ArgList':MacroArgs,  'Body':MacroBody}
 
 def extractMacroDefs(macroDefMap, inputString):
+    global parseTime
     macroDefs = re.findall('#define.*%>', inputString)
     for macroStr in macroDefs:
         try:
+            startTime = timer()
             localResults = macroDef.parseString(macroStr, parseAll = True)
+            parseTime += timer()-startTime
+            #print("P_TIME-b:",parseTime, "   MACRO:",macroStr)
         except ParseException as pe:
             cdErr("Error Extracting Macro: {} In: {}".format(pe, macroStr))
             exit(1)
@@ -941,47 +1031,71 @@ def findMacroEnd(inputString, StartPosOfParens):
     return -1
 
 def doMacroSubstitutions(macros, inputString):
-    macros['BlowPOP'] = {'ArgList':['dummyArg'],  'Body':'dummyArg'}
-    macros['DESLASH'] = {'ArgList':['dummyArg'],  'Body':'dummyArg'}
+    global macroSubTime, macroSubCalls, macroSubPasses, macroRegexCache
+    macroSubCalls += 1
+    activeMacroSpecs = dict(macros)
+    activeMacroSpecs.update(BUILTIN_MACROS)
+    seedMacroNames = _find_macro_calls_outside_defines(inputString, activeMacroSpecs.keys())
+    if not seedMacroNames:
+        return inputString
+
+    startTime = timer()
+    macroNames = sorted(_expand_macro_dependencies(seedMacroNames, activeMacroSpecs), key=len, reverse=True)
+    patternKey = tuple(macroNames)
+    if patternKey in macroRegexCache:
+        macroRefPattern = macroRegexCache[patternKey]
+    else:
+        macroRefPattern = re.compile(
+            r'(?<!#define)([^a-zA-Z0-9_]+)(' + "|".join(re.escape(name) for name in macroNames) + r')(\s*)\('
+        )
+        macroRegexCache[patternKey] = macroRefPattern
+
     subsWereMade=True
     while(subsWereMade ==True):
+        macroSubPasses += 1
         subsWereMade=False
-        for thisMacro in macros:
-            macRefPattern=re.compile(r'(?<!#define)([^a-zA-Z0-9_]+)('+thisMacro+')(\s*)\(([^)]*)\)')
-            #print("MACRO NAME:", thisMacro)
-            newString=''
-            currentPos=0
-            for match in macRefPattern.finditer(inputString):
-                #print("     %s: %s %s" % (match.start(), match.group(1), match.group(2)))
-                newText=macros[thisMacro]['Body']
-                #print("     START TEXT:", newText)
-                StartPosOfParens = match.start()+len(match.group(1)) + len(match.group(2)) + len(match.group(3))
-                EndPos=findMacroEnd(inputString, StartPosOfParens)
-                if EndPos==-1: print("\nERROR: Parentheses problem in macro", thisMacro, "\n"); exit(2);
-                paramStr=inputString[StartPosOfParens+1 : EndPos-1] #match.group(4)
-                params=paramStr.split(',')
-                #print('     PARAMS:', params)
-                idx=0;
-                numMacroArgs = len(macros[thisMacro]['ArgList'])
-                if((numMacroArgs>0 and numMacroArgs != len(params)) or (numMacroArgs==0 and len(params)!=1)):
-                    cdErr("The macro {} has {} parameters, but is called with {}.".format(thisMacro, len(macros[thisMacro]['ArgList']), len(params)))
-                for arg in macros[thisMacro]['ArgList']:
-                    #print("   SUBS:", arg, ', ', params[idx], ', ', thisMacro)
-                    replacement=params[idx]
-                    if thisMacro=='BlowPOP':
-                        replacement=BlowPOPMacro(replacement)
-                    elif thisMacro=='DESLASH':
-                        replacement=deSlashMacro(replacement)
-                    newText=newText.replace(arg, replacement)
-                    idx+=1
-                #print("     NEW TEXT:", newText)
-                newString += inputString[currentPos:match.start()+len(match.group(1))]+ newText
-                currentPos=EndPos
-                subsWereMade=True
+        newString=''
+        currentPos=0
+        for match in macroRefPattern.finditer(inputString):
+            macroStart = match.start()+len(match.group(1))
+            if macroStart < currentPos:
+                continue
+            thisMacro = match.group(2)
+            macroSpec = activeMacroSpecs[thisMacro]
+            #print("     %s: %s %s" % (match.start(), match.group(1), match.group(2)))
+            newText=macroSpec['Body']
+            #print("     START TEXT:", newText)
+            StartPosOfParens = match.end()-1
+            EndPos=findMacroEnd(inputString, StartPosOfParens)
+            if EndPos==-1: print("\nERROR: Parentheses problem in macro", thisMacro, "\n"); exit(2);
+            paramStr=inputString[StartPosOfParens+1 : EndPos-1]
+            params=paramStr.split(',')
+            #print('     PARAMS:', params)
+            idx=0;
+            numMacroArgs = len(macroSpec['ArgList'])
+            if((numMacroArgs>0 and numMacroArgs != len(params)) or (numMacroArgs==0 and len(params)!=1)):
+                cdErr("The macro {} has {} parameters, but is called with {}.".format(thisMacro, len(macroSpec['ArgList']), len(params)))
+            for arg in macroSpec['ArgList']:
+                #print("   SUBS:", arg, ', ', params[idx], ', ', thisMacro)
+                replacement=params[idx]
+                if thisMacro=='BlowPOP':
+                    replacement=BlowPOPMacro(replacement)
+                elif thisMacro=='DESLASH':
+                    replacement=deSlashMacro(replacement)
+                newText=newText.replace(arg, replacement)
+                idx+=1
+            #print("     NEW TEXT:", newText)
+            newString += inputString[currentPos:macroStart]+ newText
+            currentPos=EndPos
+            subsWereMade=True
+        if subsWereMade:
             newString+=inputString[currentPos:]
             inputString=newString
     #print("     RETURN STRING:[", inputString, ']')
     # Last, replace the text into inputString
+    elapsed = timer()-startTime
+    macroSubTime += elapsed
+    if elapsed>1: print("MACRO_TIME:", elapsed)
     return inputString
 
 def extractObjectsOrPatterns(ProgSpec, clsNames, macroDefs, objectSpecResults,description):
@@ -1072,15 +1186,20 @@ def comment_remover(textIn):
     return(text)
 
 def parseCodeDogLibTags(inputString):
+    global parseTime
     tmpMacroDefs={}
     inputString = comment_remover(inputString)
     extractMacroDefs(tmpMacroDefs, inputString)
-    inputString = doMacroSubstitutions(tmpMacroDefs, inputString)
+    #inputString = doMacroSubstitutions(tmpMacroDefs, inputString)
 
-    progSpec.saveTextToErrFile(inputString)
+    _saveErrFileMaybe(inputString)
     try:
+        startTime = timer()
         localResults = libTagParser.parseString(inputString, parseAll = False)
+        parseTime += timer()-startTime
+        #print("P_TIME-c:",parseTime)
     except ParseException as pe:
+        progSpec.saveTextToErrFile(inputString)
         cdErr( "While parsing lib tags: {}".format( pe))
 
     tagStore = extractTagDefs(localResults.libTagParser.tagDefList)
@@ -1102,15 +1221,20 @@ def parseCodeDogString(inputString, ProgSpec, clsNames, macroDefs, description):
     return[tagStore, buildSpecs, classes, newClassNames]
 
 def AddToObjectFromText(ProgSpec, clsNames, inputStr, description):
+    global parseTime
     macroDefs = {} # This var is not used here. If needed, make it an argument.
     inputStr = comment_remover(inputStr)
     #print('####################\n',inputStr, "\n######################^\n\n\n")
     errLevl=logLvl(); cdlog(errLevl, 'Parsing: '+description)
-    progSpec.saveTextToErrFile(inputStr)
+    _saveErrFileMaybe(inputStr)
     # (map of classes, array of objectNames, string to parse)
     try:
+        startTime = timer()
         results = classList.parseString(inputStr, parseAll = True)
+        parseTime += timer()-startTime
+        #print("P_TIME-d:",parseTime)
     except ParseException as pe:
+        progSpec.saveTextToErrFile(inputStr)
         cdErr("Error parsing generated class {}: {}".format(description, pe))
     cdlog(errLevl, 'Completed parsing: '+description)
     extractObjectsOrPatterns(ProgSpec, clsNames, macroDefs, results[0], description)

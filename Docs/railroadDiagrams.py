@@ -92,3 +92,74 @@ writeDiagram("NameAndValue", Diagram(
        )
    )
 )
+
+# -------------------------
+# withEach (single diagram)
+# -------------------------
+writeDiagram("withEach", Diagram(
+  Sequence(
+    'withEach',
+
+    Group(Sequence(
+        Choice(0,
+            # tuple binding: (k, v)
+            Group(Sequence('(', NonTerminal('identifier'), ',', NonTerminal('identifier'), ')'), '(key, value) binding'),
+            # single binding: [axis] name
+            Group(Sequence(Optional(NonTerminal('loopBindMode')), NonTerminal('identifier')), 'single binding'),
+        )
+    ), "Binding"),
+
+    Group(Sequence(
+        Choice(0,
+            # numeric range source: in range: A..B / A..=B
+            Group(Sequence('in', 'range', ':', NonTerminal('rangeSpec')), 'numeric range source'),
+
+            # traversal source: in <container> [mode] [rangeClause]
+            Group(Sequence(
+                'in',
+                NonTerminal('Expression'),                    # container
+                Optional(NonTerminal('traversalMode')),       # Forward/Backward/etc
+                Optional(NonTerminal('rangeClause')),         # keys:/index:/iters: + rangeSpec
+            ), "container traversal source"),
+
+            # file source: FILE(expr)
+            Group(Sequence('FILE', '(', NonTerminal('Expression'), ')'), 'file source'),
+        )
+    ), "Source"),
+
+    Group(Sequence(
+        Optional(Sequence('skip', NonTerminal('Expression'))),
+        Optional(Sequence('take', NonTerminal('Expression'))),
+        Optional(Sequence('where', '(', NonTerminal('Expression'), ')')),
+        Optional(Sequence('until', '(', NonTerminal('Expression'), ')')),
+    ), "Modifiers"),
+
+    Group(NonTerminal('actionSeq'), "Body"),
+  )
+))
+
+# Optional: keep these if you want them referenced as NonTerminal(...) items above
+writeDiagram("loopBindMode", Diagram(
+    Choice(0, 'key', 'value', 'entry', 'index', 'iter')
+))
+
+writeDiagram("traversalMode", Diagram(
+    Choice(0, 'Forward', 'Backward', 'Preorder', 'Inorder', 'Postorder', 'BreadthFirst', 'DF_Iterative')
+))
+
+writeDiagram("rangeClause", Diagram(
+    Sequence(
+        Choice(0, 'keys', 'index', 'iters'),
+        ':',
+        NonTerminal('rangeSpec')
+    )
+))
+
+writeDiagram("rangeSpec", Diagram(
+    Sequence(
+        Optional(NonTerminal('Expression')),
+        Choice(0, '..', '..='),
+        Optional(NonTerminal('Expression')),
+    )
+))
+

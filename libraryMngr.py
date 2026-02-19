@@ -12,7 +12,6 @@ from progSpec import cdlog, cdErr
 
 from pyparsing import ParseResults
 
-
 libPaths = []
 featuresHandled = []
 tagsFromLibFiles = {}
@@ -286,7 +285,10 @@ def ChooseLibs(classes, buildTags, tags):
     featuresNeeded = progSpec.fetchTagValue([tags], 'featuresNeeded')
     initialNeeds1 = []
     for feature in featuresNeeded:
-        featuresNeeded.extend(fetchFeaturesNeededByLibrary(feature))
+        newFeatures = fetchFeaturesNeededByLibrary(feature)
+        for newFeature in newFeatures:
+            if not (newFeature in featuresNeeded):
+                featuresNeeded.append(newFeature)
         if not feature in initialNeeds1: initialNeeds1.append(feature)
 
     initialNeeds2 =[]

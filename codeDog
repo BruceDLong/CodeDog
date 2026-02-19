@@ -55,18 +55,20 @@ if sys.version_info.major < 3 or (sys.version_info.major == 3 and  sys.version_i
 
 codeDogVersion = '2.0'
 
-if(len(sys.argv) < 2):
+runArgs = sys.argv[1:]
+
+if(len(runArgs) < 1):
     print("\n    usage: codeDog [-v] filename\n")
     exit(1)
-arg1 = sys.argv[1]
+arg1 = runArgs[0]
 if arg1=="-v" or arg1=='--version':
     print("\n    CodeDog application compiler version "+ codeDogVersion+"\n")
     exit(1)
 if arg1=="-b" or arg1=='--build':
     name = ''
-    lastArg=2
-    if(len(sys.argv) >2 and sys.argv[2][0]!='-'): name = sys.argv[2]; lastArg=3
-    buildDog.buildWithScons(name, sys.argv[lastArg:])
+    lastArg=1
+    if(len(runArgs) >1 and runArgs[1][0]!='-'): name = runArgs[1]; lastArg=2
+    buildDog.buildWithScons(name, runArgs[lastArg:])
     exit(1)
 if arg1[0]=='-':
     print("Unsupported argument:", arg1)
@@ -93,7 +95,7 @@ def GenerateProgram(classes, buildTags, tagsList, libsToUse):
     codeGenerator.xlator = xlator
     result=codeGenerator.generate(classes, tagsList, libsToUse, langName)
     return result
-
+from timeit import default_timer as timer
 def GenerateSystem(classes, buildSpecs, tags, macroDefs):
     cdlog(0, "\n######################   G E N E R A T I N G   P R O G R A M   S P E C I F I C A T I O N")
     count=0
@@ -113,7 +115,10 @@ def GenerateSystem(classes, buildSpecs, tags, macroDefs):
             tagsList=[tags, buildTags]
         #print("BUILDTAGS:", buildTags)
         cdlog(0, "\n######################   G E N E R A T I N G   S O U R C E   C O D E   S Y S T E M   {}   o f   {}...   ({})".format(count, len(buildSpecs), buildName))
+        startTime = timer()
         libsToUse=libraryMngr.ChooseLibs(classes, buildTags, tags)
+        chooseLibsTime = timer()-startTime
+        print("Time Elapsed:", chooseLibsTime)
         fileSpecs = GenerateProgram(classes, buildTags, tagsList, libsToUse)
         print("Marker: Code Gen Successful")
 

@@ -2249,12 +2249,18 @@ class CodeGenerator(object):
     def connectLibraries(self, tags, libsToUse):
         headerStr = ''
         tagsFromLibFiles = libraryMngr.getTagsFromLibFiles()
+        threads = []
         for libFilename in libsToUse:
             cdlog(1, 'ATTACHING LIBRARY: '+str(libFilename))
             [headerStrOut, headerTopStr] = self.integrateLibrary(tags, tagsFromLibFiles, libFilename)
             headerStr = headerTopStr + headerStr + headerStrOut
             macroDefs= {}
             [tagStore, buildSpecs, FileClasses, newClasses] = self.loadProgSpecFromDogFile(libFilename, self.classStore[0], self.classStore[1], tags[0], macroDefs)
+            # ~ thread = threading.Thread(target=self.loadProgSpecFromDogFile, args=(libFilename, self.classStore[0], self.classStore[1], tags[0], macroDefs))
+            # ~ thread.start()
+            # ~ threads.append(thread)
+        # ~ for thread in threads:
+            # ~ thread.join()
         return headerStr
 
     def convertTemplateClasses(self, tags):
