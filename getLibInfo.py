@@ -91,8 +91,8 @@ def loadLibrary(filename):
     global classNames
     global fileClasses
     codeDogStr = progSpec.stringFromFile(filename)
-    codeDogStr = libraryMngr.processIncludedFiles(codeDogStr, filename)
-    [tagStore, buildSpecs, fileClasses, newClasses] = codeDogParser.parseCodeDogString(codeDogStr, fileClasses[0], fileClasses[1], {}, filename)
+    codeDogStr, sourceLineMap = libraryMngr.processIncludedFilesWithMap(codeDogStr, filename)
+    [tagStore, buildSpecs, fileClasses, newClasses] = codeDogParser.parseCodeDogString(codeDogStr, fileClasses[0], fileClasses[1], {}, filename, sourceLineMap)
     return [fileClasses, newClasses]
 
 def analyzeLibByName(filename):
@@ -103,4 +103,3 @@ def analyzeLibByName(filename):
 #filename = "LIBS/"+arg1+".Lib.dog"
 filename = arg1
 analyzeLibByName(filename)
-

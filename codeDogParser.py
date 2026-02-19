@@ -426,7 +426,7 @@ def _build_traced_prog_parser():
     return tracedParser, install_furthest_path_tracer(tracedParser)
 
 # # # # # # # # # # # # #   E x t r a c t   P a r s e   R e s u l t s   # # # # # # # # # # # # #
-def parseInput(inputStr):
+def parseInput(inputStr, sourceLineMap=None):
     global parseTime
     cdlog(2, "Parsing build-specs...")
     _saveErrFileMaybe(inputStr)
@@ -465,7 +465,12 @@ def parseInput(inputStr):
             if n == prevItem: continue
             prevItem = n
             errExplaination += "  - {}\n".format(n)
+        lineNum = int(getattr(b_exc, "lineno", 1) or 1)
         pointerCol = max(1, int(getattr(b_exc, "column", 1) or 1))
+        sourceLoc = progSpec.formatResolvedSourceLocation(sourceLineMap, lineNum, pointerCol)
+        locationText = '    (at line:' + str(lineNum) + ', col:' + str(pointerCol) + ')'
+        if sourceLoc != "":
+            locationText += '  (source: ' + sourceLoc + ')'
         errExplaination += "\n{}".format(
             str(b_exc.line)
             + "\n"
@@ -473,9 +478,10 @@ def parseInput(inputStr):
             + _red_caret()
             + "\n"
             + b_exc.msg + ", found "+ (repr(b_exc.found) if hasattr(b_exc, "found") else "end of input")
-            + '    (at line:' + str(getattr(b_exc, "lineno", 1)) + ', col:' + str(getattr(b_exc, "column", 1)) + ')'
+            + locationText
         )
-        progSpec.saveTextToErrFile(inputStr)
+        if SAVE_ERRFILE_ALWAYS or progSpec.shouldWriteErrFileForVirtualLine(sourceLineMap, lineNum):
+            progSpec.saveTextToErrFile(inputStr)
         cdErr( "While parsing:\n{}".format( errExplaination), False)
     return localResults
 
@@ -1185,7 +1191,7 @@ def comment_remover(textIn):
         idx += 1
     return(text)
 
-def parseCodeDogLibTags(inputString):
+def parseCodeDogLibTags(inputString, sourceLineMap=None):
     global parseTime
     tmpMacroDefs={}
     inputString = comment_remover(inputString)
@@ -1199,20 +1205,30 @@ def parseCodeDogLibTags(inputString):
         parseTime += timer()-startTime
         #print("P_TIME-c:",parseTime)
     except ParseException as pe:
-        progSpec.saveTextToErrFile(inputString)
-        cdErr( "While parsing lib tags: {}".format( pe))
+        lineNum = int(getattr(pe, "lineno", 1) or 1)
+        colNum = max(1, int(getattr(pe, "column", 1) or 1))
+        sourceLoc = progSpec.formatResolvedSourceLocation(sourceLineMap, lineNum, colNum)
+        if SAVE_ERRFILE_ALWAYS or progSpec.shouldWriteErrFileForVirtualLine(sourceLineMap, lineNum):
+            progSpec.saveTextToErrFile(inputString)
+        errMsg = "While parsing lib tags: {}".format(pe)
+        if sourceLoc != "":
+            errMsg += " [source: {}]".format(sourceLoc)
+        cdErr(errMsg)
 
     tagStore = extractTagDefs(localResults.libTagParser.tagDefList)
     return tagStore
 
-def parseCodeDogString(inputString, ProgSpec, clsNames, macroDefs, description):
+def parseCodeDogString(inputString, ProgSpec, clsNames, macroDefs, description, sourceLineMap=None):
     tmpMacroDefs={}
     inputString = comment_remover(inputString)
+    newLineCountBeforeMacros = inputString.count("\n")
     extractMacroDefs(tmpMacroDefs, inputString)
     inputString = doMacroSubstitutions(tmpMacroDefs, inputString)
+    if sourceLineMap != None and inputString.count("\n") != newLineCountBeforeMacros:
+        sourceLineMap = None
     LogLvl=logLvl()
     cdlog(LogLvl, "PARSING: "+description+"...")
-    results = parseInput(inputString)
+    results = parseInput(inputString, sourceLineMap)
     cdlog(LogLvl, "EXTRACTING: "+description+"...")
     tagStore = extractTagDefs(results.progSpecParser.tagDefList)
     buildSpecs = extractBuildSpecs(results.progSpecParser.buildSpecList)

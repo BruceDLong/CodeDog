@@ -15,7 +15,6 @@ from pyparsing import ParseResults
 libPaths = []
 featuresHandled = []
 tagsFromLibFiles = {}
-currentFilesPath = ""
 childLibList = []
 '''
 T h e   b e s t   l i b r a r y   c h o i c e s   f o r   y o u r   p r o g r a m
@@ -100,35 +99,110 @@ def findLibraryChildren(libID):
                 libs.append(item)
     return libs
 
-def replaceFileName(fileMatch):
-    global currentFilesPath
-    fileName = fileMatch.group(1)
-    currentWD = os.getcwd()
-    pathName = abspath(currentWD) +"/"+fileName
-    if not os.path.isfile(pathName):
-        dirname, filename = os.path.split(abspath(getsourcefile(lambda:0)))
-        pathName = dirname +"/"+fileName
-        if not os.path.isfile(pathName):
-            pathName = currentFilesPath +"/"+fileName
-            if not os.path.isfile(pathName):
-                cdErr("Cannot find include file '"+fileName+"'")
+INCLUDE_PATTERN = re.compile(r'#include +([\w -\.\/\\]+)')
 
-    includedStr = progSpec.stringFromFile(pathName)
-    includedStr = processIncludedFiles(includedStr, pathName)
-    return includedStr
+def _resolveIncludePath(fileName, currentFilePath):
+    currentWD = os.getcwd()
+    lookupPaths = [
+        abspath(currentWD) + "/" + fileName,
+        os.path.dirname(abspath(getsourcefile(lambda:0))) + "/" + fileName,
+        os.path.dirname(abspath(currentFilePath)) + "/" + fileName,
+    ]
+    for pathName in lookupPaths:
+        if os.path.isfile(pathName):
+            return abspath(pathName)
+    cdErr("Cannot find include file '"+fileName+"'")
+
+def _makeLineOrigin(fileName, lineNum, includeChain):
+    return {
+        "fileName": abspath(fileName),
+        "lineNum": lineNum,
+        "includeChain": includeChain[:],
+    }
+
+def _appendChunkWithOrigin(state, textChunk, origin):
+    if textChunk == "":
+        return
+    state["chunks"].append(textChunk)
+    for char in textChunk:
+        if state["openLineOrigin"] is None:
+            state["openLineOrigin"] = origin
+        if char == "\n":
+            state["lineMap"].append(state["openLineOrigin"])
+            state["openLineOrigin"] = None
+
+def _appendSourceSegment(state, segmentText, sourceFileName, sourceLineNum, includeChain):
+    if segmentText == "":
+        return
+    lineNum = sourceLineNum
+    for sourceLine in segmentText.splitlines(keepends=True):
+        _appendChunkWithOrigin(state, sourceLine, _makeLineOrigin(sourceFileName, lineNum, includeChain))
+        if sourceLine.endswith("\n"):
+            lineNum += 1
+
+def _appendMappedSegment(state, segmentText, segmentLineMap):
+    if segmentText == "":
+        return
+    segmentLines = segmentText.splitlines(keepends=True)
+    if len(segmentLines) != len(segmentLineMap):
+        if len(segmentLineMap) == 0:
+            for segmentLine in segmentLines:
+                _appendChunkWithOrigin(state, segmentLine, {})
+            return
+        maxIdx = len(segmentLineMap) - 1
+        for idx, segmentLine in enumerate(segmentLines):
+            mapIdx = idx if idx <= maxIdx else maxIdx
+            _appendChunkWithOrigin(state, segmentLine, segmentLineMap[mapIdx])
+        return
+    for idx, segmentLine in enumerate(segmentLines):
+        _appendChunkWithOrigin(state, segmentLine, segmentLineMap[idx])
+
+def _processIncludedFilesWithMap(fileString, fileName, includeChain):
+    state = {
+        "chunks": [],
+        "lineMap": [],
+        "openLineOrigin": None,
+    }
+    sourceLineNum = 1
+    cursor = 0
+    for fileMatch in INCLUDE_PATTERN.finditer(fileString):
+        sourceSegment = fileString[cursor:fileMatch.start()]
+        _appendSourceSegment(state, sourceSegment, fileName, sourceLineNum, includeChain)
+        sourceLineNum += fileString[cursor:fileMatch.end()].count("\n")
+        cursor = fileMatch.end()
+
+        includeFileName = fileMatch.group(1)
+        includePath = _resolveIncludePath(includeFileName, fileName)
+        if includePath in includeChain:
+            includeTrace = " -> ".join(includeChain + [includePath])
+            cdErr("Circular #include detected: " + includeTrace)
+
+        includedStr = progSpec.stringFromFile(includePath)
+        includedStr, includedLineMap = _processIncludedFilesWithMap(includedStr, includePath, includeChain + [includePath])
+        _appendMappedSegment(state, includedStr, includedLineMap)
+
+    trailingSegment = fileString[cursor:]
+    _appendSourceSegment(state, trailingSegment, fileName, sourceLineNum, includeChain)
+    if state["openLineOrigin"] is not None:
+        state["lineMap"].append(state["openLineOrigin"])
+    return "".join(state["chunks"]), state["lineMap"]
+
+def processIncludedFilesWithMap(fileString, fileName):
+    rootFileName = abspath(fileName)
+    processedStr, lineMap = _processIncludedFilesWithMap(fileString, rootFileName, [rootFileName])
+    if len(lineMap) == 0:
+        lineMap = [_makeLineOrigin(rootFileName, 1, [rootFileName])]
+    return processedStr, lineMap
 
 def processIncludedFiles(fileString, fileName):
-    global currentFilesPath
-    dirname, filename = os.path.split(abspath(fileName))
-    currentFilesPath = dirname
-    pattern = re.compile(r'#include +([\w -\.\/\\]+)')
-    return pattern.sub(replaceFileName, fileString)
+    processedStr, _ = processIncludedFilesWithMap(fileString, fileName)
+    return processedStr
 
 def loadTagsFromFile(fileName):
     codeDogStr = progSpec.stringFromFile(fileName)
-    codeDogStr = processIncludedFiles(codeDogStr, fileName)
+    codeDogStr, sourceLineMap = processIncludedFilesWithMap(codeDogStr, fileName)
     cdlog(2, "Parsing file: "+str(fileName))
-    return codeDogParser.parseCodeDogLibTags(codeDogStr)
+    return codeDogParser.parseCodeDogLibTags(codeDogStr, sourceLineMap)
 
 def filterReqTags(ReqTags):
     '''Change requirement tags from a list containing one parseResult element

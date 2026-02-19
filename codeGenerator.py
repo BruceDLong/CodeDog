@@ -2492,8 +2492,8 @@ class CodeGenerator(object):
 
     def loadProgSpecFromDogFile(self, filename, ProgSpec, objNames, topLvlTags, macroDefs):
         codeDogStr = progSpec.stringFromFile(filename)
-        codeDogStr = libraryMngr.processIncludedFiles(codeDogStr, filename)
-        [tagStore, buildSpecs, fileClasses, newClassNames] = codeDogParser.parseCodeDogString(codeDogStr, ProgSpec, objNames, macroDefs, filename)
+        codeDogStr, sourceLineMap = libraryMngr.processIncludedFilesWithMap(codeDogStr, filename)
+        [tagStore, buildSpecs, fileClasses, newClassNames] = codeDogParser.parseCodeDogString(codeDogStr, ProgSpec, objNames, macroDefs, filename, sourceLineMap)
         self.GroomTags(tagStore)
         self.extractNestedClasses(fileClasses, newClassNames)
         self.ScanAndEnquePatterns(fileClasses, topLvlTags, tagStore)

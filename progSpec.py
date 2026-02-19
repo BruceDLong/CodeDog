@@ -1449,6 +1449,44 @@ def getContainerCapabilities(classes, ctnrTSpec):
 
     return caps
 
+def resolveVirtualLineToSource(sourceLineMap, virtualLineNum):
+    if not sourceLineMap:
+        return None
+    if virtualLineNum == None:
+        return None
+    try:
+        idx = int(virtualLineNum) - 1
+    except Exception:
+        return None
+    if idx == len(sourceLineMap) and len(sourceLineMap) > 0:
+        idx = len(sourceLineMap) - 1
+    if idx < 0 or idx >= len(sourceLineMap):
+        return None
+    lineOrigin = sourceLineMap[idx]
+    if not isinstance(lineOrigin, dict):
+        return None
+    fileName = lineOrigin.get("fileName", None)
+    lineNum = lineOrigin.get("lineNum", None)
+    if fileName == None or lineNum == None:
+        return None
+    includeChain = lineOrigin.get("includeChain", [])
+    return {"fileName": fileName, "lineNum": lineNum, "includeChain": includeChain}
+
+def formatResolvedSourceLocation(sourceLineMap, virtualLineNum, virtualColNum=None):
+    sourceLoc = resolveVirtualLineToSource(sourceLineMap, virtualLineNum)
+    if sourceLoc == None:
+        return ""
+    location = sourceLoc["fileName"] + ":" + str(sourceLoc["lineNum"])
+    if virtualColNum != None:
+        location += ":" + str(virtualColNum)
+    includeChain = sourceLoc.get("includeChain", [])
+    if len(includeChain) > 1:
+        location += " [include chain: " + " -> ".join(includeChain) + "]"
+    return location
+
+def shouldWriteErrFileForVirtualLine(sourceLineMap, virtualLineNum):
+    return resolveVirtualLineToSource(sourceLineMap, virtualLineNum) == None
+
 #############################################################  Logging functions
 lastLogMesgs=['','','','','','','','','','']
 highestLvl=0;
