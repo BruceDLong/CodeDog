@@ -184,6 +184,7 @@ expr      = Forward()
 CID       = identifier("CID")
 CIDList   = Group(delimitedList(CID, ','))("CIDList")
 className = CID("className")
+typeClassName = Combine(CID + ZeroOrMore(Literal(".") + CID))("className")
 classSpec = Forward()
 cppType   = Keyword("void") | Keyword("bool") | Keyword("int32") | Keyword("int64") | Keyword("double") | Keyword("char") | Keyword("uint32") | Keyword("uint64") | Keyword("string") | Keyword("int")
 HexNums   = Combine((Literal("0X") | Literal("0x")) + Word(hexnums))
@@ -206,14 +207,24 @@ varSpec     = Group(Optional(owners)("owner") + varType("varType") )("varSpec")
 varSpecList = Group(Optional(delimitedList(varSpec, ',')))("varSpecList")
 typeArgList = Group(Literal("<") + CIDList + Literal(">"))("typeArgList")
 reqTagList  = Group(Suppress(Literal("<")) + varSpecList + Optional(Literal(":")("optionalTag") + tagDefList) + Suppress(Literal(">")))("reqTagList")
-classSpec <<= Group(className + Optional(reqTagList('reqTagList')))("classSpec")
+classSpec <<= Group(typeClassName + Optional(reqTagList('reqTagList')))("classSpec")
 classDefID  = Group(className + Optional(typeArgList))("classDefID")
 arrayRef    = Group('[' + expr('startOffset') + Optional(( ':' + expr('endOffset')) | ('..' + expr('itemLength'))) + ']')
 firstRefSeg = NotAny(owners) + Group((CID | arrayRef) + Optional(arguments))
 secondRefSeg= Group((Suppress('.') + CID | arrayRef) + Optional(arguments))
 varRef = Group(firstRefSeg + ZeroOrMore(secondRefSeg))
 lValue = varRef("lValue")
-factor = Group( value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varRef("varFuncRef"))
+incDecPrefixExpr  = Group((Literal("++") | Literal("--"))("incDecOp") + varRef("incDecTarget"))("incDecPrefixExpr")
+incDecPostfixExpr = Group(varRef("incDecTarget") + (Literal("++") | Literal("--"))("incDecOp"))("incDecPostfixExpr")
+factor = Group(
+    value
+    | ('(' + expr + ')')
+    | ('!' + expr)
+    | incDecPrefixExpr
+    | ('-' + expr)
+    | incDecPostfixExpr
+    | varRef("varFuncRef")
+)
 term   = Group( factor + Optional(Group(OneOrMore(Group(oneOf('* / %') + factor )))))
 plus   = Group( term  + Optional(Group(OneOrMore(Group(oneOf('+ -') + term )))))
 comparison = Group( plus + Optional(Group(OneOrMore(Group(oneOf('< > <= >=') + ~FollowedBy("-") + plus )))))
@@ -229,6 +240,9 @@ swap   = Group(lValue + Literal("<->")("swapID") + lValue ("RightLValue"))("swap
 rValue = Group(expr)("rValue")
 rValueVerbatim = Group("<%" + SkipTo("%>", include=True))("rValueVerbatim")
 assign = lValue + Combine("<" + (Optional((Word(alphanums + '_') | '+' | ('-' + FollowedBy("-")) | '*' | '/' | '%' | '<<' | '>>' | '&' | '^' | '|')("assignTag"))) + "-")("assignID") + rValue
+incDecPrefix  = Group((Literal("++") | Literal("--"))("op") + lValue("target"))("incDecPrefix")
+incDecPostfix = Group(lValue("target") + (Literal("++") | Literal("--"))("op"))("incDecPostfix")
+incDecAction  = Group(incDecPrefix("incDecPrefix") | incDecPostfix("incDecPostfix"))("incDecAction")
 arguments <<= "(" + Optional(Group(delimitedList(rValue, ','))) + Suppress(")")
 initArgs     = "{" + Optional(Group(delimitedList(rValue, ','))("initArgs")) + Suppress("}")
 
@@ -300,18 +314,19 @@ withEachAction = Group(
             + Optional(Keyword("until") - "(" + expr("untilExpr") + ")")
         + actionSeq)("withEachAction")
 
-action         = Group((assign("assign") | swap('swap') | varRef("funcCall") | fieldDef('fieldDef'))) + Optional(";").suppress()
+action         = Group((assign("assign") | swap('swap') | incDecAction("incDecAction") | varRef("funcCall") | fieldDef('fieldDef'))) + Optional(";").suppress()
 actComment     = Group(Combine(r"//:"- Word(alphanums + r"/")("filterTag") + r"::")("actComment") + action)
 actionSeq    <<= Group(Literal("{")("actSeqID") + (ZeroOrMore(switchStmt | conditionalAction | withEachAction | whileAction | protectAction | actionSeq | action | actComment))("actionList") + "}")("actionSeq").setName("loop body '{ ... }'")
 funcBody       = Group(actionSeq | rValueVerbatim)("funcBody")
 
 #########################################   F I E L D   D E S C R I P T I O N S
+nameTypeArgList = Optional(typeArgList("nameTypeArgList"))
 nameAndVal   = Group(
-          (":" + CID("fieldName") + "(" + paramList + Literal(")")('paramListTag') + Optional(Literal(":")("optionalTag").setName("tag or '<-'") + tagDefList) + "<-" - funcBody )         # Function Definition
-        | (":" + CID("fieldName") + Group(initArgs)("arguments"))
-        | (":" + CID("fieldName") + "<-" + (rValue("givenValue") | rValueVerbatim))
+          (":" + CID("fieldName") + nameTypeArgList + "(" + paramList + Literal(")")('paramListTag') + Optional(Literal(":")("optionalTag").setName("tag or '<-'") + tagDefList) + "<-" - funcBody )         # Function Definition
+        | (":" + CID("fieldName") + nameTypeArgList + Group(initArgs)("arguments"))
+        | (":" + CID("fieldName") + nameTypeArgList + "<-" + (rValue("givenValue") | funcBody))
         | (":" + "<-" - (rValue("givenValue") | funcBody))
-        | (":" + CID("fieldName") + Optional("(" + paramList + Literal(")")('paramListTag')) - ~Word("{"))
+        | (":" + CID("fieldName") + nameTypeArgList + Optional("(" + paramList + Literal(")")('paramListTag')) - ~Word("{"))
         | (Literal("::")('allocDoubleColon') + CID("fieldName") + Group(initArgs)("arguments"))
         | (Literal("::")('allocDoubleColon') + CID("fieldName") + "<-" - (rValue("givenValue")))
         | (Literal("::")('deprecateDoubleColon') + CID("fieldName") + Group(arguments)("arguments"))# deprecated
@@ -578,6 +593,7 @@ def packFieldDef(fieldResult, className, indent, comment=None):
     argList=[]
     innerDefs=[]
     optionalTags=None
+    nameTypeArgs=None
     isNext=False;
     if(fieldResult.isNext): isNext=True
     if(fieldResult.owner): owner=fieldResult.owner;
@@ -629,6 +645,9 @@ def packFieldDef(fieldResult, className, indent, comment=None):
             fieldName = nameAndVal.fieldName
             #print("FIELD NAME", fieldName)
         else: fieldName=None;
+
+        if "nameTypeArgList" in nameAndVal and nameAndVal.nameTypeArgList:
+            nameTypeArgs = extractTypeArgList(nameAndVal.nameTypeArgList)
 
         if(nameAndVal.allocDoubleColon):
             if varOwner == 'me' or varOwner == 'we':
@@ -719,6 +738,7 @@ def packFieldDef(fieldResult, className, indent, comment=None):
     if len(innerDefs)>0:   fieldDef['innerDefs']  = innerDefs
     if coFactuals!=None:   fieldDef['coFactuals'] = coFactuals
     if optionalTags!=None: fieldDef['tags']       = optionalTags
+    if nameTypeArgs!=None: fieldDef['nameTypeArgs'] = nameTypeArgs
     if comment!=None:      fieldDef['comment']    = comment
     return fieldDef
 
@@ -852,6 +872,32 @@ def extractActItem(funcName, actionItem):
         actionListIn = actionItem
         actionListOut = extractActSeq(funcName, actionListIn)
         thisActionItem = {'typeOfAction':"actionSeq", 'actionList':actionListOut}
+    # Increment / decrement action
+    elif actionItem.incDecAction:
+        incDecSpec = actionItem.incDecAction
+        incDecItem = None
+        position = None
+        if "incDecPrefix" in incDecSpec and incDecSpec.incDecPrefix:
+            incDecItem = incDecSpec.incDecPrefix
+            position = "prefix"
+        elif "incDecPostfix" in incDecSpec and incDecSpec.incDecPostfix:
+            incDecItem = incDecSpec.incDecPostfix
+            position = "postfix"
+
+        if incDecItem == None:
+            cdErr("Invalid increment/decrement action: {}".format(incDecSpec))
+
+        op = incDecItem.op
+        if not isinstance(op, str):
+            op = op[0]
+        target = parseResultsToListOfParseResults(incDecItem.target)
+
+        thisActionItem = {
+            'typeOfAction': "incDec",
+            'target': target,
+            'op': op,
+            'position': position,
+        }
     # Assign
     elif (actionItem.assign):
         RHS = parseResultsToListOfParseResults(actionItem.rValue)

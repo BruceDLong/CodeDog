@@ -516,6 +516,35 @@ class Xlator_Java(Xlator):
         #print('                  factor: ', item)
         S=''
         retTypeSpec='noType'
+        incDecExpr = None
+        incDecPos = None
+        if "incDecPrefixExpr" in item and item.incDecPrefixExpr:
+            incDecExpr = item.incDecPrefixExpr
+            incDecPos = "prefix"
+        elif "incDecPostfixExpr" in item and item.incDecPostfixExpr:
+            incDecExpr = item.incDecPostfixExpr
+            incDecPos = "postfix"
+
+        if incDecExpr != None:
+            op = incDecExpr.incDecOp
+            if not isinstance(op, str):
+                op = op[0]
+            targetRef = incDecExpr.incDecTarget
+            [targetExpr, retTypeSpec, prntType, AltIDXFormat] = self.codeGen.codeItemRef(targetRef, 'LVAL', returnType, LorRorP_Val, genericArgs)
+            if op == '++':
+                if incDecPos == "postfix":
+                    S = self.codePostIncrementExpr(targetExpr)
+                else:
+                    S = self.codePreIncrementExpr(targetExpr)
+            elif op == '--':
+                if incDecPos == "postfix":
+                    S = self.codePostDecrementExpr(targetExpr)
+                else:
+                    S = self.codePreDecrementExpr(targetExpr)
+            else:
+                cdErr("Unknown increment/decrement operator '{}'".format(op))
+            return [S, retTypeSpec]
+
         item0 = item[0]
         #print("ITEM0=", item0, ">>>>>", item)
         if (isinstance(item0, str)):
@@ -834,8 +863,26 @@ class Xlator_Java(Xlator):
     def codeIncrement(self, varName):
         return "++" + varName
 
+    def codePostIncrement(self, varName):
+        return varName + "++"
+
+    def codePreIncrementExpr(self, varName):
+        return "++" + varName
+
+    def codePostIncrementExpr(self, varName):
+        return varName + "++"
+
     def codeDecrement(self, varName):
         return "--" + varName
+
+    def codePostDecrement(self, varName):
+        return varName + "--"
+
+    def codePreDecrementExpr(self, varName):
+        return "--" + varName
+
+    def codePostDecrementExpr(self, varName):
+        return varName + "--"
 
     def varTypeIsValueType(self, fTypeKW):
         if (fTypeKW=='int' or fTypeKW=='long' or fTypeKW=='byte' or fTypeKW=='boolean' or fTypeKW=='char'

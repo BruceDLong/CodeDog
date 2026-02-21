@@ -31,7 +31,7 @@ model List<nodeType>{   //model is abstract class
     me uint: size()
     me void: pushFirst()
     me void: pushLast()
-    me void: begin()
+    itr nodeType: begin()
     me void: rEnd()
     nodeType: back()
     me bool: contains()
@@ -156,4 +156,3 @@ struct CDList<nodeType>: implements=List native=codeDog specs={append=constant r
     ///////// CONSTRUCTORS ///////////////////////////
 }
 */
-

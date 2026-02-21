@@ -147,8 +147,26 @@ class Xlator(object):
     def codeIncrement(self, varName):
         cdErr("In base class Xlator::codeIncrement.")
 
+    def codePostIncrement(self, varName):
+        cdErr("In base class Xlator::codePostIncrement.")
+
+    def codePreIncrementExpr(self, varName):
+        cdErr("In base class Xlator::codePreIncrementExpr.")
+
+    def codePostIncrementExpr(self, varName):
+        cdErr("In base class Xlator::codePostIncrementExpr.")
+
     def codeDecrement(self, varName):
         cdErr("In base class Xlator::codeDecrement.")
+
+    def codePostDecrement(self, varName):
+        cdErr("In base class Xlator::codePostDecrement.")
+
+    def codePreDecrementExpr(self, varName):
+        cdErr("In base class Xlator::codePreDecrementExpr.")
+
+    def codePostDecrementExpr(self, varName):
+        cdErr("In base class Xlator::codePostDecrementExpr.")
 
     def isNumericType(self, convertedType):
         cdErr("In base class Xlator::isNumericType.")

@@ -41,6 +41,8 @@ class CodeGenerator(object):
     constFieldAccs     = {}
     modeStringsAcc     = ''
     nestedClasses      = {}
+    nestedClassQualifiedNames = {}
+    nestedClassByQualifiedName = {}
     isNestedClass      = False
     genericStructsGenerated = [ {}, [] ]
     codeDogSpecificImpl     = ["List", "Map", "MapNode","MapItr", "Multimap", ]
@@ -172,6 +174,7 @@ class CodeGenerator(object):
     def CheckObjectVars(self, className, itemName, fieldIDArgList):
         # also used to fetch codeConverter
         # if returning wrong overloaded codeConverter check fieldIDArgList
+        className = progSpec.normalizeClassNameKey(className)
         searchFieldID = className+'::'+itemName
         fullSearchFieldID = className+'::'+itemName+fieldIDArgList
         #print("Searching",className,"for", itemName, fullSearchFieldID)
@@ -369,7 +372,9 @@ class CodeGenerator(object):
         return fieldDefFind
 
     def chooseStructImplementationToUse(self, tSpec,className,fieldName):
-        fType = progSpec.getFieldType(tSpec)
+        if tSpec == None:
+            return(None, None, None, None)
+        fType = tSpec.get('fieldType')
         if not isinstance(fType, str) and  len(fType) >1:
             fTypeKW  = progSpec.fieldTypeKeyword(tSpec)
             classDef = progSpec.findSpecOf(self.classStore[0], fTypeKW, "struct")
@@ -378,7 +383,7 @@ class CodeGenerator(object):
                 return(None, None, None, None)
             implOptions = progSpec.getImplementationOptionsFor(fTypeKW)
             if(implOptions == None):
-                if fTypeKW=="List" or fTypeKW=="Map" or fTypeKW=="Multimap" :
+                if progSpec.isKnownContainerModelKW(fTypeKW):
                     print("******WARNING: no implementation options found for container ", fTypeKW ,className,"::",fieldName)
                     # Check to confirm container type is in features needed
             else:
@@ -628,12 +633,153 @@ class CodeGenerator(object):
         outerKW = None
         if innerKW in self.nestedClasses:
             outerKW = self.nestedClasses[innerKW]
+        elif innerKW in self.nestedClassByQualifiedName:
+            innerAlias = self.nestedClassByQualifiedName[innerKW]
+            if innerAlias in self.nestedClasses:
+                outerKW = self.nestedClasses[innerAlias]
         return outerKW
+
+    def getNestedQualifiedName(self, classKW):
+        if classKW in self.nestedClassQualifiedNames:
+            return self.nestedClassQualifiedNames[classKW]
+        return classKW
+
+    def _resolveTypeHeadTypeSpec(self, typeHeadKW):
+        REF = self.CheckFunctionsLocalVarArgList(typeHeadKW)
+        if REF:
+            return REF[0]
+
+        REF = self.CheckObjectVars(self.currentObjName, typeHeadKW, "")
+        if REF and REF != 0:
+            return REF['typeSpec']
+
+        REF = self.CheckObjectVars("GLOBAL", typeHeadKW, "")
+        if REF and REF != 0:
+            return REF['typeSpec']
+
+        return None
+
+    def _resolveDottedTypeHead(self, typeHeadKW):
+        # Type can start from an explicit class name, a local, an arg, an object
+        # field, or a GLOBAL field. Resolve to a concrete class keyword if possible.
+        if progSpec.findSpecOf(self.classStore[0], typeHeadKW, "struct") != None:
+            return typeHeadKW
+        if progSpec.findSpecOf(self.classStore[0], typeHeadKW, "model") != None:
+            return typeHeadKW
+
+        headTSpec = self._resolveTypeHeadTypeSpec(typeHeadKW)
+        if headTSpec != None:
+            return progSpec.fieldTypeKeyword(headTSpec)
+
+        return None
+
+    def resolveDottedTypeKW(self, fTypeKW, genericArgs):
+        if not isinstance(fTypeKW, str) or '.' not in fTypeKW:
+            return fTypeKW
+
+        # Fast-path: explicit class qualification such as Outer.Inner.Leaf
+        explicitPath = fTypeKW.replace('.', '::')
+        if explicitPath in self.nestedClassByQualifiedName:
+            return self.nestedClassByQualifiedName[explicitPath]
+
+        typePath = fTypeKW.split('.')
+        if len(typePath) < 2:
+            return fTypeKW
+
+        resolvedKW = self._resolveDottedTypeHead(typePath[0])
+        if resolvedKW == None:
+            return fTypeKW
+        resolvedKW = progSpec.getUnwrappedClassFieldTypeKeyWord(self.classStore, resolvedKW)
+
+        for pathSeg in typePath[1:]:
+            nestedPath = self.getNestedQualifiedName(resolvedKW) + "::" + pathSeg
+            if nestedPath in self.nestedClassByQualifiedName:
+                resolvedKW = self.nestedClassByQualifiedName[nestedPath]
+                continue
+            if pathSeg in self.nestedClasses and self.nestedClasses[pathSeg] == resolvedKW:
+                resolvedKW = pathSeg
+                continue
+
+            # Compatibility shorthand: containerOrType.iterator
+            if pathSeg == "iterator":
+                itrTypeKW = progSpec.convertItrType(self.classStore, 'itr', resolvedKW)
+                if itrTypeKW != None:
+                    resolvedKW = itrTypeKW
+                    continue
+
+            return fTypeKW
+
+        return resolvedKW
+
+    def rewriteDottedIteratorTypeSpec(self, tSpec, genericArgs):
+        fTypeKW = progSpec.fieldTypeKeyword(tSpec)
+        if not isinstance(fTypeKW, str) or not fTypeKW.endswith(".iterator"):
+            return fTypeKW
+
+        # If an explicit nested class named "...::iterator" exists, treat this
+        # as a normal dotted nested type instead of iterator shorthand.
+        explicitPath = fTypeKW.replace('.', '::')
+        if explicitPath in self.nestedClassByQualifiedName:
+            return fTypeKW
+
+        containerPath = fTypeKW[:-len(".iterator")]
+        if containerPath == "":
+            return fTypeKW
+
+        containerTSpec = None
+        if '.' in containerPath:
+            headSeg = containerPath.split('.')[0]
+            containerTSpec = self._resolveTypeHeadTypeSpec(headSeg)
+            containerKW = self.resolveDottedTypeKW(containerPath, genericArgs)
+            if containerKW == containerPath:
+                containerKW = None
+        else:
+            containerTSpec = self._resolveTypeHeadTypeSpec(containerPath)
+            containerKW = self._resolveDottedTypeHead(containerPath)
+        if containerKW == None:
+            return fTypeKW
+
+        containerKW = progSpec.normalizeClassNameKey(containerKW)
+        if 'fieldType' in tSpec:
+            fType = tSpec['fieldType']
+            if isinstance(fType, str):
+                tSpec['fieldType'] = containerKW
+            elif len(fType) > 0:
+                tSpec['fieldType'][0] = containerKW
+
+        if containerTSpec != None:
+            reqTagList = progSpec.getReqTagList(containerTSpec)
+            if reqTagList != None:
+                tSpec['reqTagList'] = copy.deepcopy(reqTagList)
+                if 'fieldType' in tSpec and not isinstance(tSpec['fieldType'], str):
+                    if len(tSpec['fieldType']) > 1:
+                        tSpec['fieldType'][1] = copy.deepcopy(reqTagList)
+                    else:
+                        tSpec['fieldType'].append(copy.deepcopy(reqTagList))
+
+            if 'fromImplemented' in containerTSpec:
+                tSpec['fromImplemented'] = copy.copy(containerTSpec['fromImplemented'])
+            if 'containerCategory' in containerTSpec:
+                tSpec['containerCategory'] = copy.copy(containerTSpec['containerCategory'])
+            if 'implTypeArgs' in containerTSpec:
+                tSpec['implTypeArgs'] = copy.copy(containerTSpec['implTypeArgs'])
+        tSpec['owner'] = 'itr'
+        return containerKW
 
     def convertType(self, tSpec, varMode, genericArgs):
         # varMode is 'var' or 'arg' or 'alloc' or 'func' for function Header. Large items are passed as pointers
         tSpec    = self.getGenericFieldsTypeSpec(genericArgs, tSpec)
+        fTypeKW  = self.rewriteDottedIteratorTypeSpec(tSpec, genericArgs)
         fTypeKW  = progSpec.fieldTypeKeyword(tSpec)
+        resolvedTypeKW = self.resolveDottedTypeKW(fTypeKW, genericArgs)
+        if resolvedTypeKW != fTypeKW:
+            if 'fieldType' in tSpec:
+                fType = tSpec['fieldType']
+                if isinstance(fType, str):
+                    tSpec['fieldType'] = resolvedTypeKW
+                elif len(fType) > 0:
+                    tSpec['fieldType'][0] = resolvedTypeKW
+            fTypeKW = resolvedTypeKW
         ownerIn  = progSpec.getOwner(tSpec)
         ownerOut = self.xlator.getUnwrappedClassOwner(self.classStore, tSpec, fTypeKW, varMode, ownerIn)
         unwrappedKW = progSpec.getUnwrappedClassFieldTypeKeyWord(self.classStore, fTypeKW)
@@ -1409,6 +1555,23 @@ class CodeGenerator(object):
             cdlog(5, "Action newVar: {}".format(fieldName))
             varDeclareStr = self.xlator.codeNewVarStr(tSpec, fieldName, fieldDef, indent, genericArgs, self.localVarsAllocated)
             actionText = indent + varDeclareStr + ";\n"
+        elif (typeOfAction =='incDec'):
+            [targetExpr, targetTypeSpec, LHSParentType, AltIDXFormat] = self.codeItemRef(action['target'], 'LVAL', returnType, 'LVAL', genericArgs)
+            op = action.get('op', '')
+            position = action.get('position', 'prefix')
+            if op == '++':
+                if position == 'postfix':
+                    actionCode = self.xlator.codePostIncrement(targetExpr)
+                else:
+                    actionCode = self.xlator.codeIncrement(targetExpr)
+            elif op == '--':
+                if position == 'postfix':
+                    actionCode = self.xlator.codePostDecrement(targetExpr)
+                else:
+                    actionCode = self.xlator.codeDecrement(targetExpr)
+            else:
+                cdErr("Unknown increment/decrement operator '{}'".format(op))
+            actionText = indent + actionCode + ";\n"
         elif (typeOfAction =='assign'):
             cdlog(5, "PREASSIGN:" + str(action['LHS']))
             # Note: In Java, string A[x]=B must be coded like: A.put(B,x)
@@ -2357,6 +2520,10 @@ class CodeGenerator(object):
         self.StaticMemberVars={}
         self.funcDeclAcc=''
         self.funcDefnAcc=''
+        self.nestedClasses = {}
+        self.nestedClassQualifiedNames = {}
+        self.nestedClassByQualifiedName = {}
+        self.isNestedClass = False
         self.ForwardDeclsForGlobalFuncs='\n\n// Forward Declarations of global functions\n'
         self.listOfFuncsWithUnknownArgTypes = {}
 
@@ -2458,37 +2625,77 @@ class CodeGenerator(object):
             del(classes[1][toDel])
 
     def extractNestedClasses(self, fileClasses, newClassNames):
-        for className in newClassNames:
-            for field in fileClasses[0][className]['fields']:
-                tSpec        = progSpec.getTypeSpec(field)
-                fTypeKW      = progSpec.fieldTypeKeyword(tSpec)
+        # Use a worklist so nested classes can contain further nested classes.
+        pendingClasses = list(newClassNames)
+        processedClasses = set()
+
+        while len(pendingClasses) > 0:
+            className = pendingClasses.pop(0)
+            if className in processedClasses:
+                continue
+            processedClasses.add(className)
+
+            if className not in fileClasses[0]:
+                continue
+
+            classDef = fileClasses[0][className]
+            if className not in self.nestedClassQualifiedNames:
+                if 'fromNested' in classDef and classDef['fromNested'] in self.nestedClassQualifiedNames:
+                    self.nestedClassQualifiedNames[className] = self.nestedClassQualifiedNames[classDef['fromNested']] + "::" + className
+                else:
+                    self.nestedClassQualifiedNames[className] = className
+
+            outerQualifiedName = self.nestedClassQualifiedNames[className]
+            for field in classDef['fields']:
+                tSpec   = progSpec.getTypeSpec(field)
+                fTypeKW = progSpec.fieldTypeKeyword(tSpec)
                 if(fTypeKW=='model' or fTypeKW=='struct'):
                     if tSpec['owner']!='const': cdErr("Non const classes are not currently supported.")
                     fields       = []
                     fieldName    = field['fieldName']
+                    nestedPath   = outerQualifiedName + "::" + fieldName
                     structFields = field['value'][0]
-                    fieldTSpec   = progSpec.getTypeSpec(field)
                     argList      = progSpec.getParamList(field)
+
+                    if fieldName in fileClasses[0]:
+                        existingDef = fileClasses[0][fieldName]
+                        if ('fromNested' not in existingDef) or existingDef['fromNested'] != className:
+                            cdErr("Nested class name collision for '{}'. '{}' already exists and is not nested under '{}'.".format(fieldName, fieldName, className))
+                    if fieldName in self.nestedClasses and self.nestedClasses[fieldName] != className:
+                        cdErr("Nested class name collision for '{}'. It is already nested under '{}' and cannot also be nested under '{}'.".format(fieldName, self.nestedClasses[fieldName], className))
+
                     for fieldVal in structFields:
                         if not 'fieldDef' in fieldVal: cdErr("No fieldDef in inner class.")
                         newField = fieldVal['fieldDef']
                         newField['fieldID'] = fieldName+newField['fieldID']
                         fields.append(newField)
-                    if argList!=None:
-                        newArgList = []
+                    nestedTypeArgs = None
+                    if 'nameTypeArgs' in field and field['nameTypeArgs'] != None:
+                        nestedTypeArgs = list(field['nameTypeArgs'])
+                    elif argList!=None:
+                        nestedTypeArgs = []
                         for arg in argList:
                             argTypeKW = progSpec.fieldTypeKeyword(arg)
-                            newArgList.append(argTypeKW)
-                        progSpec.addTypeArgList(fieldName, newArgList)
+                            nestedTypeArgs.append(argTypeKW)
+                    if nestedTypeArgs != None:
+                        progSpec.addTypeArgList(fieldName, nestedTypeArgs)
 
-                    progSpec.addClass(fileClasses[0], fileClasses[1], fieldName, 'struct', 'SEQ',fileClasses[0][className]['libName'],["//^", "Added nested class."])
+                    if fieldName not in fileClasses[0]:
+                        progSpec.addClass(fileClasses[0], fileClasses[1], fieldName, 'struct', 'SEQ',fileClasses[0][className]['libName'],["//^", "Added nested class."])
                     fieldTags = []
                     if 'tags' in field: fieldTags = field['tags']
                     progSpec.addObjTags(fileClasses[0], fieldName, 'struct', fieldTags)
-                    fileClasses[0][fieldName]['fields']     = fields
-                    fileClasses[0][fieldName]['libLevel']   = fileClasses[0][className]['libLevel']
-                    fileClasses[0][fieldName]['fromNested'] = className
+                    fileClasses[0][fieldName]['fields']       = fields
+                    fileClasses[0][fieldName]['libLevel']     = fileClasses[0][className]['libLevel']
+                    fileClasses[0][fieldName]['fromNested']   = className
+                    fileClasses[0][fieldName]['nestedPath']   = nestedPath
+                    field['nestedPath'] = nestedPath
                     self.nestedClasses[fieldName] = className
+                    self.nestedClassQualifiedNames[fieldName] = nestedPath
+                    self.nestedClassByQualifiedName[nestedPath] = fieldName
+
+                    if fieldName not in processedClasses:
+                        pendingClasses.append(fieldName)
 
     def loadProgSpecFromDogFile(self, filename, ProgSpec, objNames, topLvlTags, macroDefs):
         codeDogStr = progSpec.stringFromFile(filename)

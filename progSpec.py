@@ -809,15 +809,60 @@ def isItrType(fTypeKW):
     return False
 
 def convertItrType(classStore, owner, fTypeKW):
-    # TODO: have this look for iterator sub class
     if owner=='itr':
-        classDef  =  findSpecOf(classStore[0], fTypeKW, "struct")
+        classDef = findSpecOf(classStore[0], fTypeKW, "struct")
+        if classDef == None:
+            classDef = findSpecOf(classStore[0], fTypeKW, "model")
+        if classDef == None:
+            return None
+
+        def _extract_implements_names(field):
+            implNames = []
+            tags = field.get('tags') if isinstance(field, dict) else None
+            implSpec = searchATagStore(tags, 'implements')
+            if implSpec == None:
+                return implNames
+            implVal = implSpec[0]
+            if isinstance(implVal, str):
+                return [implVal]
+            if isinstance(implVal, ParseResults):
+                implVal = implVal.asList()
+            if isinstance(implVal, list):
+                for item in implVal:
+                    if isinstance(item, ParseResults):
+                        item = item.asList()
+                    if isinstance(item, list):
+                        if len(item) > 0 and isinstance(item[0], str):
+                            implNames.append(item[0])
+                    elif isinstance(item, str):
+                        implNames.append(item)
+            return implNames
+
+        bestName = None
+        bestScore = -1
         for field in classDef['fields']:
             KW = fieldTypeKeyword(field)
-            if KW=='struct' or KW=='model':
-                fieldName = field['fieldName']
-                if isItrType(fieldName):
-                    return fieldName
+            if KW!='struct' and KW!='model':
+                continue
+            fieldName = field['fieldName']
+            score = 0
+            if isItrType(fieldName):
+                score = 100
+            elif isinstance(fieldName, str) and fieldName.endswith('Itr'):
+                score = 90
+
+            implNames = _extract_implements_names(field)
+            for implName in implNames:
+                if isinstance(implName, str) and implName.endswith('Itr'):
+                    score = max(score, 95)
+                    break
+
+            if score > bestScore:
+                bestScore = score
+                bestName = fieldName
+
+        if bestScore >= 90:
+            return bestName
     return None
 
 def getGenericArgs(ObjectDef):
@@ -853,6 +898,48 @@ def getReqTags(fType):
     if('optionalTag' in fType[1]): return(fType[1][3])
     else: return None
 
+def _normalizeContainerCategory(containerCategory):
+    if isinstance(containerCategory, ParseResults):
+        containerCategory = containerCategory.asList()
+    if isinstance(containerCategory, list):
+        if len(containerCategory) > 0 and isinstance(containerCategory[0], str):
+            return normalizeClassNameKey(containerCategory[0])
+        return None
+    if isinstance(containerCategory, str):
+        return normalizeClassNameKey(containerCategory)
+    return None
+
+def isKnownContainerModelKW(fTypeKW):
+    return isinstance(fTypeKW, str) and fTypeKW in ('List', 'Map', 'Multimap')
+
+def _containerCategoryFromRegisteredImplementation(fTypeKW):
+    global classImplementationOptions
+    if not isinstance(fTypeKW, str):
+        return None
+    for modelKW in ('List', 'Map', 'Multimap'):
+        implOptions = classImplementationOptions.get(modelKW)
+        if implOptions and fTypeKW in implOptions:
+            return modelKW
+    return None
+
+def containerCategoryForTypeSpec(tSpec):
+    if tSpec == None or not isinstance(tSpec, dict):
+        return None
+
+    category = _normalizeContainerCategory(tSpec.get('containerCategory'))
+    if isKnownContainerModelKW(category):
+        return category
+
+    fromImpl = _normalizeContainerCategory(tSpec.get('fromImplemented'))
+    if isKnownContainerModelKW(fromImpl):
+        return fromImpl
+
+    fTypeKW = _normalizeContainerCategory(fieldTypeKeyword(tSpec))
+    if isKnownContainerModelKW(fTypeKW):
+        return fTypeKW
+
+    return _containerCategoryFromRegisteredImplementation(fTypeKW)
+
 def isOldContainerTempFuncErr(tSpec, msg):
     if'arraySpec' in tSpec and tSpec['arraySpec']!=None:
         cdErr("Deprecated container type in " + msg)
@@ -864,12 +951,9 @@ def isNewContainerTempFunc(tSpec):
     if not 'fieldType' in tSpec: return(False)
     fType = tSpec['fieldType']
     if isinstance(fType, str): return(False)
-    fieldTypeKW = fType[0]
+    fieldTypeKW = fieldTypeKeyword(tSpec)
     if fieldTypeKW=='PovList': return(True)
-    reqTagList = getReqTagList(tSpec)
-    if reqTagList: return(True)
-    elif reqTagList == None: return(False)
-    return(False)
+    return containerCategoryForTypeSpec(tSpec) != None
 
 def isAContainer(tSpec):
     if tSpec==None:return(False)
@@ -880,9 +964,7 @@ def isAContainer(tSpec):
 
 def getContainerSpec(tSpec):
     if isNewContainerTempFunc(tSpec):
-        if 'fieldType' in tSpec: fType = tSpec['fieldType']
-        else: fType = None
-        containerType=fType[0]
+        containerType = fieldTypeKeyword(tSpec)
         return {'owner': tSpec['owner'], 'datastructID':containerType}
     # TODO: remove check for Old Container. Needed for stringStructs
     return(tSpec['arraySpec'])
@@ -898,13 +980,24 @@ def getDatastructID(tSpec):
         return(tSpec['arraySpec']['datastructID'][0])
 
 def getContaineCategory(classStore, ctnrTSpec):
-    if 'containerCategory' in ctnrTSpec: return ctnrTSpec['containerCategory']
+    if 'containerCategory' in ctnrTSpec:
+        category = _normalizeContainerCategory(ctnrTSpec['containerCategory'])
+        if category != None:
+            return category
     fTypeKW = fieldTypeKeyword(ctnrTSpec)
     if fTypeKW=='string':     return 'string'
     structSpec = findSpecOf(classStore[0], fTypeKW, 'struct')
+    if structSpec == None:
+        structSpec = findSpecOf(classStore[0], fTypeKW, 'model')
     if structSpec:
-        classImplements = searchATagStore(structSpec['tags'], 'implements')
-        return classImplements[0]
+        classImplements = searchATagStore(structSpec.get('tags'), 'implements')
+        if classImplements and len(classImplements) > 0:
+            category = _normalizeContainerCategory(classImplements[0])
+            if category != None:
+                return category
+    category = containerCategoryForTypeSpec(ctnrTSpec)
+    if category != None:
+        return category
     cdErr("Unknown type in progSpec.getContaineCategory() "+fTypeKW)
 
 def getContainerType_Owner(tSpec):
@@ -915,16 +1008,15 @@ def getContainerType_Owner(tSpec):
     return [datastructID, owner]
 
 def isContainerTemplateTempFunc(tSpec):
-    fTypeKW  = fieldTypeKeyword(tSpec)
-    if fTypeKW=='CPP_Deque' or fTypeKW=='Java_ArrayList' or fTypeKW=='Swift_Array':
+    if tSpec == None:
+        return False
+    fTypeKW = fieldTypeKeyword(tSpec)
+    if fTypeKW == 'PovList':
         return True
-    if fTypeKW=='CPP_Map' or fTypeKW=='Java_Map' or fTypeKW=='Swift_Map':
-        return True
-    if fTypeKW=='Java_MultiMap':
-        return True
-    if not "RBNode" in fTypeKW and not "RBTree" in fTypeKW and not "List" in fTypeKW and fTypeKW!="Map" and not "Multimap" in fTypeKW:
-        print("Template class '"+fTypeKW+"' not found")
-    return False
+    reqTagList = getReqTagList(tSpec)
+    if reqTagList == None:
+        return False
+    return containerCategoryForTypeSpec(tSpec) != None
 
 def getNewContainerFirstElementTypeTempFunc2(tSpec):
     # use only while transitioning to dynamic lists<> then delete
@@ -937,7 +1029,7 @@ def getNewContainerFirstElementTypeTempFunc2(tSpec):
     if fTypeKW=='PovList': return(['infon'])
     reqTagList = getReqTagList(tSpec)
     if reqTagList:
-        if isContainerTemplateTempFunc(tSpec) or fTypeKW=='List': return(reqTagList[0]['tArgType'])
+        if isContainerTemplateTempFunc(tSpec): return(reqTagList[0]['tArgType'])
     elif reqTagList == None: return(None)
     return(None)
 
@@ -966,7 +1058,7 @@ def getNewContainerFirstElementOwnerTempFunc(tSpec):
     if fTypeKW=='PovList': return('our')
     reqTagList = getReqTagList(tSpec)
     if reqTagList:
-        if isContainerTemplateTempFunc(tSpec) or fTypeKW=='List': return(reqTagList[0]['tArgOwner'])
+        if isContainerTemplateTempFunc(tSpec): return(reqTagList[0]['tArgOwner'])
     elif reqTagList == None: return(None)
     return(None)
 
@@ -1130,10 +1222,21 @@ def createTypedefName(ItmType):
         return baseType+suffix
 
 def findSpecOf(objMap, className, stateTypeWanted):
+    className = normalizeClassNameKey(className)
     if stateTypeWanted=='model': className='%'+className
     elif stateTypeWanted=='string': className='$'+className
     if not className in objMap: return None
     return objMap[className]
+
+def normalizeClassNameKey(className):
+    # Some parser paths carry class names wrapped in ParseResults/list forms.
+    # Canonicalize them to the base string used as objMap keys.
+    while isinstance(className, (ParseResults, list, tuple)) and len(className) == 1:
+        className = className[0]
+    if isinstance(className, (ParseResults, list, tuple)):
+        if len(className) > 0 and isinstance(className[0], str):
+            return className[0]
+    return className
 
 def getUnwrappedClassFieldTypeKeyWord(classes, className):
     baseType = isWrappedType(classes, className)

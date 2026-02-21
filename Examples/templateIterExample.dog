@@ -1,0 +1,39 @@
+// Template iterator test
+
+LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
+//SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';
+//AndroidBuild: Platform='Android' CPU='JavaVM' Lang='Java' optimize='power';
+//iPhoneBuild: Platform='IOS' CPU='amd64' Lang='Swift' optimize='speed';
+
+Title = "templated iterator example"
+FileName = "templateExample"
+Version = "1.0"
+CopyrightMesg = "Public Domain"
+Authors = "Bruce Long"
+Description = "This is an example using iterators templates"
+ProgramOrLibrary = "program"
+
+featuresNeeded = []
+
+LicenseText = `This file is part of the "Proteus suite" All Rights Reserved.`
+
+runCode=`runTest()`
+
+
+struct counter<numType>: implements=iterable {
+    const struct: iterator<numType>: implements=ListItr <- {
+        me int: key
+        me numType: val
+        void: goNext() <- <%!++%0%>
+    }
+
+    numType: count
+}
+
+struct GLOBAL{
+    me square: sqr
+
+    void: runTest()<-{
+
+    }
+}

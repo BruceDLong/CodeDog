@@ -23,6 +23,7 @@ struct Swift_Array<nodeType>: implements=List wraps=Array specs={insert=linear a
     itr nodeType: deleteNth(me int: position)   <- <%!%>
     itr nodeType: end()                         <- <%!endIndex%>           // returns itr to past-the-end element
     itr nodeType: erase(itr nodeType: position) <- <%!remove(at:%1)%>
+    itr nodeType: begin()                       <- <%!%>
     nodeType: first()                           <- <%!%0[0]%>
     itr nodeType: front()                       <- <%!%>
     nodeType: __getAt(me int: position)         <- <%!%>
