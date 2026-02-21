@@ -113,6 +113,8 @@ def registerBaseType(usedType, className):
 patternNonce = 0
 def addPattern(objSpecs, objectNameList, name, patternList):
     global patternNonce
+    if isinstance(name, (ParseResults, list, tuple)) and len(name) == 1 and isinstance(name[0], str):
+        name = name[0]
     patternName='!'+name+'.'+str(patternNonce)
     objectNameList.append(patternName)
     objSpecs[patternName[1:]]={'name':name, 'parameters':patternList}

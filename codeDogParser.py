@@ -979,6 +979,8 @@ def extractObjectSpecs(ProgSpec, classNames, spec, stateType,description, commen
 
 def extractPatternSpecs(ProgSpec, classNames, spec):
     patternName=spec.classSpec[0]
+    if isinstance(patternName, (ParseResults, list, tuple)) and len(patternName) == 1 and isinstance(patternName[0], str):
+        patternName = patternName[0]
     patternArgWords=spec.CIDList
     progSpec.addPattern(ProgSpec, classNames, patternName, patternArgWords)
     return
