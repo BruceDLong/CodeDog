@@ -539,6 +539,13 @@ def _extractReqTagTypeKeyword(reqTag):
     rawVarType = reqTag['varType'][0]
     if isinstance(rawVarType, str):
         return rawVarType
+
+    # varType for class refs can be nested ParseResults wrappers
+    # (e.g. [[['INK_Image']]]). Normalize to the canonical class key.
+    normalizedType = progSpec.normalizeClassNameKey(rawVarType)
+    if isinstance(normalizedType, str):
+        return normalizedType
+
     return rawVarType[0]
 
 nameIDX=1

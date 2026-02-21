@@ -1,7 +1,10 @@
 import copy
 import unittest
 
+import codeDogParser
 import progSpec
+from codeGenerator import CodeGenerator
+from xlator_CPP import Xlator_CPP
 
 
 class TestContainerTemplateDetection(unittest.TestCase):
@@ -80,6 +83,32 @@ class TestContainerTemplateDetection(unittest.TestCase):
         t_spec = self._make_tspec('List', req_tags)
 
         self.assertEqual(progSpec.getContaineCategory(class_store, t_spec), 'List')
+
+    def test_wrapped_map_value_type_is_unwrapped_for_cpp(self):
+        src = """
+struct INK_Image: wraps = cairo_surface_t ownerMe = their{}
+struct Holder{
+    me Map<string, INK_Image>: inkImg
+}
+"""
+        prog_spec = {}
+        obj_names = []
+        _tags, _build_specs, classes, _new_classes = codeDogParser.parseCodeDogString(
+            src, prog_spec, obj_names, {}, "wrapped map type test"
+        )
+
+        field = classes[0]["Holder"]["fields"][0]
+
+        code_gen = CodeGenerator()
+        code_gen.clearBuild()
+        code_gen.classStore = classes
+        code_gen.currentObjName = "Holder"
+        code_gen.xlator = Xlator_CPP()
+        code_gen.xlator.codeGen = code_gen
+
+        cvrt_type = code_gen.convertType(field["typeSpec"], "var", {})
+        self.assertIn("cairo_surface_t", cvrt_type)
+        self.assertNotIn("INK_Image", cvrt_type)
 
 
 if __name__ == '__main__':

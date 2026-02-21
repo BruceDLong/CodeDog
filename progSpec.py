@@ -1172,9 +1172,13 @@ def doesFieldDefHaveValue(fieldDef):
 
 def isWrappedType(objMap, structname):
     # If type is not wrapped, return None, else return the wrapped typeSpec
-    if not structname in objMap[0]:
-        return None; # TODO: "Print Struct "+structname+" not found" But not if type is base type.
-    structToSearch=findSpecOf(objMap[0], structname, 'struct')
+    structname = normalizeClassNameKey(structname)
+    if not isinstance(structname, str):
+        return None
+
+    structToSearch = findSpecOf(objMap[0], structname, 'struct')
+    if structToSearch == None:
+        return None  # TODO: "Print Struct "+structname+" not found" But not if type is base type.
     ownerMe = False
     if('tags' in structToSearch and 'wraps' in structToSearch['tags']):
         if('tags' in structToSearch and 'ownerMe' in structToSearch['tags']):
