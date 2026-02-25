@@ -845,6 +845,13 @@ def convertItrType(classStore, owner, fTypeKW):
             if KW!='struct' and KW!='model':
                 continue
             fieldName = field['fieldName']
+            nestedTypeName = field.get('nestedTypeName') if isinstance(field, dict) else None
+            nestedPath = field.get('nestedPath') if isinstance(field, dict) else None
+            resolvedName = fieldName
+            if isinstance(nestedTypeName, str) and nestedTypeName != "":
+                resolvedName = nestedTypeName
+            elif isinstance(nestedPath, str) and nestedPath != "":
+                resolvedName = nestedPath
             score = 0
             if isItrType(fieldName):
                 score = 100
@@ -859,7 +866,7 @@ def convertItrType(classStore, owner, fTypeKW):
 
             if score > bestScore:
                 bestScore = score
-                bestName = fieldName
+                bestName = resolvedName
 
         if bestScore >= 90:
             return bestName

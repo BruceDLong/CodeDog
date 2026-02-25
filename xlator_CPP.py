@@ -657,6 +657,10 @@ class Xlator_CPP(Xlator):
         RightOwner=progSpec.getOwner(RTSpec)
         if not isinstance(assignTag, str):
             assignTag = assignTag[0]
+        # Iterators in C++ are value-like types; avoid implicit address/deref
+        # rewrites when one side is tagged 'itr' and the other is 'me'.
+        if (LeftOwner == 'itr' and RightOwner == 'me') or (LeftOwner == 'me' and RightOwner == 'itr'):
+            return ['','',  '','']
         if progSpec.typeIsPointer(LTSpec) and progSpec.typeIsPointer(RTSpec):
             if assignTag=='deep' :return ['(*',')',  '(*',')']
             elif LeftOwner=='their' and (RightOwner=='our' or RightOwner=='my'): return ['','', '','.get()']

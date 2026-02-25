@@ -5,36 +5,34 @@ requirements = [
 ]
 
 model List<nodeType>{   //model is abstract class
-    const model: ListItr(nodeType: node) <- {
+    const model: iterator(nodeType: node) <- {
         me nodeType: val
         void: goNext()
     }
-    void: append()
-    nodeType: at()
-    me void: clear()
-    me void: clipToSize()
-    itr nodeType: deleteNth()
-    itr nodeType: end()
-    itr nodeType: erase()
+    void: append(nodeType: value)
+    nodeType: at(me int: position)
+    void: clear()
+    void: clipToSize(me int: size)
+    me iterator: deleteNth(me int: position)
+    me iterator: end()
+    me iterator: erase(me iterator: position)
     nodeType: first()
-    itr nodeType: front()
-    nodeType: __getAt()
-    itr nodeType: insert()
-    itr nodeType: insertIdx()
+    me iterator: front()
+    nodeType: __getAt(me int: position)
+    me iterator: insert(me iterator: position, nodeType: value)
+    me iterator: insertIdx(me int: position, nodeType: value)
     me bool: isEmpty()
     nodeType: last()
-    itr nodeType: nthItr()
+    me iterator: nthItr(me int: position)
     nodeType: popFirst()
     nodeType: popLast()
-    me void: prepend()
-    itr nodeType: __putAt()
+    void: prepend(nodeType: value)
+    me iterator: __putAt(me iterator: position, nodeType: value)
     me uint: size()
-    me void: pushFirst()
-    me void: pushLast()
-    itr nodeType: begin()
-    me void: rEnd()
-    nodeType: back()
-    me bool: contains()
+    void: pushFirst(nodeType: value)
+    void: pushLast(nodeType: value)
+    me iterator: begin()
+    me bool: contains(nodeType: value)
 }
 
 ////////////////////////////////////////////////////////

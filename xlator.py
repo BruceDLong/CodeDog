@@ -3,9 +3,6 @@
 from progSpec import cdErr
 
 class Xlator(object):
-    def getLangSpecificImplements(self, implName):
-        cdErr("In base class Xlator::adjustBaseTypes.")
-
     def adjustBaseTypes(self, fType, isContainer):
         cdErr("In base class Xlator::adjustBaseTypes.")
 

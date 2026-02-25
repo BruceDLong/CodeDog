@@ -32,7 +32,7 @@ model Map<keyType, valueType>{
     //itr valueType: lower_bound(keyType: key)
     me uint:  size()
 }
-
+/*
 ////////////////////////////////////////////////////////
 struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={insert=logarithmic find=logarithmic at=logarithmic}{// find=logarithmic at=logarithmic}{  // constant
     // Thanks to: https://www.programiz.com/dsa/red-black-tree
@@ -443,3 +443,4 @@ struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={inser
         Allocate(edge)
     }
 }
+*/
