@@ -89,6 +89,10 @@ def setUtilityCode(TestArrayText, SwitchCaseText):
         me bool: isStatusChar(me char: ch) <- {
             return(ch=="." or ch=="F" or ch=="T" or ch=="?" or ch=="W")
         }
+        me string: reportableTestName(me string: testName) <- {
+            if(hasDynamicTest(testName)){return(dynamicTestsFile+":"+testName)}
+            return(testName)
+        }
         me void: appendSanitizedChildLine(me string: lineIn, their string: outTxt) <- {
             me string: line <- lineIn
             if(line.size()>0 and line[line.size()-1]=="\r"){line <- line.subStr(0, line.size()-1)}
@@ -140,7 +144,8 @@ def setUtilityCode(TestArrayText, SwitchCaseText):
         void: RUN_TEST(me int: testNum, me string: testName, me string: verboseMode) <- {
             Tstat <- "."
             T_total <- T_total+1
-            T_TEST_BUFF <- "\n############################################ FAILED:"+testName+"\n"
+            me string: shownName <- reportableTestName(testName)
+            T_TEST_BUFF <- "\n############################################ FAILED:"+shownName+"\n"
             me int: lineLength
             if(verboseMode=="1"){
                 lineLength <- testName.size() + 13
@@ -158,7 +163,8 @@ def setUtilityCode(TestArrayText, SwitchCaseText):
         void: RUN_TEST_WITH_TIMEOUT(me int: testNum, me string: testName, me string: verboseMode, me string: timeoutSecs) <- {
             Tstat <- "."
             T_total <- T_total+1
-            T_TEST_BUFF <- "\n############################################ FAILED:"+testName+"\n"
+            me string: shownName <- reportableTestName(testName)
+            T_TEST_BUFF <- "\n############################################ FAILED:"+shownName+"\n"
             me int: lineLength
             if(verboseMode=="1"){
                 lineLength <- testName.size() + 13
@@ -178,7 +184,7 @@ def setUtilityCode(TestArrayText, SwitchCaseText):
 
             if(rc==124){
                 Tstat <- "T"
-                T_TEST_BUFF <- "\n############################################ TIMEOUT:"+testName+"\n"
+                T_TEST_BUFF <- "\n############################################ TIMEOUT:"+shownName+"\n"
                 T_TEST_BUFF <- T_TEST_BUFF + "Timed out after "+useTimeout+"s.\n"
             } else {
                 me int: failCount <- parseFailureCount(childOut)
