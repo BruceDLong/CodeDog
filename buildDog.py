@@ -312,7 +312,9 @@ def buildSconsFile(fileName, libFiles, buildName, platform, fileSpecs, progOrLib
 def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData, tools):
     fileExtension = '.cpp'
     writeFile(buildName, fileName, fileSpecs, fileExtension)
-    copyRecursive("Resources", buildName+"/assets")
+
+    if os.path.isdir("Resources"):
+        copyRecursive("Resources", buildName+"/assets")
     (includeFolders, libFolders) = FindOrFetchLibraries(buildName, packageData, platform, tools)
     packageDirectory = os.getcwd() + '/' + buildName
     for packageName in packageData:

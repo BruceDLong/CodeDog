@@ -39,7 +39,8 @@ def apply(classes, tags):
             me stringScanner: scanner
             me string: argToReturn <- ""
             scanner.initialize(cmdLineText)
-            if(cmdLineText=="-h" or cmdLineText=="--help"){
+            me string: cmdLineTextWS <- " " + cmdLineText + " "
+            if(findString(cmdLineTextWS, " -? ")!=-1 or findString(cmdLineTextWS, " -h ")!=-1 or findString(cmdLineTextWS, " --help ")!=-1){
                 print(helpText())
                 exit(1)
             }
@@ -93,6 +94,7 @@ def apply(classes, tags):
                 helpTxt <+- "    "+optRec.shortName+" \t"+alignLeft(optRec.longName, 12)+" "+alignLeft(optRec.helpText, 25)+" \t"+defaultVal+"\n"
             }
             helpTxt <+- "    -h \t"+alignLeft("--help", 12)+" "+alignLeft("Print this help text", 25)+"\n"
+            helpTxt <+- "    -?\t"+alignLeft("--help", 12)+" "+alignLeft("Print this help text", 25)+"\n"
             return(helpTxt+"\n")
         }
 

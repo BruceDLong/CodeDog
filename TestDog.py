@@ -48,6 +48,95 @@ def setUtilityCode(TestArrayText, SwitchCaseText):
             print("\nTotal Failures/Tests: ", T_NUM_FAILS, "/", T_total, "\n")
         }
 
+        me bool: isDigitString(me string: text) <- {
+            if(text==""){return(false)}
+            withEach pos in range 0 .. text.size(){
+                if(!isdigit(text[pos])){return(false)}
+            }
+            return(true)
+        }
+        me int: parseReturnCode(me string: output) <- {
+            me int: pos <- findString(output, "__RC:")
+            if(pos==-1){return(-1)}
+            me int: idx <- pos+5
+            me string: codeTxt <- ""
+            while(idx<output.size() and isdigit(output[idx])){
+                codeTxt <+- output[idx]
+                idx <+- 1
+            }
+            if(codeTxt==""){return(-1)}
+            return(stoi(codeTxt))
+        }
+        me int: parseFailureCount(me string: output) <- {
+            me string: marker <- "Total Failures/Tests:"
+            me int: pos <- findString(output, marker)
+            if(pos==-1){return(-1)}
+            me int: idx <- pos + marker.size()
+            while(idx<output.size() and output[idx]==" "){idx <+- 1}
+            me string: failTxt <- ""
+            while(idx<output.size() and isdigit(output[idx])){
+                failTxt <+- output[idx]
+                idx <+- 1
+            }
+            if(failTxt==""){return(-1)}
+            return(stoi(failTxt))
+        }
+        me bool: startsWith(me string: txt, me string: prefix) <- {
+            me int: pSize <- prefix.size()
+            if(txt.size()<pSize){return(false)}
+            return(txt.subStr(0, pSize)==prefix)
+        }
+        me bool: isStatusChar(me char: ch) <- {
+            return(ch=="." or ch=="F" or ch=="T" or ch=="?" or ch=="W")
+        }
+        me void: appendSanitizedChildLine(me string: lineIn, their string: outTxt) <- {
+            me string: line <- lineIn
+            if(line.size()>0 and line[line.size()-1]=="\r"){line <- line.subStr(0, line.size()-1)}
+            me string: trimmed <- trimWS(line)
+            if(trimmed==""){return()}
+            if(startsWith(trimmed, "############################################ FAILED:")){return()}
+            if(startsWith(trimmed, "############################################ TIMEOUT:")){return()}
+            if(startsWith(trimmed, "Total Failures/Tests:")){return()}
+            if(trimmed=="DONE" or trimmed=="PASSED"){return()}
+            if(trimmed.size()==1 and isStatusChar(trimmed[0])){return()}
+            if(trimmed.size()>=3 and isStatusChar(trimmed[0]) and trimmed[1]==" "){
+                me string: tail <- trimmed.subStr(2, trimmed.size()-2)
+                tail <- trimWS(tail)
+                if(tail=="DONE" or tail=="PASSED"){return()}
+            }
+            line <+- "\n"
+            outTxt <+- line
+        }
+        me string: sanitizeChildFailureOutput(me string: output) <- {
+            me string: cleaned <- ""
+            me string: line <- ""
+            withEach charPos in range 0 .. output.size(){
+                if(output[charPos]=="\n"){
+                    appendSanitizedChildLine(line, cleaned)
+                    line <- ""
+                } else {line <+- output[charPos]}
+            }
+            if(line!=""){appendSanitizedChildLine(line, cleaned)}
+            return(cleaned)
+        }
+        void: finalizeTestOutput(me int: testNum, me string: testName, me string: verboseMode, me int: lineLength) <- {
+            if(verboseMode=="1"){
+                me string: spaces <- ""
+                withEach spc in range 0 .. 40-lineLength {spaces <+- " "}
+                print(spaces)
+                if(Tstat=="."){print("OK\n")}
+                else if(Tstat=="?"){print("TEST NAME NOT RECOGNIZED\n")}
+                else if(Tstat=="T"){print("TIMEOUT\n")}
+                else if(Tstat=="F"){print("FAILED\n")}
+                else {print("UNKNOWN OUTCOME\n")}
+            } else {print(Tstat)}
+            if(Tstat=="?"){T_TEST_BUFF <- T_TEST_BUFF + "\nTEST NAME NOT RECOGNIZED\n"}
+            if(Tstat!=".") {
+                if(Tstat=="F" or Tstat=="?" or Tstat=="T"){T_NUM_FAILS<-T_NUM_FAILS+1}
+                T_MESG_BUFF <- T_MESG_BUFF + T_TEST_BUFF
+            }
+        }
+
         void: RUN_TEST(me int: testNum, me string: testName, me string: verboseMode) <- {
             Tstat <- "."
             T_total <- T_total+1
@@ -59,34 +148,64 @@ def setUtilityCode(TestArrayText, SwitchCaseText):
             }
             log("TESTING "+testName+" _________________")
             // clear failFlag and mesg_buff; setTimer
-            <TEST-CASES-HERE>
-
-            // readTimer()
-            // fetch and return results
-            if(verboseMode=="1"){
-                me string: spaces <- ""
-                withEach spc in range 0 .. 40-lineLength {spaces <+- " "}
-                print(spaces)
-                if(Tstat=="."){print("OK\n")}
-                else if(Tstat=="?"){print("TEST NAME NOT RECOGNIZED\n")}
-                else if(Tstat=="F"){print("FAILED\n")}
-                else {print("UNKNOWN OUTCOME\n")}
-            } else {print(Tstat)}
-            if(Tstat=="?"){T_TEST_BUFF <- T_TEST_BUFF + "\nTEST NAME NOT RECOGNIZED\n"}
-            if(Tstat!=".") {
-                if(Tstat=="F" or Tstat=="?"){T_NUM_FAILS<-T_NUM_FAILS+1}
-                T_MESG_BUFF <- T_MESG_BUFF + T_TEST_BUFF
+            if(hasDynamicTest(testName)){executeDynamicTest(testName)}
+            else{
+                <TEST-CASES-HERE>
             }
+            finalizeTestOutput(testNum, testName, verboseMode, lineLength)
         }
 
-        void: EXEC_TESTS(me string: verboseMode) <- {
+        void: RUN_TEST_WITH_TIMEOUT(me int: testNum, me string: testName, me string: verboseMode, me string: timeoutSecs) <- {
+            Tstat <- "."
+            T_total <- T_total+1
+            T_TEST_BUFF <- "\n############################################ FAILED:"+testName+"\n"
+            me int: lineLength
+            if(verboseMode=="1"){
+                lineLength <- testName.size() + 13
+                print(testNum, "\tTESTING ",testName," ... ")
+            }
+
+            me string: useTimeout <- timeoutSecs
+            if(!isDigitString(useTimeout)){useTimeout <- "20"}
+
+            me string: childSpec <- testName
+            if(hasDynamicTest(testName)){childSpec <- dynamicTestsFile + ":" + testName}
+            me string: cmd <- "timeout "+useTimeout+"s ./"+filename+" -t "+childSpec+" -v 0 -T 0 ; echo __RC:$?"
+            me string: childOut <- execCmd(cmd)
+            me int: rc <- parseReturnCode(childOut)
+            me int: rcPos <- findString(childOut, "__RC:")
+            if(rcPos!=-1){childOut <- childOut.subStr(0, rcPos)}
+
+            if(rc==124){
+                Tstat <- "T"
+                T_TEST_BUFF <- "\n############################################ TIMEOUT:"+testName+"\n"
+                T_TEST_BUFF <- T_TEST_BUFF + "Timed out after "+useTimeout+"s.\n"
+            } else {
+                me int: failCount <- parseFailureCount(childOut)
+                if(failCount==0){Tstat <- "."}
+                else if(failCount>0){
+                    Tstat <- "F"
+                    me string: cleanedOut <- sanitizeChildFailureOutput(childOut)
+                    if(cleanedOut==""){cleanedOut <- "Child test failed with no detail output.\n"}
+                    T_TEST_BUFF <- T_TEST_BUFF + cleanedOut
+                } else {
+                    Tstat <- "F"
+                    T_TEST_BUFF <- T_TEST_BUFF + "Could not parse child test result.\n"
+                    T_TEST_BUFF <- T_TEST_BUFF + sanitizeChildFailureOutput(childOut)
+                }
+            }
+            finalizeTestOutput(testNum, testName, verboseMode, lineLength)
+        }
+
+        void: EXEC_TESTS(me string: verboseMode, me string: timeoutSecs) <- {
             me bool: listOnly <- false
             me bool: CrashProof <- false
             me int: testNum <- 1
             withEach testname in testToRun{
                 if(! listOnly){
                     if (!CrashProof){
-                        RUN_TEST(testNum, testname, verboseMode)
+                        if(timeoutSecs=="0"){RUN_TEST(testNum, testname, verboseMode)}
+                        else{RUN_TEST_WITH_TIMEOUT(testNum, testname, verboseMode, timeoutSecs)}
                     } else {
      //                   ExecSelf with timer and fetch result
                     }
@@ -104,23 +223,41 @@ def setUtilityCode(TestArrayText, SwitchCaseText):
             // Construct list of tests to run. // All Tests | -t <testSPec List> | -f = run failed tests
             CommandLineManager.defineOption("TestDog", "ListOfTests", "-t", "--tests", "Specification of which tests to run.", "")
             CommandLineManager.defineOption("TestDog", "verbose", "-v", "--verbose", "V0: Verbose output off. V1: Verbose on.", "0")
+            CommandLineManager.defineOption("TestDog", "timeout", "-T", "--timeout", "Per-test timeout seconds. 0 disables timeout.", "20")
             me string: testListSpec <- CommandLineManager.getOption("TestDog", "ListOfTests")
             me string: verboseMode  <- CommandLineManager.getOption("TestDog", "verbose")
+            me string: timeoutSecs  <- CommandLineManager.getOption("TestDog", "timeout")
             //print("TEST LIST SPECIFICATION:'", testListSpec, "'\n")
             me List<string>: testList <- [<TEST-LIST-HERE>]
-            if(testListSpec==""){testToRun <- testList}
+            if(testListSpec==""){
+                testToRun <- testList
+                appendDynamicTestsMatching("", testToRun)
+            }
             else {
-                // TODO: make test selection work with multiple tests.
-                me int: strSize <- testListSpec.size()
-                if(testListSpec[strSize-1] == "/"){
-                    withEach testname in testList{
-                        if(testname.subStr(0,strSize) == testListSpec){testToRun.append(testname)}
-                    }
+                me int: splitPos <- findString(testListSpec, ":")
+                if(splitPos != -1){
+                    me string: fileStem <- testListSpec.subStr(0, splitPos)
+                    me string: selector <- ""
+                    me int: selectorSize <- testListSpec.size()-(splitPos+1)
+                    if(selectorSize>0){selector <- testListSpec.subStr(splitPos+1, selectorSize)}
+                    loadTestSpec(fileStem)
+                    me int: numMatches <- appendDynamicTestsMatching(selector, testToRun)
+                    if(numMatches==0 and selector!=""){testToRun.append(selector)}
                 }
-                else{testToRun.append(testListSpec)}
+                else{
+                    // TODO: make test selection work with multiple tests.
+                    me int: strSize <- testListSpec.size()
+                    if(testListSpec[strSize-1] == "/"){
+                        withEach testname in testList{
+                            if(testname.subStr(0,strSize) == testListSpec){testToRun.append(testname)}
+                        }
+                        appendDynamicTestsMatching(testListSpec, testToRun)
+                    }
+                    else{testToRun.append(testListSpec)}
+                }
             }
             // Sort list as needed
-            EXEC_TESTS(verboseMode)
+            EXEC_TESTS(verboseMode, timeoutSecs)
         }
     }
 '''
