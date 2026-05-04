@@ -172,7 +172,7 @@ def setUtilityCode(TestArrayText, SwitchCaseText):
             }
 
             me string: useTimeout <- timeoutSecs
-            if(!isDigitString(useTimeout)){useTimeout <- "20"}
+            if(!isDigitString(useTimeout)){useTimeout <- "0"}
 
             me string: childSpec <- testName
             if(hasDynamicTest(testName)){childSpec <- dynamicTestsFile + ":" + testName}
@@ -229,7 +229,7 @@ def setUtilityCode(TestArrayText, SwitchCaseText):
             // Construct list of tests to run. // All Tests | -t <testSPec List> | -f = run failed tests
             CommandLineManager.defineOption("TestDog", "ListOfTests", "-t", "--tests", "Specification of which tests to run.", "")
             CommandLineManager.defineOption("TestDog", "verbose", "-v", "--verbose", "V0: Verbose output off. V1: Verbose on.", "0")
-            CommandLineManager.defineOption("TestDog", "timeout", "-T", "--timeout", "Per-test timeout seconds. 0 disables timeout.", "20")
+            CommandLineManager.defineOption("TestDog", "timeout", "-T", "--timeout", "Per-test timeout seconds. 0 disables timeout.", "0")
             me string: testListSpec <- CommandLineManager.getOption("TestDog", "ListOfTests")
             me string: verboseMode  <- CommandLineManager.getOption("TestDog", "verbose")
             me string: timeoutSecs  <- CommandLineManager.getOption("TestDog", "timeout")

@@ -78,6 +78,7 @@ static const struct lsquic_logger_if logger_if = { log_buf, };
 
 static FILE *logFileHandle;
 static int s_verbose;
+static std::atomic_bool quicShutdownRequested{false};
 static void LOGX (const char *fmt, ...){
     if(s_verbose){
         va_list ap;
@@ -438,6 +439,7 @@ struct GLOBAL{
 
     void: initQuicSystem() <- <%{
         // init threaded event loop
+        quicShutdownRequested.store(false);
         eventLoop = ev_default_loop(0);
         eventLoopThread.start("eventloop");
 
@@ -463,8 +465,21 @@ struct GLOBAL{
         if(0 != lsquic_global_init(LSQUIC_GLOBAL_SERVER | LSQUIC_GLOBAL_CLIENT)){fprintf(stderr, "global initialization failed\n"); exit(EXIT_FAILURE);}
     }%>
 
-    void: async_cb (their ev_loop: loop, their ev_async: watcher, int: revents) <- {} // just used for the event loop side effects
-    void: deinitQuicSystem() <- <%{lsquic_global_cleanup();}%>
+    void: async_cb (their ev_loop: loop, their ev_async: watcher, int: revents) <- <%{
+        if(quicShutdownRequested.load()){
+            ev_break(loop, EVBREAK_ALL);
+        }
+    }%>
+    void: deinitQuicSystem() <- <%{
+        if(eventLoop){
+            quicShutdownRequested.store(true);
+            if(eventLoopThread.async_w){
+                ev_async_send(eventLoop, eventLoopThread.async_w);
+            }
+            eventLoopThread.waitForExit();
+        }
+        lsquic_global_cleanup();
+    }%>
 
     their QuicConnection: QUIC_on_new_conn (their void: qEngine, their lsquic_conn: lsConn) <- <%{
         QuicEngine *const quicEngine = (QuicEngine*)qEngine;
