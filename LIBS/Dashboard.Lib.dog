@@ -65,7 +65,7 @@ struct Dashboard: inherits=dash{
     me void: addChild(our dash: child) <- {child.dashParent<-self; dashChildren.append(child)}
 
     void: addDependent(me string: key, their dash: dashPtr) <- {
-        if(! dependentItems.containsKey(key)){
+        if(dependentItems.containsKey(key) == false){
             dashPtr.isHidden <- true
             dependentItems[key] <- dashPtr
         }

@@ -163,7 +163,7 @@ reservedWordSet = set([
 # # # # # # # # # # # # #   BNF Parser Productions for CodeDog syntax   # # # # # # # # # # # # #
 #######################################   T A G S   A N D   B U I L D - S P E C S
 docComment    = Group("/*^" + SkipTo("*/") + Suppress("*/") | "//^" + restOfLine)
-identifier    = Word(alphanums + "_") .add_condition(lambda tokens: tokens[0] not in reservedWordSet, message="Reserved keyword used as identifier")
+identifier    = Word(alphanums + "_") .addCondition(lambda tokens: tokens[0] not in reservedWordSet, message="Reserved keyword used as identifier")
 tagID         = identifier("tagID")
 tagDefList    = Forward()
 tagValue      = Forward()

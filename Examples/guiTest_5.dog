@@ -1,0 +1,184 @@
+// guiTest_5.dog
+//
+// Native-control compatibility test after guiTest_4:
+// - label, button, single-line text field, and list box controls
+// - native control callbacks routed to normal CodeDog widget methods
+// - helper methods for control text and list selection state
+
+//LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' LangVersion='GNU' optimize='speed';
+WindowsBuild: Platform='Windows' CPU='amd64' Lang='CPP' LangVersion='MSVC' optimize='speed';
+//SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';
+//AndroidBuild: Platform='Android' CPU='JavaVM' Lang='Java' optimize='power';
+//iPhoneBuild: Platform='IOS' CPU='amd64' Lang='Swift' optimize='speed';
+//MacBuild: Platform='MacOS' Lang='Swift' optimize='speed';
+
+Title = "guiTest_5"
+FileName = "guiTest_5"
+Version = "1.0"
+CopyrightMesg = "Public Domain"
+Authors = "Bruce Long"
+Description = "GUI test for basic native controls and callbacks"
+ProgramOrLibrary = "program"
+
+featuresNeeded = [GUI_ToolKit, Dashboard, List]
+
+LicenseText = `Public Domain`
+
+runCode=``
+
+mainStyle = {}
+
+do makeStyler(mainStyle)
+do makeGUI(GUI_Spec)
+
+struct entryChangeWidget: inherits=DashboardWidget{
+    me bool: keyTyped(their GUI_KeyboardEvent: event) <- {
+        entryChangeCount <- entryChangeCount + 1
+        lastEntryText <- thisApp.gui.getControlText(entry_field)
+        thisApp.gui.setControlText(live_label, "Entry changes: " + toString(entryChangeCount) + "   text: " + lastEntryText)
+        print("ENTRY CHANGED text:", lastEntryText, "\n")
+        return(true)
+    }
+}
+
+struct applyButtonWidget: inherits=DashboardWidget{
+    me bool: primaryClick(their GUI_ButtonEvent: event) <- {
+        applyClickCount <- applyClickCount + 1
+        lastEntryText <- thisApp.gui.getControlText(entry_field)
+        thisApp.gui.setControlText(status_label, "Apply clicks: " + toString(applyClickCount) + "   applied: " + lastEntryText)
+        print("APPLY BUTTON text:", lastEntryText, "\n")
+        return(true)
+    }
+}
+
+struct addButtonWidget: inherits=DashboardWidget{
+    me bool: primaryClick(their GUI_ButtonEvent: event) <- {
+        addClickCount <- addClickCount + 1
+        lastEntryText <- thisApp.gui.getControlText(entry_field)
+        if(lastEntryText.size() == 0){
+            lastEntryText <- "empty"
+        }
+        thisApp.gui.addListItem(list_box, lastEntryText + " #" + toString(addClickCount))
+        thisApp.gui.setControlText(status_label, "Added row " + toString(addClickCount) + ": " + lastEntryText)
+        print("ADD BUTTON text:", lastEntryText, "\n")
+        return(true)
+    }
+}
+
+struct clearButtonWidget: inherits=DashboardWidget{
+    me bool: primaryClick(their GUI_ButtonEvent: event) <- {
+        clearClickCount <- clearClickCount + 1
+        thisApp.gui.clearList(list_box)
+        thisApp.gui.addListItem(list_box, "Alpha")
+        thisApp.gui.addListItem(list_box, "Beta")
+        thisApp.gui.addListItem(list_box, "Gamma")
+        thisApp.gui.setControlText(status_label, "List reset count: " + toString(clearClickCount))
+        thisApp.gui.setControlText(selection_label, "Selection: none")
+        print("CLEAR BUTTON\n")
+        return(true)
+    }
+}
+
+struct listSelectWidget: inherits=DashboardWidget{
+    me bool: primaryClick(their GUI_ButtonEvent: event) <- {
+        listSelectCount <- listSelectCount + 1
+        lastListIndex <- thisApp.gui.getListSelectedIndex(list_box)
+        lastListText <- thisApp.gui.getListSelectedText(list_box)
+        thisApp.gui.setControlText(selection_label, "Selection changes: " + toString(listSelectCount) + "   index: " + toString(lastListIndex) + "   text: " + lastListText)
+        print("LIST SELECT index:", lastListIndex, " text:", lastListText, "\n")
+        return(true)
+    }
+
+    me bool: primaryDblClick(their GUI_ButtonEvent: event) <- {
+        listDoubleClickCount <- listDoubleClickCount + 1
+        lastListIndex <- thisApp.gui.getListSelectedIndex(list_box)
+        lastListText <- thisApp.gui.getListSelectedText(list_box)
+        thisApp.gui.setControlText(status_label, "List double-clicks: " + toString(listDoubleClickCount) + "   " + lastListText)
+        print("LIST DOUBLE index:", lastListIndex, " text:", lastListText, "\n")
+        return(true)
+    }
+}
+
+struct GLOBAL{
+    their GUI_item: drawing_area
+    their GUI_item: title_label
+    their GUI_item: entry_field
+    their GUI_item: apply_button
+    their GUI_item: add_button
+    their GUI_item: clear_button
+    their GUI_item: list_box
+    their GUI_item: live_label
+    their GUI_item: status_label
+    their GUI_item: selection_label
+
+    their entryChangeWidget: entryHandler
+    their applyButtonWidget: applyHandler
+    their addButtonWidget: addHandler
+    their clearButtonWidget: clearHandler
+    their listSelectWidget: listHandler
+
+    me int: entryChangeCount <- 0
+    me int: applyClickCount <- 0
+    me int: addClickCount <- 0
+    me int: clearClickCount <- 0
+    me int: listSelectCount <- 0
+    me int: listDoubleClickCount <- 0
+    me int: lastListIndex <- -1
+    me string: lastEntryText <- ""
+    me string: lastListText <- ""
+}
+
+struct APP{
+    me void: createAppArea(me GUI_Frame: frame) <- {
+        Allocate(entryHandler)
+        Allocate(applyHandler)
+        Allocate(addHandler)
+        Allocate(clearHandler)
+        Allocate(listHandler)
+
+        title_label <- gui.newLabel("guiTest_5 native controls: edit text, click buttons, select list rows")
+        drawing_area <- title_label
+        gui.setWidgetSize(title_label, 900, 34)
+        addToContainer(frame, title_label)
+
+        entry_field <- gui.newTextField("Type here")
+        gui.setWidgetSize(entry_field, 900, 32)
+        entryHandler.EventDispatcher.registerControlForEventDispatcher(entry_field, entryHandler)
+        addToContainer(frame, entry_field)
+
+        live_label <- gui.newLabel("Entry changes: 0   text: Type here")
+        gui.setWidgetSize(live_label, 900, 30)
+        addToContainer(frame, live_label)
+
+        apply_button <- gui.newButton("Apply Entry")
+        gui.setWidgetSize(apply_button, 900, 34)
+        applyHandler.EventDispatcher.registerControlForEventDispatcher(apply_button, applyHandler)
+        addToContainer(frame, apply_button)
+
+        add_button <- gui.newButton("Add Entry To List")
+        gui.setWidgetSize(add_button, 900, 34)
+        addHandler.EventDispatcher.registerControlForEventDispatcher(add_button, addHandler)
+        addToContainer(frame, add_button)
+
+        clear_button <- gui.newButton("Reset List")
+        gui.setWidgetSize(clear_button, 900, 34)
+        clearHandler.EventDispatcher.registerControlForEventDispatcher(clear_button, clearHandler)
+        addToContainer(frame, clear_button)
+
+        list_box <- gui.newListBox()
+        gui.setWidgetSize(list_box, 900, 210)
+        gui.addListItem(list_box, "Alpha")
+        gui.addListItem(list_box, "Beta")
+        gui.addListItem(list_box, "Gamma")
+        listHandler.EventDispatcher.registerControlForEventDispatcher(list_box, listHandler)
+        addToContainer(frame, list_box)
+
+        selection_label <- gui.newLabel("Selection: none")
+        gui.setWidgetSize(selection_label, 900, 32)
+        addToContainer(frame, selection_label)
+
+        status_label <- gui.newLabel("Status: ready")
+        gui.setWidgetSize(status_label, 900, 34)
+        addToContainerAndExpand(frame, status_label)
+    }
+}

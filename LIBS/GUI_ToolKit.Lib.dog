@@ -252,12 +252,25 @@ struct GUI_KeyboardEvent{
     me uint: keyval
 }
 /////////////////////////////////  EVENT DISPATCHER
-struct GUI_eventDispatcher{}
+struct GUI_eventDispatcher{
+    me void: registerControlForEventDispatcher(me GUI_item: Widget, their widget: masterWidget)
+}
 /////////////////////////////////  HANDLE GUI
 struct GUI_canvas{}
 struct GUI{
     me GUI_item: newCanvas()
+    me GUI_item: newLabel(me string: text)
+    me GUI_item: newButton(me string: text)
+    me GUI_item: newTextField(me string: text)
+    me GUI_item: newListBox()
     me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height)
+    me void: setControlText(me GUI_item: widget, me string: text)
+    me string: getControlText(me GUI_item: widget)
+    me void: addListItem(me GUI_item: listWidget, me string: text)
+    me void: clearList(me GUI_item: listWidget)
+    me void: setListSelectedIndex(me GUI_item: listWidget, me int: index)
+    me int: getListSelectedIndex(me GUI_item: listWidget)
+    me string: getListSelectedText(me GUI_item: listWidget)
   //  me void: setCallback() <- {}
 }
 struct GUI_ctxt {

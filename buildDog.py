@@ -3,6 +3,7 @@
 from __future__ import unicode_literals
 import progSpec
 import os
+import sys
 import subprocess
 import buildAndroid
 import buildMac
@@ -264,6 +265,8 @@ def buildSconsFile(fileName, libFiles, buildName, platform, fileSpecs, progOrLib
     (includeFolders, libFolders) = FindOrFetchLibraries(buildName, packageData, platform, tools)
     SconsFile = "import os\n\n"
     SconsFile += "env = Environment(ENV=os.environ)\n"
+    if platform == 'Windows':
+        SconsFile += 'env.Append(CCFLAGS=["/EHsc"])\n'
     #SconsFile += "env.MergeFlags('-g -fpermissive')\n"
     if progOrLib=='program': SconsFileType = "Program"
     elif progOrLib=='library': SconsFileType = "Library"
@@ -376,7 +379,8 @@ def WindowsBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, pla
     buildSconsFile(fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData, fileExtension, tools)
 
     writeFile(buildName, fileName, fileSpecs, fileExtension)
-    copyRecursive("Resources", buildName + os.sep + "assets")
+    if os.path.isdir("Resources"):
+        copyRecursive("Resources", buildName + os.sep + "assets")
 
     for libFile in libFiles:
         libStr += "-l"+libFile+ " "
@@ -494,7 +498,8 @@ def getBuildSting (fileName, buildStr_libs, platform, buildName):
         """
 
         codeDogPath = os.path.dirname(os.path.realpath(__file__))
-        buildStr = f"python3 {codeDogPath}/Scons/scons.py -Q -f "+fileName+".scons"
+        pythonExe = '"' + sys.executable + '"'
+        buildStr = f"{pythonExe} {codeDogPath}/Scons/scons.py -Q -f "+fileName+".scons"
     elif platform == 'Java' or  platform == 'Swing':
         buildStr = ''
         libStr = ''
@@ -516,7 +521,8 @@ def getBuildSting (fileName, buildStr_libs, platform, buildName):
         buildStr = "swiftc -suppress-warnings " + fileName + fileExtension
     elif platform == 'Windows':
         codeDogPath = os.path.dirname(os.path.realpath(__file__))
-        buildStr = f"python3 {codeDogPath}/Scons/scons.py -Q -f "+fileName+".scons"
+        pythonExe = '"' + sys.executable + '"'
+        buildStr = f"{pythonExe} {codeDogPath}/Scons/scons.py -Q -f "+fileName+".scons"
     elif platform == 'MacOS':
         buildStr = "// swift build -Xswiftc -suppress-warnings \n"
         buildStr += "// swift run  -Xswiftc -suppress-warnings \n"
@@ -548,7 +554,8 @@ def buildWithScons(name, cmdLineArgs):
 
         codeDogPath = os.path.dirname(os.path.realpath(__file__))
         otherSconsArgs = ' '.join(cmdLineArgs)
-        sconsCMD = "python3 "+codeDogPath+"/Scons/scons.py -Q -f "+sconsFile + ' '+ otherSconsArgs
+        pythonExe = '"' + sys.executable + '"'
+        sconsCMD = pythonExe+" "+codeDogPath+"/Scons/scons.py -Q -f "+sconsFile + ' '+ otherSconsArgs
         result = runCmdStreaming(sconsCMD, basepath)
         if result==0:
             print("\nSUCCESS\n")

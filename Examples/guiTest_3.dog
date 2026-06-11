@@ -1,0 +1,219 @@
+// guiTest_3.dog
+//
+// Exercises the next GUI layer after guiTest_2:
+// - multiple child canvases in one parent
+// - fixed-size addToContainer children
+// - an expanding child from addToContainerAndExpand
+// - a scrolling window with a larger child canvas
+// - dirty-region redraw requests on individual children
+// - wheel/key/mouse dispatch to the correct child
+
+//LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' LangVersion='GNU' optimize='speed';
+WindowsBuild: Platform='Windows' CPU='amd64' Lang='CPP' LangVersion='MSVC' optimize='speed';
+//SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';
+//AndroidBuild: Platform='Android' CPU='JavaVM' Lang='Java' optimize='power';
+//iPhoneBuild: Platform='IOS' CPU='amd64' Lang='Swift' optimize='speed';
+//MacBuild: Platform='MacOS' Lang='Swift' optimize='speed';
+
+Title = "guiTest_3"
+FileName = "guiTest_3"
+Version = "1.0"
+CopyrightMesg = "Public Domain"
+Authors = "Bruce Long"
+Description = "GUI test for multiple child canvases, scroller, layout, and targeted redraw"
+ProgramOrLibrary = "program"
+
+featuresNeeded = [GUI_ToolKit, Dashboard, List]
+
+LicenseText = `Public Domain`
+
+runCode=``
+
+mainStyle = {}
+
+do makeStyler(mainStyle)
+do makeGUI(GUI_Spec)
+
+struct topPanelWidget: inherits=DashboardWidget{
+    void: requestRedraw() <- {
+        markDirtyArea(top_canvas, 0, 0, widgetWidth(top_canvas), widgetHeight(top_canvas))
+    }
+
+    void: draw(their GUI_ctxt: cr) <- {
+        me int: panelW <- widgetWidth(top_canvas)
+        me int: panelH <- widgetHeight(top_canvas)
+        cr.setRGB(245, 250, 255)
+        cr.paintNow()
+        cr.setRGB(25, 75, 125)
+        cr.setLineWidth(2)
+        cr.rectangle(8, 8, panelW - 16, panelH - 16)
+        cr.strokeNow()
+        cr.setRGB(0, 0, 0)
+        cr.setLineWidth(1)
+        our fontSpec:: titleFont{"Arial", "20"}
+        our fontSpec:: bodyFont{"Arial", "15"}
+        renderText(cr, "guiTest_3 fixed top canvas", titleFont, 24, 36)
+        renderText(cr, "addToContainer fixed height: " + toString(panelW) + " x " + toString(panelH), bodyFont, 24, 66)
+        renderText(cr, "Top clicks: " + toString(topClickCount), bodyFont, 24, 94)
+    }
+
+    me bool: primaryClick(their GUI_ButtonEvent: event) <- {
+        topClickCount <- topClickCount + 1
+        print("TOP CLICK x:", event.x, " y:", event.y, "\n")
+        requestRedraw()
+        return(true)
+    }
+}
+
+struct scrollPanelWidget: inherits=DashboardWidget{
+    void: requestRedraw() <- {
+        markDirtyArea(scroll_canvas, 0, 0, widgetWidth(scroll_canvas), widgetHeight(scroll_canvas))
+    }
+
+    void: draw(their GUI_ctxt: cr) <- {
+        me int: canvasW <- widgetWidth(scroll_canvas)
+        me int: canvasH <- widgetHeight(scroll_canvas)
+        cr.setRGB(252, 252, 240)
+        cr.paintNow()
+        cr.setRGB(120, 90, 0)
+        cr.setLineWidth(2)
+        cr.rectangle(12, 12, canvasW - 24, canvasH - 24)
+        cr.strokeNow()
+        cr.setRGB(0, 0, 0)
+        cr.setLineWidth(1)
+        our fontSpec:: titleFont{"Arial", "19"}
+        our fontSpec:: rowFont{"Arial", "15"}
+        renderText(cr, "scrolling child canvas", titleFont, 28, 42)
+        renderText(cr, "Wheel events: " + toString(scrollWheelCount) + "   clicks: " + toString(scrollClickCount), rowFont, 28, 72)
+        withEach row in range 0 .. 24 {
+            me int: y <- 116 + row * 32
+            if(row / 2 * 2 == row){
+                cr.setRGB(235, 242, 250)
+                cr.rectangle(26, y - 19, canvasW - 70, 24)
+                cr.fillNow()
+            }
+            cr.setRGB(20, 20, 20)
+            renderText(cr, "Scrollable row " + toString(row) + " - wheel or drag the scrollbar", rowFont, 40, y)
+        }
+    }
+
+    me bool: primaryClick(their GUI_ButtonEvent: event) <- {
+        scrollClickCount <- scrollClickCount + 1
+        print("SCROLL CONTENT CLICK x:", event.x, " y:", event.y, "\n")
+        requestRedraw()
+        return(true)
+    }
+
+    me bool: mouseWheel(their GUI_MotionEvent: event) <- {
+        scrollWheelCount <- scrollWheelCount + 1
+        print("SCROLL WHEEL x:", event.x, " y:", event.y, "\n")
+        requestRedraw()
+        return(true)
+    }
+}
+
+struct mainPanelWidget: inherits=DashboardWidget{
+    void: requestRedraw() <- {
+        mainDirtyCount <- mainDirtyCount + 1
+        markDirtyArea(main_canvas, 24, 24, widgetWidth(main_canvas) - 48, 170)
+    }
+
+    void: draw(their GUI_ctxt: cr) <- {
+        me int: canvasW <- widgetWidth(main_canvas)
+        me int: canvasH <- widgetHeight(main_canvas)
+        cr.setRGB(246, 248, 255)
+        cr.paintNow()
+        cr.setRGB(30, 40, 160)
+        cr.setLineWidth(3)
+        cr.rectangle(12, 12, canvasW - 24, canvasH - 24)
+        cr.strokeNow()
+        cr.setRGB(200, 40, 40)
+        cr.moveTo(20, 20)
+        cr.lineTo(canvasW - 20, canvasH - 20)
+        cr.moveTo(canvasW - 20, 20)
+        cr.lineTo(20, canvasH - 20)
+        cr.strokeNow()
+        cr.setRGB(0, 0, 0)
+        cr.setLineWidth(1)
+        our fontSpec:: titleFont{"Arial", "20"}
+        our fontSpec:: bodyFont{"Arial", "15"}
+        renderText(cr, "expanding bottom canvas", titleFont, 32, 48)
+        renderText(cr, "addToContainerAndExpand size: " + toString(canvasW) + " x " + toString(canvasH), bodyFont, 32, 78)
+        renderText(cr, "Main clicks: " + toString(mainClickCount) + "   dirty requests: " + toString(mainDirtyCount), bodyFont, 32, 108)
+        renderText(cr, "Last key: " + toString(lastKey) + "   key down/up: " + toString(keyDownCount) + " / " + toString(keyUpCount), bodyFont, 32, 138)
+        renderText(cr, "Click here, type, resize the window, and use the middle scrollbar.", bodyFont, 32, 168)
+    }
+
+    me bool: primaryClick(their GUI_ButtonEvent: event) <- {
+        mainClickCount <- mainClickCount + 1
+        print("MAIN CLICK x:", event.x, " y:", event.y, "\n")
+        requestRedraw()
+        return(true)
+    }
+
+    me bool: keyDown(their GUI_KeyboardEvent: event) <- {
+        lastKey <- event.keyval
+        keyDownCount <- keyDownCount + 1
+        print("MAIN KEY DOWN key:", lastKey, "\n")
+        requestRedraw()
+        return(true)
+    }
+
+    me bool: keyUp(their GUI_KeyboardEvent: event) <- {
+        lastKey <- event.keyval
+        keyUpCount <- keyUpCount + 1
+        print("MAIN KEY UP key:", lastKey, "\n")
+        requestRedraw()
+        return(true)
+    }
+}
+
+struct GLOBAL{
+    their GUI_canvas: drawing_area
+    their GUI_canvas: top_canvas
+    their GUI_item: scroller
+    their GUI_canvas: scroll_canvas
+    their GUI_canvas: main_canvas
+    their topPanelWidget: topPanel
+    their scrollPanelWidget: scrollPanel
+    their mainPanelWidget: mainPanel
+    me int: topClickCount <- 0
+    me int: scrollClickCount <- 0
+    me int: scrollWheelCount <- 0
+    me int: mainClickCount <- 0
+    me int: mainDirtyCount <- 0
+    me int: keyDownCount <- 0
+    me int: keyUpCount <- 0
+    me uint: lastKey <- 0
+}
+
+struct APP{
+    me void: createAppArea(me GUI_Frame: frame) <- {
+        Allocate(topPanel)
+        Allocate(scrollPanel)
+        Allocate(mainPanel)
+
+        top_canvas <- gui.newCanvas()
+        top_canvas.setParent(topPanel)
+        gui.setWidgetSize(top_canvas, 900, 130)
+        topPanel.EventDispatcher.registerWidgetForEventDispatcher(top_canvas, topPanel)
+        addToContainer(frame, top_canvas)
+
+        scroller <- gui.newScrollingWindow()
+        gui.setWidgetSize(scroller, 900, 230)
+        addToContainer(frame, scroller)
+
+        scroll_canvas <- gui.newCanvas()
+        scroll_canvas.setParent(scrollPanel)
+        gui.setWidgetSize(scroll_canvas, 900, 900)
+        scrollPanel.EventDispatcher.registerWidgetForEventDispatcher(scroll_canvas, scrollPanel)
+        addToContainer(scroller, scroll_canvas)
+
+        main_canvas <- gui.newCanvas()
+        main_canvas.setParent(mainPanel)
+        gui.setWidgetSize(main_canvas, 900, 260)
+        mainPanel.EventDispatcher.registerWidgetForEventDispatcher(main_canvas, mainPanel)
+        drawing_area <- main_canvas
+        addToContainerAndExpand(frame, main_canvas)
+    }
+}

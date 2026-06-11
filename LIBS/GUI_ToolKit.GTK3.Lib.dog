@@ -68,6 +68,12 @@ struct GUI_eventDispatcher{
             } else if(event->button==3){
                 retVal = topWidget->secondaryClick(event);
             }
+        } else if(event->type==GDK_2BUTTON_PRESS){
+            if(event->button==1){
+                retVal = topWidget->primaryDblClick(event);
+            } else if(event->button==3){
+                retVal = topWidget->secondaryDblClick(event);
+            }
         } else if(event->type==GDK_BUTTON_RELEASE){
             if(event->button==1){
                 topWidget->primaryUp(event);
@@ -79,7 +85,17 @@ struct GUI_eventDispatcher{
         return retVal;
     } %>
     me bool: dispatchKeyboardEvent(their GdkEventKey: event) <- <%{
-        return(topWidget->keyTyped(event));
+        bool retVal = topWidget->keyDown(event);
+        if(topWidget->keyTyped(event)){retVal = true;}
+        return(retVal);
+    }%>
+    me bool: dispatchKeyboardReleaseEvent(their GdkEventKey: event) <- <%{
+        return(topWidget->keyUp(event));
+    }%>
+    me bool: dispatchScrollEvent(their GdkEventScroll: event) <- <%{
+        event->x = event->x / scaleFactor;
+        event->y = event->y / scaleFactor;
+        return(topWidget->mouseWheel((GdkEventMotion*)event));
     }%>
     //  me bool: dispatchWindowEvent(their GdkEventConfigure: event) <- {print("Config\n")}
     // Also: timer, data and user events
@@ -93,7 +109,10 @@ struct GUI_eventDispatcher{
         g_signal_connect (Widget, "motion_notify_event", G_CALLBACK(motion_notify_event), topWidget);
         g_signal_connect (Widget, "button_press_event",  G_CALLBACK(button_press_event), topWidget);
         g_signal_connect (Widget, "button_release_event",  G_CALLBACK(button_release_event), topWidget);
-        g_signal_connect (window, "key_press_event",  G_CALLBACK(keypress_event), topWidget);
+        g_signal_connect (Widget, "scroll_event",  G_CALLBACK(scroll_event), topWidget);
+        g_signal_connect (Widget, "key_press_event",  G_CALLBACK(keypress_event), topWidget);
+        g_signal_connect (Widget, "key_release_event",  G_CALLBACK(keyrelease_event), topWidget);
+        gtk_widget_set_can_focus(Widget, TRUE);
 
         gtk_widget_set_events (Widget, GDK_EXPOSURE_MASK
              | GDK_LEAVE_NOTIFY_MASK
@@ -101,15 +120,31 @@ struct GUI_eventDispatcher{
              | GDK_BUTTON_RELEASE_MASK
              | GDK_POINTER_MOTION_MASK
              | GDK_POINTER_MOTION_HINT_MASK
+             | GDK_SCROLL_MASK
              | GDK_KEY_PRESS_MASK
              | GDK_KEY_RELEASE_MASK
         );
+    } %>
+    me void: registerControlForEventDispatcher(their GUI_item: Widget, their widget: masterWidget) <- <%{
+        topWidget = masterWidget;
+        if(GTK_IS_BUTTON(Widget)){
+            g_signal_connect(Widget, "clicked", G_CALLBACK(control_button_clicked), topWidget);
+        }
+        else if(GTK_IS_ENTRY(Widget)){
+            g_signal_connect(Widget, "changed", G_CALLBACK(control_entry_changed), topWidget);
+        }
+        else if(GTK_IS_LIST_BOX(Widget)){
+            g_signal_connect(Widget, "row-selected", G_CALLBACK(control_list_row_selected), topWidget);
+            g_signal_connect(Widget, "row-activated", G_CALLBACK(control_list_row_activated), topWidget);
+        }
+        gtk_widget_set_can_focus(Widget, TRUE);
     } %>
 }
 
 /////////////////////////////////  GLOBAL EVENT HANDLERS
 struct GLOBAL{
     me void: button_press_event(their GtkWidget: wid, their GdkEventButton: event, their void: data) <- <%{
+        gtk_widget_grab_focus(wid);
         ((DashboardWidget*) data)->EventDispatcher.dispatchPointerClickEvent(event);
     } %>
     me void: button_release_event(their GtkWidget: wid, their GdkEventButton: event, their void: data) <- <%{
@@ -118,11 +153,45 @@ struct GLOBAL{
     me void: motion_notify_event(their GtkWidget: wid, their GdkEventMotion: event, their void: data) <- <%{
         ((DashboardWidget*) data)->EventDispatcher.dispatchPointerMotionEvent(event);
     } %>
+    me void: scroll_event(their GtkWidget: wid, their GdkEventScroll: event, their void: data) <- <%{
+        ((DashboardWidget*) data)->EventDispatcher.dispatchScrollEvent(event);
+    } %>
     me void: expose_event(their GtkWidget: wid, their GdkEventExpose: event, their void: data) <- <%{
       //  ((DashboardWidget*) data)->EventDispatcher.dispatchWindowEvent(event);
     } %>
     me void: keypress_event(their GtkWidget: wid, their GdkEventKey: event, their void: data) <- <%{
         ((DashboardWidget*) data)->EventDispatcher.dispatchKeyboardEvent(event);
+    } %>
+    me void: keyrelease_event(their GtkWidget: wid, their GdkEventKey: event, their void: data) <- <%{
+        ((DashboardWidget*) data)->EventDispatcher.dispatchKeyboardReleaseEvent(event);
+    } %>
+    me void: control_button_clicked(their GtkWidget: wid, their void: data) <- <%{
+        GdkEventButton event = {};
+        event.type = GDK_BUTTON_RELEASE;
+        event.button = 1;
+        ((widget*)data)->primaryClick(&event);
+    } %>
+    me void: control_entry_changed(their GtkWidget: wid, their void: data) <- <%{
+        GdkEventKey event = {};
+        event.type = GDK_KEY_PRESS;
+        event.keyval = 0;
+        ((widget*)data)->keyTyped(&event);
+    } %>
+    me void: control_list_row_selected(their GtkWidget: wid, their GtkListBoxRow: row, their void: data) <- <%{
+        if(row == NULL){return;}
+        GdkEventButton event = {};
+        event.type = GDK_BUTTON_RELEASE;
+        event.button = 1;
+        event.x = gtk_list_box_row_get_index(row);
+        ((widget*)data)->primaryClick(&event);
+    } %>
+    me void: control_list_row_activated(their GtkWidget: wid, their GtkListBoxRow: row, their void: data) <- <%{
+        if(row == NULL){return;}
+        GdkEventButton event = {};
+        event.type = GDK_2BUTTON_PRESS;
+        event.button = 1;
+        event.x = gtk_list_box_row_get_index(row);
+        ((widget*)data)->primaryDblClick(&event);
     } %>
     me void: configure_event(their GtkWidget: wid, their GdkEventConfigure: event, their void: data) <- <%{
       //  EventDispatcher.dispatchWindowEvent(event);
@@ -167,7 +236,73 @@ struct GUI{
 
 struct GUI{
     their GUI_item: newCanvas() <- <%!%Ggtk_drawing_area_new()%>
+    their GUI_item: newLabel(me string: text) <- <%!%Ggtk_label_new(%1.data())%>
+    their GUI_item: newButton(me string: text) <- <%!%Ggtk_button_new_with_label(%1.data())%>
+    their GUI_item: newTextField(me string: text) <- <%{
+        GtkWidget* entry = gtk_entry_new();
+        gtk_entry_set_text(GTK_ENTRY(entry), text.data());
+        return(entry);
+    }%>
+    their GUI_item: newListBox() <- <%{
+        GtkWidget* listBox = gtk_list_box_new();
+        gtk_list_box_set_selection_mode(GTK_LIST_BOX(listBox), GTK_SELECTION_SINGLE);
+        return(listBox);
+    }%>
     me void: setWidgetSize(their GUI_item: widget, me uint32: width, me uint32: height) <- <%!%Ggtk_widget_set_size_request(%1, %2, %3)%>
+    me void: setControlText(their GUI_item: widget, me string: text) <- <%{
+        if(GTK_IS_ENTRY(widget)){
+            gtk_entry_set_text(GTK_ENTRY(widget), text.data());
+        }
+        else if(GTK_IS_LABEL(widget)){
+            gtk_label_set_text(GTK_LABEL(widget), text.data());
+        }
+        else if(GTK_IS_BUTTON(widget)){
+            gtk_button_set_label(GTK_BUTTON(widget), text.data());
+        }
+    }%>
+    me string: getControlText(their GUI_item: widget) <- <%{
+        if(GTK_IS_ENTRY(widget)){
+            return(string(gtk_entry_get_text(GTK_ENTRY(widget))));
+        }
+        if(GTK_IS_LABEL(widget)){
+            return(string(gtk_label_get_text(GTK_LABEL(widget))));
+        }
+        if(GTK_IS_BUTTON(widget)){
+            return(string(gtk_button_get_label(GTK_BUTTON(widget))));
+        }
+        return("");
+    }%>
+    me void: addListItem(their GUI_item: listWidget, me string: text) <- <%{
+        GtkWidget* rowLabel = gtk_label_new(text.data());
+        gtk_widget_set_halign(rowLabel, GTK_ALIGN_START);
+        gtk_list_box_insert(GTK_LIST_BOX(listWidget), rowLabel, -1);
+        gtk_widget_show_all(listWidget);
+    }%>
+    me void: clearList(their GUI_item: listWidget) <- <%{
+        GList* children = gtk_container_get_children(GTK_CONTAINER(listWidget));
+        for(GList* child = children; child != NULL; child = child->next){
+            gtk_widget_destroy(GTK_WIDGET(child->data));
+        }
+        g_list_free(children);
+    }%>
+    me void: setListSelectedIndex(their GUI_item: listWidget, me int: index) <- <%{
+        GtkListBoxRow* row = gtk_list_box_get_row_at_index(GTK_LIST_BOX(listWidget), index);
+        gtk_list_box_select_row(GTK_LIST_BOX(listWidget), row);
+    }%>
+    me int: getListSelectedIndex(their GUI_item: listWidget) <- <%{
+        GtkListBoxRow* row = gtk_list_box_get_selected_row(GTK_LIST_BOX(listWidget));
+        if(row == NULL){return(-1);}
+        return(gtk_list_box_row_get_index(row));
+    }%>
+    me string: getListSelectedText(their GUI_item: listWidget) <- <%{
+        GtkListBoxRow* row = gtk_list_box_get_selected_row(GTK_LIST_BOX(listWidget));
+        if(row == NULL){return("");}
+        GtkWidget* child = gtk_bin_get_child(GTK_BIN(row));
+        if(child != NULL && GTK_IS_LABEL(child)){
+            return(string(gtk_label_get_text(GTK_LABEL(child))));
+        }
+        return("");
+    }%>
     me void: setCallback()     <- <%!%Gg_signal_connect(G_OBJECT(%1), %2, G_CALLBACK(%3), %4)%>
     me void: setBtnCallback()  <- <%!%Gg_signal_connect(G_OBJECT(%1), %2, G_CALLBACK(%3_CB), %4)%>
     me void: setBtnCallback2() <- <%!%Gg_signal_connect(G_OBJECT(%1), %2, G_CALLBACK(%3), %4.get())%>

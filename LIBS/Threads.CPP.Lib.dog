@@ -7,7 +7,7 @@ requirements = [
 interface={
     provides=[threads_implementation]
     libFiles=[pthread]
-    headers=[thread, mutex, condition_variable, atomic]
+    headers=[thread, mutex, condition_variable, atomic, sstream]
 }
 
 LibDescription  ={
@@ -50,6 +50,11 @@ private:
 
 struct GLOBAL{
     me string: thisThreadID() <- <%{
+#ifdef _WIN32
+        std::ostringstream idStream;
+        idStream << std::this_thread::get_id();
+        return(idStream.str());
+#else
         string retVal;
         int rc;
         char threadName[16];
@@ -58,12 +63,17 @@ struct GLOBAL{
         if(rc != 0){retVal = "error";}
         else{retVal = threadName;}
         return(retVal);
+#endif
     }%>
 }
 struct Threads{
     me bool: notDone <- true
     me string: name // The threads name if it was set; max 15 chars
-    void: setName(me string: N)  <- <%{name=N.substr(0,15); pthread_setname_np(T.native_handle(), name.data());}%>
+    void: setName(me string: N)  <- <%{name=N.substr(0,15);
+#ifndef _WIN32
+        pthread_setname_np(T.native_handle(), name.data());
+#endif
+    }%>
     bool: isActive()             <- {return(true);}     // TODO: Finish Thread::ID(), Thread::isActive() and make active threads automatically join() in destructor.
     void: start()                <- <%{T = std::thread(&Threads::run, this);}%>
     void: start(me string: Name) <- <%{T = std::thread(&Threads::run, this); setName(Name);}%>

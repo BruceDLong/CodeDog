@@ -1,0 +1,163 @@
+// guiTest_2.dog
+//
+// Exercises the cross-platform GUI_ToolKit surface used by minimalGUI plus:
+// - child canvas parenting/expansion
+// - resize-aware drawing through widgetWidth/widgetHeight
+// - keyboard focus and key events
+// - mouse event dispatch
+
+//LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' LangVersion='GNU' optimize='speed';
+WindowsBuild: Platform='Windows' CPU='amd64' Lang='CPP' LangVersion='MSVC' optimize='speed';
+//SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';
+//AndroidBuild: Platform='Android' CPU='JavaVM' Lang='Java' optimize='power';
+//iPhoneBuild: Platform='IOS' CPU='amd64' Lang='Swift' optimize='speed';
+//MacBuild: Platform='MacOS' Lang='Swift' optimize='speed';
+
+Title = "guiTest_2"
+FileName = "guiTest_2"
+Version = "1.0"
+CopyrightMesg = "Public Domain"
+Authors = "Bruce Long"
+Description = "GUI smoke test for child canvas, resize, mouse, and keyboard events"
+ProgramOrLibrary = "program"
+
+featuresNeeded = [GUI_ToolKit, Dashboard, List]
+
+LicenseText = `Public Domain`
+
+runCode=``
+
+mainStyle = {}
+
+do makeStyler(mainStyle)
+do makeGUI(GUI_Spec)
+
+struct guiTestWidget: inherits=DashboardWidget{
+
+    void: requestRedraw() <- {
+        markDirtyArea(drawing_area, 0, 0, widgetWidth(drawing_area), widgetHeight(drawing_area))
+    }
+
+    void: draw(their GUI_ctxt: cr) <- {
+        me int: canvasW <- widgetWidth(drawing_area)
+        me int: canvasH <- widgetHeight(drawing_area)
+
+        cr.setRGB(250, 250, 250)
+        cr.paintNow()
+
+        cr.setRGB(30, 30, 30)
+        cr.setLineWidth(2)
+        cr.rectangle(20, 20, canvasW - 40, canvasH - 40)
+        cr.strokeNow()
+
+        cr.setRGB(210, 45, 45)
+        cr.setLineWidth(4)
+        cr.moveTo(20, 20)
+        cr.lineTo(canvasW - 20, canvasH - 20)
+        cr.moveTo(canvasW - 20, 20)
+        cr.lineTo(20, canvasH - 20)
+        cr.strokeNow()
+
+        cr.setRGB(0, 135, 70)
+        cr.circle(120, 170, 48)
+        cr.rectangle(210, 120, 20, 100)
+        cr.strokeNow()
+
+        cr.setRGB(0, 70, 210)
+        cr.rectangle(300, 140, 120, 80)
+        cr.strokeNow()
+
+        cr.setRGB(0, 0, 0)
+        cr.setLineWidth(1)
+        our fontSpec:: headerFont{"Arial", "22"}
+        our fontSpec:: bodyFont{"Arial", "16"}
+        renderText(cr, "guiTest_2", headerFont, 40, 58)
+        renderText(cr, "Canvas: " + toString(canvasW) + " x " + toString(canvasH), bodyFont, 40, 90)
+        renderText(cr, "Key typed/down/up: " + toString(keyTypedCount) + " / " + toString(keyDownCount) + " / " + toString(keyUpCount), bodyFont, 40, 255)
+        renderText(cr, "Last key: " + toString(lastKey) + "   state: " + toString(lastKeyState), bodyFont, 40, 285)
+        renderText(cr, "Mouse clicks: " + toString(mouseClickCount) + "   last: " + toString(lastMouseX) + ", " + toString(lastMouseY), bodyFont, 40, 315)
+        renderText(cr, "Resize the window, click the canvas, then type.", bodyFont, 40, 350)
+    }
+
+    me bool: keyTyped(their GUI_KeyboardEvent: event) <- {
+        lastKey <- event.keyval
+        lastKeyState <- event.state
+        keyTypedCount <- keyTypedCount + 1
+        print("KEY TYPED key:", lastKey, " state:", lastKeyState, "\n")
+        requestRedraw()
+        return(true)
+    }
+
+    me bool: keyDown(their GUI_KeyboardEvent: event) <- {
+        lastKey <- event.keyval
+        lastKeyState <- event.state
+        keyDownCount <- keyDownCount + 1
+        print("KEY DOWN key:", lastKey, " state:", lastKeyState, "\n")
+        requestRedraw()
+        return(true)
+    }
+
+    me bool: keyUp(their GUI_KeyboardEvent: event) <- {
+        lastKey <- event.keyval
+        lastKeyState <- event.state
+        keyUpCount <- keyUpCount + 1
+        print("KEY UP key:", lastKey, " state:", lastKeyState, "\n")
+        requestRedraw()
+        return(true)
+    }
+
+    me bool: primaryDn(their GUI_ButtonEvent: event) <- {
+        lastMouseX <- event.x
+        lastMouseY <- event.y
+        requestRedraw()
+        return(true)
+    }
+
+    me bool: primaryClick(their GUI_ButtonEvent: event) <- {
+        lastMouseX <- event.x
+        lastMouseY <- event.y
+        mouseClickCount <- mouseClickCount + 1
+        print("PRIMARY CLICK x:", lastMouseX, " y:", lastMouseY, "\n")
+        requestRedraw()
+        return(true)
+    }
+
+    me bool: secondaryClick(their GUI_ButtonEvent: event) <- {
+        lastMouseX <- event.x
+        lastMouseY <- event.y
+        mouseClickCount <- mouseClickCount + 1
+        print("SECONDARY CLICK x:", lastMouseX, " y:", lastMouseY, "\n")
+        requestRedraw()
+        return(true)
+    }
+
+    me bool: mouseMoved(their GUI_MotionEvent: event) <- {
+        lastMouseX <- event.x
+        lastMouseY <- event.y
+        return(true)
+    }
+}
+
+struct GLOBAL{
+    their GUI_canvas: drawing_area
+    their guiTestWidget: tester
+    me int: keyTypedCount <- 0
+    me int: keyDownCount <- 0
+    me int: keyUpCount <- 0
+    me int: mouseClickCount <- 0
+    me uint: lastKey <- 0
+    me uint: lastKeyState <- 0
+    me GUI_Scalar: lastMouseX <- 0
+    me GUI_Scalar: lastMouseY <- 0
+}
+
+struct APP{
+    me void: createAppArea(me GUI_Frame: frame) <- {
+        Allocate(tester)
+        drawing_area <- gui.newCanvas()
+        drawing_area.setParent(tester)
+        gui.setWidgetSize(drawing_area, 900, 620)
+        tester.EventDispatcher.registerWidgetForEventDispatcher(drawing_area, tester)
+        addToContainerAndExpand(frame, drawing_area)
+    }
+}

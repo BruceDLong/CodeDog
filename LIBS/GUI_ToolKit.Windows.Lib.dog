@@ -6,7 +6,7 @@ requirements = [
 
 interface={
     provides=[GUI_ToolKit_implementation]
-    libFiles=[Gdi32, winuser]
+    libFiles=[Gdi32, User32, Msimg32]
     headers=[windows.h, windowsx.h, stdlib.h, string.h, tchar.h, direct.h, winuser.h, wingdi.h]
 }
 
@@ -30,6 +30,48 @@ HWND hWnd;
 TRIVERTEX vertex[2];
 GRADIENT_RECT gRect;
 int penWidth = 1;
+const char CodeDogMainWindowClass[] = "CodeDogDesktopApp";
+const char CodeDogCanvasWindowClass[] = "CodeDogCanvas";
+const char CodeDogScrollWindowClass[] = "CodeDogScrollWindow";
+struct CodeDogLayoutChild {
+    HWND parent;
+    HWND child;
+    bool expand;
+    int requestedWidth;
+    int requestedHeight;
+};
+struct CodeDogScrollState {
+    HWND scrollWindow;
+    HWND childWindow;
+    int scrollY;
+    int contentWidth;
+    int contentHeight;
+};
+vector<HWND> CodeDogCanvasWindows;
+vector<CodeDogLayoutChild> CodeDogLayoutChildren;
+vector<CodeDogScrollState> CodeDogScrollWindows;
+HWND CodeDogFocusedWidget = NULL;
+LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
+LRESULT CALLBACK CanvasWndProc(HWND, UINT, WPARAM, LPARAM);
+LRESULT CALLBACK ScrollWndProc(HWND, UINT, WPARAM, LPARAM);
+HWND CodeDogCreateCanvasWindow(HWND parentWindow);
+HWND CodeDogCreateScrollWindow(HWND parentWindow);
+HWND CodeDogCreateLabel(const string& text);
+HWND CodeDogCreateButton(const string& text);
+HWND CodeDogCreateTextField(const string& text);
+HWND CodeDogCreateListBox();
+void CodeDogTrackCanvas(HWND window);
+void CodeDogSetWidgetSize(HWND window, int width, int height);
+void CodeDogAttachChild(HWND parentWindow, HWND childWindow, bool expand);
+void CodeDogResizeChildCanvases(HWND parentWindow);
+void CodeDogRegisterControlForEventDispatcher(HWND window, widget* masterWidget);
+void CodeDogSetControlText(HWND window, const string& text);
+string CodeDogGetControlText(HWND window);
+void CodeDogAddListItem(HWND listWindow, const string& text);
+void CodeDogClearList(HWND listWindow);
+void CodeDogSetListSelectedIndex(HWND listWindow, int index);
+int CodeDogGetListSelectedIndex(HWND listWindow);
+string CodeDogGetListSelectedText(HWND listWindow);
 
 wstring s2ws(const string& s) {
         int len;
@@ -43,165 +85,802 @@ wstring s2ws(const string& s) {
     }
 `
 
-// Injecting some GUI minimal test code here
+// Injecting Win32 GUI dispatch helpers here
 embedLow = `
-
-//const char g_szClassName[] = "myWindowClass";
-
-
-// The main window class name.
-static TCHAR szWindowClass[] = _T("DesktopApp");
-
-// The string that appears in the application's title bar.
-static TCHAR szTitle[] = _T("MinimalGUI - Windows Version");
-
-HINSTANCE hInst;
-
-// Forward declarations of functions included in this code module:
-LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
-
-int CALLBACK WinMain(
-    _In_ HINSTANCE hInstance,
-    _In_ HINSTANCE hPrevInstance,
-    _In_ LPSTR     lpCmdLine,
-    _In_ int       nCmdShow
-)
+static widget* CodeDogWidgetForWindow(HWND window)
 {
-    WNDCLASSEX wcex;
-
-    wcex.cbSize = sizeof(WNDCLASSEX);
-    wcex.style = CS_HREDRAW | CS_VREDRAW;
-    wcex.lpfnWndProc = WndProc;
-    wcex.cbClsExtra = 0;
-    wcex.cbWndExtra = 0;
-    wcex.hInstance = hInstance;
-    wcex.hIcon = LoadIcon(hInstance, IDI_APPLICATION);
-    wcex.hCursor = LoadCursor(NULL, IDC_ARROW);
-    wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-    wcex.lpszMenuName = NULL;
-    wcex.lpszClassName = szWindowClass;
-    wcex.hIconSm = LoadIcon(wcex.hInstance, IDI_APPLICATION);
-
-    if (!RegisterClassEx(&wcex))
-    {
-        MessageBox(NULL,
-            _T("Call to RegisterClassEx failed!"),
-            _T("Windows Desktop Guided Tour"),
-            NULL);
-
-        return 1;
+    if(window != NULL){
+        widget* windowWidget = (widget*)GetWindowLongPtr(window, GWLP_USERDATA);
+        if(windowWidget != nullptr){
+            return windowWidget;
+        }
     }
-    initialize("");
-
-    // Store instance handle in our global variable
-    hInst = hInstance;
-
-    // The parameters to CreateWindow explained:
-    // szWindowClass: the name of the application
-    // szTitle: the text that appears in the title bar
-    // WS_OVERLAPPEDWINDOW: the type of window to create
-    // CW_USEDEFAULT, CW_USEDEFAULT: initial position (x, y)
-    // 500, 100: initial size (width, length)
-    // NULL: the parent of this window
-    // NULL: this application does not have a menu bar
-    // hInstance: the first parameter from WinMain
-    // NULL: not used in this application
-    hWnd = CreateWindow(
-        szWindowClass,
-        szTitle,
-        WS_OVERLAPPEDWINDOW,
-        CW_USEDEFAULT, CW_USEDEFAULT,
-        GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN),
-        NULL,
-        NULL,
-        hInstance,
-        NULL
-    );
-
-    if (!hWnd)
-    {
-        MessageBox(NULL, _T("Call to CreateWindow failed!"), _T("Windows Desktop Guided Tour"), NULL);
-        return 1;
-    }
-
-    activate(hWnd);
-
-    // The parameters to ShowWindow explained:
-    // hWnd: the value returned from CreateWindow
-    // nCmdShow: the fourth parameter from WinMain
-    ShowWindow(hWnd,
-        nCmdShow);
-    UpdateWindow(hWnd);
-
-    // Main message loop:
-    MSG msg;
-    while (GetMessage(&msg, NULL, 0, 0))
-    {
-        TranslateMessage(&msg);
-        DispatchMessage(&msg);
-    }
-    deinitialize();
-    return (int)msg.wParam;
+    return EventDispatcher.topWidget;
 }
 
-LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+static uint CodeDogKeyboardState()
+{
+    uint state = 0;
+    if(GetKeyState(VK_SHIFT) & 0x8000){
+        state |= MK_SHIFT;
+    }
+    if(GetKeyState(VK_CONTROL) & 0x8000){
+        state |= MK_CONTROL;
+    }
+    return state;
+}
+
+static bool CodeDogIsTrackedCanvas(HWND window)
+{
+    for(size_t i = 0; i < CodeDogCanvasWindows.size(); ++i){
+        if(CodeDogCanvasWindows[i] == window){
+            return true;
+        }
+    }
+    return false;
+}
+
+void CodeDogTrackCanvas(HWND window)
+{
+    if(window != NULL && !CodeDogIsTrackedCanvas(window)){
+        CodeDogCanvasWindows.push_back(window);
+    }
+}
+
+static bool CodeDogWindowHasClass(HWND window, const char* className)
+{
+    if(window == NULL){
+        return false;
+    }
+    char actualClassName[128] = {};
+    GetClassNameA(window, actualClassName, sizeof(actualClassName));
+    return strcmp(actualClassName, className) == 0;
+}
+
+static CodeDogLayoutChild* CodeDogFindLayoutChild(HWND childWindow)
+{
+    for(size_t i = 0; i < CodeDogLayoutChildren.size(); ++i){
+        if(CodeDogLayoutChildren[i].child == childWindow){
+            return &CodeDogLayoutChildren[i];
+        }
+    }
+    return nullptr;
+}
+
+static CodeDogScrollState* CodeDogFindScrollState(HWND scrollWindow)
+{
+    for(size_t i = 0; i < CodeDogScrollWindows.size(); ++i){
+        if(CodeDogScrollWindows[i].scrollWindow == scrollWindow){
+            return &CodeDogScrollWindows[i];
+        }
+    }
+    return nullptr;
+}
+
+static CodeDogScrollState* CodeDogFindScrollStateForChild(HWND childWindow)
+{
+    for(size_t i = 0; i < CodeDogScrollWindows.size(); ++i){
+        if(CodeDogScrollWindows[i].childWindow == childWindow){
+            return &CodeDogScrollWindows[i];
+        }
+    }
+    return nullptr;
+}
+
+static int CodeDogClampInt(int value, int low, int high)
+{
+    if(value < low){return low;}
+    if(value > high){return high;}
+    return value;
+}
+
+HWND CodeDogCreateCanvasWindow(HWND parentWindow)
+{
+    if(parentWindow == NULL){
+        parentWindow = hWnd;
+    }
+    HWND canvasWindow = CreateWindowExA(
+        0,
+        CodeDogCanvasWindowClass,
+        "",
+        WS_CHILD | WS_VISIBLE | WS_TABSTOP | WS_CLIPSIBLINGS,
+        0,
+        0,
+        100,
+        100,
+        parentWindow,
+        NULL,
+        GetModuleHandle(NULL),
+        NULL
+    );
+    CodeDogTrackCanvas(canvasWindow);
+    return canvasWindow;
+}
+
+HWND CodeDogCreateScrollWindow(HWND parentWindow)
+{
+    if(parentWindow == NULL){
+        parentWindow = hWnd;
+    }
+    HWND scrollWindow = CreateWindowExA(
+        WS_EX_CLIENTEDGE,
+        CodeDogScrollWindowClass,
+        "",
+        WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_VSCROLL,
+        0,
+        0,
+        100,
+        100,
+        parentWindow,
+        NULL,
+        GetModuleHandle(NULL),
+        NULL
+    );
+    if(scrollWindow != NULL && CodeDogFindScrollState(scrollWindow) == nullptr){
+        CodeDogScrollState state;
+        state.scrollWindow = scrollWindow;
+        state.childWindow = NULL;
+        state.scrollY = 0;
+        state.contentWidth = 100;
+        state.contentHeight = 100;
+        CodeDogScrollWindows.push_back(state);
+    }
+    return scrollWindow;
+}
+
+static HWND CodeDogCreateNativeControl(const char* className, const string& text, DWORD style, DWORD exStyle)
+{
+    HWND parentWindow = hWnd;
+    HWND controlWindow = CreateWindowExA(
+        exStyle,
+        className,
+        text.c_str(),
+        style,
+        0,
+        0,
+        100,
+        28,
+        parentWindow,
+        NULL,
+        GetModuleHandle(NULL),
+        NULL
+    );
+    return controlWindow;
+}
+
+HWND CodeDogCreateLabel(const string& text)
+{
+    return CodeDogCreateNativeControl("STATIC", text, WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | SS_LEFT, 0);
+}
+
+HWND CodeDogCreateButton(const string& text)
+{
+    return CodeDogCreateNativeControl("BUTTON", text, WS_CHILD | WS_VISIBLE | WS_TABSTOP | WS_CLIPSIBLINGS | BS_PUSHBUTTON, 0);
+}
+
+HWND CodeDogCreateTextField(const string& text)
+{
+    return CodeDogCreateNativeControl("EDIT", text, WS_CHILD | WS_VISIBLE | WS_TABSTOP | WS_CLIPSIBLINGS | WS_BORDER | ES_AUTOHSCROLL, WS_EX_CLIENTEDGE);
+}
+
+HWND CodeDogCreateListBox()
+{
+    return CodeDogCreateNativeControl("LISTBOX", "", WS_CHILD | WS_VISIBLE | WS_TABSTOP | WS_CLIPSIBLINGS | WS_BORDER | WS_VSCROLL | LBS_NOTIFY, WS_EX_CLIENTEDGE);
+}
+
+void CodeDogRegisterControlForEventDispatcher(HWND window, widget* masterWidget)
+{
+    if(window != NULL){
+        SetWindowLongPtr(window, GWLP_USERDATA, (LONG_PTR)masterWidget);
+    }
+}
+
+void CodeDogSetControlText(HWND window, const string& text)
+{
+    if(window != NULL){
+        SetWindowTextA(window, text.c_str());
+    }
+}
+
+string CodeDogGetControlText(HWND window)
+{
+    if(window == NULL){
+        return "";
+    }
+    int textLength = GetWindowTextLengthA(window);
+    if(textLength <= 0){
+        return "";
+    }
+    vector<char> buffer(textLength + 1);
+    GetWindowTextA(window, buffer.data(), (int)buffer.size());
+    return string(buffer.data());
+}
+
+void CodeDogAddListItem(HWND listWindow, const string& text)
+{
+    if(listWindow != NULL){
+        SendMessageA(listWindow, LB_ADDSTRING, 0, (LPARAM)text.c_str());
+    }
+}
+
+void CodeDogClearList(HWND listWindow)
+{
+    if(listWindow != NULL){
+        SendMessageA(listWindow, LB_RESETCONTENT, 0, 0);
+    }
+}
+
+void CodeDogSetListSelectedIndex(HWND listWindow, int index)
+{
+    if(listWindow != NULL){
+        SendMessageA(listWindow, LB_SETCURSEL, (WPARAM)index, 0);
+    }
+}
+
+int CodeDogGetListSelectedIndex(HWND listWindow)
+{
+    if(listWindow == NULL){
+        return -1;
+    }
+    LRESULT selectedIndex = SendMessageA(listWindow, LB_GETCURSEL, 0, 0);
+    if(selectedIndex == LB_ERR){
+        return -1;
+    }
+    return (int)selectedIndex;
+}
+
+string CodeDogGetListSelectedText(HWND listWindow)
+{
+    int selectedIndex = CodeDogGetListSelectedIndex(listWindow);
+    if(selectedIndex < 0){
+        return "";
+    }
+    LRESULT textLength = SendMessageA(listWindow, LB_GETTEXTLEN, (WPARAM)selectedIndex, 0);
+    if(textLength == LB_ERR || textLength <= 0){
+        return "";
+    }
+    vector<char> buffer((size_t)textLength + 1);
+    SendMessageA(listWindow, LB_GETTEXT, (WPARAM)selectedIndex, (LPARAM)buffer.data());
+    return string(buffer.data());
+}
+
+static void CodeDogLayoutScrollWindow(HWND scrollWindow)
+{
+    CodeDogScrollState* state = CodeDogFindScrollState(scrollWindow);
+    if(state == nullptr || state->childWindow == NULL || !IsWindow(state->childWindow)){
+        return;
+    }
+
+    RECT clientRect;
+    GetClientRect(scrollWindow, &clientRect);
+    int viewportWidth = clientRect.right - clientRect.left;
+    int viewportHeight = clientRect.bottom - clientRect.top;
+    int contentWidth = state->contentWidth;
+    int contentHeight = state->contentHeight;
+    if(contentWidth < viewportWidth){contentWidth = viewportWidth;}
+    if(contentHeight < viewportHeight){contentHeight = viewportHeight;}
+    int maxScrollY = contentHeight - viewportHeight;
+    if(maxScrollY < 0){maxScrollY = 0;}
+    state->scrollY = CodeDogClampInt(state->scrollY, 0, maxScrollY);
+
+    MoveWindow(state->childWindow, 0, -state->scrollY, contentWidth, contentHeight, TRUE);
+
+    SCROLLINFO scrollInfo = {};
+    scrollInfo.cbSize = sizeof(SCROLLINFO);
+    scrollInfo.fMask = SIF_RANGE | SIF_PAGE | SIF_POS;
+    scrollInfo.nMin = 0;
+    scrollInfo.nMax = contentHeight > 0 ? contentHeight - 1 : 0;
+    scrollInfo.nPage = viewportHeight > 0 ? viewportHeight : 1;
+    scrollInfo.nPos = state->scrollY;
+    SetScrollInfo(scrollWindow, SB_VERT, &scrollInfo, TRUE);
+}
+
+static void CodeDogScrollBy(HWND scrollWindow, int delta)
+{
+    CodeDogScrollState* state = CodeDogFindScrollState(scrollWindow);
+    if(state == nullptr){
+        return;
+    }
+    state->scrollY += delta;
+    CodeDogLayoutScrollWindow(scrollWindow);
+}
+
+void CodeDogSetWidgetSize(HWND window, int width, int height)
+{
+    if(window == NULL){
+        return;
+    }
+    CodeDogLayoutChild* layoutChild = CodeDogFindLayoutChild(window);
+    if(layoutChild != nullptr){
+        layoutChild->requestedWidth = width;
+        layoutChild->requestedHeight = height;
+    }
+    CodeDogScrollState* scrollChild = CodeDogFindScrollStateForChild(window);
+    if(scrollChild != nullptr){
+        scrollChild->contentWidth = width;
+        scrollChild->contentHeight = height;
+        CodeDogLayoutScrollWindow(scrollChild->scrollWindow);
+        return;
+    }
+    SetWindowPos(window, NULL, 0, 0, width, height, SWP_NOMOVE | SWP_NOZORDER | SWP_SHOWWINDOW);
+    HWND parentWindow = GetParent(window);
+    if(parentWindow != NULL){
+        CodeDogResizeChildCanvases(parentWindow);
+    }
+}
+
+void CodeDogAttachChild(HWND parentWindow, HWND childWindow, bool expand)
+{
+    if(parentWindow == NULL || childWindow == NULL){
+        return;
+    }
+
+    if(parentWindow != childWindow){
+        SetParent(childWindow, parentWindow);
+    }
+    ShowWindow(childWindow, SW_SHOW);
+    if(CodeDogWindowHasClass(childWindow, CodeDogCanvasWindowClass)){
+        CodeDogTrackCanvas(childWindow);
+    }
+
+    CodeDogScrollState* scrollState = CodeDogFindScrollState(parentWindow);
+    if(scrollState != nullptr){
+        RECT childRect;
+        GetWindowRect(childWindow, &childRect);
+        scrollState->childWindow = childWindow;
+        scrollState->scrollY = 0;
+        scrollState->contentWidth = childRect.right - childRect.left;
+        scrollState->contentHeight = childRect.bottom - childRect.top;
+        if(scrollState->contentWidth <= 0){scrollState->contentWidth = 100;}
+        if(scrollState->contentHeight <= 0){scrollState->contentHeight = 100;}
+        CodeDogLayoutScrollWindow(parentWindow);
+        return;
+    }
+
+    CodeDogLayoutChild* layoutChild = CodeDogFindLayoutChild(childWindow);
+    RECT childRect;
+    GetWindowRect(childWindow, &childRect);
+    int requestedWidth = childRect.right - childRect.left;
+    int requestedHeight = childRect.bottom - childRect.top;
+    if(requestedWidth <= 0){requestedWidth = 100;}
+    if(requestedHeight <= 0){requestedHeight = 100;}
+    if(layoutChild == nullptr){
+        CodeDogLayoutChild child;
+        child.parent = parentWindow;
+        child.child = childWindow;
+        child.expand = expand;
+        child.requestedWidth = requestedWidth;
+        child.requestedHeight = requestedHeight;
+        CodeDogLayoutChildren.push_back(child);
+    }
+    else{
+        layoutChild->parent = parentWindow;
+        layoutChild->expand = expand;
+        if(layoutChild->requestedWidth <= 0){layoutChild->requestedWidth = requestedWidth;}
+        if(layoutChild->requestedHeight <= 0){layoutChild->requestedHeight = requestedHeight;}
+    }
+    CodeDogResizeChildCanvases(parentWindow);
+}
+
+void CodeDogResizeChildCanvases(HWND parentWindow)
+{
+    if(parentWindow == NULL || !IsWindow(parentWindow)){
+        return;
+    }
+    CodeDogScrollState* scrollState = CodeDogFindScrollState(parentWindow);
+    if(scrollState != nullptr){
+        CodeDogLayoutScrollWindow(parentWindow);
+        return;
+    }
+
+    RECT clientRect;
+    GetClientRect(parentWindow, &clientRect);
+    int width = clientRect.right - clientRect.left;
+    int height = clientRect.bottom - clientRect.top;
+    int fixedHeight = 0;
+    int expandCount = 0;
+    for(size_t i = 0; i < CodeDogLayoutChildren.size(); ++i){
+        CodeDogLayoutChild& child = CodeDogLayoutChildren[i];
+        if(child.child != NULL && IsWindow(child.child) && child.parent == parentWindow && GetParent(child.child) == parentWindow){
+            if(child.expand){
+                expandCount += 1;
+            }
+            else{
+                fixedHeight += child.requestedHeight > 0 ? child.requestedHeight : 100;
+            }
+        }
+    }
+
+    int y = 0;
+    int remainingHeight = height - fixedHeight;
+    if(remainingHeight < 0){remainingHeight = 0;}
+    int expandedHeight = expandCount > 0 ? remainingHeight / expandCount : 0;
+    int expandedIndex = 0;
+    for(size_t i = 0; i < CodeDogLayoutChildren.size(); ++i){
+        CodeDogLayoutChild& child = CodeDogLayoutChildren[i];
+        if(child.child != NULL && IsWindow(child.child) && child.parent == parentWindow && GetParent(child.child) == parentWindow){
+            int childHeight = child.requestedHeight > 0 ? child.requestedHeight : 100;
+            if(child.expand){
+                expandedIndex += 1;
+                childHeight = expandedHeight;
+                if(expandedIndex == expandCount){
+                    childHeight = height - fixedHeight - expandedHeight * (expandCount - 1);
+                    if(childHeight < 0){childHeight = 0;}
+                }
+            }
+            MoveWindow(child.child, 0, y, width, childHeight, TRUE);
+            y += childHeight;
+            if(CodeDogFindScrollState(child.child) != nullptr){
+                CodeDogLayoutScrollWindow(child.child);
+            }
+        }
+    }
+}
+
+static void CodeDogPaintWindow(HWND window)
 {
     PAINTSTRUCT ps;
-    HDC hdc;
+    HDC hdc = BeginPaint(window, &ps);
+    RECT clientRect;
+    HBRUSH backgroundBrush = CreateSolidBrush(RGB(255, 255, 255));
+    GetClientRect(window, &clientRect);
+    FillRect(hdc, &clientRect, backgroundBrush);
+    DeleteObject(backgroundBrush);
 
+    widget* targetWidget = CodeDogWidgetForWindow(window);
+    if(targetWidget != nullptr){
+        BeginPath(hdc);
+        targetWidget->draw(hdc);
+        EndPath(hdc);
+    }
+    EndPaint(window, &ps);
+}
+
+static void CodeDogDispatchKeyboard(HWND window, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    widget* targetWidget = CodeDogWidgetForWindow(window);
+    if(targetWidget == nullptr){
+        return;
+    }
+
+    GUI_KeyboardEvent event;
+    event.type = message;
+    event.state = CodeDogKeyboardState();
+    event.keyval = (uint)wParam;
+    if(message == WM_CHAR){
+        targetWidget->keyTyped(&event);
+    }
+    else if(message == WM_KEYUP || message == WM_SYSKEYUP){
+        targetWidget->keyUp(&event);
+    }
+    else{
+        targetWidget->keyDown(&event);
+    }
+}
+
+static void CodeDogDispatchMouse(HWND window, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    widget* targetWidget = CodeDogWidgetForWindow(window);
+    if(targetWidget == nullptr){
+        return;
+    }
+
+    if(message == WM_MOUSEMOVE || message == WM_MOUSEWHEEL){
+        GUI_MotionEvent event;
+        event.type = message;
+        event.state = LOWORD(wParam);
+        if(message == WM_MOUSEWHEEL){
+            POINT wheelPoint;
+            wheelPoint.x = GET_X_LPARAM(lParam);
+            wheelPoint.y = GET_Y_LPARAM(lParam);
+            CodeDogScrollState* scrollState = CodeDogFindScrollStateForChild(window);
+            if(scrollState == nullptr){
+                scrollState = CodeDogFindScrollState(window);
+            }
+            if(scrollState == nullptr){
+                HWND parentWindow = GetParent(window);
+                if(parentWindow != NULL){
+                    scrollState = CodeDogFindScrollState(parentWindow);
+                }
+            }
+            if(scrollState != nullptr){
+                CodeDogScrollBy(scrollState->scrollWindow, -(GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA) * 48);
+            }
+            ScreenToClient(window, &wheelPoint);
+            event.x = wheelPoint.x / scaleFactor;
+            event.y = wheelPoint.y / scaleFactor;
+            targetWidget->mouseWheel(&event);
+        }
+        else{
+            event.x = GET_X_LPARAM(lParam) / scaleFactor;
+            event.y = GET_Y_LPARAM(lParam) / scaleFactor;
+            targetWidget->mouseMoved(&event);
+        }
+        return;
+    }
+
+    GUI_ButtonEvent event;
+    event.type = message;
+    event.state = LOWORD(wParam);
+    event.x = GET_X_LPARAM(lParam) / scaleFactor;
+    event.y = GET_Y_LPARAM(lParam) / scaleFactor;
+    if(message == WM_LBUTTONDOWN || message == WM_LBUTTONDBLCLK){
+        event.button = 1;
+        SetFocus(window);
+        CodeDogFocusedWidget = window;
+        SetCapture(window);
+        if(message == WM_LBUTTONDBLCLK){
+            targetWidget->primaryDblClick(&event);
+        }
+        else{
+            targetWidget->primaryDn(&event);
+        }
+    }
+    else if(message == WM_LBUTTONUP){
+        event.button = 1;
+        ReleaseCapture();
+        targetWidget->primaryUp(&event);
+        targetWidget->primaryClick(&event);
+    }
+    else if(message == WM_RBUTTONDOWN || message == WM_RBUTTONDBLCLK){
+        event.button = 3;
+        SetFocus(window);
+        CodeDogFocusedWidget = window;
+        SetCapture(window);
+        if(message == WM_RBUTTONDBLCLK){
+            targetWidget->secondaryDblClick(&event);
+        }
+        else{
+            targetWidget->secondaryClick(&event);
+        }
+    }
+    else if(message == WM_RBUTTONUP){
+        event.button = 3;
+        ReleaseCapture();
+        targetWidget->secondaryUp(&event);
+    }
+}
+
+static widget* CodeDogControlWidget(HWND controlWindow)
+{
+    if(controlWindow == NULL){
+        return nullptr;
+    }
+    return (widget*)GetWindowLongPtr(controlWindow, GWLP_USERDATA);
+}
+
+static void CodeDogDispatchControlCommand(HWND controlWindow, WORD notifyCode)
+{
+    widget* targetWidget = CodeDogControlWidget(controlWindow);
+    if(targetWidget == nullptr){
+        return;
+    }
+
+    if(CodeDogWindowHasClass(controlWindow, "Button") && notifyCode == BN_CLICKED){
+        GUI_ButtonEvent event;
+        event.type = WM_COMMAND;
+        event.button = 1;
+        targetWidget->primaryClick(&event);
+    }
+    else if(CodeDogWindowHasClass(controlWindow, "Edit") && notifyCode == EN_CHANGE){
+        GUI_KeyboardEvent event;
+        event.type = WM_COMMAND;
+        event.keyval = 0;
+        event.state = CodeDogKeyboardState();
+        targetWidget->keyTyped(&event);
+    }
+    else if(CodeDogWindowHasClass(controlWindow, "ListBox") && notifyCode == LBN_SELCHANGE){
+        GUI_ButtonEvent event;
+        event.type = WM_COMMAND;
+        event.button = 1;
+        event.x = CodeDogGetListSelectedIndex(controlWindow);
+        targetWidget->primaryClick(&event);
+    }
+    else if(CodeDogWindowHasClass(controlWindow, "ListBox") && notifyCode == LBN_DBLCLK){
+        GUI_ButtonEvent event;
+        event.type = WM_COMMAND;
+        event.button = 1;
+        event.x = CodeDogGetListSelectedIndex(controlWindow);
+        targetWidget->primaryDblClick(&event);
+    }
+}
+
+LRESULT CALLBACK CanvasWndProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam)
+{
     switch (message)
     {
-    case WM_PAINT: {
-        hdc = BeginPaint(hWnd, &ps);
-        BeginPath(hdc);
-        EventDispatcher.topWidget->draw(hdc);
-        EndPath(hdc);
-        EndPaint(hWnd, &ps);
-        break; }
-    case WM_DESTROY: {
-        PostQuitMessage(0);
-        break; }
-    case WM_KEYUP:{
-	GUI_KeyboardEvent event;
-        event.state;
-        event.keyval=LOWORD(wParam);
-        break; }
-    case WM_KEYDOWN:{
-        break; }
-    case WM_LBUTTONDOWN: {
-        POINT winEvent;
-        GUI_ButtonEvent event;
-        event.x = GET_X_LPARAM(lParam) / scaleFactor;
-        event.y = GET_Y_LPARAM(lParam) / scaleFactor;
-        EventDispatcher.topWidget->primaryClick(&event);
-        break; }
-    case WM_RBUTTONDOWN: {
-        GUI_ButtonEvent event;
-        event.x = GET_X_LPARAM(lParam) / scaleFactor;
-        event.y = GET_Y_LPARAM(lParam) / scaleFactor;
-        EventDispatcher.topWidget->secondaryClick(&event);
-        break; }
-
-    case WM_MOUSEMOVE:{
-	GUI_MotionEvent event;
-        event.x = GET_X_LPARAM(lParam) / scaleFactor;
-        event.y = GET_Y_LPARAM(lParam) / scaleFactor;
-        EventDispatcher.topWidget.mouseMoved(&event);
-	break; }
+    case WM_GETDLGCODE:
+        return DLGC_WANTALLKEYS;
+    case WM_ERASEBKGND:
+        return 1;
+    case WM_PAINT:
+        CodeDogPaintWindow(window);
+        return 0;
+    case WM_SIZE:
+        InvalidateRect(window, NULL, FALSE);
+        return 0;
+    case WM_SETFOCUS:
+        CodeDogFocusedWidget = window;
+        return 0;
+    case WM_DESTROY:
+        for(size_t i = 0; i < CodeDogCanvasWindows.size(); ++i){
+            if(CodeDogCanvasWindows[i] == window){
+                CodeDogCanvasWindows[i] = NULL;
+            }
+        }
+        for(size_t i = 0; i < CodeDogLayoutChildren.size(); ++i){
+            if(CodeDogLayoutChildren[i].child == window){
+                CodeDogLayoutChildren[i].child = NULL;
+            }
+        }
+        for(size_t i = 0; i < CodeDogScrollWindows.size(); ++i){
+            if(CodeDogScrollWindows[i].childWindow == window){
+                CodeDogScrollWindows[i].childWindow = NULL;
+            }
+        }
+        return 0;
+    case WM_LBUTTONDOWN:
+    case WM_LBUTTONUP:
+    case WM_LBUTTONDBLCLK:
+    case WM_RBUTTONDOWN:
+    case WM_RBUTTONUP:
+    case WM_RBUTTONDBLCLK:
+    case WM_MOUSEMOVE:
+    case WM_MOUSEWHEEL:
+        CodeDogDispatchMouse(window, message, wParam, lParam);
+        return 0;
+    case WM_KEYDOWN:
+    case WM_KEYUP:
     case WM_CHAR:
-        return 0L;
+        CodeDogDispatchKeyboard(window, message, wParam, lParam);
+        return 0;
     default:
-        return DefWindowProc(hWnd, message, wParam, lParam);
-        break;
+        return DefWindowProc(window, message, wParam, lParam);
     }
-    return 0;
+}
+
+LRESULT CALLBACK ScrollWndProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    switch (message)
+    {
+    case WM_ERASEBKGND:
+        return 1;
+    case WM_PAINT: {
+        PAINTSTRUCT ps;
+        HDC hdc = BeginPaint(window, &ps);
+        RECT clientRect;
+        HBRUSH backgroundBrush = CreateSolidBrush(RGB(245, 245, 245));
+        GetClientRect(window, &clientRect);
+        FillRect(hdc, &clientRect, backgroundBrush);
+        DeleteObject(backgroundBrush);
+        EndPaint(window, &ps);
+        return 0; }
+    case WM_SIZE:
+        CodeDogLayoutScrollWindow(window);
+        return 0;
+    case WM_COMMAND:
+        if(lParam != 0){
+            CodeDogDispatchControlCommand((HWND)lParam, HIWORD(wParam));
+            return 0;
+        }
+        return DefWindowProc(window, message, wParam, lParam);
+    case WM_MOUSEWHEEL: {
+        CodeDogScrollState* state = CodeDogFindScrollState(window);
+        if(state != nullptr && state->childWindow != NULL){
+            CodeDogDispatchMouse(state->childWindow, message, wParam, lParam);
+        }
+        return 0; }
+    case WM_VSCROLL: {
+        SCROLLINFO scrollInfo = {};
+        scrollInfo.cbSize = sizeof(SCROLLINFO);
+        scrollInfo.fMask = SIF_ALL;
+        GetScrollInfo(window, SB_VERT, &scrollInfo);
+        int newPos = scrollInfo.nPos;
+        switch(LOWORD(wParam)){
+        case SB_LINEUP:
+            newPos -= 24;
+            break;
+        case SB_LINEDOWN:
+            newPos += 24;
+            break;
+        case SB_PAGEUP:
+            newPos -= (int)scrollInfo.nPage;
+            break;
+        case SB_PAGEDOWN:
+            newPos += (int)scrollInfo.nPage;
+            break;
+        case SB_THUMBTRACK:
+        case SB_THUMBPOSITION:
+            newPos = scrollInfo.nTrackPos;
+            break;
+        default:
+            break;
+        }
+        CodeDogScrollState* state = CodeDogFindScrollState(window);
+        if(state != nullptr){
+            state->scrollY = newPos;
+            CodeDogLayoutScrollWindow(window);
+        }
+        return 0; }
+    case WM_DESTROY:
+        for(size_t i = 0; i < CodeDogScrollWindows.size(); ++i){
+            if(CodeDogScrollWindows[i].scrollWindow == window){
+                CodeDogScrollWindows[i].scrollWindow = NULL;
+                CodeDogScrollWindows[i].childWindow = NULL;
+            }
+        }
+        return 0;
+    default:
+        return DefWindowProc(window, message, wParam, lParam);
+    }
+}
+
+LRESULT CALLBACK WndProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    switch (message)
+    {
+    case WM_ERASEBKGND:
+        return 1;
+    case WM_PAINT:
+        if(CodeDogCanvasWindows.size() == 0){
+            CodeDogPaintWindow(window);
+        }
+        else{
+            PAINTSTRUCT ps;
+            HDC hdc = BeginPaint(window, &ps);
+            RECT clientRect;
+            HBRUSH backgroundBrush = CreateSolidBrush(RGB(255, 255, 255));
+            GetClientRect(window, &clientRect);
+            FillRect(hdc, &clientRect, backgroundBrush);
+            DeleteObject(backgroundBrush);
+            EndPaint(window, &ps);
+        }
+        return 0;
+    case WM_SIZE:
+        CodeDogResizeChildCanvases(window);
+        return 0;
+    case WM_SETFOCUS:
+        if(CodeDogFocusedWidget != NULL && IsWindow(CodeDogFocusedWidget) && CodeDogIsTrackedCanvas(CodeDogFocusedWidget)){
+            SetFocus(CodeDogFocusedWidget);
+        }
+        else if(CodeDogCanvasWindows.size() > 0 && CodeDogCanvasWindows[0] != NULL && IsWindow(CodeDogCanvasWindows[0])){
+            SetFocus(CodeDogCanvasWindows[0]);
+        }
+        return 0;
+    case WM_DESTROY:
+        PostQuitMessage(0);
+        return 0;
+    case WM_COMMAND:
+        if(lParam != 0){
+            CodeDogDispatchControlCommand((HWND)lParam, HIWORD(wParam));
+            return 0;
+        }
+        return DefWindowProc(window, message, wParam, lParam);
+    case WM_LBUTTONDOWN:
+    case WM_LBUTTONUP:
+    case WM_LBUTTONDBLCLK:
+    case WM_RBUTTONDOWN:
+    case WM_RBUTTONUP:
+    case WM_RBUTTONDBLCLK:
+    case WM_MOUSEMOVE:
+    case WM_MOUSEWHEEL:
+        CodeDogDispatchMouse(window, message, wParam, lParam);
+        return 0;
+    case WM_KEYDOWN:
+    case WM_KEYUP:
+    case WM_CHAR:
+        CodeDogDispatchKeyboard((CodeDogFocusedWidget != NULL) ? CodeDogFocusedWidget : window, message, wParam, lParam);
+        return 0;
+    default:
+        return DefWindowProc(window, message, wParam, lParam);
+    }
 }
 
 `
 
 /////////////////////////////////  STRUCT CONVERTERS
 //struct GUI_rect{me double: x1 me double: y1 me double: x2 me double: y2}
-struct GUI_offset{their GtkAdjustment:GUI_offset}
+struct GUI_offset:             wraps = int{}
 //struct GUI_item{their HWND: GUI_item}
 //struct GUI_Frame{me HWND: GUI_Frame}
 struct GUI_menuBar{their HWND: GUI_menuBar}
@@ -219,15 +898,15 @@ struct listWidget{their HWND: listWidget}
 
 /////////////////////////////////  STRUCT CONVERTERS
 struct GUI_rect{me double: x1 me double: y1 me double: x2 me double: y2}
-struct GUI_item:                wraps = HWND ownerMe = me{}
-struct GUI_Frame:               wraps = HWND ownerMe = me{}
-struct GUI_container:           wraps = HWND ownerMe = me{}
-struct INK_Image:               wraps = cairo_surface_t ownerMe = their{}      // How will the ink look?
-struct GUI_callback:            wraps = GCallback ownerMe = their{}
+struct GUI_item:                wraps = HWND__ ownerMe = their{}
+struct GUI_Frame:               wraps = HWND__ ownerMe = their{}
+struct GUI_container:           wraps = HWND__ ownerMe = their{}
+struct INK_Image:               wraps = HBITMAP__ ownerMe = their{}      // How will the ink look?
+struct GUI_callback:            wraps = void ownerMe = their{}
 struct GUI_Scalar:              wraps = int{}
-struct GUI_Text:                wraps = HWND ownerMe = me{}
-struct GUI_canvas:              wraps = HWND ownerMe = me{}
-struct GUI_ctxt:                wraps = HDC ownerMe = me{}
+struct GUI_Text:                wraps = HWND__ ownerMe = their{}
+struct GUI_canvas:              wraps = HWND__ ownerMe = their{}
+struct GUI_ctxt:                wraps = HDC__ ownerMe = their{}
 /*
 /////////////////////////////////  WIDGETS
 struct GUI_storyBoard{
@@ -439,7 +1118,21 @@ struct GLOBAL{
 struct GUI_eventDispatcher{
     // Windows events are dispatched via one giant switch stmt. So this is fairly simple.
     their widget: topWidget
-    me void: registerWidgetForEventDispatcher(me GUI_item: Widget, their widget: masterWidget) <- <%{topWidget = masterWidget;}%>
+    me void: registerWidgetForEventDispatcher(their GUI_item: Widget, their widget: masterWidget) <- <%{
+        topWidget = masterWidget;
+        EventDispatcher.topWidget = masterWidget;
+        if(Widget != NULL){
+            SetWindowLongPtr(Widget, GWLP_USERDATA, (LONG_PTR)masterWidget);
+            CodeDogTrackCanvas(Widget);
+            CodeDogFocusedWidget = Widget;
+            SetFocus(Widget);
+            InvalidateRect(Widget, NULL, FALSE);
+        }
+    }%>
+    me void: registerControlForEventDispatcher(their GUI_item: Widget, their widget: masterWidget) <- <%{
+        topWidget = masterWidget;
+        CodeDogRegisterControlForEventDispatcher(Widget, masterWidget);
+    }%>
 }
 
 /////////////////////////////////   Event callbacks
@@ -460,9 +1153,94 @@ struct GUI{
         return(0)
     }
     me uint32: GUI_Run() <- <% {
-        uint32_t status=0;
-        //status = g_application_run( G_APPLICATION(app), 0, 0);
-        return(status);
+        HINSTANCE hInstance = GetModuleHandle(NULL);
+        WNDCLASSEXA mainClass = {};
+        WNDCLASSEXA canvasClass = {};
+        WNDCLASSEXA scrollClass = {};
+
+        mainClass.cbSize = sizeof(WNDCLASSEXA);
+        mainClass.style = CS_HREDRAW | CS_VREDRAW | CS_DBLCLKS;
+        mainClass.lpfnWndProc = WndProc;
+        mainClass.cbClsExtra = 0;
+        mainClass.cbWndExtra = 0;
+        mainClass.hInstance = hInstance;
+        mainClass.hIcon = LoadIcon(hInstance, IDI_APPLICATION);
+        mainClass.hCursor = LoadCursor(NULL, IDC_ARROW);
+        mainClass.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+        mainClass.lpszMenuName = NULL;
+        mainClass.lpszClassName = CodeDogMainWindowClass;
+        mainClass.hIconSm = LoadIcon(mainClass.hInstance, IDI_APPLICATION);
+
+        if (!RegisterClassExA(&mainClass) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS) {
+            MessageBoxA(NULL, "Call to RegisterClassEx for the main window failed!", "CodeDog Windows GUI", MB_OK);
+            return 1;
+        }
+
+        canvasClass.cbSize = sizeof(WNDCLASSEXA);
+        canvasClass.style = CS_HREDRAW | CS_VREDRAW | CS_DBLCLKS;
+        canvasClass.lpfnWndProc = CanvasWndProc;
+        canvasClass.cbClsExtra = 0;
+        canvasClass.cbWndExtra = 0;
+        canvasClass.hInstance = hInstance;
+        canvasClass.hIcon = LoadIcon(hInstance, IDI_APPLICATION);
+        canvasClass.hCursor = LoadCursor(NULL, IDC_ARROW);
+        canvasClass.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+        canvasClass.lpszMenuName = NULL;
+        canvasClass.lpszClassName = CodeDogCanvasWindowClass;
+        canvasClass.hIconSm = LoadIcon(canvasClass.hInstance, IDI_APPLICATION);
+
+        if (!RegisterClassExA(&canvasClass) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS) {
+            MessageBoxA(NULL, "Call to RegisterClassEx for the canvas window failed!", "CodeDog Windows GUI", MB_OK);
+            return 1;
+        }
+
+        scrollClass.cbSize = sizeof(WNDCLASSEXA);
+        scrollClass.style = CS_HREDRAW | CS_VREDRAW;
+        scrollClass.lpfnWndProc = ScrollWndProc;
+        scrollClass.cbClsExtra = 0;
+        scrollClass.cbWndExtra = 0;
+        scrollClass.hInstance = hInstance;
+        scrollClass.hIcon = LoadIcon(hInstance, IDI_APPLICATION);
+        scrollClass.hCursor = LoadCursor(NULL, IDC_ARROW);
+        scrollClass.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+        scrollClass.lpszMenuName = NULL;
+        scrollClass.lpszClassName = CodeDogScrollWindowClass;
+        scrollClass.hIconSm = LoadIcon(scrollClass.hInstance, IDI_APPLICATION);
+
+        if (!RegisterClassExA(&scrollClass) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS) {
+            MessageBoxA(NULL, "Call to RegisterClassEx for the scroll window failed!", "CodeDog Windows GUI", MB_OK);
+            return 1;
+        }
+
+        string title = thisApp.gui.title.length() > 1 ? thisApp.gui.title : filename;
+        hWnd = CreateWindowA(
+            CodeDogMainWindowClass,
+            title.data(),
+            WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
+            CW_USEDEFAULT, CW_USEDEFAULT,
+            1000, 700,
+            NULL,
+            NULL,
+            hInstance,
+            NULL
+        );
+
+        if (!hWnd) {
+            MessageBoxA(NULL, "Call to CreateWindow failed!", "CodeDog Windows GUI", MB_OK);
+            return 1;
+        }
+
+        activate(hWnd);
+        CodeDogResizeChildCanvases(hWnd);
+        ShowWindow(hWnd, SW_SHOWDEFAULT);
+        UpdateWindow(hWnd);
+
+        MSG msg;
+        while (GetMessage(&msg, NULL, 0, 0)) {
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
+        }
+        return((uint32_t)msg.wParam);
     } %>
     me void: GUI_Deinit() <- {
         //g_object_unref(app)
@@ -474,11 +1252,22 @@ struct GUI{
 // TODO: newScrollingWindow
 struct GUI{
     //me void: showWidget(me GUI_item: widget) <- <%!gtk_widget_show(%1)%>
-    me GUI_item: newCanvas() <- <%!%Ggtk_drawing_area_new()%>
-    me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%Ggtk_widget_set_size_request(%1, %2, %3)%>
-    me int: widgetHeight() <- <%!gtk_widget_get_allocated_height(%1)%>
-    me int: widgetWidth() <- <%!gtk_widget_get_allocated_width(%1)%>
-    me GUI_item: newScrollingWindow() <- <%!%Ggtk_scrolled_window_new(0, 0)%>
+    their GUI_item: newCanvas() <- <%!%GCodeDogCreateCanvasWindow(hWnd)%>
+    their GUI_item: newLabel(me string: text) <- <%!%GCodeDogCreateLabel(%1)%>
+    their GUI_item: newButton(me string: text) <- <%!%GCodeDogCreateButton(%1)%>
+    their GUI_item: newTextField(me string: text) <- <%!%GCodeDogCreateTextField(%1)%>
+    their GUI_item: newListBox() <- <%!%GCodeDogCreateListBox()%>
+    me void: setWidgetSize(their GUI_item: widget, me uint32: width, me uint32: height) <- <%!%GCodeDogSetWidgetSize(%1, %2, %3)%>
+    me void: setControlText(their GUI_item: widget, me string: text) <- <%!%GCodeDogSetControlText(%1, %2)%>
+    me string: getControlText(their GUI_item: widget) <- <%{return(CodeDogGetControlText(widget));}%>
+    me void: addListItem(their GUI_item: listWidget, me string: text) <- <%!%GCodeDogAddListItem(%1, %2)%>
+    me void: clearList(their GUI_item: listWidget) <- <%!%GCodeDogClearList(%1)%>
+    me void: setListSelectedIndex(their GUI_item: listWidget, me int: index) <- <%!%GCodeDogSetListSelectedIndex(%1, %2)%>
+    me int: getListSelectedIndex(their GUI_item: listWidget) <- <%{return(CodeDogGetListSelectedIndex(listWidget));}%>
+    me string: getListSelectedText(their GUI_item: listWidget) <- <%{return(CodeDogGetListSelectedText(listWidget));}%>
+    me int: widgetHeight() <- <%{RECT rect; GetClientRect(hWnd, &rect); return(rect.bottom - rect.top);}%>
+    me int: widgetWidth() <- <%{RECT rect; GetClientRect(hWnd, &rect); return(rect.right - rect.left);}%>
+    their GUI_item: newScrollingWindow() <- <%!%GCodeDogCreateScrollWindow(hWnd)%>
     //me void: addToContainer(me GUI_container: container, me GUI_item: widget) <-<%!%Ggtk_container_add(GTK_CONTAINER(%1), %2)%>
     //me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <-<%!%Ggtk_box_pack_start(GTK_BOX(%1), %2, TRUE, TRUE, 0)%>
     //me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%G %>
@@ -490,40 +1279,51 @@ struct GUI{
 }
 
 struct GUI_ctxt {
-    me HDC:GUI_ctxt
     me void: reset() <- <%!BeginPath(%0)%>
-    // me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!Color(%3, %0, %1, %2)%>          // Input RGBA, Color(alpha, red, green, blue)
-    me void: setRGB (me double: red, me double: green, me double: blue) <- <%!%GobjectColor = RGB(%1, %2, %3)%>
-    me void: setColor(me cdColor: color) <- <%!RGB(%1.red, %1.green, %1.blue)%>
-    me void: setLineWidth(me double: width) <- <%!%G
-        penWidth = %1;
+    me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!%GobjectColor = RGB((int)%1, (int)%2, (int)%3)%>
+    me void: setRGB (me double: red, me double: green, me double: blue) <- <%!%GobjectColor = RGB((int)%1, (int)%2, (int)%3)%>
+    me void: setColor(me cdColor: color) <- <%!%GobjectColor = RGB((int)%1.red, (int)%1.green, (int)%1.blue)%>
+    me void: setLineWidth(me double: width) <- <%!
+        penWidth = (int)%1;
         hPen = CreatePen(PS_SOLID, penWidth, objectColor);
-        SelectObject(cr, hPen);
+        SelectObject(%0, hPen);
     %>      // maybe separate out an updatePen function?
-    me void: setRoundLineCap() <- <%!pen.SetStartCap(LineCapRound); pen.SetEndCap(LineCapRound)%>
-    me void: setEdgedLineCap() <- <%!pen.SetStartCap(LineCapFlat); pen.SetEndCap(LineCapFlat)%>
-    me void: moveTo(me double: x, me double: y) <- <%!MoveToEx(%0, %1, %2, NULL)%>          // (x, y, [speed])
-    me void: lineTo(me double: x, me double: y) <- <%!LineTo(%0, %1, %2)%>          // (hdc, xEnd, yEnd) , uses current pen
+    me void: setRoundLineCap() <- <%!%G%>
+    me void: setEdgedLineCap() <- <%!%G%>
+    me void: finishPDF() <- <%!%G%>
+    me void: setScale() <- <%!%G%>
+    me void: setOffset() <- <%!%G%>
+    me void: moveTo(me double: x, me double: y) <- <%!MoveToEx(%0, (int)(%1), (int)(%2), NULL)%>
+    me void: lineTo(me double: x, me double: y) <- <%!LineTo(%0, (int)(%1), (int)(%2))%>
     me void: moveRel(me double: dx, me double: dy) <- <%!
-        GetCurrentPositionEx(cr, &_tagPOINT);
-        MoveToEx(%0, _tagPOINT.x + %1, _tagPOINT.y + %2, NULL)
+        GetCurrentPositionEx(%0, &_tagPOINT);
+        MoveToEx(%0, _tagPOINT.x + (int)%1, _tagPOINT.y + (int)%2, NULL)
     %>
     me void: lineRel(me double: dx, me double: dy) <- <%!
-        GetCurrentPositionEx(cr, &_tagPOINT);
-        LineTo(%0, _tagPOINT.x + %1, _tagPOINT.y + %2)
+        GetCurrentPositionEx(%0, &_tagPOINT);
+        LineTo(%0, _tagPOINT.x + (int)%1, _tagPOINT.y + (int)%2)
+    %>
+    me void: curveTo(me double: x1, me double: y1, me double: x2, me double: y2, me double: x3, me double: y3) <- <%!
+        { POINT bezierPts[3] = {{(LONG)(%1), (LONG)(%2)}, {(LONG)(%3), (LONG)(%4)}, {(LONG)(%5), (LONG)(%6)}}; PolyBezierTo(%0, bezierPts, 3); }
+    %>
+    me void: curveRel(me double: dx1, me double: dy1, me double: dx2, me double: dy2, me double: dx3, me double: dy3) <- <%!
+        { GetCurrentPositionEx(%0, &_tagPOINT); POINT bezierPts[3] = {{_tagPOINT.x + (LONG)(%1), _tagPOINT.y + (LONG)(%2)}, {_tagPOINT.x + (LONG)(%3), _tagPOINT.y + (LONG)(%4)}, {_tagPOINT.x + (LONG)(%5), _tagPOINT.y + (LONG)(%6)}}; PolyBezierTo(%0, bezierPts, 3); }
     %>
     me void: closePath() <- <%!CloseFigure(%0)%>
-    me void: rectangle() <- <%!Rectangle(%0, %1, %2, %1+%3, %2+%4)%>
+    me void: rectangle() <- <%!Rectangle(%0, (int)(%1), (int)(%2), (int)(%1+%3), (int)(%2+%4))%>
     me void: paintNow() <- <%!
         RECT clientSize;
         HBRUSH backgroundBrush;
-        GetClientRect(hWnd, &clientSize);
-        backgroundBrush = CreateSolidBrush(RGB(122,122,0));
-        FillRect(%0, &clientSize, backgroundBrush);%>
+        HWND paintWindow = WindowFromDC(%0);
+        if(paintWindow == NULL){paintWindow = hWnd;}
+        GetClientRect(paintWindow, &clientSize);
+        backgroundBrush = CreateSolidBrush(objectColor);
+        FillRect(%0, &clientSize, backgroundBrush);
+        DeleteObject(backgroundBrush);%>
     me void: strokeNow() <- <%!
         EndPath(%0);
         hPen = CreatePen(PS_SOLID, penWidth, objectColor);
-        SelectObject(cr, hPen);
+        SelectObject(%0, hPen);
         StrokePath(%0);
         DeleteObject(hPen);
         BeginPath(%0)
@@ -531,15 +1331,31 @@ struct GUI_ctxt {
     me void: fillNow() <- <%!
         EndPath(%0);
         hBrush = CreateSolidBrush(objectColor);
-        SelectObject(cr, hBrush);
+        SelectObject(%0, hBrush);
         FillPath(%0);
         DeleteObject(hBrush);
         BeginPath(%0)
     %>                  // Don't need CloseFigure
-    me void: strokeAndFillPath() <- <%!
-        EndPath(%0);;
+    me void: strokeKeep() <- <%!
+        EndPath(%0);
+        hPen = CreatePen(PS_SOLID, penWidth, objectColor);
+        SelectObject(%0, hPen);
+        StrokePath(%0);
+        DeleteObject(hPen);
+        BeginPath(%0)
+    %>
+    me void: fillKeep() <- <%!
+        EndPath(%0);
         hBrush = CreateSolidBrush(objectColor);
-        SelectObject(cr, hBrush);
+        SelectObject(%0, hBrush);
+        FillPath(%0);
+        DeleteObject(hBrush);
+        BeginPath(%0)
+    %>
+    me void: strokeAndFillPath() <- <%!
+        EndPath(%0);
+        hBrush = CreateSolidBrush(objectColor);
+        SelectObject(%0, hBrush);
         StrokeAndFillPath(%0);
         DeleteObject(hBrush);
         BeginPath(%0)
@@ -564,6 +1380,7 @@ struct GUI_ctxt {
 
         GradientFill(%0, vertex, 2, &gRect, 1, GRADIENT_FILL_RECT_V);
     %>
+    me void: circle(me int: centerX, me int: centerY, me int: radius) <- <%!Ellipse(%0, %1-%3, %2-%3, %1+%3, %2+%3)%>
 }
 /* GRADIENT BRIEFLY WORKED ON, PUT OFF AS FROTH
 struct guiFillPattern{
@@ -663,49 +1480,104 @@ struct GLOBAL{
     // TIME ROUTINES:
     me int64: getCurrentTimeStamp() <- <%!_time64(NULL)%>
 
+    our string: getClipboardAsText() <- <%{
+        if(!OpenClipboard(nullptr)){return(nullptr);}
+        HANDLE hData = GetClipboardData(CF_TEXT);
+        if(hData == nullptr){CloseClipboard(); return(nullptr);}
+        char* clipboardText = static_cast<char*>(GlobalLock(hData));
+        if(clipboardText == nullptr){CloseClipboard(); return(nullptr);}
+        shared_ptr<string> retVal = make_shared<string>(clipboardText);
+        GlobalUnlock(hData);
+        CloseClipboard();
+        return(retVal);
+    }%>
+
     // DRAWING ROUTINES:
     me deltaSize: renderText(their GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y) <- <%{
-        HFONT hFont;
+        deltaSize size;
+        SIZE winSize = {0, 0};
+        vector<POINT> savedPathPoints;
+        vector<BYTE> savedPathTypes;
+
+        if(EndPath(cr)){
+            int pathPointCount = GetPath(cr, NULL, NULL, 0);
+            if(pathPointCount > 0){
+                savedPathPoints.resize(pathPointCount);
+                savedPathTypes.resize(pathPointCount);
+                GetPath(cr, savedPathPoints.data(), savedPathTypes.data(), pathPointCount);
+            }
+            AbortPath(cr);
+        }
 
         std::wstring stemp = s2ws(font.name);
         LPCWSTR fontNamePtr = stemp.c_str();
         std::wstring stemp2 = s2ws(text);
         LPCWSTR outputTextPtr = stemp2.c_str();
 
-        BeginPath(cr);
-        hFont = CreateFontW(font.size, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_TT_ONLY_PRECIS,
+        HFONT hFont = CreateFontW(font.size, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_TT_ONLY_PRECIS,
             CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, VARIABLE_PITCH, fontNamePtr);
-        SelectObject(cr, hFont);
-
+        HGDIOBJ oldFont = SelectObject(cr, hFont);
         SetBkMode(cr, TRANSPARENT);
-        //SetTextColor(cr, RGB(0, 0, 0));
-
-        EndPath(cr);
-        TextOutW(cr, 50, 50, outputTextPtr, text.length());
+        SetTextColor(cr, objectColor);
+        GetTextExtentPoint32W(cr, outputTextPtr, (int)stemp2.length(), &winSize);
+        TextOutW(cr, (int)x, (int)y, outputTextPtr, (int)stemp2.length());
+        SelectObject(cr, oldFont);
         DeleteObject(hFont);
-        return 0;
+        BeginPath(cr);
+        if(savedPathPoints.size() > 0){
+            PolyDraw(cr, savedPathPoints.data(), savedPathTypes.data(), (int)savedPathPoints.size());
+        }
+        size.width = winSize.cx;
+        size.height = winSize.cy;
+        return(size);
     } %>
 
 
     me deltaSize: getTextSize(me string: text, their fontSpec: font) <- <%{
-	SIZE sz;
-	int strsLen = text.size();
-	GetTextExtentPoint32(cr, text.data(), strsLen, sz);
         deltaSize size;
-        size.width=sz.cx;
-	size.height=sz.cy;
+        SIZE winSize = {0, 0};
+        HWND measureWindow = hWnd ? hWnd : GetDesktopWindow();
+        HDC dc = GetDC(measureWindow);
+        std::wstring stemp = s2ws(font->name);
+        HFONT hFont = CreateFontW(font->size, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_TT_ONLY_PRECIS,
+            CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, VARIABLE_PITCH, stemp.c_str());
+        HGDIOBJ oldFont = SelectObject(dc, hFont);
+        std::wstring textW = s2ws(text);
+        GetTextExtentPoint32W(dc, textW.c_str(), (int)textW.length(), &winSize);
+        SelectObject(dc, oldFont);
+        DeleteObject(hFont);
+        ReleaseDC(measureWindow, dc);
+        size.width=winSize.cx;
+        size.height=winSize.cy;
         return(size);
     } %>
 
     me deltaSize: getTextSizeX1024(me string: text, their fontSpec: font) <- <%{
-	SIZE sz;
-	int strsLen = text.size();
-	GetTextExtentPoint32(cr, text.data(), strsLen, sz);
-        deltaSize size;
-        size.width=sz.cx;
-	size.height=sz.cy;
+        deltaSize size = getTextSize(text, font);
+        size.width = size.width * 1024;
+        size.height = size.height * 1024;
         return(size);
     } %>
+    void: displayBackgroundImage(their GUI_ctxt: cr, me string: filename) <- <%{
+        RECT clientSize;
+        HBRUSH backgroundBrush;
+        HWND paintWindow = WindowFromDC(cr);
+        if(paintWindow == NULL){paintWindow = hWnd;}
+        GetClientRect(paintWindow, &clientSize);
+        backgroundBrush = CreateSolidBrush(RGB(255,255,255));
+        FillRect(cr, &clientSize, backgroundBrush);
+        DeleteObject(backgroundBrush);
+    }%>
+
+    me void: showWidget(their GUI_item: widget) <- <%!%GShowWindow(%1, SW_SHOW)%>
+    me void: hideWidget(their GUI_item: widget) <- <%!%GShowWindow(%1, SW_HIDE)%>
+    me void: markDirtyArea(their GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!%G{RECT dirtyRect = {%2, %3, %2 + %4, %3 + %5}; InvalidateRect(%1, &dirtyRect, FALSE);}%>
+    me void: setWidgetSize(their GUI_item: widget, me uint32: width, me uint32: height) <- <%!%GCodeDogSetWidgetSize(%1, %2, %3)%>
+    me int: widgetHeight(their GUI_item: widget) <- <%{RECT rect; GetClientRect(widget, &rect); return(rect.bottom - rect.top);}%>
+    me int: widgetWidth(their GUI_item: widget) <- <%{RECT rect; GetClientRect(widget, &rect); return(rect.right - rect.left);}%>
+    me void: addToContainer(their GUI_container: container, their GUI_item: widget) <- <%!%GCodeDogAttachChild(%1, %2, false)%>
+    me void: addToContainerAndExpand(their GUI_container: container, their GUI_item: widget) <- <%!%GCodeDogAttachChild(%1, %2, true)%>
+    me GUI_Scalar: convertToGUIScalar() <- <%!%G%1%>
 /*
 
 
@@ -829,32 +1701,32 @@ struct GLOBAL{ // Constants
     //~ const int: KP_PAGEDOWN      <- <%!GDK_KEY_KP_Page_Down%>
 
     // Use these to match lowercase OR CTRL via keyTyped.state
-    const int: KEY_a            <- <%!GDK_KEY_a%>
-    const int: KEY_b            <- <%!GDK_KEY_b%>
-    const int: KEY_c            <- <%!GDK_KEY_c%>
-    const int: KEY_d            <- <%!GDK_KEY_d%>
-    const int: KEY_e            <- <%!GDK_KEY_e%>
-    const int: KEY_f            <- <%!GDK_KEY_f%>
-    const int: KEY_g            <- <%!GDK_KEY_g%>
-    const int: KEY_h            <- <%!GDK_KEY_h%>
-    const int: KEY_i            <- <%!GDK_KEY_i%>
-    const int: KEY_j            <- <%!GDK_KEY_j%>
-    const int: KEY_k            <- <%!GDK_KEY_k%>
-    const int: KEY_l            <- <%!GDK_KEY_l%>
-    const int: KEY_m            <- <%!GDK_KEY_m%>
-    const int: KEY_n            <- <%!GDK_KEY_n%>
-    const int: KEY_o            <- <%!GDK_KEY_o%>
-    const int: KEY_p            <- <%!GDK_KEY_p%>
-    const int: KEY_q            <- <%!GDK_KEY_q%>
-    const int: KEY_r            <- <%!GDK_KEY_r%>
-    const int: KEY_s            <- <%!GDK_KEY_s%>
-    const int: KEY_t            <- <%!GDK_KEY_t%>
-    const int: KEY_u            <- <%!GDK_KEY_u%>
-    const int: KEY_v            <- <%!GDK_KEY_v%>
-    const int: KEY_w            <- <%!GDK_KEY_w%>
-    const int: KEY_x            <- <%!GDK_KEY_x%>
-    const int: KEY_y            <- <%!GDK_KEY_y%>
-    const int: KEY_z            <- <%!GDK_KEY_z%>
+    const int: KEY_a            <- <%!0x41%>
+    const int: KEY_b            <- <%!0x42%>
+    const int: KEY_c            <- <%!0x43%>
+    const int: KEY_d            <- <%!0x44%>
+    const int: KEY_e            <- <%!0x45%>
+    const int: KEY_f            <- <%!0x46%>
+    const int: KEY_g            <- <%!0x47%>
+    const int: KEY_h            <- <%!0x48%>
+    const int: KEY_i            <- <%!0x49%>
+    const int: KEY_j            <- <%!0x4A%>
+    const int: KEY_k            <- <%!0x4B%>
+    const int: KEY_l            <- <%!0x4C%>
+    const int: KEY_m            <- <%!0x4D%>
+    const int: KEY_n            <- <%!0x4E%>
+    const int: KEY_o            <- <%!0x4F%>
+    const int: KEY_p            <- <%!0x50%>
+    const int: KEY_q            <- <%!0x51%>
+    const int: KEY_r            <- <%!0x52%>
+    const int: KEY_s            <- <%!0x53%>
+    const int: KEY_t            <- <%!0x54%>
+    const int: KEY_u            <- <%!0x55%>
+    const int: KEY_v            <- <%!0x56%>
+    const int: KEY_w            <- <%!0x57%>
+    const int: KEY_x            <- <%!0x58%>
+    const int: KEY_y            <- <%!0x59%>
+    const int: KEY_z            <- <%!0x5A%>
 
     const int: KEY_A            <- <%!0x41%>
     const int: KEY_B            <- <%!0x42%>
@@ -885,12 +1757,12 @@ struct GLOBAL{ // Constants
 
 
     /// MASKS for event.state
-    const int: SHIFT_MASK       <- <%!GDK_SHIFT_MASK%>
-    const int: CONTROL_MASK     <- <%!GDK_CONTROL_MASK%>
+    const int: SHIFT_MASK       <- <%!MK_SHIFT%>
+    const int: CONTROL_MASK     <- <%!MK_CONTROL%>
 }
 /////////// Application areas
 
 struct GLOBAL {
     //their HWND: window
-    me void: activate(me HWND: frame) <- <%{thisApp.createAppArea(frame);}%>
+    me void: activate(me GUI_Frame: frame) <- <%{thisApp.createAppArea(frame);}%>
 }
