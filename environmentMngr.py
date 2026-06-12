@@ -16,21 +16,14 @@ def checkToolWindows(toolName):
         return None
 
 def downloadFile(fileName, downloadURL):
-    import urllib3
+    import shutil
+    import urllib.request
     try:
         cdlog(1, "Downloading file: " + fileName)
-        http = urllib3.PoolManager()
-        r = http.request('GET', downloadURL, preload_content=False)
-    except:
-        cdErr("URL not found: " + downloadURL)
-    else:
-        with open(fileName, 'wb') as out:
-            while True:
-                data = r.read(1028)
-                if not data:
-                    break
-                out.write(data)
-        r.release_conn()
+        with urllib.request.urlopen(downloadURL) as response, open(fileName, 'wb') as out:
+            shutil.copyfileobj(response, out)
+    except Exception as err:
+        cdErr("URL not found: " + downloadURL + "\n" + str(err))
 
 def packageInstall(packageName):
     from pmgrHandler import getPackageManagerCMD
@@ -88,22 +81,14 @@ def checkAndUpgradeOSPackageVersions(packageName):
             cdlog(1, f"Package already Installed: {packageName}")
 
 def downloadFile(fileName, downloadURL):
-    CheckPipModules({'urllib3':'1.25'})
-    import urllib3
+    import shutil
+    import urllib.request
     try:
         cdlog(1, "Downloading file: " + fileName)
-        http = urllib3.PoolManager()
-        r = http.request('GET', downloadURL, preload_content=False)
-    except:
-        cdErr("URL not found: " + downloadURL)
-    else:
-        with open(fileName, 'wb') as out:
-            while True:
-                data = r.read(1028)
-                if not data:
-                    break
-                out.write(data)
-        r.release_conn()
+        with urllib.request.urlopen(downloadURL) as response, open(fileName, 'wb') as out:
+            shutil.copyfileobj(response, out)
+    except Exception as err:
+        cdErr("URL not found: " + downloadURL + "\n" + str(err))
 
 def DownloadInstallPipModules(pipCMD):
     # Start a sub-process to run pip and a communications pipe to capture stdout and errors for display

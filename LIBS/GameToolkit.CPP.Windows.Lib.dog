@@ -1,0 +1,376 @@
+//############  Windows C++ GameToolkit implementation using SDL2
+requirements = [
+    [tagOneOf, Platform, [Windows]]
+]
+
+interface={
+    packages = [
+        { packageName = 'SDL2'
+          innerPkgName = 'SDL2-2.30.10'
+          fetchMethod = 'zip:https://github.com/libsdl-org/SDL/releases/download/release-2.30.10/SDL2-devel-2.30.10-VC.zip'
+          buildCmds = { Windows = { installFiles = ['include', 'lib/x64'] } }
+        },
+        { packageName = 'SDL2_image'
+          innerPkgName = 'SDL2_image-2.8.2'
+          fetchMethod = 'zip:https://github.com/libsdl-org/SDL_image/releases/download/release-2.8.2/SDL2_image-devel-2.8.2-VC.zip'
+          buildCmds = { Windows = { installFiles = ['include', 'lib/x64'] } }
+        },
+        { packageName = 'SDL2_mixer'
+          innerPkgName = 'SDL2_mixer-2.8.0'
+          fetchMethod = 'zip:https://github.com/libsdl-org/SDL_mixer/releases/download/release-2.8.0/SDL2_mixer-devel-2.8.0-VC.zip'
+          buildCmds = { Windows = { installFiles = ['include', 'lib/x64'] } }
+        },
+        { packageName = 'SDL2_ttf'
+          innerPkgName = 'SDL2_ttf-2.22.0'
+          fetchMethod = 'zip:https://github.com/libsdl-org/SDL_ttf/releases/download/release-2.22.0/SDL2_ttf-devel-2.22.0-VC.zip'
+          buildCmds = { Windows = { installFiles = ['include', 'lib/x64'] } }
+        }
+    ]
+    provides=[GameToolkit_CPP_platform_implementation]
+    libFiles=[SDL2, SDL2_image, SDL2_mixer, SDL2_ttf]
+    headers=[SDL_image.h, SDL_ttf.h]
+}
+
+LibDescription ={
+    useStatus   = dynamic
+    description ='A CodeDog Toolkit for making games with SDL2 on Windows'
+    features    =[]
+    platforms   =[Windows]
+    bindings    =[C, CPP]
+}
+
+initCode = ``
+
+embedAboveIncludes = `
+#define SDL_MAIN_HANDLED
+`
+
+embedHigh = `
+SDL_Renderer* cdGameRenderer = nullptr;
+SDL_Color cdGameColor = {255, 255, 255, 255};
+int cdGameLineWidth = 1;
+SDL_Point cdGameCurrentPoint = {0, 0};
+vector<SDL_Point> cdGamePath;
+bool cdGameHasRect = false;
+SDL_Rect cdGameRect = {0, 0, 0, 0};
+map<string, TTF_Font*> cdGameFontCache;
+
+static void cdGameClearPath()
+{
+    cdGamePath.clear();
+    cdGameHasRect = false;
+}
+
+static void cdGameApplyColor(SDL_Renderer* renderer)
+{
+    SDL_SetRenderDrawColor(renderer, cdGameColor.r, cdGameColor.g, cdGameColor.b, cdGameColor.a);
+}
+
+static string cdGameFontPath(const string& requestedName)
+{
+    if(requestedName.find(".ttf") != string::npos || requestedName.find(".TTF") != string::npos){
+        return requestedName;
+    }
+    return "C:/Windows/Fonts/arial.ttf";
+}
+
+static TTF_Font* cdGameOpenFont(const string& requestedName, int requestedSize)
+{
+    int fontSize = requestedSize > 0 ? requestedSize : 16;
+    string key = requestedName + "#" + to_string(fontSize);
+    auto found = cdGameFontCache.find(key);
+    if(found != cdGameFontCache.end()){
+        return found->second;
+    }
+    TTF_Font* font = TTF_OpenFont(cdGameFontPath(requestedName).c_str(), fontSize);
+    if(font == nullptr){
+        font = TTF_OpenFont("C:/Windows/Fonts/segoeui.ttf", fontSize);
+    }
+    cdGameFontCache[key] = font;
+    return font;
+}
+
+static SDL_Texture* cdGameLoadTexture(SDL_Renderer* renderer, const string& filename)
+{
+    SDL_Texture* texture = IMG_LoadTexture(renderer, filename.c_str());
+    if(texture == nullptr){
+        printf("IMG_LoadTexture failed for %s: %s\n", filename.c_str(), IMG_GetError());
+    }
+    return texture;
+}
+
+static void cdGameDrawThickLine(SDL_Renderer* renderer, int x1, int y1, int x2, int y2)
+{
+    cdGameApplyColor(renderer);
+    int width = cdGameLineWidth > 0 ? cdGameLineWidth : 1;
+    int half = width / 2;
+    if(abs(x2 - x1) >= abs(y2 - y1)){
+        for(int offset = -half; offset <= half; ++offset){
+            SDL_RenderDrawLine(renderer, x1, y1 + offset, x2, y2 + offset);
+        }
+    }
+    else{
+        for(int offset = -half; offset <= half; ++offset){
+            SDL_RenderDrawLine(renderer, x1 + offset, y1, x2 + offset, y2);
+        }
+    }
+}
+
+static void cdGameStrokeRect(SDL_Renderer* renderer, const SDL_Rect& rect)
+{
+    cdGameDrawThickLine(renderer, rect.x, rect.y, rect.x + rect.w, rect.y);
+    cdGameDrawThickLine(renderer, rect.x + rect.w, rect.y, rect.x + rect.w, rect.y + rect.h);
+    cdGameDrawThickLine(renderer, rect.x + rect.w, rect.y + rect.h, rect.x, rect.y + rect.h);
+    cdGameDrawThickLine(renderer, rect.x, rect.y + rect.h, rect.x, rect.y);
+}
+
+static void cdGameCloseFonts()
+{
+    for(auto& fontItem : cdGameFontCache){
+        if(fontItem.second != nullptr){
+            TTF_CloseFont(fontItem.second);
+        }
+    }
+    cdGameFontCache.clear();
+}
+`
+
+/////////////////////////////////  STRUCT CONVERTERS
+struct GUI_ctxt:                wraps = SDL_Renderer{}
+struct INK_Image:               wraps = SDL_Texture{}
+struct GameSurface:             wraps = SDL_Renderer{}
+/////////////////////////////////  GLOBAL
+struct GLOBAL{
+    void: deallocateWindow(their GRWindow: window) <- <%{
+        if(cdGameRenderer != nullptr){
+            SDL_DestroyRenderer(cdGameRenderer);
+            cdGameRenderer = nullptr;
+            screenSurface = nullptr;
+        }
+        if(window != nullptr){
+            SDL_DestroyWindow(window);
+        }
+    }%>
+    void: deallocateGraphicsSystem() <- <%{
+        for(auto& picItem : picCache){
+            if(picItem.second != nullptr){
+                SDL_DestroyTexture(picItem.second);
+            }
+        }
+        picCache.clear();
+        cdGameCloseFonts();
+        Mix_CloseAudio();
+        Mix_Quit();
+        TTF_Quit();
+        IMG_Quit();
+        SDL_Quit();
+    }%>
+    their GUI_ctxt: createGUI_ctxt()                    <- <%!%GcdGameRenderer%>
+    void: initializeGraphics(me bool: startFullScreen) <- <%{
+        screenSurface = nullptr;
+        canvas = nullptr;
+        SDL_SetMainReady();
+        if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0){
+            printf("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
+            return;
+        }
+        if((IMG_Init(IMG_INIT_PNG) & IMG_INIT_PNG) == 0){
+            printf("SDL_image could not initialize! IMG_Error: %s\n", IMG_GetError());
+        }
+        if(TTF_Init() < 0){
+            printf("SDL_ttf could not initialize! TTF_Error: %s\n", TTF_GetError());
+        }
+        if(Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0){
+            printf("SDL_mixer could not initialize! Mix_Error: %s\n", Mix_GetError());
+        }
+
+        SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
+        Uint32 fullScreenFlag = (startFullScreen) ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0;
+        window = SDL_CreateWindow("CodeDog Game", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | fullScreenFlag);
+        if(window == nullptr){
+            printf("Window could not be created! SDL_Error: %s\n", SDL_GetError());
+            return;
+        }
+        cdGameRenderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+        if(cdGameRenderer == nullptr){
+            cdGameRenderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
+        }
+        if(cdGameRenderer == nullptr){
+            printf("Renderer could not be created! SDL_Error: %s\n", SDL_GetError());
+            return;
+        }
+        SDL_SetRenderDrawBlendMode(cdGameRenderer, SDL_BLENDMODE_BLEND);
+        screenSurface = cdGameRenderer;
+        SDL_GetWindowSize(window, &windowW, &windowH);
+    }%>
+    void: resetWindowSize(me int: width, me int: height) <- <%{
+        windowW  = width;
+        windowH = height;
+        if(cdGameRenderer != nullptr){
+            SDL_RenderSetViewport(cdGameRenderer, nullptr);
+        }
+    }%>
+    // //DRAWING ROUTINES:
+    me deltaSize: renderText(their GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y) <- <%{
+        deltaSize size;
+        size.width = 0;
+        size.height = 0;
+        TTF_Font* ttfFont = cdGameOpenFont(font.name, font.size);
+        if(cr == nullptr || ttfFont == nullptr){
+            return(size);
+        }
+        SDL_Surface* textSurface = TTF_RenderUTF8_Blended(ttfFont, text.c_str(), cdGameColor);
+        if(textSurface == nullptr){
+            printf("TTF_RenderUTF8_Blended failed: %s\n", TTF_GetError());
+            return(size);
+        }
+        SDL_Texture* textTexture = SDL_CreateTextureFromSurface(cr, textSurface);
+        if(textTexture != nullptr){
+            SDL_Rect dst = {(int)x, (int)y, textSurface->w, textSurface->h};
+            SDL_RenderCopy(cr, textTexture, nullptr, &dst);
+            SDL_DestroyTexture(textTexture);
+        }
+        size.width = textSurface->w;
+        size.height = textSurface->h;
+        SDL_FreeSurface(textSurface);
+        return(size);
+    }%>
+    me deltaSize: renderTextCentered(their GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y) <- <%{
+        deltaSize size = getTextSize(cr, text, font);
+        renderText(cr, text, font, x-size.width/2, y);
+        return(size);
+    }%>
+    me void: rotate(their GUI_ctxt: cr, me double: x, me double: y, me int: degrees) <- <%{
+        // SDL_Renderer has no equivalent transform stack in SDL2.
+    }%>
+    me void: restore() <- <%{
+    }%>
+    me deltaSize: getTextSize(their GUI_ctxt: cr, me string: text, me fontSpec: font) <- <%{
+        deltaSize size;
+        size.width = 0;
+        size.height = 0;
+        TTF_Font* ttfFont = cdGameOpenFont(font.name, font.size);
+        if(ttfFont != nullptr){
+            TTF_SizeUTF8(ttfFont, text.c_str(), &size.width, &size.height);
+        }
+        return(size);
+    } %>
+    // WARNING: if displayImage is changed, you may also need to change displayBackgroundImage
+    void: displayImage(their GUI_ctxt: cr, me string: filename, me double: x, me double: y, me double: xScale, me double: yScale) <- <%{
+        if(cr == nullptr){
+            return;
+        }
+        SDL_Texture* pic = nullptr;
+        auto picPtr = picCache.find(filename);
+        if(picPtr == picCache.end()){
+            pic = cdGameLoadTexture(cr, filename);
+            picCache[filename] = pic;
+        }
+        else{
+            pic = picPtr->second;
+        }
+        if(pic == nullptr){
+            return;
+        }
+        int picWidth = 0;
+        int picHeight = 0;
+        SDL_QueryTexture(pic, nullptr, nullptr, &picWidth, &picHeight);
+        SDL_Rect dst = {(int)x, (int)y, (int)(picWidth / xScale), (int)(picHeight / yScale)};
+        SDL_RenderCopy(cr, pic, nullptr, &dst);
+    }%>
+    // WARNING: if displayBackgroundImage is changed, you may also need to change displayImage
+    void: displayBackgroundImage(their GUI_ctxt: cr, me string: filename) <- <%{
+        if(cr == nullptr){
+            return;
+        }
+        SDL_Texture* pic = nullptr;
+        auto picPtr = picCache.find(filename);
+        if(picPtr == picCache.end()){
+            pic = cdGameLoadTexture(cr, filename);
+            picCache[filename] = pic;
+        }
+        else{
+            pic = picPtr->second;
+        }
+        if(pic == nullptr){
+            return;
+        }
+        SDL_Rect dst = {0, 0, windowW, windowH};
+        SDL_RenderCopy(cr, pic, nullptr, &dst);
+    }%>
+}
+/////////////////////////////////  GUI_ctxt
+struct GUI_ctxt{
+    me void: setColor(me cdColor: color) <- <%!
+        cdGameColor = {(Uint8)std::min(255u, %1.red), (Uint8)std::min(255u, %1.green), (Uint8)std::min(255u, %1.blue), (Uint8)std::min(255u, %1.alpha)};
+        SDL_SetRenderDrawColor(%0, cdGameColor.r, cdGameColor.g, cdGameColor.b, cdGameColor.a);
+    %>
+    me void: setLineWidth(me double: width) <- <%!
+        (void)%0;
+        cdGameLineWidth = ((int)%1 > 0) ? (int)%1 : 1;
+    %>
+    me void: moveTo(me double: x, me double: y) <- <%!
+        (void)%0;
+        cdGameClearPath();
+        cdGameCurrentPoint = {(int)%1, (int)%2};
+        cdGamePath.push_back(cdGameCurrentPoint);
+    %>
+    me void: lineTo(me double: x, me double: y) <- <%!
+        (void)%0;
+        cdGameCurrentPoint = {(int)%1, (int)%2};
+        cdGamePath.push_back(cdGameCurrentPoint);
+    %>
+    me void: strokeNow() <- <%!
+        if(cdGameHasRect){
+            cdGameStrokeRect(%0, cdGameRect);
+        }
+        else if(cdGamePath.size() > 1){
+            for(size_t cdGamePointIdx = 1; cdGamePointIdx < cdGamePath.size(); ++cdGamePointIdx){
+                SDL_Point fromPoint = cdGamePath[cdGamePointIdx - 1];
+                SDL_Point toPoint = cdGamePath[cdGamePointIdx];
+                cdGameDrawThickLine(%0, fromPoint.x, fromPoint.y, toPoint.x, toPoint.y);
+            }
+        }
+        cdGameClearPath();
+    %>
+    me void: fillNow() <- <%!
+        if(cdGameHasRect){
+            cdGameApplyColor(%0);
+            SDL_RenderFillRect(%0, &cdGameRect);
+        }
+        cdGameClearPath();
+    %>
+    me void: rectangle(me double: x, me double: y, me double: w, me double: h) <- <%!
+        (void)%0;
+        cdGameClearPath();
+        cdGameHasRect = true;
+        cdGameRect = {(int)%1, (int)%2, (int)%3, (int)%4};
+    %>
+}
+/////////////////////////////////  WINDOW
+struct GRWindow{
+    void: requestRedraw()                               <- <%!{ (void)%0; SDL_RenderPresent(cdGameRenderer); }%>
+}
+/////////////////////////////////  IMAGES
+struct GameImage{
+    void: loadFromFile(me string: fileName) <- <%{
+        if(img != nullptr){
+            SDL_DestroyTexture(img);
+            img = nullptr;
+        }
+        name = fileName;
+        img = cdGameLoadTexture(cdGameRenderer, name);
+        width = 0;
+        height = 0;
+        if(img != nullptr){
+            SDL_QueryTexture(img, nullptr, nullptr, &width, &height);
+        }
+    }%>
+    void: draw(their GUI_ctxt: cr, me double: x, me double: y, me double: scale) <- <%{
+        if(cr == nullptr || img == nullptr){
+            return;
+        }
+        SDL_Rect dst = {(int)x, (int)y, (int)(width / scale), (int)(height / scale)};
+        SDL_RenderCopy(cr, img, nullptr, &dst);
+    }%>
+}

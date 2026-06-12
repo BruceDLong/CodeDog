@@ -117,6 +117,17 @@ def copyRecursive(src, dst, symlinks=False):
                 # ~ errors.extend((src, dst, str(why)))
         # ~ if errors:
             # ~ raise shutil.Error(errors)
+
+def copyWindowsRuntimeDlls(buildName):
+    buildPath = Path(buildName)
+    if not buildPath.is_dir():
+        return
+    for dllPath in buildPath.glob("*/INSTALL/**/*.dll"):
+        targetPath = buildPath / dllPath.name
+        if dllPath.resolve() == targetPath.resolve():
+            continue
+        shutil.copy2(str(dllPath), str(targetPath))
+
 def gitClone(cloneUrl, packageName, packageDirectory):
     emgr.CheckPipModules({'GitPython':'3.1'})
     import urllib.request
@@ -158,16 +169,21 @@ def downloadExtractZip(downloadUrl, packageName, packageDirectory):
 
     zipFileDir  = packageDirectory + '/' + packageName
     packagePath = zipFileDir + '/' + packageName + zipExtension
-    checkDir    = os.path.isdir(zipFileDir)
     zipFileName = os.path.basename(downloadUrl)
-    if not checkDir:
+    if not os.path.isfile(packagePath):
         makeDirs(zipFileDir + "/INSTALL")
         emgr.downloadFile(packagePath, downloadUrl)
-        try:
-            cdlog(1, "Extracting zip file: " + zipFileName)
-            shutil.unpack_archive(packagePath, zipFileDir)
-        except:
-            cdErr("Could not extract zip archive file: " + zipFileName)
+    if os.path.isfile(packagePath):
+        extractedContent = [
+            child for child in Path(zipFileDir).iterdir()
+            if child.name not in ["INSTALL", os.path.basename(packagePath)]
+        ]
+        if not extractedContent:
+            try:
+                cdlog(1, "Extracting zip file: " + zipFileName)
+                shutil.unpack_archive(packagePath, zipFileDir)
+            except:
+                cdErr("Could not extract zip archive file: " + zipFileName)
 
 def getPackageName(packageMap):
     if 'packageName' in packageMap:
@@ -381,6 +397,7 @@ def WindowsBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, pla
     writeFile(buildName, fileName, fileSpecs, fileExtension)
     if os.path.isdir("Resources"):
         copyRecursive("Resources", buildName + os.sep + "assets")
+    copyWindowsRuntimeDlls(buildName)
 
     for libFile in libFiles:
         libStr += "-l"+libFile+ " "

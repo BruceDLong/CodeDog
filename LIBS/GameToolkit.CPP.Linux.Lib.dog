@@ -1,0 +1,185 @@
+//############  Linux C++ GameToolkit implementation using SDL2, Cairo, and Pango
+requirements = [
+    [tagOneOf, Platform, [Linux]]
+]
+
+interface={
+    packages = [
+        { packageName = 'libsdl2-dev'
+          fetchMethod = 'sys:'
+        },
+        { packageName = 'libsdl2-mixer-dev'
+          fetchMethod = 'sys:'
+        },
+        { packageName = 'libcairo2-dev'
+          fetchMethod = 'sys:'
+        },
+        { packageName = 'libpango1.0-dev'
+          fetchMethod = 'sys:'
+        },
+        { packageName = 'pkg-config'
+          fetchMethod = 'sys:'
+        }
+    ]
+    provides=[GameToolkit_CPP_platform_implementation]
+    libFiles=[`pkg-config --cflags --libs sdl2`, SDL2_mixer, `pkg-config --cflags --libs cairo`, `pkg-config --cflags --libs pangocairo`]
+    headers=[cairo.h, pango/pangocairo.h]
+}
+
+LibDescription ={
+    useStatus   = dynamic
+    description ='A CodeDog Toolkit for making games'
+    features    =[]
+    platforms   =[Linux]
+    bindings    =[C, CPP]
+}
+
+initCode = ``
+
+/////////////////////////////////  STRUCT CONVERTERS
+struct GUI_ctxt:                wraps = cairo_t{}
+struct INK_Image:               wraps = cairo_surface_t{}
+struct GameSurface:             wraps = SDL_Surface{}
+/////////////////////////////////  GLOBAL
+struct GLOBAL{
+    void: deallocateWindow(their GRWindow: window)      <- <%!%GSDL_DestroyWindow(%1)%>
+    void: deallocateGraphicsSystem()                    <- <%!%GSDL_Quit()%>
+    their GUI_ctxt: createGUI_ctxt() <- <%!%Gcairo_create(canvas)%>
+    void: initializeGraphics(me bool: startFullScreen) <- <%{
+        //The surface contained by the window
+        screenSurface = NULL;
+        //Initialize SDL
+        if( SDL_Init( SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0 ){
+            printf("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
+        }else{
+            Mix_OpenAudio( 44100, MIX_DEFAULT_FORMAT, 2, 2048 );
+            //Create window
+            Uint32 fullScreenFlag = (startFullScreen)?SDL_WINDOW_FULLSCREEN_DESKTOP:0;
+            window = SDL_CreateWindow( "SDL Tutorial", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN|fullScreenFlag);
+            SDL_SetWindowResizable(window, SDL_TRUE);
+            SDL_GetWindowSize(window, &windowW, &windowH);
+            if( window == NULL ){
+                printf( "Window could not be created! SDL_Error: %s\n", SDL_GetError());
+            }else{
+                //Get window surface
+                screenSurface = SDL_GetWindowSurface(window);
+                canvas = cairo_image_surface_create_for_data((unsigned char*) screenSurface->pixels,CAIRO_FORMAT_RGB24,screenSurface->w,screenSurface->h,screenSurface->pitch);
+            }
+        }
+    }%>
+    void: resetWindowSize(me int: width, me int: height) <- <%{
+        windowW  = width;
+        windowH = height;
+        if(canvas) cairo_surface_destroy(canvas);
+        if(screenSurface) {
+            SDL_FreeSurface(screenSurface);
+            screenSurface=0;
+        }
+        screenSurface = SDL_GetWindowSurface(window);
+        canvas = cairo_image_surface_create_for_data((unsigned char*) screenSurface->pixels,CAIRO_FORMAT_RGB24, width, height, screenSurface->pitch);
+    }%>
+    // //DRAWING ROUTINES:
+    me deltaSize: renderText(their GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y) <- <%{
+        cairo_move_to(cr,x,y);
+        PangoLayout *layout=pango_cairo_create_layout(cr);
+        pango_layout_set_text(layout, text.data(), -1);
+
+        string fontDesc=font.name+' '+ std::to_string(font.size);
+        PangoFontDescription *desc = pango_font_description_from_string(fontDesc.data());
+        pango_layout_set_font_description(layout, desc);
+        pango_font_description_free(desc);
+
+        cairo_set_line_width(cr, 0.5);
+        pango_cairo_update_layout(cr, layout);
+        pango_cairo_show_layout_line (cr, pango_layout_get_line (layout, 0));
+       // pango_cairo_layout_path(cr, layout);
+        deltaSize size;
+        pango_layout_get_pixel_size(layout, &size.width, &size.height);
+        g_object_unref(layout);
+        cairo_fill(cr);
+        return(size);
+    }%>
+    me deltaSize: renderTextCentered(their GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y) <- <%{
+        deltaSize size = getTextSize(cr, text, font);
+        renderText(cr, text, font, x-size.width/2, y);
+        return(size);
+    }%>
+    me void: rotate(their GUI_ctxt: cr, me double: x, me double: y, me int: degrees) <- <%{
+        double radians = degrees*(M_PI/180.);
+        cairo_save(cr);
+        cairo_translate(cr,x,y);
+        cairo_rotate(cr, radians);
+        cairo_translate(cr,-x,-y);
+    }%>
+    me void: restore() <- <%!cairo_restore(cr)%>
+    me deltaSize: getTextSize(their GUI_ctxt: cr, me string: text, me fontSpec: font) <- <%{
+        PangoLayout *layout=pango_cairo_create_layout(cr);
+        pango_layout_set_text(layout, text.data(), -1);
+        string fontDesc=font.name+' '+ std::to_string(font.size);
+        PangoFontDescription *desc = pango_font_description_from_string(fontDesc.data());
+        pango_layout_set_font_description(layout, desc);
+        pango_font_description_free(desc);
+        deltaSize size;
+        pango_layout_get_pixel_size(layout, &size.width, &size.height);
+        g_object_unref(layout);
+        return(size);
+    } %>
+    // WARNING: if displayImage is changed, you may also need to change displayBackgroundImage
+    void: displayImage(their GUI_ctxt: cr, me string: filename, me double: x, me double: y, me double: xScale, me double: yScale) <- <%{
+        cairo_surface_t* pic=0;
+        map<string, cairo_surface_t*>::iterator picPtr=picCache.find(filename);
+        if (picPtr==picCache.end()) {picCache[filename]=pic=cairo_image_surface_create_from_png(filename.data());}
+        else pic=picPtr->second;
+        cairo_save(cr);
+        cairo_scale(cr, 1/xScale, 1/yScale);
+        cairo_set_source_surface(cr,pic,x*xScale,y*yScale);
+        cairo_paint(cr);
+        cairo_restore(cr);
+    }%>
+    // WARNING: if displayBackgroundImage is changed, you may also need to change displayImage
+    void: displayBackgroundImage(their GUI_ctxt: cr, me string: filename) <- <%{
+        cairo_surface_t* pic=0;
+        map<string, cairo_surface_t*>::iterator picPtr=picCache.find(filename);
+        if (picPtr==picCache.end()) {picCache[filename]=pic=cairo_image_surface_create_from_png(filename.data());}
+        else pic=picPtr->second;
+        double picWidth = cairo_image_surface_get_width(pic);
+        double picHeight = cairo_image_surface_get_height(pic);
+        double xScale = windowW / picWidth;
+        double yScale = windowH / picHeight;
+        cairo_save(cr);
+        cairo_scale(cr, xScale, yScale);
+        cairo_set_source_surface(cr,pic,0,0);
+        cairo_paint(cr);
+        cairo_restore(cr);
+    }%>
+}
+/////////////////////////////////  GUI_ctxt
+struct GUI_ctxt{
+    me void: setColor(me cdColor: color)                <- <%!cairo_set_source_rgb(%0, (double)%1.red /256, (double)%1.green /256, (double)%1.blue /256)%>
+    me void: setLineWidth(me double: width)             <- <%!cairo_set_line_width(%0, %1)%>
+    me void: moveTo(me double: x, me double: y)         <- <%!cairo_move_to(%0, %1, %2)%>
+    me void: lineTo(me double: x, me double: y)         <- <%!cairo_line_to(%0, %1, %2)%>
+    me void: strokeNow()                                <- <%!cairo_stroke(%0)%>
+    me void: fillNow()                                  <- <%!cairo_fill(%0)%>
+    me void: rectangle(me double: x, me double: y, me double: w, me double: h) <- <%!cairo_rectangle(%0, %1, %2, %3, %4)%>
+}
+/////////////////////////////////  WINDOW
+struct GRWindow{
+    void: requestRedraw()                               <- <%!SDL_UpdateWindowSurface(%0)%>
+}
+/////////////////////////////////  IMAGES
+struct GameImage{
+    void: loadFromFile(me string: fileName) <- <%{
+        name = fileName;
+        img=cairo_image_surface_create_from_png(name.data());
+        width=cairo_image_surface_get_width(img);
+        height=cairo_image_surface_get_height(img);
+    }%>
+    void: draw(their GUI_ctxt: cr, me double: x, me double: y, me double: scale) <- <%{
+        cairo_save(cr);
+        cairo_scale(cr,1/scale,1/scale);
+        cairo_set_source_surface(cr,img,x*scale,y*scale);
+        cairo_paint(cr);
+        cairo_restore(cr);
+    }%>
+}
