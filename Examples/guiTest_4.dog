@@ -5,8 +5,9 @@
 // - primary down/up/click/double-click routing
 // - mouse capture while dragging across canvas boundaries
 
+LocalBuild: Platform='Local' optimize='speed';
 //LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' LangVersion='GNU' optimize='speed';
-WindowsBuild: Platform='Windows' CPU='amd64' Lang='CPP' LangVersion='MSVC' optimize='speed';
+//WindowsBuild: Platform='Windows' CPU='amd64' Lang='CPP' LangVersion='MSVC' optimize='speed';
 //SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';
 //AndroidBuild: Platform='Android' CPU='JavaVM' Lang='Java' optimize='power';
 //iPhoneBuild: Platform='IOS' CPU='amd64' Lang='Swift' optimize='speed';

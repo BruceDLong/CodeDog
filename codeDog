@@ -96,6 +96,57 @@ def GenerateProgram(classes, buildTags, tagsList, libsToUse):
     result=codeGenerator.generate(classes, tagsList, libsToUse, langName)
     return result
 from timeit import default_timer as timer
+
+def localCPU():
+    machine = platform.machine().lower()
+    if machine in ['x86_64', 'amd64']:
+        return 'amd64'
+    if machine in ['aarch64', 'arm64']:
+        return 'arm64'
+    return machine
+
+def localPlatformTags():
+    platformID = platform.system()
+    if platformID == 'Linux':
+        return {'Platform': 'Linux', 'CPU': localCPU(), 'Lang': 'CPP', 'LangVersion': 'GNU'}
+    if platformID == 'Windows':
+        return {'Platform': 'Windows', 'CPU': localCPU(), 'Lang': 'CPP', 'LangVersion': 'MSVC'}
+    if platformID == 'Darwin':
+        return {'Platform': 'MacOS', 'CPU': localCPU(), 'Lang': 'Swift'}
+    cdErr("ERROR: Local platform '{}' is not supported.".format(platformID))
+
+def localPlatformBuildName():
+    platformID = platform.system()
+    if platformID == 'Linux':
+        return 'LinuxBuild'
+    if platformID == 'Windows':
+        return 'WindowsBuild'
+    if platformID == 'Darwin':
+        return 'MacBuild'
+    cdErr("ERROR: Local platform '{}' is not supported.".format(platformID))
+
+def applyLocalPlatformDefaults(buildSpec):
+    localTags = localPlatformTags()
+    buildName = buildSpec[0]
+    buildTags = buildSpec[1]
+    platformTag = progSpec.fetchTagValue([buildTags], 'Platform')
+    if isinstance(platformTag, str) and platformTag.lower() == 'local':
+        buildTags['Platform'] = localTags['Platform']
+    if not ('Platform' in buildTags):
+        buildTags['Platform'] = localTags['Platform']
+    if not ('CPU' in buildTags):
+        buildTags['CPU'] = localTags['CPU']
+    if not ('Lang' in buildTags):
+        buildTags['Lang'] = localTags['Lang']
+    if buildTags['Lang'] == localTags['Lang'] and 'LangVersion' in localTags and not ('LangVersion' in buildTags):
+        buildTags['LangVersion'] = localTags['LangVersion']
+    return [buildName, buildTags]
+
+def normalizeBuildSpecs(buildSpecs):
+    if len(buildSpecs) == 0:
+        buildSpecs = [[localPlatformBuildName(), localPlatformTags()]]
+    return [applyLocalPlatformDefaults(buildSpec) for buildSpec in buildSpecs]
+
 def GenerateSystem(classes, buildSpecs, tags, macroDefs):
     cdlog(0, "\n######################   G E N E R A T I N G   P R O G R A M   S P E C I F I C A T I O N")
     count=0
@@ -160,7 +211,7 @@ def processMainProgram():
     [tagStore, buildSpecs, classes, newClasses] = codeGenerator.loadProgSpecFromDogFile(filename, ProgSpec, objNames, {}, macroDefs)
     print("Marker: Parse Successful")
     tagStore['dogFilename']=filename
-    if len(buildSpecs)==0: cdErr('No Build specification was found')
+    buildSpecs = normalizeBuildSpecs(buildSpecs)
     macroDefs= {}
     GenerateSystem(classes, buildSpecs, tagStore, macroDefs)
     cdlog(0, "\n######################   D O N E")
