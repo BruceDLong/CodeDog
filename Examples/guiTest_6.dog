@@ -1,0 +1,159 @@
+// guiTest_6.dog
+//
+// Drawing compatibility test after guiTest_5:
+// - preserve-path fill/stroke
+// - round and edged line caps
+// - scale, offset, rotate, and restore drawing transforms
+// - centered and rotated text helpers
+// - PNG image drawing from the generated assets folder
+
+LocalBuild: Platform='Local' optimize='speed';
+//LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' LangVersion='GNU' optimize='speed';
+//WindowsBuild: Platform='Windows' CPU='amd64' Lang='CPP' LangVersion='MSVC' optimize='speed';
+//SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';
+//AndroidBuild: Platform='Android' CPU='JavaVM' Lang='Java' optimize='power';
+//iPhoneBuild: Platform='IOS' CPU='amd64' Lang='Swift' optimize='speed';
+//MacBuild: Platform='MacOS' Lang='Swift' optimize='speed';
+
+Title = "guiTest_6"
+FileName = "guiTest_6"
+Version = "1.0"
+CopyrightMesg = "Public Domain"
+Authors = "Bruce Long"
+Description = "GUI drawing test for path preservation, transforms, text helpers, and images"
+ProgramOrLibrary = "program"
+
+featuresNeeded = [GUI_ToolKit, Dashboard, List]
+
+LicenseText = `Public Domain`
+
+runCode=``
+
+mainStyle = {}
+
+do makeStyler(mainStyle)
+do makeGUI(GUI_Spec)
+
+struct drawingParityWidget: inherits=DashboardWidget{
+    void: panel(their GUI_ctxt: cr, me int: x, me int: y, me int: w, me int: h, me string: title) <- {
+        our fontSpec:: labelFont{"Arial", "14"}
+        cr.setRGB(248, 249, 250)
+        cr.rectangle(x, y, w, h)
+        cr.fillKeep()
+        cr.setRGB(128, 138, 150)
+        cr.setLineWidth(1)
+        cr.strokeNow()
+        cr.setRGB(28, 32, 36)
+        renderText(cr, title, labelFont, x + 12, y + 24)
+    }
+
+    void: draw(their GUI_ctxt: cr) <- {
+        me int: canvasW <- widgetWidth(drawing_area)
+        me int: canvasH <- widgetHeight(drawing_area)
+        me int: centerX <- canvasW / 2
+
+        our fontSpec:: titleFont{"Arial", "24"}
+        our fontSpec:: bodyFont{"Arial", "15"}
+        our fontSpec:: smallFont{"Arial", "12"}
+
+        cr.setRGB(255, 255, 255)
+        cr.paintNow()
+
+        cr.setRGB(24, 27, 31)
+        renderTextCentered(cr, "guiTest_6 drawing parity", titleFont, centerX, 34)
+        renderTextCentered(cr, "Resize the window: all panels should redraw cleanly.", bodyFont, centerX, 60)
+        renderText(cr, "Canvas: " + toString(canvasW) + " x " + toString(canvasH), smallFont, 24, canvasH - 20)
+
+        panel(cr, 28, 86, 250, 155, "fillKeep + stroke path")
+        cr.setRGB(255, 217, 132)
+        roundedRectangle(cr, 66, 130, 170, 72, 18)
+        cr.fillKeep()
+        cr.setRGB(124, 74, 22)
+        cr.setLineWidth(5)
+        cr.strokeNow()
+        cr.setRGB(55, 61, 68)
+        renderText(cr, "Same rounded path fills then strokes.", smallFont, 48, 224)
+
+        panel(cr, 306, 86, 250, 155, "line caps")
+        cr.setLineWidth(18)
+        cr.setRoundLineCap()
+        cr.setRGB(38, 124, 190)
+        cr.moveTo(342, 148)
+        cr.lineTo(520, 148)
+        cr.strokeNow()
+        cr.setEdgedLineCap()
+        cr.setRGB(210, 82, 82)
+        cr.moveTo(342, 196)
+        cr.lineTo(520, 196)
+        cr.strokeNow()
+        cr.setLineWidth(1)
+        cr.setRGB(55, 61, 68)
+        renderText(cr, "Round cap above, edged cap below.", smallFont, 326, 224)
+
+        panel(cr, 584, 86, 250, 155, "rotate + restore")
+        rotate(cr, 708, 166, 24)
+        cr.setRGB(226, 241, 230)
+        cr.rectangle(646, 132, 126, 66)
+        cr.fillKeep()
+        cr.setRGB(32, 128, 84)
+        cr.setLineWidth(4)
+        cr.strokeNow()
+        cr.setRGB(30, 54, 42)
+        renderTextCentered(cr, "rotated box", bodyFont, 710, 164)
+        restore(cr)
+        cr.setRGB(55, 61, 68)
+        renderText(cr, "Text below should be unrotated.", smallFont, 606, 224)
+
+        panel(cr, 28, 274, 250, 185, "setOffset + setScale")
+        rotate(cr, 0, 0, 0)
+        cr.setOffset(66, 334)
+        cr.setScale(1.35, 1.35)
+        cr.setRGB(232, 238, 247)
+        cr.rectangle(0, 0, 118, 70)
+        cr.fillKeep()
+        cr.setRGB(55, 94, 155)
+        cr.setLineWidth(3)
+        cr.strokeNow()
+        cr.setRGB(55, 94, 155)
+        cr.moveTo(0, 0)
+        cr.lineTo(118, 70)
+        cr.moveTo(118, 0)
+        cr.lineTo(0, 70)
+        cr.strokeNow()
+        cr.setRGB(18, 40, 72)
+        renderText(cr, "scaled", smallFont, 33, 42)
+        restore(cr)
+        cr.setRGB(55, 61, 68)
+        renderText(cr, "The blue shape is drawn in transformed coordinates.", smallFont, 48, 444)
+
+        panel(cr, 306, 274, 250, 185, "renderTextRotate")
+        cr.setRGB(44, 55, 66)
+        renderTextCentered(cr, "centered", bodyFont, 431, 334)
+        cr.setRGB(136, 64, 150)
+        renderTextRotate(cr, "rotated text", bodyFont, 432, 400, -34, "center")
+        cr.setRGB(55, 61, 68)
+        renderText(cr, "Both helpers should preserve later drawing.", smallFont, 326, 444)
+
+        panel(cr, 584, 274, 250, 185, "displayImage")
+        displayImage(cr, "ship1.png", 620, 332, 1)
+        displayImage(cr, "greenAlien.png", 718, 338, 1.35)
+        cr.setRGB(55, 61, 68)
+        renderText(cr, "Two PNGs should appear above.", smallFont, 606, 444)
+    }
+}
+
+struct GLOBAL{
+    their GUI_canvas: drawing_area
+    their drawingParityWidget: drawingPanel
+}
+
+struct APP{
+    me void: createAppArea(me GUI_Frame: frame) <- {
+        Allocate(drawingPanel)
+        drawing_area <- gui.newCanvas()
+        drawing_area.setParent(drawingPanel)
+        gui.setWidgetSize(drawing_area, 900, 560)
+        drawingPanel.EventDispatcher.registerWidgetForEventDispatcher(drawing_area, drawingPanel)
+        addToContainerAndExpand(frame, drawing_area)
+    }
+}

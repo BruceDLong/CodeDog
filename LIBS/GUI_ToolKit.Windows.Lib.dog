@@ -6,8 +6,8 @@ requirements = [
 
 interface={
     provides=[GUI_ToolKit_implementation]
-    libFiles=[Gdi32, User32, Msimg32]
-    headers=[windows.h, windowsx.h, stdlib.h, string.h, tchar.h, direct.h, winuser.h, wingdi.h]
+    libFiles=[Gdi32, User32, Msimg32, Gdiplus]
+    headers=[windows.h, windowsx.h, stdlib.h, string.h, tchar.h, direct.h, winuser.h, wingdi.h, gdiplus.h, math.h]
 }
 
 LibDescription ={
@@ -30,6 +30,8 @@ HWND hWnd;
 TRIVERTEX vertex[2];
 GRADIENT_RECT gRect;
 int penWidth = 1;
+int penEndCap = PS_ENDCAP_FLAT;
+ULONG_PTR CodeDogGdiplusToken = 0;
 const char CodeDogMainWindowClass[] = "CodeDogDesktopApp";
 const char CodeDogCanvasWindowClass[] = "CodeDogCanvas";
 const char CodeDogScrollWindowClass[] = "CodeDogScrollWindow";
@@ -72,6 +74,15 @@ void CodeDogClearList(HWND listWindow);
 void CodeDogSetListSelectedIndex(HWND listWindow, int index);
 int CodeDogGetListSelectedIndex(HWND listWindow);
 string CodeDogGetListSelectedText(HWND listWindow);
+static void CodeDogPaintPath(HDC dc, bool strokePath, bool fillPath, bool preservePath);
+static void CodeDogSuspendPath(HDC dc, vector<POINT>& pathPoints, vector<BYTE>& pathTypes);
+static void CodeDogResumePath(HDC dc, const vector<POINT>& pathPoints, const vector<BYTE>& pathTypes);
+static void CodeDogScaleDC(HDC dc, double scaleX, double scaleY);
+static void CodeDogOffsetDC(HDC dc, double offsetX, double offsetY);
+static void CodeDogRotateDC(HDC dc, double x, double y, double degrees);
+static void CodeDogRestoreDC(HDC dc);
+static void CodeDogDisplayImage(HDC dc, const string& filename, double x, double y, double scale);
+static void CodeDogDisplayBackgroundImage(HDC dc, const string& filename);
 
 wstring s2ws(const string& s) {
         int len;
@@ -172,6 +183,248 @@ static int CodeDogClampInt(int value, int low, int high)
     if(value < low){return low;}
     if(value > high){return high;}
     return value;
+}
+
+static void CodeDogEnsureAdvancedGraphics(HDC dc)
+{
+    SetGraphicsMode(dc, GM_ADVANCED);
+}
+
+static HPEN CodeDogCreateCurrentPen()
+{
+    LOGBRUSH brush;
+    brush.lbStyle = BS_SOLID;
+    brush.lbColor = objectColor;
+    brush.lbHatch = 0;
+    DWORD width = penWidth > 0 ? (DWORD)penWidth : 1;
+    return ExtCreatePen(PS_GEOMETRIC | PS_SOLID | penEndCap | PS_JOIN_MITER, width, &brush, 0, NULL);
+}
+
+static bool CodeDogCaptureCurrentPath(HDC dc, vector<POINT>& pathPoints, vector<BYTE>& pathTypes)
+{
+    pathPoints.clear();
+    pathTypes.clear();
+    if(!EndPath(dc)){
+        AbortPath(dc);
+        BeginPath(dc);
+        return false;
+    }
+
+    int pathPointCount = GetPath(dc, NULL, NULL, 0);
+    if(pathPointCount > 0){
+        pathPoints.resize(pathPointCount);
+        pathTypes.resize(pathPointCount);
+        GetPath(dc, pathPoints.data(), pathTypes.data(), pathPointCount);
+        return true;
+    }
+    return false;
+}
+
+static void CodeDogResumeCapturedPath(HDC dc, const vector<POINT>& pathPoints, const vector<BYTE>& pathTypes)
+{
+    BeginPath(dc);
+    if(pathPoints.size() > 0){
+        PolyDraw(dc, pathPoints.data(), pathTypes.data(), (int)pathPoints.size());
+    }
+}
+
+static void CodeDogPaintPath(HDC dc, bool strokePath, bool fillPath, bool preservePath)
+{
+    vector<POINT> savedPathPoints;
+    vector<BYTE> savedPathTypes;
+    bool hasPath = false;
+    if(preservePath){
+        hasPath = CodeDogCaptureCurrentPath(dc, savedPathPoints, savedPathTypes);
+        if(!hasPath){
+            AbortPath(dc);
+            BeginPath(dc);
+            return;
+        }
+    }
+    else if(!EndPath(dc)){
+        AbortPath(dc);
+        BeginPath(dc);
+        return;
+    }
+
+    HPEN pathPen = NULL;
+    HBRUSH pathBrush = NULL;
+    HGDIOBJ oldPen = NULL;
+    HGDIOBJ oldBrush = NULL;
+    if(strokePath){
+        pathPen = CodeDogCreateCurrentPen();
+        oldPen = SelectObject(dc, pathPen);
+    }
+    if(fillPath){
+        pathBrush = CreateSolidBrush(objectColor);
+        oldBrush = SelectObject(dc, pathBrush);
+    }
+
+    if(strokePath && fillPath){
+        StrokeAndFillPath(dc);
+    }
+    else if(fillPath){
+        FillPath(dc);
+    }
+    else{
+        StrokePath(dc);
+    }
+
+    if(oldPen != NULL){SelectObject(dc, oldPen);}
+    if(oldBrush != NULL){SelectObject(dc, oldBrush);}
+    if(pathPen != NULL){DeleteObject(pathPen);}
+    if(pathBrush != NULL){DeleteObject(pathBrush);}
+
+    if(preservePath && hasPath){
+        CodeDogResumeCapturedPath(dc, savedPathPoints, savedPathTypes);
+    }
+    else{
+        BeginPath(dc);
+    }
+}
+
+static void CodeDogSuspendPath(HDC dc, vector<POINT>& pathPoints, vector<BYTE>& pathTypes)
+{
+    CodeDogCaptureCurrentPath(dc, pathPoints, pathTypes);
+    AbortPath(dc);
+}
+
+static void CodeDogResumePath(HDC dc, const vector<POINT>& pathPoints, const vector<BYTE>& pathTypes)
+{
+    CodeDogResumeCapturedPath(dc, pathPoints, pathTypes);
+}
+
+static void CodeDogScaleDC(HDC dc, double scaleX, double scaleY)
+{
+    CodeDogEnsureAdvancedGraphics(dc);
+    XFORM xform;
+    xform.eM11 = (FLOAT)scaleX;
+    xform.eM12 = 0.0f;
+    xform.eM21 = 0.0f;
+    xform.eM22 = (FLOAT)scaleY;
+    xform.eDx = 0.0f;
+    xform.eDy = 0.0f;
+    ModifyWorldTransform(dc, &xform, MWT_LEFTMULTIPLY);
+}
+
+static void CodeDogOffsetDC(HDC dc, double offsetX, double offsetY)
+{
+    CodeDogEnsureAdvancedGraphics(dc);
+    XFORM xform;
+    xform.eM11 = 1.0f;
+    xform.eM12 = 0.0f;
+    xform.eM21 = 0.0f;
+    xform.eM22 = 1.0f;
+    xform.eDx = (FLOAT)offsetX;
+    xform.eDy = (FLOAT)offsetY;
+    ModifyWorldTransform(dc, &xform, MWT_LEFTMULTIPLY);
+}
+
+static void CodeDogRotateDC(HDC dc, double x, double y, double degrees)
+{
+    CodeDogEnsureAdvancedGraphics(dc);
+    SaveDC(dc);
+
+    double radians = degrees * 3.14159265358979323846 / 180.0;
+    FLOAT cosA = (FLOAT)cos(radians);
+    FLOAT sinA = (FLOAT)sin(radians);
+
+    XFORM toOrigin;
+    toOrigin.eM11 = 1.0f;
+    toOrigin.eM12 = 0.0f;
+    toOrigin.eM21 = 0.0f;
+    toOrigin.eM22 = 1.0f;
+    toOrigin.eDx = (FLOAT)-x;
+    toOrigin.eDy = (FLOAT)-y;
+
+    XFORM rotate;
+    rotate.eM11 = cosA;
+    rotate.eM12 = sinA;
+    rotate.eM21 = -sinA;
+    rotate.eM22 = cosA;
+    rotate.eDx = 0.0f;
+    rotate.eDy = 0.0f;
+
+    XFORM back;
+    back.eM11 = 1.0f;
+    back.eM12 = 0.0f;
+    back.eM21 = 0.0f;
+    back.eM22 = 1.0f;
+    back.eDx = (FLOAT)x;
+    back.eDy = (FLOAT)y;
+
+    ModifyWorldTransform(dc, &toOrigin, MWT_LEFTMULTIPLY);
+    ModifyWorldTransform(dc, &rotate, MWT_LEFTMULTIPLY);
+    ModifyWorldTransform(dc, &back, MWT_LEFTMULTIPLY);
+    BeginPath(dc);
+}
+
+static void CodeDogRestoreDC(HDC dc)
+{
+    RestoreDC(dc, -1);
+    BeginPath(dc);
+}
+
+static void CodeDogEnsureGdiplus()
+{
+    if(CodeDogGdiplusToken == 0){
+        Gdiplus::GdiplusStartupInput gdiplusStartupInput;
+        Gdiplus::GdiplusStartup(&CodeDogGdiplusToken, &gdiplusStartupInput, NULL);
+    }
+}
+
+static string CodeDogAssetPath(const string& filename)
+{
+    if(filename.rfind("./assets/", 0) == 0 || filename.rfind("assets/", 0) == 0){
+        return filename;
+    }
+    return "./assets/" + filename;
+}
+
+static void CodeDogDisplayImage(HDC dc, const string& filename, double x, double y, double scale)
+{
+    if(scale == 0.0){
+        scale = 1.0;
+    }
+    CodeDogEnsureGdiplus();
+    vector<POINT> savedPathPoints;
+    vector<BYTE> savedPathTypes;
+    CodeDogSuspendPath(dc, savedPathPoints, savedPathTypes);
+
+    string resolvedFilename = CodeDogAssetPath(filename);
+    std::wstring imagePath = s2ws(resolvedFilename);
+    Gdiplus::Image image(imagePath.c_str());
+    if(image.GetLastStatus() == Gdiplus::Ok){
+        Gdiplus::Graphics graphics(dc);
+        graphics.SetInterpolationMode(Gdiplus::InterpolationModeHighQualityBicubic);
+        graphics.DrawImage(&image, (Gdiplus::REAL)x, (Gdiplus::REAL)y,
+            (Gdiplus::REAL)(image.GetWidth() / scale), (Gdiplus::REAL)(image.GetHeight() / scale));
+    }
+
+    CodeDogResumePath(dc, savedPathPoints, savedPathTypes);
+}
+
+static void CodeDogDisplayBackgroundImage(HDC dc, const string& filename)
+{
+    CodeDogEnsureGdiplus();
+    vector<POINT> savedPathPoints;
+    vector<BYTE> savedPathTypes;
+    CodeDogSuspendPath(dc, savedPathPoints, savedPathTypes);
+
+    string resolvedFilename = CodeDogAssetPath(filename);
+    std::wstring imagePath = s2ws(resolvedFilename);
+    Gdiplus::Image image(imagePath.c_str());
+    if(image.GetLastStatus() == Gdiplus::Ok){
+        HWND paintWindow = WindowFromDC(dc);
+        if(paintWindow == NULL){paintWindow = hWnd;}
+        RECT clientSize;
+        GetClientRect(paintWindow, &clientSize);
+        Gdiplus::Graphics graphics(dc);
+        graphics.SetInterpolationMode(Gdiplus::InterpolationModeHighQualityBicubic);
+        graphics.DrawImage(&image, 0, 0, clientSize.right - clientSize.left, clientSize.bottom - clientSize.top);
+    }
+
+    CodeDogResumePath(dc, savedPathPoints, savedPathTypes);
 }
 
 HWND CodeDogCreateCanvasWindow(HWND parentWindow)
@@ -521,6 +774,9 @@ static void CodeDogPaintWindow(HWND window)
 {
     PAINTSTRUCT ps;
     HDC hdc = BeginPaint(window, &ps);
+    CodeDogEnsureAdvancedGraphics(hdc);
+    XFORM identityTransform = {1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f};
+    SetWorldTransform(hdc, &identityTransform);
     RECT clientRect;
     HBRUSH backgroundBrush = CreateSolidBrush(RGB(255, 255, 255));
     GetClientRect(window, &clientRect);
@@ -1242,9 +1498,12 @@ struct GUI{
         }
         return((uint32_t)msg.wParam);
     } %>
-    me void: GUI_Deinit() <- {
-        //g_object_unref(app)
-    }
+    me void: GUI_Deinit() <- <%{
+        if(CodeDogGdiplusToken != 0){
+            Gdiplus::GdiplusShutdown(CodeDogGdiplusToken);
+            CodeDogGdiplusToken = 0;
+        }
+    }%>
 }
 
 // TURNING ON GUI w/ newCanvas and newScrollingWindow but commenting out everything else
@@ -1283,16 +1542,12 @@ struct GUI_ctxt {
     me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!%GobjectColor = RGB((int)%1, (int)%2, (int)%3)%>
     me void: setRGB (me double: red, me double: green, me double: blue) <- <%!%GobjectColor = RGB((int)%1, (int)%2, (int)%3)%>
     me void: setColor(me cdColor: color) <- <%!%GobjectColor = RGB((int)%1.red, (int)%1.green, (int)%1.blue)%>
-    me void: setLineWidth(me double: width) <- <%!
-        penWidth = (int)%1;
-        hPen = CreatePen(PS_SOLID, penWidth, objectColor);
-        SelectObject(%0, hPen);
-    %>      // maybe separate out an updatePen function?
-    me void: setRoundLineCap() <- <%!%G%>
-    me void: setEdgedLineCap() <- <%!%G%>
+    me void: setLineWidth(me double: width) <- <%!%GpenWidth = (int)%1;%>
+    me void: setRoundLineCap() <- <%!%GpenEndCap = PS_ENDCAP_ROUND;%>
+    me void: setEdgedLineCap() <- <%!%GpenEndCap = PS_ENDCAP_FLAT;%>
     me void: finishPDF() <- <%!%G%>
-    me void: setScale() <- <%!%G%>
-    me void: setOffset() <- <%!%G%>
+    me void: setScale(me double: scaleX, me double: scaleY) <- <%!CodeDogScaleDC(%0, %1, %2);%>
+    me void: setOffset(me double: offsetX, me double: offsetY) <- <%!CodeDogOffsetDC(%0, %1, %2);%>
     me void: moveTo(me double: x, me double: y) <- <%!MoveToEx(%0, (int)(%1), (int)(%2), NULL)%>
     me void: lineTo(me double: x, me double: y) <- <%!LineTo(%0, (int)(%1), (int)(%2))%>
     me void: moveRel(me double: dx, me double: dy) <- <%!
@@ -1320,46 +1575,11 @@ struct GUI_ctxt {
         backgroundBrush = CreateSolidBrush(objectColor);
         FillRect(%0, &clientSize, backgroundBrush);
         DeleteObject(backgroundBrush);%>
-    me void: strokeNow() <- <%!
-        EndPath(%0);
-        hPen = CreatePen(PS_SOLID, penWidth, objectColor);
-        SelectObject(%0, hPen);
-        StrokePath(%0);
-        DeleteObject(hPen);
-        BeginPath(%0)
-    %>
-    me void: fillNow() <- <%!
-        EndPath(%0);
-        hBrush = CreateSolidBrush(objectColor);
-        SelectObject(%0, hBrush);
-        FillPath(%0);
-        DeleteObject(hBrush);
-        BeginPath(%0)
-    %>                  // Don't need CloseFigure
-    me void: strokeKeep() <- <%!
-        EndPath(%0);
-        hPen = CreatePen(PS_SOLID, penWidth, objectColor);
-        SelectObject(%0, hPen);
-        StrokePath(%0);
-        DeleteObject(hPen);
-        BeginPath(%0)
-    %>
-    me void: fillKeep() <- <%!
-        EndPath(%0);
-        hBrush = CreateSolidBrush(objectColor);
-        SelectObject(%0, hBrush);
-        FillPath(%0);
-        DeleteObject(hBrush);
-        BeginPath(%0)
-    %>
-    me void: strokeAndFillPath() <- <%!
-        EndPath(%0);
-        hBrush = CreateSolidBrush(objectColor);
-        SelectObject(%0, hBrush);
-        StrokeAndFillPath(%0);
-        DeleteObject(hBrush);
-        BeginPath(%0)
-    %>
+    me void: strokeNow() <- <%!CodeDogPaintPath(%0, true, false, false);%>
+    me void: fillNow() <- <%!CodeDogPaintPath(%0, false, true, false);%>
+    me void: strokeKeep() <- <%!CodeDogPaintPath(%0, true, false, true);%>
+    me void: fillKeep() <- <%!CodeDogPaintPath(%0, false, true, true);%>
+    me void: strokeAndFillPath() <- <%!CodeDogPaintPath(%0, true, true, false);%>
     // GRADIENT IS NOT YET FUNCTIONAL
     me void: setFillPattern() <- <%!
         vertex[0].x = 900;
@@ -1498,16 +1718,7 @@ struct GLOBAL{
         SIZE winSize = {0, 0};
         vector<POINT> savedPathPoints;
         vector<BYTE> savedPathTypes;
-
-        if(EndPath(cr)){
-            int pathPointCount = GetPath(cr, NULL, NULL, 0);
-            if(pathPointCount > 0){
-                savedPathPoints.resize(pathPointCount);
-                savedPathTypes.resize(pathPointCount);
-                GetPath(cr, savedPathPoints.data(), savedPathTypes.data(), pathPointCount);
-            }
-            AbortPath(cr);
-        }
+        CodeDogSuspendPath(cr, savedPathPoints, savedPathTypes);
 
         std::wstring stemp = s2ws(font.name);
         LPCWSTR fontNamePtr = stemp.c_str();
@@ -1523,14 +1734,43 @@ struct GLOBAL{
         TextOutW(cr, (int)x, (int)y, outputTextPtr, (int)stemp2.length());
         SelectObject(cr, oldFont);
         DeleteObject(hFont);
-        BeginPath(cr);
-        if(savedPathPoints.size() > 0){
-            PolyDraw(cr, savedPathPoints.data(), savedPathTypes.data(), (int)savedPathPoints.size());
-        }
+        CodeDogResumePath(cr, savedPathPoints, savedPathTypes);
         size.width = winSize.cx;
         size.height = winSize.cy;
         return(size);
     } %>
+
+    me deltaSize: renderTextCentered(their GUI_ctxt: cr, me string: text, their fontSpec: font, me double: x, me double: y) <- <%{
+        deltaSize size = getTextSize(text, font);
+        renderText(cr, text, *font, x - size.width / 2, y);
+        return(size);
+    }%>
+
+    me deltaSize: renderTextRotate(their GUI_ctxt: cr, me string: text, their fontSpec: font, me double: x, me double: y, me double: degrees, me string: justify) <- <%{
+        double radians = degrees * (3.14159265358979323846 / 180.0);
+        deltaSize size = getTextSize(text, font);
+        double hypotenuse = size.width;
+        deltaSize tmpSize;
+        double drawX = x;
+        if(justify == "right"){drawX = x - hypotenuse;}
+        else if(justify == "center"){drawX = x - hypotenuse / 2;}
+        CodeDogRotateDC(cr, x, y, degrees);
+        renderText(cr, text, *font, drawX, y);
+        CodeDogRestoreDC(cr);
+        tmpSize.height = (int)(cos(fabs(radians)) * hypotenuse);
+        tmpSize.width = (int)(sin(fabs(radians)) * hypotenuse);
+        hypotenuse = size.height;
+        radians = 3.14159265358979323846 / 2 - fabs(radians);
+        tmpSize.height = tmpSize.height + (int)(sin(radians) * hypotenuse);
+        tmpSize.width = tmpSize.width + (int)(cos(radians) * hypotenuse);
+        return(tmpSize);
+    }%>
+
+    me void: rotate(their GUI_ctxt: cr, me double: x, me double: y, me int: degrees) <- <%{
+        CodeDogRotateDC(cr, x, y, degrees);
+    }%>
+
+    me void: restore(their GUI_ctxt: cr) <- <%!CodeDogRestoreDC(%1);%>
 
 
     me deltaSize: getTextSize(me string: text, their fontSpec: font) <- <%{
@@ -1559,14 +1799,11 @@ struct GLOBAL{
         return(size);
     } %>
     void: displayBackgroundImage(their GUI_ctxt: cr, me string: filename) <- <%{
-        RECT clientSize;
-        HBRUSH backgroundBrush;
-        HWND paintWindow = WindowFromDC(cr);
-        if(paintWindow == NULL){paintWindow = hWnd;}
-        GetClientRect(paintWindow, &clientSize);
-        backgroundBrush = CreateSolidBrush(RGB(255,255,255));
-        FillRect(cr, &clientSize, backgroundBrush);
-        DeleteObject(backgroundBrush);
+        CodeDogDisplayBackgroundImage(cr, filename);
+    }%>
+
+    me void: displayImage(their GUI_ctxt: cr, me string: filename, me double: x, me double: y, me double: scale) <- <%{
+        CodeDogDisplayImage(cr, filename, x, y, scale);
     }%>
 
     me void: showWidget(their GUI_item: widget) <- <%!%GShowWindow(%1, SW_SHOW)%>
@@ -1579,24 +1816,6 @@ struct GLOBAL{
     me void: addToContainerAndExpand(their GUI_container: container, their GUI_item: widget) <- <%!%GCodeDogAttachChild(%1, %2, true)%>
     me GUI_Scalar: convertToGUIScalar() <- <%!%G%1%>
 /*
-
-
-    me void: displayImage(me GUI_ctxt: cr, me string: filename, me double: x, me double: y, me double: scale) <- <%{
-        filename = "./assets/" + filename;
-        map< string, cairo_surface_t* >::iterator picPtr=InkImgCache.find(filename);
-        cairo_surface_t* pic=0;
-        if (picPtr==InkImgCache.end()) {
-            pic=cairo_image_surface_create_from_png(filename.data());
-            InkImgCache[filename]=pic;
-            }
-        else pic=picPtr->second;
-
-        cairo_save(cr);
-        cairo_scale(cr,1/scale,1/scale);
-        cairo_set_source_surface(cr,pic,x*scale,y*scale);
-        cairo_paint(cr);
-        cairo_restore(cr);
-    } %>
 
 // GUI INTERFACE:
 
