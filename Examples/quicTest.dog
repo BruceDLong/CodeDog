@@ -8,7 +8,8 @@
 // Start the server first, then start the client.  The script should automatically fetch and read file test.txt
 // You can also use non local IP addresses to send to a different machine
 
-LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' LangVersion='GNU' optimize='speed';
+LocalBuild: Platform='Local' optimize='speed';
+//LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' LangVersion='GNU' optimize='speed';
 
 Title = "Quic Protocol"
 FileName = "quicTest"

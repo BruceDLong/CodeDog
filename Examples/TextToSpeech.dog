@@ -1,6 +1,7 @@
 // TextToSpeech.dog
 
-LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
+LocalBuild: Platform='Local' optimize='speed';
+//LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
 
 
 Title = "Text to Speech"
