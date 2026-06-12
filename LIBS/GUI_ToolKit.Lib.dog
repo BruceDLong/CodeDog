@@ -263,6 +263,7 @@ struct GUI{
     me GUI_item: newButton(me string: text)
     me GUI_item: newTextField(me string: text)
     me GUI_item: newListBox()
+    me GUI_item: newScrollingWindow()
     me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height)
     me void: setControlText(me GUI_item: widget, me string: text)
     me string: getControlText(me GUI_item: widget)

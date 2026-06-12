@@ -21,6 +21,18 @@ initCode = `
     GUI_threads_messagePasser <- threadsMesgPasser()
 `
 
+embedHigh = `
+static inline const char* cdGtkText(const char* text)
+{
+    return text;
+}
+
+static inline const char* cdGtkText(const std::string& text)
+{
+    return text.c_str();
+}
+`
+
 /////////////////////////////////  STRUCT CONVERTERS
 struct GUI_rect{me double: x1 me double: y1 me double: x2 me double: y2}
 struct GUI_item:                wraps = GtkWidget ownerMe = their{}
@@ -153,8 +165,9 @@ struct GLOBAL{
     me void: motion_notify_event(their GtkWidget: wid, their GdkEventMotion: event, their void: data) <- <%{
         ((DashboardWidget*) data)->EventDispatcher.dispatchPointerMotionEvent(event);
     } %>
-    me void: scroll_event(their GtkWidget: wid, their GdkEventScroll: event, their void: data) <- <%{
+    me bool: scroll_event(their GtkWidget: wid, their GdkEventScroll: event, their void: data) <- <%{
         ((DashboardWidget*) data)->EventDispatcher.dispatchScrollEvent(event);
+        return(false);
     } %>
     me void: expose_event(their GtkWidget: wid, their GdkEventExpose: event, their void: data) <- <%{
       //  ((DashboardWidget*) data)->EventDispatcher.dispatchWindowEvent(event);
@@ -236,8 +249,8 @@ struct GUI{
 
 struct GUI{
     their GUI_item: newCanvas() <- <%!%Ggtk_drawing_area_new()%>
-    their GUI_item: newLabel(me string: text) <- <%!%Ggtk_label_new(%1.data())%>
-    their GUI_item: newButton(me string: text) <- <%!%Ggtk_button_new_with_label(%1.data())%>
+    their GUI_item: newLabel(me string: text) <- <%!%Ggtk_label_new(cdGtkText(%1))%>
+    their GUI_item: newButton(me string: text) <- <%!%Ggtk_button_new_with_label(cdGtkText(%1))%>
     their GUI_item: newTextField(me string: text) <- <%{
         GtkWidget* entry = gtk_entry_new();
         gtk_entry_set_text(GTK_ENTRY(entry), text.data());
@@ -248,6 +261,7 @@ struct GUI{
         gtk_list_box_set_selection_mode(GTK_LIST_BOX(listBox), GTK_SELECTION_SINGLE);
         return(listBox);
     }%>
+    their GUI_item: newScrollingWindow() <- <%!%Ggtk_scrolled_window_new(NULL, NULL)%>
     me void: setWidgetSize(their GUI_item: widget, me uint32: width, me uint32: height) <- <%!%Ggtk_widget_set_size_request(%1, %2, %3)%>
     me void: setControlText(their GUI_item: widget, me string: text) <- <%{
         if(GTK_IS_ENTRY(widget)){
