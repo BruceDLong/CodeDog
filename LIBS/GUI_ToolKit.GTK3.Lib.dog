@@ -31,6 +31,11 @@ static inline const char* cdGtkText(const std::string& text)
 {
     return text.c_str();
 }
+
+static inline void CodeDogCallPeriodically(int intervalMillis, int (*callback)(void*), void* data)
+{
+    g_timeout_add(intervalMillis, (GSourceFunc)callback, data);
+}
 `
 
 /////////////////////////////////  STRUCT CONVERTERS
@@ -88,8 +93,10 @@ struct GUI_eventDispatcher{
             }
         } else if(event->type==GDK_BUTTON_RELEASE){
             if(event->button==1){
-                topWidget->primaryUp(event);
-                retVal = topWidget->primaryClick(event);
+                retVal = topWidget->primaryUp(event);
+                if(!retVal){
+                    retVal = topWidget->primaryClick(event);
+                }
             } else if(event->button==3){
                 retVal = topWidget->secondaryUp(event);
             }

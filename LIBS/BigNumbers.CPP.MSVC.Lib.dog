@@ -7,9 +7,17 @@ interface={
     provides = [BigNumbers_langVersion_implementation]
     packages = [
         { packageName = 'mpir'
-          fetchMethod = 'zip:https://www.dropbox.com/s/dl5eufzws9govns/mpfr_mpir_x86_x64_msvc2010_001.zip'	// source code from: git://github.com/BrianGladman/mpir.git mpir
+          innerPkgName = 'mpfr_mpir_x86_x64_msvc2010'
+          fetchMethod = 'zip:https://dl.dropboxusercontent.com/s/dl5eufzws9govns/mpfr_mpir_x86_x64_msvc2010_001.zip'	// source code from: git://github.com/BrianGladman/mpir.git mpir
           buildCmds   = {
-              Windows = {installFiles = ['.']}
+              Windows = {installFiles = [
+                  'mpir/dll/x64/Release/mpir.dll',
+                  'mpir/dll/x64/Release/mpir.exp',
+                  'mpir/dll/x64/Release/mpir.h',
+                  'mpir/dll/x64/Release/mpir.lib',
+                  'mpir/dll/x64/Release/mpir.pdb',
+                  'mpir/dll/x64/Release/mpirxx.h'
+              ]}
             }
 	}
     ]

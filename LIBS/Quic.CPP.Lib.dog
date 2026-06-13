@@ -1,6 +1,7 @@
 //############ Quic.cpp.Lib.dog
 requirements = [
-    [tagOneOf, Lang, [CPP]]
+    [tagOneOf, Lang, [CPP]],
+    [tagOneOf, Platform, [Linux]]
 ]
 
 interface={

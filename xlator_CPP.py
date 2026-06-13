@@ -922,7 +922,7 @@ class Xlator_CPP(Xlator):
                 fType = progSpec.fieldTypeKeyword(tSpec)
                 varTypeSpec= fType
                 wrapperName="cb_wraps_"+varTypeSpec
-                S+='g_timeout_add('+interval+', '+wrapperName+', '+objName+')'
+                S+='CodeDogCallPeriodically('+interval+', '+wrapperName+', '+objName+')'
 
                 # Create a global function wrapping the class
                 decl='\nint '+wrapperName+'(void* data)'

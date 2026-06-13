@@ -167,10 +167,15 @@ def GenerateSystem(classes, buildSpecs, tags, macroDefs):
         #print("BUILDTAGS:", buildTags)
         cdlog(0, "\n######################   G E N E R A T I N G   S O U R C E   C O D E   S Y S T E M   {}   o f   {}...   ({})".format(count, len(buildSpecs), buildName))
         startTime = timer()
+        buildDog.buildStatus("Choosing libraries for {} ({})".format(buildName, buildTags.get('Platform', 'unknown platform')))
         libsToUse=libraryMngr.ChooseLibs(classes, buildTags, tags)
         chooseLibsTime = timer()-startTime
+        buildDog.buildStatus("Selected {} library layer(s) in {:.1f}s".format(len(libsToUse), chooseLibsTime))
         print("Time Elapsed:", chooseLibsTime)
+        codeGenStartTime = timer()
+        buildDog.buildStatus("Generating source for {}".format(buildName))
         fileSpecs = GenerateProgram(classes, buildTags, tagsList, libsToUse)
+        buildDog.buildStatus("Generated {} source file(s) in {:.1f}s".format(len(fileSpecs), timer() - codeGenStartTime))
         print("Marker: Code Gen Successful")
 
         #GenerateBuildSystem()###################################################
@@ -183,17 +188,19 @@ def GenerateSystem(classes, buildSpecs, tags, macroDefs):
         tagsFromLibFiles = libraryMngr.getTagsFromLibFiles()
         packageData = []
         tools = []
+        buildDog.buildStatus("Collecting link libraries and package requirements")
         for lib in libsToUse:
             if 'interface' in tagsFromLibFiles[lib] and 'libFiles' in tagsFromLibFiles[lib]['interface']:
                 tmpLibFiles = tagsFromLibFiles[lib]['interface']['libFiles']
                 libFiles+=tmpLibFiles
                 if 'packages' in tagsFromLibFiles[lib]['interface']:
-                    packageData = tagsFromLibFiles[lib]['interface']['packages']
+                    packageData += tagsFromLibFiles[lib]['interface']['packages']
                 if 'tools' in tagsFromLibFiles[lib]['interface']:
-                    tools = tagsFromLibFiles[lib]['interface']['tools']
+                    tools += tagsFromLibFiles[lib]['interface']['tools']
 
         #TODO: need debug mode and minimum version
         platform=progSpec.fetchTagValue([tags, buildTags], 'Platform')
+        buildDog.buildStatus("Build inputs: {} link item(s), {} package(s), {} tool requirement(s)".format(len(libFiles), len(packageData), len(tools)))
         #cdlog(1, "\nWRITING {} FILE(S) AND COMPILING...".format(len(fileSpecs)))
         buildDog.build("-g", '14',  fileName, labelName, launchIconName, libFiles, buildName, platform, fileSpecs, programOrLibrary, packageData, tools)
         print("Marker: Build Successful")

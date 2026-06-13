@@ -47,6 +47,11 @@ struct ProactEvent{
     me GUI_Scalar: Y
     me GUI_Scalar: W
     me GUI_Scalar: H
+    me bool: hasRedrawBounds
+    me GUI_Scalar: redrawX
+    me GUI_Scalar: redrawY
+    me GUI_Scalar: redrawW
+    me GUI_Scalar: redrawH
     me EventType: eventType
     me string: dataIdTag
     me string: text
@@ -61,7 +66,10 @@ struct ProactEvent{
     their cdColor: NewColor
 
     void: setTrigger(me EventTrigger: trigger, their GuiCoords:RA) <- {
-        Trigger<-trigger; X<-RA.X; Y<-RA.Y; W<-RA.W; H<-RA.H;
+        Trigger<-trigger; X<-RA.X; Y<-RA.Y; W<-RA.W; H<-RA.H; hasRedrawBounds <- false;
+    }
+    void: setRedrawBounds(their GuiCoords:RA) <- {
+        redrawX<-RA.X; redrawY<-RA.Y; redrawW<-RA.W; redrawH<-RA.H; hasRedrawBounds <- true;
     }
     void: setInfonEvent(me EventType: evntType, our POV:infon1, our POV:infon2) <- {eventType<-evntType; infonX<-infon1; infonY<-infon2;}
     void: setNormalizeEvent(me EventType: evntType, me string: query) <- {eventType<-evntType; text<-query;}
@@ -461,13 +469,36 @@ struct ProactiveGUIWidget: inherits=DashboardWidget{
     me bool: currentlyDraggingPointer
     our infon: dragInfonTargetX
     our infon: dragInfonTargetY
+    our ProactEvent: pendingDragStartEvent
     me GUI_Scalar: preDragX
     me GUI_Scalar: preDragY
+    me bool: hasDragRedrawBounds
+    me GUI_Scalar: dragRedrawOffsetX
+    me GUI_Scalar: dragRedrawOffsetY
+    me GUI_Scalar: dragRedrawW
+    me GUI_Scalar: dragRedrawH
+    me GUI_Scalar: dragLastRedrawX
+    me GUI_Scalar: dragLastRedrawY
+    me GUI_Scalar: dragRedrawPad <- 4
 
     void: updateReferencedVars(me GUI_Scalar: argA, me GUI_Scalar: argB) <- {
-        dragInfonTargetX.value.num <- preDragX+(argA-primaryButtonDownX) // ref1 <- argA
-        dragInfonTargetY.value.num <- preDragY+(argB-primaryButtonDownY) // ref2 <- argB
-        requestRedraw()
+        me GUI_Scalar: newX <- preDragX+(argA-primaryButtonDownX)
+        me GUI_Scalar: newY <- preDragY+(argB-primaryButtonDownY)
+        dragInfonTargetX.value.num <- newX // ref1 <- argA
+        dragInfonTargetY.value.num <- newY // ref2 <- argB
+        if(hasDragRedrawBounds){
+            me GUI_Scalar: newRedrawX <- newX + dragRedrawOffsetX
+            me GUI_Scalar: newRedrawY <- newY + dragRedrawOffsetY
+            me GUI_Scalar: dirtyX <- min(dragLastRedrawX, newRedrawX) - dragRedrawPad
+            me GUI_Scalar: dirtyY <- min(dragLastRedrawY, newRedrawY) - dragRedrawPad
+            me GUI_Scalar: dirtyRight <- max(dragLastRedrawX + dragRedrawW, newRedrawX + dragRedrawW) + dragRedrawPad
+            me GUI_Scalar: dirtyBottom <- max(dragLastRedrawY + dragRedrawH, newRedrawY + dragRedrawH) + dragRedrawPad
+            requestRedrawRect(dirtyX, dirtyY, dirtyRight-dirtyX, dirtyBottom-dirtyY)
+            dragLastRedrawX <- newRedrawX
+            dragLastRedrawY <- newRedrawY
+        } else {
+            requestRedraw()
+        }
         //log("DRAG X:"+toString(argA-primaryButtonDownX) + "  Y:"+toString(argB-primaryButtonDownY))
     }
     void: fetchVariableReference(our infon: numInfonX, our infon: numInfonY) <- {
@@ -476,10 +507,23 @@ struct ProactiveGUIWidget: inherits=DashboardWidget{
         preDragX <- numInfonX.fetchDouble()
         preDragY <- numInfonY.fetchDouble()
     }
+    void: fetchDragRedrawBounds(our ProactEvent: eventNode) <- {
+        hasDragRedrawBounds <- eventNode.hasRedrawBounds
+        if(hasDragRedrawBounds){
+            dragRedrawOffsetX <- eventNode.redrawX - preDragX
+            dragRedrawOffsetY <- eventNode.redrawY - preDragY
+            dragRedrawW <- eventNode.redrawW
+            dragRedrawH <- eventNode.redrawH
+            dragLastRedrawX <- eventNode.redrawX
+            dragLastRedrawY <- eventNode.redrawY
+        }
+    }
 
     void: clearVariableReference() <- {
         dragInfonTargetX <- NULL
         dragInfonTargetY <- NULL
+        pendingDragStartEvent <- NULL
+        hasDragRedrawBounds <- false
     }
 
     void: cancelDragOperation() <- {
@@ -491,22 +535,29 @@ struct ProactiveGUIWidget: inherits=DashboardWidget{
 
     our ProactEvent: findEventUnderCursor(me EventTrigger: trgrFound, me GUI_Scalar: eventX, me GUI_Scalar: eventY) <- {
         withEach eventNode in proactiveGUI.presenter.eventRegistry{
-            if(eventNode.Trigger==trgrFound){
-                if(eventNode.isTouching(eventX, eventY)){
+            if(eventNode.isTouching(eventX, eventY)){
+                if(eventNode.Trigger==trgrFound){
                     return(eventNode)
                 }
+                if(eventNode.eventType==eBlockEvents){return(NULL)}
             }
         }
         return(NULL)
     }
 
-    me void: lookForDragStartEvent(me GUI_Scalar: eventX, me GUI_Scalar: eventY) <- {
-        our ProactEvent: eventNode <- findEventUnderCursor(tDragStart, eventX, eventY)
+    me void: startDragEvent(our ProactEvent: eventNode, me GUI_Scalar: eventX, me GUI_Scalar: eventY) <- {
         if(eventNode){
             currentlyDraggingPointer <- true
             fetchVariableReference(eventNode.infonX.pItem, eventNode.infonY.pItem)
+            fetchDragRedrawBounds(eventNode)
             updateReferencedVars(eventX, eventY)
         }
+    }
+
+    me void: lookForDragStartEvent(me GUI_Scalar: eventX, me GUI_Scalar: eventY) <- {
+        our ProactEvent: eventNode <- pendingDragStartEvent
+        if(eventNode==NULL){eventNode <- findEventUnderCursor(tDragStart, eventX, eventY)}
+        startDragEvent(eventNode, eventX, eventY)
     }
 
     void: checkBroadcastEvents(me EventTrigger: trgr, me GUI_Scalar: X, me GUI_Scalar: Y) <- {
@@ -562,6 +613,7 @@ struct ProactiveGUIWidget: inherits=DashboardWidget{
             clearVariableReference()
             return(true)
         } else{
+            pendingDragStartEvent <- NULL
             our ProactEvent: eventNode <- findEventUnderCursor(tPrimaryUp, event.x, event.y)
             if(eventNode){
                 proactiveGUI.guiModelManager.processCommand(eventNode)
@@ -574,6 +626,7 @@ struct ProactiveGUIWidget: inherits=DashboardWidget{
         primaryBtnIsDown <- true
         primaryButtonDownX <- event.x
         primaryButtonDownY <- event.y
+        pendingDragStartEvent <- findEventUnderCursor(tDragStart, event.x, event.y)
         return(false)
     }
     me bool: primaryClick(their GUI_ButtonEvent: event) <- {

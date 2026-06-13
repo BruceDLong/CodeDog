@@ -2361,6 +2361,91 @@ class CodeGenerator(object):
         if tagVal==None: return "Tag '"+tagName+"' is not set in the dog file."
         return tagVal
 
+    def sourceFilesAreSingle(self, tags):
+        sourceFilesMode = progSpec.fetchTagValue(tags, 'SourceFiles')
+        if sourceFilesMode == None:
+            sourceFilesMode = progSpec.fetchTagValue(tags, 'sourceFiles')
+        if sourceFilesMode != None:
+            sourceFilesMode = str(sourceFilesMode).lower()
+            if sourceFilesMode in ['split', 'multi', 'multiple', 'many', 'perclass', 'per-class']:
+                return False
+            if sourceFilesMode in ['single', 'one', 'onefile', 'one-file']:
+                return True
+            cdErr("Unknown SourceFiles buildSpec value '{}'. Use 'single' or 'split'.".format(sourceFilesMode))
+
+        oneFileMode = progSpec.fetchTagValue(tags, 'oneFile')
+        if oneFileMode == None:
+            return True
+        oneFileMode = str(oneFileMode).lower()
+        return not (oneFileMode in ['false', 'no', '0', 'split', 'multi', 'multiple'])
+
+    def generatedHeaderName(self, tags):
+        return progSpec.fetchTagValue(tags, "FileName") + '.hpp'
+
+    def generatedClassSourceName(self, tags, className, usedFilenames):
+        baseName = progSpec.fetchTagValue(tags, "FileName") + '__' + progSpec.flattenObjectName(className)
+        filename = baseName + '.cpp'
+        suffix = 2
+        while filename.lower() in usedFilenames:
+            filename = baseName + '_' + str(suffix) + '.cpp'
+            suffix += 1
+        usedFilenames.add(filename.lower())
+        return filename
+
+    def makeHeaderSafeDefinitions(self, sourceText):
+        lines = sourceText.splitlines(True)
+        outputLines = []
+        braceDepth = 0
+        for line in lines:
+            stripped = line.lstrip()
+            prefix = line[:len(line)-len(stripped)]
+            checkText = stripped.strip()
+            transformed = line
+            if braceDepth == 0 and checkText != "":
+                firstToken = checkText.split(None, 1)[0]
+                skipPrefixes = ['#', '//', '/*', '*', 'struct ', 'class ', 'enum ', 'union ', 'typedef ', 'using ', 'namespace ', 'template', 'extern ', 'inline ', 'static ']
+                shouldSkip = any(checkText.startswith(skipPrefix) for skipPrefix in skipPrefixes)
+                if not shouldSkip:
+                    isFunctionDefinition = ('(' in checkText and ')' in checkText and not checkText.endswith(';') and '=' not in checkText)
+                    isVariableDefinition = checkText.endswith(';') and not (('(' in checkText and '=' not in checkText) or firstToken in ['return', 'if', 'for', 'while', 'switch'])
+                    if isFunctionDefinition or isVariableDefinition:
+                        transformed = prefix + 'inline ' + stripped
+            outputLines.append(transformed)
+            braceDepth += line.count('{') - line.count('}')
+            if braceDepth < 0:
+                braceDepth = 0
+        return ''.join(outputLines)
+
+    def isUnqualifiedTopLevelVariableDefinition(self, checkText):
+        if checkText == "" or not checkText.endswith(';'):
+            return False
+        skipPrefixes = ['#', '//', '/*', '*', 'struct ', 'class ', 'enum ', 'union ', 'typedef ', 'using ', 'namespace ', 'template', 'extern ', 'inline ']
+        if any(checkText.startswith(skipPrefix) for skipPrefix in skipPrefixes):
+            return False
+        if '::' in checkText:
+            return False
+        if '(' in checkText and '=' not in checkText:
+            return False
+        firstToken = checkText.split(None, 1)[0]
+        if firstToken in ['return', 'if', 'for', 'while', 'switch']:
+            return False
+        return True
+
+    def splitHeaderSupportFromFuncCode(self, funcCode):
+        headerSupport = []
+        implementation = []
+        braceDepth = 0
+        for line in funcCode.splitlines(True):
+            checkText = line.strip()
+            if braceDepth == 0 and self.isUnqualifiedTopLevelVariableDefinition(checkText):
+                headerSupport.append(line)
+            else:
+                implementation.append(line)
+            braceDepth += line.count('{') - line.count('}')
+            if braceDepth < 0:
+                braceDepth = 0
+        return [''.join(headerSupport), ''.join(implementation)]
+
     libInterfacesText =''
     def makeFileHeader(self, tags, filename):
         if self.libEmbedAboveIncludes!='': self.libEmbedAboveIncludes+='\n\n'
@@ -2492,20 +2577,27 @@ class CodeGenerator(object):
         forwardDecls="\n";
         structCodeAcc='\n////////////////////////////////////////////\n//   C l a s s   D e c l a r a t i o n s\n\n';
         funcCodeAcc="\n//////////////////////////////////////\n//   M e m b e r   F u n c t i o n s\n\n"
+        splitHeaderSupportAcc="\n//////////////////////////////////////\n//   S p l i t   F i l e   S u p p o r t\n\n"
+        splitFuncCodeByClass={}
+        structsToImplement = self.fetchListOfStructsToImplement(tags)
+        for className in structsToImplement:
+            typeArgList = progSpec.getTypeArgList(className)
+            if(not self.xlator.doesLangHaveGlobals or className != 'GLOBAL') and (self.xlator.renderGenerics=='False' or typeArgList == None):
+                if className in classRecords and not isinstance(classRecords[className],str): # if not 'skip'
+                    classRecord    = classRecords[className]
+                    constsEnums   += classRecord[0]
+                    forwardDecls  += classRecord[1]
+                    structCodeAcc += classRecord[2]
+                    if oneFileTF:
+                        funcCodeAcc += classRecord[3]
+                    else:
+                        [headerSupport, implementation] = self.splitHeaderSupportFromFuncCode(classRecord[3])
+                        splitHeaderSupportAcc += headerSupport
+                        splitFuncCodeByClass[className] = implementation
+
         if oneFileTF: # Generate a single source file
             filename = self.makeTagText(tags, 'FileName')+fileExtension
             header = self.makeFileHeader(tags, filename)
-            structsToImplement = self.fetchListOfStructsToImplement(tags)
-            for className in structsToImplement:
-                typeArgList = progSpec.getTypeArgList(className)
-                if(not self.xlator.doesLangHaveGlobals or className != 'GLOBAL') and (self.xlator.renderGenerics=='False' or typeArgList == None):
-                    if not isinstance(classRecords[className],str): # if not 'skip'
-                        classRecord    = classRecords[className]
-                        constsEnums   += classRecord[0]
-                        forwardDecls  += classRecord[1]
-                        structCodeAcc += classRecord[2]
-                        funcCodeAcc   += classRecord[3]
-
             forwardDecls += self.funcDeclAcc
             funcCodeAcc  += self.funcDefnAcc
             if not self.xlator.doesLangHaveGlobals: structCodeAcc += self.codeModeStringsStruct()
@@ -2514,13 +2606,39 @@ class CodeGenerator(object):
             filename = progSpec.fetchTagValue(tags, "FileName")
             classRecordsOut.append([filename, outputStr])
 
-        else: # Generate a file for each class
-            for classRecord in classRecords:
-                [constsEnums, forwardDecls, structCodeAcc, funcCodeAcc, className, dependancies]  = classRecord
-                filename = className+fileExtension
-                header = self.makeFileHeader(tags, filename)
-                outputStr = header + constsEnums + forwardDecls + structCodeAcc + funcCodeAcc
-                classRecordsOut.append([filename, outputStr])
+        else: # Generate a header, a main/global source, and a source for each class implementation.
+            headerFilename = self.generatedHeaderName(tags)
+            header = self.makeFileHeader(tags, headerFilename)
+            headerStr = (
+                "#pragma once\n\n" +
+                header +
+                constsEnums +
+                forwardDecls +
+                self.funcDeclAcc +
+                self.libEmbedVeryHigh +
+                structCodeAcc +
+                self.ForwardDeclsForGlobalFuncs +
+                self.libEmbedCodeHigh +
+                MainTopBottom[0] +
+                self.libEmbedCodeLow +
+                splitHeaderSupportAcc
+            )
+            if not self.xlator.doesLangHaveGlobals:
+                headerStr += self.codeModeStringsStruct()
+            classRecordsOut.append([headerFilename, self.makeHeaderSafeDefinitions(headerStr)])
+
+            includeHeader = '#include "{}"\n\n'.format(headerFilename)
+            filename = progSpec.fetchTagValue(tags, "FileName") + fileExtension
+            classRecordsOut.append([filename, includeHeader + self.funcDefnAcc + MainTopBottom[1]])
+
+            usedFilenames = {headerFilename.lower(), filename.lower()}
+            for className in structsToImplement:
+                if className in classRecords and not isinstance(classRecords[className], str):
+                    implementation = splitFuncCodeByClass.get(className, "")
+                    if implementation.strip() == "":
+                        continue
+                    filename = self.generatedClassSourceName(tags, className, usedFilenames)
+                    classRecordsOut.append([filename, includeHeader + implementation])
 
         return classRecordsOut
 
@@ -2569,7 +2687,8 @@ class CodeGenerator(object):
         classRecords=self.codeAllNonGlobalStructs(tags, classRecords, self.genericStructsGenerated[1])
         typeDefCode = self.xlator.produceTypeDefs(self.typeDefMap)
 
-        fileSpecStrings = self.pieceTogetherTheSourceFiles(tags, True, classRecords, [], topBottomStrings)
+        oneFileTF = self.sourceFilesAreSingle(tags)
+        fileSpecStrings = self.pieceTogetherTheSourceFiles(tags, oneFileTF, classRecords, [], topBottomStrings)
         showNote = False
         if showNote:
             print("\n\nNOTE: The following functions were used but CodeDog couldn't determine the type of their arguments:")

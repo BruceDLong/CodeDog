@@ -8,13 +8,21 @@ import subprocess
 import buildAndroid
 import buildMac
 import errno
+import filecmp
 import shutil
+import queue
+import threading
+import time
 from progSpec import cdlog, cdErr
 from pathlib import Path
 
 import environmentMngr as emgr
 
 importantFolders = {}
+
+def buildStatus(message):
+    print("STATUS [{}] {}".format(time.strftime("%H:%M:%S"), message), flush=True)
+
 #TODO: error handling
 def string_escape(s, encoding='utf-8'):
     return (s.encode('latin1')         # To bytes, required by 'unicode-escape'
@@ -42,20 +50,66 @@ def runCMD(myCMD, myDir):
 def runCmdStreaming(myCMD, myDir):
     print("\nCOMMAND: ", myCMD, "\n")
     errText=''
-    process = subprocess.Popen(myCMD, cwd=myDir, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines = True,)
+    outputQueue = queue.Queue()
+    heartbeatSeconds = 30
+    process = subprocess.Popen(myCMD, cwd=myDir, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines = True, bufsize=1)
+    startTime = time.monotonic()
+    lastOutputTime = startTime
+
+    def queueOutput(streamName, stream):
+        try:
+            for line in iter(stream.readline, ''):
+                if line:
+                    outputQueue.put((streamName, line))
+        finally:
+            stream.close()
+
+    stdoutThread = threading.Thread(target=queueOutput, args=('stdout', process.stdout))
+    stderrThread = threading.Thread(target=queueOutput, args=('stderr', process.stderr))
+    stdoutThread.daemon = True
+    stderrThread.daemon = True
+    stdoutThread.start()
+    stderrThread.start()
+    buildStatus("Started command in {}".format(myDir))
+
+    def printQueuedOutput():
+        nonlocal errText, lastOutputTime
+        printed = False
+        while True:
+            try:
+                streamName, output = outputQueue.get_nowait()
+            except queue.Empty:
+                return printed
+            lastOutputTime = time.monotonic()
+            printed = True
+            if streamName == 'stderr':
+                errText += output
+            print(output.rstrip())
+
+    nextHeartbeat = startTime + heartbeatSeconds
     while process.poll() is None:
-        output = process.stdout.readline()
-        if output:
-            print(output.strip())
-        err = process.stderr.readline()
-        while err!='':
-            errText += err
-            err = process.stderr.readline()
+        printed = printQueuedOutput()
+        if printed:
+            nextHeartbeat = time.monotonic() + heartbeatSeconds
+        else:
+            now = time.monotonic()
+            if now >= nextHeartbeat:
+                elapsed = now - startTime
+                idleTime = now - lastOutputTime
+                buildStatus("Still running: {:.0f}s elapsed, no command output for {:.0f}s".format(elapsed, idleTime))
+                nextHeartbeat = now + heartbeatSeconds
+            time.sleep(0.25)
+
+    stdoutThread.join(timeout=2)
+    stderrThread.join(timeout=2)
+    printQueuedOutput()
     returnCode = process.returncode
-    if returnCode!=0 or (errText and (errText.find("ERROR")) >= 0 or errText.find("error")>=0):
+    if returnCode!=0 or (errText and ((errText.find("ERROR")) >= 0 or errText.find("error")>=0)):
         print("ERRORS:---------------\n")
-        #print(string_escape(str(errText))[2:-1])
-        print(errText)
+        if errText:
+            print(errText)
+        else:
+            print("Command exited with return code {}".format(returnCode))
         print("----------------------\n")
     return returnCode
 
@@ -74,15 +128,40 @@ def makeDirs(dirToGen):
         print("ERROR MAKING_DIR", exception)
         if exception.errno != errno.EEXIST: raise
 
-def writeFile(path, fileName, fileSpecs, fileExtension):
+def writeTextFile(path, fileName, fileText):
     #print path
     makeDirs(path)
-    fileName += fileExtension
     pathName = path + os.sep + fileName
     cdlog(1, "WRITING FILE: "+pathName)
     fo=open(pathName, 'w')
-    fo.write(fileSpecs[0][1])
+    fo.write(fileText)
     fo.close()
+
+def writeFile(path, fileName, fileSpecs, fileExtension):
+    writeTextFile(path, fileName + fileExtension, fileSpecs[0][1])
+
+def generatedFileName(fileSpec, defaultExtension):
+    filename = fileSpec[0]
+    if isinstance(filename, list):
+        filename = filename[0]
+    if os.path.splitext(filename)[1] == "":
+        filename += defaultExtension
+    return filename
+
+def writeGeneratedFiles(path, fileSpecs, defaultExtension):
+    for fileSpec in fileSpecs:
+        writeTextFile(path, generatedFileName(fileSpec, defaultExtension), fileSpec[1])
+
+def sconsSourceList(fileSpecs, defaultExtension):
+    sourceFiles = []
+    sourceExtensions = {'.c', '.cc', '.cpp', '.cxx'}
+    for fileSpec in fileSpecs:
+        filename = generatedFileName(fileSpec, defaultExtension)
+        if os.path.splitext(filename)[1].lower() in sourceExtensions:
+            sourceFiles.append(filename)
+    if not sourceFiles:
+        sourceFiles.append(generatedFileName(fileSpecs[0], defaultExtension))
+    return '[' + ', '.join('r"{}"'.format(sourceFile.replace('"', '\\"')) for sourceFile in sourceFiles) + ']'
 
 def copyRecursive(src, dst, symlinks=False):
     # modified from python docs
@@ -126,7 +205,19 @@ def copyWindowsRuntimeDlls(buildName):
         targetPath = buildPath / dllPath.name
         if dllPath.resolve() == targetPath.resolve():
             continue
-        shutil.copy2(str(dllPath), str(targetPath))
+        if targetPath.exists():
+            try:
+                if filecmp.cmp(str(dllPath), str(targetPath), shallow=False):
+                    continue
+            except OSError:
+                pass
+        try:
+            shutil.copy2(str(dllPath), str(targetPath))
+        except PermissionError:
+            if targetPath.exists():
+                buildStatus("WARNING: Runtime DLL '{}' is locked; keeping existing copy".format(targetPath.name))
+                continue
+            raise
 
 def gitClone(cloneUrl, packageName, packageDirectory):
     emgr.CheckPipModules({'GitPython':'3.1'})
@@ -183,7 +274,13 @@ def downloadExtractZip(downloadUrl, packageName, packageDirectory):
                 cdlog(1, "Extracting zip file: " + zipFileName)
                 shutil.unpack_archive(packagePath, zipFileDir)
             except:
-                cdErr("Could not extract zip archive file: " + zipFileName)
+                try:
+                    os.remove(packagePath)
+                    emgr.downloadFile(packagePath, downloadUrl)
+                    cdlog(1, "Extracting zip file: " + zipFileName)
+                    shutil.unpack_archive(packagePath, zipFileDir)
+                except:
+                    cdErr("Could not extract zip archive file: " + zipFileName)
 
 def getPackageName(packageMap):
     if 'packageName' in packageMap:
@@ -218,6 +315,7 @@ def fetchPackages(packageData, packageDirectory):
         fetchURL     = getFetchURL(packageMap)
         buildCmdsMap = {}
         if packageName=="" or fetchType=="": return
+        buildStatus("Checking package '{}' ({})".format(packageName, fetchType))
         if fetchType == "git":    gitClone(fetchURL, packageName, packageDirectory)
         elif fetchType == "file": downloadPackageFile(fetchURL, packageName, packageDirectory)
         elif fetchType == "zip":  downloadExtractZip(fetchURL, packageName, packageDirectory)
@@ -228,6 +326,7 @@ def FindOrFetchLibraries(buildName, packageData, platform, tools):
     #print("#############:buildName:", buildName, platform)
     packageDirectory = os.path.join(os.getcwd(), buildName)
     [includeFolders, libFolders] = ["", ""]
+    buildStatus("Resolving {} package(s) for {}".format(len(packageData), buildName))
     fetchPackages(packageData, packageDirectory)
     for package in packageData:
         packageMap   = progSpec.extractMapFromTagMap(package)
@@ -278,11 +377,13 @@ def FindOrFetchLibraries(buildName, packageData, platform, tools):
     return [includeFolders, libFolders]
 
 def buildSconsFile(fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData, fileExtension, tools):
+    buildStatus("Preparing SCons build script for {}".format(fileName))
     (includeFolders, libFolders) = FindOrFetchLibraries(buildName, packageData, platform, tools)
     SconsFile = "import os\n\n"
     SconsFile += "env = Environment(ENV=os.environ)\n"
     if platform == 'Windows':
-        SconsFile += 'env.Append(CCFLAGS=["/EHsc"])\n'
+        SconsFile += 'env.Append(CCFLAGS=["/EHsc", "/std:c++17"])\n'
+        SconsFile += 'env.Append(CPPDEFINES=["NOMINMAX"])\n'
     #SconsFile += "env.MergeFlags('-g -fpermissive')\n"
     if progOrLib=='program': SconsFileType = "Program"
     elif progOrLib=='library': SconsFileType = "Library"
@@ -292,7 +393,7 @@ def buildSconsFile(fileName, libFiles, buildName, platform, fileSpecs, progOrLib
 
     SconsFileOut = 'env.'+SconsFileType+'(\n'
     SconsFileOut += '    target='+'"'+fileName+'",\n'
-    SconsFileOut += '    source='+'"'+fileSpecs[0][0]+fileExtension+'",\n'
+    SconsFileOut += '    source='+sconsSourceList(fileSpecs, fileExtension)+',\n'
 
     codeDogFolder = os.path.dirname(os.path.realpath(__file__))
   #  SconsFileOut += '    env["LIBPATH"]=["'+codeDogFolder+'"],\n'
@@ -330,9 +431,11 @@ def buildSconsFile(fileName, libFiles, buildName, platform, fileSpecs, progOrLib
 
 def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData, tools):
     fileExtension = '.cpp'
-    writeFile(buildName, fileName, fileSpecs, fileExtension)
+    buildStatus("Writing generated source for {}".format(fileName))
+    writeGeneratedFiles(buildName, fileSpecs, fileExtension)
 
     if os.path.isdir("Resources"):
+        buildStatus("Copying Resources into {}".format(buildName))
         copyRecursive("Resources", buildName+"/assets")
     (includeFolders, libFolders) = FindOrFetchLibraries(buildName, packageData, platform, tools)
     packageDirectory = os.getcwd() + '/' + buildName
@@ -341,7 +444,7 @@ def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
 
     #building scons file
     SconsFile = "import os\n"
-    SconsFile += "\nenv = Environment(ENV=os.environ)\nenv.MergeFlags('-g -fpermissive  -fdiagnostics-color=always')\n"
+    SconsFile += "\nenv = Environment(ENV=os.environ)\nenv.MergeFlags('-g -std=gnu++17 -fpermissive  -fdiagnostics-color=always')\n"
     if progOrLib=='program': SconsFileType = "Program"
     elif progOrLib=='library': SconsFileType = "Library"
     elif progOrLib=='staticlibrary': SconsFileType = "StaticLibrary"
@@ -350,7 +453,7 @@ def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
 
     SconsFileOut = 'env.'+SconsFileType+'(\n'
     SconsFileOut += '    target='+'"'+fileName+'",\n'
-    SconsFileOut += '    source='+'"'+fileSpecs[0][0]+fileExtension+'",\n'
+    SconsFileOut += '    source='+sconsSourceList(fileSpecs, fileExtension)+',\n'
 
     codeDogFolder = os.path.dirname(os.path.realpath(__file__))
   #  SconsFileOut += '    env["LIBPATH"]=["'+codeDogFolder+'"],\n'
@@ -382,6 +485,7 @@ def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
     SconsFileOut += '    )\n'
     SconsFile += sconsCppPaths + sconsLibPaths + sconsLibs + sconsConfigs + SconsFileOut + '\n'
     sconsFilename = fileName+".scons"
+    buildStatus("Writing SCons build script for {}".format(fileName))
     writeFile(buildName, sconsFilename, [[[sconsFilename],SconsFile]], "")
     return [workingDirectory, buildStr, runStr]
 
@@ -394,9 +498,12 @@ def WindowsBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, pla
     #outputFileStr = '-o ' + fileName
     buildSconsFile(fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData, fileExtension, tools)
 
-    writeFile(buildName, fileName, fileSpecs, fileExtension)
+    buildStatus("Writing generated source for {}".format(fileName))
+    writeGeneratedFiles(buildName, fileSpecs, fileExtension)
     if os.path.isdir("Resources"):
+        buildStatus("Copying Resources into {}".format(buildName))
         copyRecursive("Resources", buildName + os.sep + "assets")
+    buildStatus("Copying Windows runtime DLLs")
     copyWindowsRuntimeDlls(buildName)
 
     for libFile in libFiles:
@@ -464,15 +571,20 @@ def BuildAndPrintResults(workingDirectory, buildStr, runStr):
     print("     NOTE: Working Dir is: ", workingDirectory)
     print("     NOTE: Run Command is: ", runStr, "\n")
 
+    startTime = time.monotonic()
+    buildStatus("Starting SCons build")
     result = runCmdStreaming(buildStr, workingDirectory)
     if result==0:
+        buildStatus("SCons build finished in {:.1f}s".format(time.monotonic() - startTime))
         print("\nSUCCESS\n")
     else:
+        buildStatus("SCons build failed in {:.1f}s".format(time.monotonic() - startTime))
         print("\nBuild failed\n")
         exit(-1)
 
 def build(debugMode, minLangVersion, fileName, labelName, launchIconName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData, tools):
     cdlog(0,"\n##############   B U I L D I N G    S Y S T E M...   ({})".format(buildName))
+    buildStatus("Preparing {} build '{}'".format(platform, buildName))
     progOrLib = progOrLib.lower()
     if platform == 'Linux':
         [workingDirectory, buildStr, runStr] = LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData, tools)

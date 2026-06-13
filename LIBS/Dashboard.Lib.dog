@@ -32,6 +32,10 @@ struct dash: inherits=widget{
         if(dashParent==NULL){log("In Dash.requestRedraw() dashParent was NULL")}
         isDirty<-true; dashParent.requestRedraw()
     }
+    void: requestRedrawRect(me GUI_Scalar: x, me GUI_Scalar: y, me GUI_Scalar: w, me GUI_Scalar: h) <- {
+        if(dashParent==NULL){log("In Dash.requestRedrawRect() dashParent was NULL")}
+        isDirty<-true; dashParent.requestRedrawRect(x, y, w, h)
+    }
     void: activatePropertyEditor() <- {}
     void: addRelation(me string: relationType, their dash: from, their dash: to) <- {
         if(dashParent==NULL){log("In Dash.addRelation() dashParent was NULL")}
@@ -92,6 +96,11 @@ struct Dashboard: inherits=dash{
         if(dashParent==NULL){log("In Dashboard.requestRedraw() dashParent was NULL")}
         isDirty<-true;
         dashParent.requestRedraw()
+    }
+    void: requestRedrawRect(me GUI_Scalar: x, me GUI_Scalar: y, me GUI_Scalar: w, me GUI_Scalar: h) <- {
+        if(dashParent==NULL){log("In Dashboard.requestRedrawRect() dashParent was NULL")}
+        isDirty<-true;
+        dashParent.requestRedrawRect(x, y, w, h)
     }
 
     me bool: basePrimaryClick(their GUI_ButtonEvent: event) <- {
@@ -437,7 +446,17 @@ struct DashboardWidget: inherits=Dashboard{
     their Dashboard: base  // This is bad. Fix calling super class then we won't need this.
 
     void: requestRedraw() <- {
-        markDirtyArea(canvas, 0,0, widgetWidth(canvas), widgetHeight(canvas))
+        requestRedrawRect(0,0, widgetWidth(canvas), widgetHeight(canvas))
+    }
+    void: requestRedrawRect(me GUI_Scalar: x, me GUI_Scalar: y, me GUI_Scalar: w, me GUI_Scalar: h) <- {
+        if(x<0){w <- w + x; x <- 0}
+        if(y<0){h <- h + y; y <- 0}
+        me GUI_Scalar: maxW <- widgetWidth(canvas)
+        me GUI_Scalar: maxH <- widgetHeight(canvas)
+        if(x+w>maxW){w <- maxW-x}
+        if(y+h>maxH){h <- maxH-y}
+        if(w<=0 or h<=0){return()}
+        markDirtyArea(canvas, x, y, w, h)
     }
     their DashboardWidget: getDashBrdMngr()<-{return(self)}
     their GUI_canvas: init(me string: label) <- {

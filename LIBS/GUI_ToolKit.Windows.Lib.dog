@@ -19,6 +19,14 @@ LibDescription ={
     CPUs        =[i386, amd64, arm7]
 }
 
+embedAboveIncludes = `
+#include <algorithm>
+namespace Gdiplus {
+    using std::max;
+    using std::min;
+}
+`
+
 // Injecting some Windows specific code at the top
 embedHigh = `
 POINT _tagPOINT;
@@ -53,6 +61,15 @@ vector<HWND> CodeDogCanvasWindows;
 vector<CodeDogLayoutChild> CodeDogLayoutChildren;
 vector<CodeDogScrollState> CodeDogScrollWindows;
 HWND CodeDogFocusedWidget = NULL;
+HWND CodeDogPaintTargetWindow = NULL;
+struct CodeDogPeriodicCallback {
+    UINT_PTR timerID;
+    int (*callback)(void*);
+    void* data;
+};
+vector<CodeDogPeriodicCallback> CodeDogPeriodicCallbacks;
+VOID CALLBACK CodeDogPeriodicTimerProc(HWND window, UINT message, UINT_PTR timerID, DWORD timeMillis);
+void CodeDogCallPeriodically(int intervalMillis, int (*callback)(void*), void* data);
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK CanvasWndProc(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK ScrollWndProc(HWND, UINT, WPARAM, LPARAM);
@@ -83,6 +100,28 @@ static void CodeDogRotateDC(HDC dc, double x, double y, double degrees);
 static void CodeDogRestoreDC(HDC dc);
 static void CodeDogDisplayImage(HDC dc, const string& filename, double x, double y, double scale);
 static void CodeDogDisplayBackgroundImage(HDC dc, const string& filename);
+static void CodeDogPaintFrame(HDC targetDC, HWND window, const RECT* paintRect);
+
+VOID CALLBACK CodeDogPeriodicTimerProc(HWND window, UINT message, UINT_PTR timerID, DWORD timeMillis)
+{
+    for(size_t i = 0; i < CodeDogPeriodicCallbacks.size(); ++i){
+        if(CodeDogPeriodicCallbacks[i].timerID == timerID){
+            if(!CodeDogPeriodicCallbacks[i].callback(CodeDogPeriodicCallbacks[i].data)){
+                KillTimer(NULL, timerID);
+                CodeDogPeriodicCallbacks.erase(CodeDogPeriodicCallbacks.begin() + i);
+            }
+            return;
+        }
+    }
+}
+
+void CodeDogCallPeriodically(int intervalMillis, int (*callback)(void*), void* data)
+{
+    UINT_PTR timerID = SetTimer(NULL, 0, (UINT)intervalMillis, CodeDogPeriodicTimerProc);
+    if(timerID != 0){
+        CodeDogPeriodicCallbacks.push_back({timerID, callback, data});
+    }
+}
 
 wstring s2ws(const string& s) {
         int len;
@@ -94,6 +133,25 @@ wstring s2ws(const string& s) {
         delete[] buf;
         return r;
     }
+
+static int CodeDogFontHeightForDC(HDC dc, int pointSize)
+{
+    int dpiY = GetDeviceCaps(dc, LOGPIXELSY);
+    if(dpiY <= 0){dpiY = 96;}
+    return -MulDiv(pointSize, dpiY, 72);
+}
+
+static std::wstring CodeDogFontName(const string& fontName)
+{
+    string normalized = fontName;
+    for(size_t i = 0; i < normalized.length(); ++i){
+        if(normalized[i] >= 'A' && normalized[i] <= 'Z'){
+            normalized[i] = (char)(normalized[i] - 'A' + 'a');
+        }
+    }
+    if(normalized == "ariel"){return L"Arial";}
+    return s2ws(fontName);
+}
 `
 
 // Injecting Win32 GUI dispatch helpers here
@@ -373,6 +431,15 @@ static void CodeDogEnsureGdiplus()
     }
 }
 
+static void CodeDogApplyGdiplusClip(HDC dc, Gdiplus::Graphics& graphics)
+{
+    RECT clipBox;
+    int clipResult = GetClipBox(dc, &clipBox);
+    if(clipResult != 0 && clipResult != NULLREGION && clipBox.right > clipBox.left && clipBox.bottom > clipBox.top){
+        graphics.SetClip(Gdiplus::Rect(clipBox.left, clipBox.top, clipBox.right - clipBox.left, clipBox.bottom - clipBox.top));
+    }
+}
+
 static string CodeDogAssetPath(const string& filename)
 {
     if(filename.rfind("./assets/", 0) == 0 || filename.rfind("assets/", 0) == 0){
@@ -396,6 +463,7 @@ static void CodeDogDisplayImage(HDC dc, const string& filename, double x, double
     Gdiplus::Image image(imagePath.c_str());
     if(image.GetLastStatus() == Gdiplus::Ok){
         Gdiplus::Graphics graphics(dc);
+        CodeDogApplyGdiplusClip(dc, graphics);
         graphics.SetInterpolationMode(Gdiplus::InterpolationModeHighQualityBicubic);
         graphics.DrawImage(&image, (Gdiplus::REAL)x, (Gdiplus::REAL)y,
             (Gdiplus::REAL)(image.GetWidth() / scale), (Gdiplus::REAL)(image.GetHeight() / scale));
@@ -415,11 +483,12 @@ static void CodeDogDisplayBackgroundImage(HDC dc, const string& filename)
     std::wstring imagePath = s2ws(resolvedFilename);
     Gdiplus::Image image(imagePath.c_str());
     if(image.GetLastStatus() == Gdiplus::Ok){
-        HWND paintWindow = WindowFromDC(dc);
+        HWND paintWindow = CodeDogPaintTargetWindow != NULL ? CodeDogPaintTargetWindow : WindowFromDC(dc);
         if(paintWindow == NULL){paintWindow = hWnd;}
         RECT clientSize;
         GetClientRect(paintWindow, &clientSize);
         Gdiplus::Graphics graphics(dc);
+        CodeDogApplyGdiplusClip(dc, graphics);
         graphics.SetInterpolationMode(Gdiplus::InterpolationModeHighQualityBicubic);
         graphics.DrawImage(&image, 0, 0, clientSize.right - clientSize.left, clientSize.bottom - clientSize.top);
     }
@@ -525,6 +594,32 @@ void CodeDogRegisterControlForEventDispatcher(HWND window, widget* masterWidget)
 {
     if(window != NULL){
         SetWindowLongPtr(window, GWLP_USERDATA, (LONG_PTR)masterWidget);
+    }
+}
+
+static void CodeDogPaintFrame(HDC targetDC, HWND window, const RECT* paintRect)
+{
+    CodeDogEnsureAdvancedGraphics(targetDC);
+    XFORM identityTransform = {1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f};
+    SetWorldTransform(targetDC, &identityTransform);
+    RECT clientRect;
+    GetClientRect(window, &clientRect);
+    RECT targetRect = clientRect;
+    if(paintRect != NULL){
+        if(!IntersectRect(&targetRect, &clientRect, paintRect)){
+            return;
+        }
+        IntersectClipRect(targetDC, targetRect.left, targetRect.top, targetRect.right, targetRect.bottom);
+    }
+    HBRUSH backgroundBrush = CreateSolidBrush(RGB(255, 255, 255));
+    FillRect(targetDC, &targetRect, backgroundBrush);
+    DeleteObject(backgroundBrush);
+
+    widget* targetWidget = CodeDogWidgetForWindow(window);
+    if(targetWidget != nullptr){
+        BeginPath(targetDC);
+        targetWidget->draw(targetDC);
+        EndPath(targetDC);
     }
 }
 
@@ -774,21 +869,43 @@ static void CodeDogPaintWindow(HWND window)
 {
     PAINTSTRUCT ps;
     HDC hdc = BeginPaint(window, &ps);
-    CodeDogEnsureAdvancedGraphics(hdc);
-    XFORM identityTransform = {1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f};
-    SetWorldTransform(hdc, &identityTransform);
     RECT clientRect;
-    HBRUSH backgroundBrush = CreateSolidBrush(RGB(255, 255, 255));
     GetClientRect(window, &clientRect);
-    FillRect(hdc, &clientRect, backgroundBrush);
-    DeleteObject(backgroundBrush);
-
-    widget* targetWidget = CodeDogWidgetForWindow(window);
-    if(targetWidget != nullptr){
-        BeginPath(hdc);
-        targetWidget->draw(hdc);
-        EndPath(hdc);
+    RECT paintRect;
+    if(!IntersectRect(&paintRect, &clientRect, &ps.rcPaint)){
+        EndPaint(window, &ps);
+        return;
     }
+    int width = clientRect.right - clientRect.left;
+    int height = clientRect.bottom - clientRect.top;
+    int paintWidth = paintRect.right - paintRect.left;
+    int paintHeight = paintRect.bottom - paintRect.top;
+
+    HDC paintDC = hdc;
+    HDC memoryDC = NULL;
+    HBITMAP memoryBitmap = NULL;
+    HGDIOBJ oldBitmap = NULL;
+    if(width > 0 && height > 0){
+        memoryDC = CreateCompatibleDC(hdc);
+        memoryBitmap = CreateCompatibleBitmap(hdc, width, height);
+        if(memoryDC != NULL && memoryBitmap != NULL){
+            oldBitmap = SelectObject(memoryDC, memoryBitmap);
+            paintDC = memoryDC;
+            IntersectClipRect(memoryDC, paintRect.left, paintRect.top, paintRect.right, paintRect.bottom);
+        }
+    }
+
+    HWND previousPaintTarget = CodeDogPaintTargetWindow;
+    CodeDogPaintTargetWindow = window;
+    CodeDogPaintFrame(paintDC, window, &paintRect);
+    CodeDogPaintTargetWindow = previousPaintTarget;
+
+    if(paintDC == memoryDC){
+        BitBlt(hdc, paintRect.left, paintRect.top, paintWidth, paintHeight, memoryDC, paintRect.left, paintRect.top, SRCCOPY);
+    }
+    if(oldBitmap != NULL){SelectObject(memoryDC, oldBitmap);}
+    if(memoryBitmap != NULL){DeleteObject(memoryBitmap);}
+    if(memoryDC != NULL){DeleteDC(memoryDC);}
     EndPaint(window, &ps);
 }
 
@@ -875,8 +992,9 @@ static void CodeDogDispatchMouse(HWND window, UINT message, WPARAM wParam, LPARA
     else if(message == WM_LBUTTONUP){
         event.button = 1;
         ReleaseCapture();
-        targetWidget->primaryUp(&event);
-        targetWidget->primaryClick(&event);
+        if(!targetWidget->primaryUp(&event)){
+            targetWidget->primaryClick(&event);
+        }
     }
     else if(message == WM_RBUTTONDOWN || message == WM_RBUTTONDBLCLK){
         event.button = 3;
@@ -1159,7 +1277,7 @@ struct GUI_Frame:               wraps = HWND__ ownerMe = their{}
 struct GUI_container:           wraps = HWND__ ownerMe = their{}
 struct INK_Image:               wraps = HBITMAP__ ownerMe = their{}      // How will the ink look?
 struct GUI_callback:            wraps = void ownerMe = their{}
-struct GUI_Scalar:              wraps = int{}
+struct GUI_Scalar:              wraps = double{}
 struct GUI_Text:                wraps = HWND__ ownerMe = their{}
 struct GUI_canvas:              wraps = HWND__ ownerMe = their{}
 struct GUI_ctxt:                wraps = HDC__ ownerMe = their{}
@@ -1468,6 +1586,7 @@ struct GUI{
             return 1;
         }
 
+        getMetrics();
         string title = thisApp.gui.title.length() > 1 ? thisApp.gui.title : filename;
         hWnd = CreateWindowA(
             CodeDogMainWindowClass,
@@ -1699,6 +1818,7 @@ struct timeStringer{
 struct GLOBAL{
     // TIME ROUTINES:
     me int64: getCurrentTimeStamp() <- <%!_time64(NULL)%>
+    me void: getMetrics() <- <%{displayDensity = 1;}%>
 
     our string: getClipboardAsText() <- <%{
         if(!OpenClipboard(nullptr)){return(nullptr);}
@@ -1720,18 +1840,20 @@ struct GLOBAL{
         vector<BYTE> savedPathTypes;
         CodeDogSuspendPath(cr, savedPathPoints, savedPathTypes);
 
-        std::wstring stemp = s2ws(font.name);
+        std::wstring stemp = CodeDogFontName(font.name);
         LPCWSTR fontNamePtr = stemp.c_str();
         std::wstring stemp2 = s2ws(text);
         LPCWSTR outputTextPtr = stemp2.c_str();
 
-        HFONT hFont = CreateFontW(font.size, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_TT_ONLY_PRECIS,
+        HFONT hFont = CreateFontW(CodeDogFontHeightForDC(cr, font.size), 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_TT_ONLY_PRECIS,
             CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, VARIABLE_PITCH, fontNamePtr);
         HGDIOBJ oldFont = SelectObject(cr, hFont);
         SetBkMode(cr, TRANSPARENT);
         SetTextColor(cr, objectColor);
         GetTextExtentPoint32W(cr, outputTextPtr, (int)stemp2.length(), &winSize);
-        TextOutW(cr, (int)x, (int)y, outputTextPtr, (int)stemp2.length());
+        TEXTMETRICW textMetrics = {};
+        GetTextMetricsW(cr, &textMetrics);
+        TextOutW(cr, (int)x, (int)(y - textMetrics.tmAscent), outputTextPtr, (int)stemp2.length());
         SelectObject(cr, oldFont);
         DeleteObject(hFont);
         CodeDogResumePath(cr, savedPathPoints, savedPathTypes);
@@ -1778,8 +1900,8 @@ struct GLOBAL{
         SIZE winSize = {0, 0};
         HWND measureWindow = hWnd ? hWnd : GetDesktopWindow();
         HDC dc = GetDC(measureWindow);
-        std::wstring stemp = s2ws(font->name);
-        HFONT hFont = CreateFontW(font->size, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_TT_ONLY_PRECIS,
+        std::wstring stemp = CodeDogFontName(font->name);
+        HFONT hFont = CreateFontW(CodeDogFontHeightForDC(dc, font->size), 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_TT_ONLY_PRECIS,
             CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, VARIABLE_PITCH, stemp.c_str());
         HGDIOBJ oldFont = SelectObject(dc, hFont);
         std::wstring textW = s2ws(text);
@@ -1808,7 +1930,7 @@ struct GLOBAL{
 
     me void: showWidget(their GUI_item: widget) <- <%!%GShowWindow(%1, SW_SHOW)%>
     me void: hideWidget(their GUI_item: widget) <- <%!%GShowWindow(%1, SW_HIDE)%>
-    me void: markDirtyArea(their GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!%G{RECT dirtyRect = {%2, %3, %2 + %4, %3 + %5}; InvalidateRect(%1, &dirtyRect, FALSE);}%>
+    me void: markDirtyArea(their GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!%G{RECT dirtyRect = {(LONG)%2, (LONG)%3, (LONG)(%2 + %4), (LONG)(%3 + %5)}; InvalidateRect(%1, &dirtyRect, FALSE);}%>
     me void: setWidgetSize(their GUI_item: widget, me uint32: width, me uint32: height) <- <%!%GCodeDogSetWidgetSize(%1, %2, %3)%>
     me int: widgetHeight(their GUI_item: widget) <- <%{RECT rect; GetClientRect(widget, &rect); return(rect.bottom - rect.top);}%>
     me int: widgetWidth(their GUI_item: widget) <- <%{RECT rect; GetClientRect(widget, &rect); return(rect.right - rect.left);}%>
@@ -1908,16 +2030,16 @@ struct GLOBAL{ // Constants
     const int: KP_MULTIPLY      <- <%!VK_MULTIPLY%>
     const int: KP_DIVIDE        <- <%!VK_DIVIDE%>
     const int: KP_PERIOD        <- <%!VK_DECIMAL%>
-    //~ const int: KP_ENTER         <- <%!GDK_KEY_KP_Enter%>
-    //~ const int: KP_DELETE        <- <%!GDK_KEY_KP_Delete%>
-    //~ const int: KP_UP            <- <%!GDK_KEY_KP_Up%>
-    //~ const int: KP_DOWN          <- <%!GDK_KEY_KP_Down%>
-    //~ const int: KP_LEFT          <- <%!GDK_KEY_KP_Left%>
-    //~ const int: KP_RIGHT         <- <%!GDK_KEY_KP_Right%>
-    //~ const int: KP_HOME          <- <%!GDK_KEY_KP_Home%>
-    //~ const int: KP_END           <- <%!GDK_KEY_KP_End%>
-    //~ const int: KP_PAGEUP        <- <%!GDK_KEY_KP_Page_Up%>
-    //~ const int: KP_PAGEDOWN      <- <%!GDK_KEY_KP_Page_Down%>
+    const int: KP_ENTER         <- <%!0xFF8D%>
+    const int: KP_DELETE        <- <%!0xFF9F%>
+    const int: KP_UP            <- <%!0xFF97%>
+    const int: KP_DOWN          <- <%!0xFF99%>
+    const int: KP_LEFT          <- <%!0xFF96%>
+    const int: KP_RIGHT         <- <%!0xFF98%>
+    const int: KP_HOME          <- <%!0xFF95%>
+    const int: KP_END           <- <%!0xFF9C%>
+    const int: KP_PAGEUP        <- <%!0xFF9A%>
+    const int: KP_PAGEDOWN      <- <%!0xFF9B%>
 
     // Use these to match lowercase OR CTRL via keyTyped.state
     const int: KEY_a            <- <%!0x41%>

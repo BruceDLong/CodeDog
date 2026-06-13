@@ -7,9 +7,19 @@ interface={
     provides = [Unicode_langVersion_implementation]
     packages = [
         { packageName = 'icu'
+          innerPkgName = '.'
           fetchMethod = 'zip:https://github.com/unicode-org/icu/releases/download/release-69-1/icu4c-69_1-Win64-MSVC2019.zip'
           buildCmds   = {
-              Windows = {installFiles = ['.']}
+              Windows = {installFiles = [
+                  'include',
+                  'lib64/icuuc.lib',
+                  'lib64/icuio.lib',
+                  'lib64/icuin.lib',
+                  'bin64/icuuc69.dll',
+                  'bin64/icuio69.dll',
+                  'bin64/icuin69.dll',
+                  'bin64/icudt69.dll'
+              ]}
             }
         }
     ]
