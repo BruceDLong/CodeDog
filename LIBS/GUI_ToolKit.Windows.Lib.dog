@@ -33,6 +33,7 @@ POINT _tagPOINT;
 HPEN hPen;
 HBRUSH hBrush;
 COLORREF objectColor = RGB(0, 0, 0);
+int objectAlpha = 255;
 HWND hWnd;
 // COLORREF brushColor = RGB(0, 0, 0);
 TRIVERTEX vertex[2];
@@ -92,6 +93,11 @@ void CodeDogSetListSelectedIndex(HWND listWindow, int index);
 int CodeDogGetListSelectedIndex(HWND listWindow);
 string CodeDogGetListSelectedText(HWND listWindow);
 static void CodeDogPaintPath(HDC dc, bool strokePath, bool fillPath, bool preservePath);
+static void CodeDogSetCurrentColor(int red, int green, int blue, int alpha);
+static bool CodeDogReadCurrentPath(HDC dc, vector<POINT>& pathPoints, vector<BYTE>& pathTypes);
+static void CodeDogFillPathWithGdiplus(HDC dc, const vector<POINT>& pathPoints, const vector<BYTE>& pathTypes);
+static void CodeDogEnsureGdiplus();
+static void CodeDogApplyGdiplusClip(HDC dc, Gdiplus::Graphics& graphics);
 static void CodeDogSuspendPath(HDC dc, vector<POINT>& pathPoints, vector<BYTE>& pathTypes);
 static void CodeDogResumePath(HDC dc, const vector<POINT>& pathPoints, const vector<BYTE>& pathTypes);
 static void CodeDogScaleDC(HDC dc, double scaleX, double scaleY);
@@ -121,6 +127,11 @@ void CodeDogCallPeriodically(int intervalMillis, int (*callback)(void*), void* d
     if(timerID != 0){
         CodeDogPeriodicCallbacks.push_back({timerID, callback, data});
     }
+}
+
+static inline int64_t CodeDogGuiMonotonicMillis()
+{
+    return (int64_t)GetTickCount64();
 }
 
 wstring s2ws(const string& s) {
@@ -243,6 +254,15 @@ static int CodeDogClampInt(int value, int low, int high)
     return value;
 }
 
+static void CodeDogSetCurrentColor(int red, int green, int blue, int alpha)
+{
+    int safeRed = CodeDogClampInt(red, 0, 255);
+    int safeGreen = CodeDogClampInt(green, 0, 255);
+    int safeBlue = CodeDogClampInt(blue, 0, 255);
+    objectColor = RGB(safeRed, safeGreen, safeBlue);
+    objectAlpha = CodeDogClampInt(alpha, 0, 255);
+}
+
 static void CodeDogEnsureAdvancedGraphics(HDC dc)
 {
     SetGraphicsMode(dc, GM_ADVANCED);
@@ -268,6 +288,14 @@ static bool CodeDogCaptureCurrentPath(HDC dc, vector<POINT>& pathPoints, vector<
         return false;
     }
 
+    return CodeDogReadCurrentPath(dc, pathPoints, pathTypes);
+}
+
+static bool CodeDogReadCurrentPath(HDC dc, vector<POINT>& pathPoints, vector<BYTE>& pathTypes)
+{
+    pathPoints.clear();
+    pathTypes.clear();
+
     int pathPointCount = GetPath(dc, NULL, NULL, 0);
     if(pathPointCount > 0){
         pathPoints.resize(pathPointCount);
@@ -276,6 +304,63 @@ static bool CodeDogCaptureCurrentPath(HDC dc, vector<POINT>& pathPoints, vector<
         return true;
     }
     return false;
+}
+
+static void CodeDogFillPathWithGdiplus(HDC dc, const vector<POINT>& pathPoints, const vector<BYTE>& pathTypes)
+{
+    if(pathPoints.size() == 0 || pathTypes.size() != pathPoints.size()){
+        return;
+    }
+
+    CodeDogEnsureGdiplus();
+    Gdiplus::GraphicsPath graphicsPath;
+    POINT currentPoint = {0, 0};
+    bool hasCurrentPoint = false;
+
+    for(size_t i = 0; i < pathPoints.size(); ++i){
+        BYTE baseType = (BYTE)(pathTypes[i] & ~PT_CLOSEFIGURE);
+        bool closeFigure = (pathTypes[i] & PT_CLOSEFIGURE) != 0;
+
+        if(baseType == PT_MOVETO){
+            graphicsPath.StartFigure();
+            currentPoint = pathPoints[i];
+            hasCurrentPoint = true;
+        }
+        else if(baseType == PT_LINETO){
+            if(hasCurrentPoint){
+                graphicsPath.AddLine((Gdiplus::REAL)currentPoint.x, (Gdiplus::REAL)currentPoint.y,
+                    (Gdiplus::REAL)pathPoints[i].x, (Gdiplus::REAL)pathPoints[i].y);
+            }
+            currentPoint = pathPoints[i];
+            hasCurrentPoint = true;
+        }
+        else if(baseType == PT_BEZIERTO && hasCurrentPoint && i + 2 < pathPoints.size()){
+            graphicsPath.AddBezier((Gdiplus::REAL)currentPoint.x, (Gdiplus::REAL)currentPoint.y,
+                (Gdiplus::REAL)pathPoints[i].x, (Gdiplus::REAL)pathPoints[i].y,
+                (Gdiplus::REAL)pathPoints[i + 1].x, (Gdiplus::REAL)pathPoints[i + 1].y,
+                (Gdiplus::REAL)pathPoints[i + 2].x, (Gdiplus::REAL)pathPoints[i + 2].y);
+            closeFigure = (pathTypes[i + 2] & PT_CLOSEFIGURE) != 0;
+            currentPoint = pathPoints[i + 2];
+            hasCurrentPoint = true;
+            i += 2;
+        }
+
+        if(closeFigure){
+            graphicsPath.CloseFigure();
+            hasCurrentPoint = false;
+        }
+    }
+
+    Gdiplus::Graphics graphics(dc);
+    CodeDogApplyGdiplusClip(dc, graphics);
+    XFORM xform;
+    if(GetWorldTransform(dc, &xform)){
+        Gdiplus::Matrix matrix(xform.eM11, xform.eM12, xform.eM21, xform.eM22, xform.eDx, xform.eDy);
+        graphics.SetTransform(&matrix);
+    }
+    graphics.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
+    Gdiplus::SolidBrush brush(Gdiplus::Color((BYTE)objectAlpha, GetRValue(objectColor), GetGValue(objectColor), GetBValue(objectColor)));
+    graphics.FillPath(&brush, &graphicsPath);
 }
 
 static void CodeDogResumeCapturedPath(HDC dc, const vector<POINT>& pathPoints, const vector<BYTE>& pathTypes)
@@ -305,6 +390,19 @@ static void CodeDogPaintPath(HDC dc, bool strokePath, bool fillPath, bool preser
         return;
     }
 
+    vector<POINT> alphaPathPoints;
+    vector<BYTE> alphaPathTypes;
+    bool useAlphaFill = fillPath && objectAlpha < 255;
+    if(useAlphaFill){
+        if(preservePath){
+            alphaPathPoints = savedPathPoints;
+            alphaPathTypes = savedPathTypes;
+        }
+        else{
+            CodeDogReadCurrentPath(dc, alphaPathPoints, alphaPathTypes);
+        }
+    }
+
     HPEN pathPen = NULL;
     HBRUSH pathBrush = NULL;
     HGDIOBJ oldPen = NULL;
@@ -313,19 +411,27 @@ static void CodeDogPaintPath(HDC dc, bool strokePath, bool fillPath, bool preser
         pathPen = CodeDogCreateCurrentPen();
         oldPen = SelectObject(dc, pathPen);
     }
-    if(fillPath){
+    if(fillPath && !useAlphaFill){
         pathBrush = CreateSolidBrush(objectColor);
         oldBrush = SelectObject(dc, pathBrush);
     }
 
-    if(strokePath && fillPath){
+    bool pathConsumed = false;
+    if(useAlphaFill){
+        CodeDogFillPathWithGdiplus(dc, alphaPathPoints, alphaPathTypes);
+    }
+
+    if(strokePath && fillPath && !useAlphaFill){
         StrokeAndFillPath(dc);
+        pathConsumed = true;
     }
-    else if(fillPath){
-        FillPath(dc);
-    }
-    else{
+    else if(strokePath){
         StrokePath(dc);
+        pathConsumed = true;
+    }
+    else if(fillPath && !useAlphaFill){
+        FillPath(dc);
+        pathConsumed = true;
     }
 
     if(oldPen != NULL){SelectObject(dc, oldPen);}
@@ -333,6 +439,9 @@ static void CodeDogPaintPath(HDC dc, bool strokePath, bool fillPath, bool preser
     if(pathPen != NULL){DeleteObject(pathPen);}
     if(pathBrush != NULL){DeleteObject(pathBrush);}
 
+    if(!pathConsumed){
+        AbortPath(dc);
+    }
     if(preservePath && hasPath){
         CodeDogResumeCapturedPath(dc, savedPathPoints, savedPathTypes);
     }
@@ -1658,9 +1767,9 @@ struct GUI{
 
 struct GUI_ctxt {
     me void: reset() <- <%!BeginPath(%0)%>
-    me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!%GobjectColor = RGB((int)%1, (int)%2, (int)%3)%>
-    me void: setRGB (me double: red, me double: green, me double: blue) <- <%!%GobjectColor = RGB((int)%1, (int)%2, (int)%3)%>
-    me void: setColor(me cdColor: color) <- <%!%GobjectColor = RGB((int)%1.red, (int)%1.green, (int)%1.blue)%>
+    me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!%GCodeDogSetCurrentColor((int)%1, (int)%2, (int)%3, (int)%4)%>
+    me void: setRGB (me double: red, me double: green, me double: blue) <- <%!%GCodeDogSetCurrentColor((int)%1, (int)%2, (int)%3, 255)%>
+    me void: setColor(me cdColor: color) <- <%!%GCodeDogSetCurrentColor((int)%1.red, (int)%1.green, (int)%1.blue, (int)%1.alpha)%>
     me void: setLineWidth(me double: width) <- <%!%GpenWidth = (int)%1;%>
     me void: setRoundLineCap() <- <%!%GpenEndCap = PS_ENDCAP_ROUND;%>
     me void: setEdgedLineCap() <- <%!%GpenEndCap = PS_ENDCAP_FLAT;%>
@@ -1818,6 +1927,7 @@ struct timeStringer{
 struct GLOBAL{
     // TIME ROUTINES:
     me int64: getCurrentTimeStamp() <- <%!_time64(NULL)%>
+    me int64: guiMonotonicMillis() <- <%!CodeDogGuiMonotonicMillis()%>
     me void: getMetrics() <- <%{displayDensity = 1;}%>
 
     our string: getClipboardAsText() <- <%{
@@ -1833,6 +1943,27 @@ struct GLOBAL{
     }%>
 
     // DRAWING ROUTINES:
+    me void: fetchAreaToBeDrawn(their GUI_ctxt: cr, their GUI_rect: area) <- <%{
+        RECT clipBox;
+        int clipResult = GetClipBox(cr, &clipBox);
+        if(clipResult == ERROR || clipResult == NULLREGION || clipBox.right <= clipBox.left || clipBox.bottom <= clipBox.top){
+            HWND paintWindow = CodeDogPaintTargetWindow != NULL ? CodeDogPaintTargetWindow : WindowFromDC(cr);
+            if(paintWindow == NULL){paintWindow = hWnd;}
+            RECT clientSize;
+            GetClientRect(paintWindow, &clientSize);
+            area->x1 = clientSize.left;
+            area->y1 = clientSize.top;
+            area->x2 = clientSize.right;
+            area->y2 = clientSize.bottom;
+        }
+        else{
+            area->x1 = clipBox.left;
+            area->y1 = clipBox.top;
+            area->x2 = clipBox.right;
+            area->y2 = clipBox.bottom;
+        }
+    }%>
+
     me deltaSize: renderText(their GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y) <- <%{
         deltaSize size;
         SIZE winSize = {0, 0};

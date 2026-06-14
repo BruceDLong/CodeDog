@@ -9,6 +9,7 @@ import buildAndroid
 import buildMac
 import errno
 import filecmp
+import hashlib
 import shutil
 import queue
 import threading
@@ -307,6 +308,56 @@ def getFetchURL(packageMap):
         return(fetchURL)
     return("")
 
+def packageInstallFingerprint(platform, buildCommand, installfileList):
+    installFiles = []
+    for filenameX in installfileList:
+        installFiles.append(filenameX[0][0][1:-1])
+    fingerprintText = platform + "\n" + buildCommand + "\n" + "\n".join(installFiles)
+    return hashlib.sha256(fingerprintText.encode('utf-8')).hexdigest()
+
+def packageBuildMarkerPath(libsFolder, platform):
+    safePlatform = ''.join(ch if ch.isalnum() or ch in ('-', '_') else '_' for ch in platform)
+    return os.path.join(libsFolder, ".codedog_build_{}.sha256".format(safePlatform))
+
+def packageInstallIsCurrent(libsFolder, platform, buildCommand, installfileList):
+    markerPath = packageBuildMarkerPath(libsFolder, platform)
+    if not os.path.isfile(markerPath):
+        return False
+    try:
+        with open(markerPath, 'r') as markerFile:
+            return markerFile.read().strip() == packageInstallFingerprint(platform, buildCommand, installfileList)
+    except OSError:
+        return False
+
+def writePackageBuildMarker(libsFolder, platform, buildCommand, installfileList):
+    markerPath = packageBuildMarkerPath(libsFolder, platform)
+    with open(markerPath, 'w') as markerFile:
+        markerFile.write(packageInstallFingerprint(platform, buildCommand, installfileList))
+
+def packageInstallPayloadExists(downloadedFolder, libsFolder, installfileList):
+    if not os.path.isdir(libsFolder):
+        return False
+    for filenameX in installfileList:
+        installFile = filenameX[0][0][1:-1]
+        sourcePath = os.path.normpath(os.path.join(downloadedFolder, installFile))
+        if os.path.isfile(sourcePath):
+            if not os.path.isfile(os.path.join(libsFolder, os.path.basename(sourcePath))):
+                return False
+        elif os.path.isdir(sourcePath):
+            sourceNames = os.listdir(sourcePath)
+            if not sourceNames:
+                return False
+            for sourceName in sourceNames:
+                if not os.path.exists(os.path.join(libsFolder, sourceName)):
+                    return False
+        else:
+            installName = os.path.basename(installFile.rstrip("/\\"))
+            if not installName or installName == ".":
+                return False
+            if not os.path.exists(os.path.join(libsFolder, installName)):
+                return False
+    return True
+
 def fetchPackages(packageData, packageDirectory):
     for package in packageData:
         packageMap   = progSpec.extractMapFromTagMap(package)
@@ -341,13 +392,33 @@ def FindOrFetchLibraries(buildName, packageData, platform, tools):
             buildCommand = buildCmdsMap[platform]
             buildCmdMap = progSpec.extractMapFromTagMap(buildCommand)
             downloadedFolder = packageDirectory+"/"+packageName+"/"+innerPkgName
+            installfileList = []
+            LibsFolder = os.path.join(packageDirectory, packageName, 'INSTALL').replace("\\","/")
+            if 'installFiles' in buildCmdMap:
+                installfileList = buildCmdMap['installFiles'][1]
+                makeDirs(LibsFolder)
+                importantFolders[packageName+'@Install'] = LibsFolder
+                importantFolders[packageName] = packageDirectory + '/' + packageName + '/' + packageName
+                includeFolders += "     '"+LibsFolder+"',\n"
+                libFolders     += "     '"+LibsFolder+"',\n"
 
+            actualBuildCmd = ""
             if 'buildCmd' in buildCmdMap:
                 actualBuildCmd = buildCmdMap['buildCmd'][1:-1]
                 for folderKey,folderVal in importantFolders.items():
                     actualBuildCmd = actualBuildCmd.replace('$'+folderKey,folderVal)
                 #print("BUILDCOMMAND:", actualBuildCmd)#, "  INSTALL:", buildCmdsMap[platform][1])
 
+            installIsCurrent = False
+            if installfileList:
+                installIsCurrent = packageInstallIsCurrent(LibsFolder, platform, actualBuildCmd, installfileList)
+                if not installIsCurrent and packageInstallPayloadExists(downloadedFolder, LibsFolder, installfileList):
+                    writePackageBuildMarker(LibsFolder, platform, actualBuildCmd, installfileList)
+                    installIsCurrent = True
+                if installIsCurrent:
+                    buildStatus("Using cached package build '{}'".format(packageName))
+
+            if actualBuildCmd and not installIsCurrent:
                 for toolName in tools:
                     if emgr.checkToolLinux('go' if toolName=='golang-go' else toolName):
                         runCmdStreaming(actualBuildCmd, downloadedFolder)
@@ -359,20 +430,12 @@ def FindOrFetchLibraries(buildName, packageData, platform, tools):
                             emgr.getPackageManagerCMD(toolName, packageManager, "install")
                         runCmdStreaming(actualBuildCmd, downloadedFolder)
 
-            if 'installFiles' in buildCmdMap:
-                installfileList = buildCmdMap['installFiles'][1]
-                # ~ installFiles = progSpec.extractListFromTagList(installfileList)
-                # ~ print("    DATA:", str(installFiles)[:100])
-                LibsFolder = os.path.join(packageDirectory, packageName, 'INSTALL').replace("\\","/")
-                makeDirs(LibsFolder)
-                importantFolders[packageName+'@Install'] = LibsFolder
-                importantFolders[packageName] = packageDirectory + '/' + packageName + '/' + packageName
-                includeFolders += "     '"+LibsFolder+"',\n"
-                libFolders     += "     '"+LibsFolder+"',\n"
+            if installfileList and not installIsCurrent:
                 for filenameX in installfileList:
                     filename = downloadedFolder+'/'+filenameX[0][0][1:-1]
                     cdlog(1, "Install: "+filename)
                     copyRecursive(filename, LibsFolder)
+                writePackageBuildMarker(LibsFolder, platform, actualBuildCmd, installfileList)
 
     return [includeFolders, libFolders]
 

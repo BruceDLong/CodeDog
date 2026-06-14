@@ -3,6 +3,28 @@
 // This code is experimental and incomplete
 
 struct GLOBAL{
+    me int64: reactGuiDiagCommandsVisited
+    me int64: reactGuiDiagCommandsRendered
+    me int64: reactGuiDiagPathShapeCulled
+    me int64: reactGuiDiagDirectCulled
+    me int64: reactGuiDiagPathPaintSkipped
+    me int64: reactGuiDiagTextRendered
+    me int64: reactGuiDiagImageRendered
+    me int64: reactGuiDiagBackgroundRendered
+    me int64: reactGuiDiagSubDrawingRendered
+
+    void: resetReactGuiRenderDiagnostics() <- {
+        reactGuiDiagCommandsVisited <- 0
+        reactGuiDiagCommandsRendered <- 0
+        reactGuiDiagPathShapeCulled <- 0
+        reactGuiDiagDirectCulled <- 0
+        reactGuiDiagPathPaintSkipped <- 0
+        reactGuiDiagTextRendered <- 0
+        reactGuiDiagImageRendered <- 0
+        reactGuiDiagBackgroundRendered <- 0
+        reactGuiDiagSubDrawingRendered <- 0
+    }
+
     me GUI_Scalar: distanceBetween2Points(me GUI_Scalar: x1, me GUI_Scalar: y1, me GUI_Scalar: x2, me GUI_Scalar: y2) <- {
         me GUI_Scalar: deltaX <- abs(x2-x1)
         me GUI_Scalar: deltaY <- abs(y2-y1)
@@ -415,6 +437,49 @@ struct Drawel{
     their fontSpec: font
     our dashDrawing: drawing
 
+    me bool: rectIntersectsClip(me GUI_Scalar: x1, me GUI_Scalar: y1, me GUI_Scalar: x2, me GUI_Scalar: y2, their GUI_rect: clip) <- {
+        return(x2>=clip.x1 and x1<=clip.x2 and y2>=clip.y1 and y1<=clip.y2)
+    }
+    me bool: isCullablePathShape() <- {
+        return(cmd==cmdDrawRect or cmd==cmdRoundRect or cmd==cmdRoundTopRect or cmd==cmdRoundBotRect or cmd==cmdDrawCircle)
+    }
+    me bool: isPathPaintCommand() <- {
+        return(cmd==cmdFill or cmd==cmdStroke)
+    }
+    me bool: isCullableDirectCommand() <- {
+        return(cmd==cmdRenderText or cmd==cmdRenderTextCentered)
+    }
+    me bool: intersectsClip(their GUI_rect: clip) <- {
+        me GUI_Scalar: pad <- 8
+        switch(cmd){
+        case cmdDrawRect:       {return(rectIntersectsClip(x-pad, y-pad, x+w+pad, y+h+pad, clip))}
+        case cmdRoundRect:      {return(rectIntersectsClip(x-pad, y-pad, x+w+pad, y+h+pad, clip))}
+        case cmdRoundTopRect:   {return(rectIntersectsClip(x-pad, y-pad, x+w+pad, y+h+pad, clip))}
+        case cmdRoundBotRect:   {return(rectIntersectsClip(x-pad, y-pad, x+w+pad, y+h+pad, clip))}
+        case cmdDrawCircle:     {return(rectIntersectsClip(x-arg1-pad, y-arg1-pad, x+arg1+pad, y+arg1+pad, clip))}
+        case cmdRenderText:     {
+            me GUI_Scalar: textW <- text.size() * font.height
+            return(rectIntersectsClip(x-pad, y-font.height-pad, x+textW+pad, y+font.height+pad, clip))
+        }
+        case cmdRenderTextCentered: {
+            me GUI_Scalar: textW <- text.size() * font.height
+            return(rectIntersectsClip(x-(textW/2)-pad, y-font.height-pad, x+(textW/2)+pad, y+font.height+pad, clip))
+        }
+        }
+        return(true)
+    }
+
+    void: recordRenderDiagnostic() <- {
+        reactGuiDiagCommandsRendered <+- 1
+        switch(cmd){
+        case cmdRenderText:         {reactGuiDiagTextRendered <+- 1}
+        case cmdRenderTextCentered: {reactGuiDiagTextRendered <+- 1}
+        case cmdDrawImage:          {reactGuiDiagImageRendered <+- 1}
+        case cmdDrawBkgndImage:     {reactGuiDiagBackgroundRendered <+- 1}
+        case cmdSubDrawing:         {reactGuiDiagSubDrawingRendered <+- 1}
+        }
+    }
+
     void: render(their GUI_ctxt: cr)<-{
         //log("CMD:"+DrawCmdStrings[cmd]+" x:"+toString(x)+" y:"+toString(y)+" w:"+toString(w)+" h:"+toString(h)+" :"+text)
         switch(cmd){
@@ -454,8 +519,24 @@ struct dashDrawing{
     our Drawel: addSubDrawing(our dashDrawing: D)<-{our Drawel:: drl; drl.cmd<-cmdSubDrawing; drl.drawing<-D; cmds.pushLast(drl); return(drl)}
 
     me void: render(their GUI_ctxt: cr) <- {
+        our GUI_rect:: clip
+        fetchAreaToBeDrawn(cr, clip)
+        me bool: skipPathPaint <- false
         withEach cmd in cmds{
-            cmd.render(cr)
+            reactGuiDiagCommandsVisited <+- 1
+            if(skipPathPaint and cmd.isPathPaintCommand()){
+                reactGuiDiagPathPaintSkipped <+- 1
+                skipPathPaint <- false
+            } else if(cmd.isCullablePathShape() and !cmd.intersectsClip(clip)){
+                reactGuiDiagPathShapeCulled <+- 1
+                skipPathPaint <- true
+            } else if(cmd.isCullableDirectCommand() and !cmd.intersectsClip(clip)){
+                reactGuiDiagDirectCulled <+- 1
+                continue()
+            } else {
+                cmd.recordRenderDiagnostic()
+                cmd.render(cr)
+            }
         }
     }
 }

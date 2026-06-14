@@ -1,0 +1,126 @@
+// guiTest_7.dog
+//
+// On-demand animation-frame compatibility test:
+// - DashboardWidget.requestAnimationFrame()
+// - DashboardWidget.requestAnimationFrameIn(milliseconds)
+// - widget tweenTick() returning true to continue the animation
+
+LocalBuild: Platform='Local' optimize='speed';
+//LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' LangVersion='GNU' optimize='speed';
+//WindowsBuild: Platform='Windows' CPU='amd64' Lang='CPP' LangVersion='MSVC' optimize='speed';
+//SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';
+//AndroidBuild: Platform='Android' CPU='JavaVM' Lang='Java' optimize='power';
+//iPhoneBuild: Platform='IOS' CPU='amd64' Lang='Swift' optimize='speed';
+//MacBuild: Platform='MacOS' Lang='Swift' optimize='speed';
+
+Title = "guiTest_7"
+FileName = "guiTest_7"
+Version = "1.0"
+CopyrightMesg = "Public Domain"
+Authors = "Bruce Long"
+Description = "GUI animation-frame test"
+ProgramOrLibrary = "program"
+
+featuresNeeded = [GUI_ToolKit, Dashboard, List]
+
+LicenseText = `Public Domain`
+
+runCode=``
+
+mainStyle = {}
+
+do makeStyler(mainStyle)
+do makeGUI(GUI_Spec)
+
+struct animationFrameWidget: inherits=DashboardWidget{
+    me bool: animating <- true
+    me int: frameCount <- 0
+    me GUI_Scalar: ballX <- 80
+    me GUI_Scalar: ballY <- 180
+    me GUI_Scalar: velocityX <- 5
+    me GUI_Scalar: velocityY <- 3
+    me GUI_Scalar: radius <- 26
+
+    me bool: primaryClick(their GUI_ButtonEvent: event) <- {
+        animating <- !animating
+        if(animating){
+            requestAnimationFrame()
+        } else {
+            requestRedraw()
+        }
+        return(true)
+    }
+
+    me bool: tweenTick(their GUI_TimeEvent: event) <- {
+        if(!animating){return(false)}
+
+        me GUI_Scalar: maxX <- widgetWidth(canvas) - radius - 20
+        me GUI_Scalar: maxY <- widgetHeight(canvas) - radius - 20
+        me GUI_Scalar: minX <- radius + 20
+        me GUI_Scalar: minY <- radius + 72
+
+        ballX <+- velocityX
+        ballY <+- velocityY
+        if(ballX < minX or ballX > maxX){
+            velocityX <- -velocityX
+            ballX <+- velocityX
+        }
+        if(ballY < minY or ballY > maxY){
+            velocityY <- -velocityY
+            ballY <+- velocityY
+        }
+        frameCount <+- 1
+        return(true)
+    }
+
+    void: draw(their GUI_ctxt: cr) <- {
+        me int: canvasW <- widgetWidth(canvas)
+        me int: canvasH <- widgetHeight(canvas)
+        our fontSpec:: titleFont{"Arial", "24"}
+        our fontSpec:: bodyFont{"Arial", "15"}
+        our fontSpec:: smallFont{"Arial", "12"}
+
+        cr.setRGB(248, 249, 250)
+        cr.paintNow()
+
+        cr.setRGB(23, 28, 34)
+        renderTextCentered(cr, "guiTest_7 animation frame", titleFont, canvasW / 2, 36)
+        if(animating){
+            renderTextCentered(cr, "Click the canvas to pause. The ball is driven by requestAnimationFrame().", bodyFont, canvasW / 2, 64)
+        } else {
+            renderTextCentered(cr, "Paused. Click the canvas to resume.", bodyFont, canvasW / 2, 64)
+        }
+
+        cr.setRGB(218, 226, 235)
+        cr.rectangle(24, 88, canvasW - 48, canvasH - 118)
+        cr.fillKeep()
+        cr.setRGB(125, 139, 153)
+        cr.setLineWidth(2)
+        cr.strokeNow()
+
+        cr.setRGB(33, 119, 191)
+        cr.circle(ballX, ballY, radius)
+        cr.fillKeep()
+        cr.setRGB(12, 52, 92)
+        cr.setLineWidth(4)
+        cr.strokeNow()
+
+        cr.setRGB(49, 56, 64)
+        renderText(cr, "frames: " + toString(frameCount), smallFont, 28, canvasH - 24)
+    }
+}
+
+struct GLOBAL{
+    their GUI_canvas: drawing_area
+    their animationFrameWidget: animationPanel
+}
+
+struct APP{
+    me void: createAppArea(me GUI_Frame: frame) <- {
+        Allocate(animationPanel)
+        drawing_area <- animationPanel.init("animationPanel")
+        gui.setWidgetSize(drawing_area, 900, 560)
+        addToContainerAndExpand(frame, drawing_area)
+        animationPanel.requestAnimationFrame()
+    }
+}
