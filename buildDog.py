@@ -133,10 +133,17 @@ def writeTextFile(path, fileName, fileText):
     #print path
     makeDirs(path)
     pathName = path + os.sep + fileName
+    if os.path.isfile(pathName):
+        try:
+            with open(pathName, 'r') as fo:
+                if fo.read() == fileText:
+                    cdlog(1, "UNCHANGED FILE: "+pathName)
+                    return
+        except OSError:
+            pass
     cdlog(1, "WRITING FILE: "+pathName)
-    fo=open(pathName, 'w')
-    fo.write(fileText)
-    fo.close()
+    with open(pathName, 'w') as fo:
+        fo.write(fileText)
 
 def writeFile(path, fileName, fileSpecs, fileExtension):
     writeTextFile(path, fileName + fileExtension, fileSpecs[0][1])
@@ -444,6 +451,7 @@ def buildSconsFile(fileName, libFiles, buildName, platform, fileSpecs, progOrLib
     (includeFolders, libFolders) = FindOrFetchLibraries(buildName, packageData, platform, tools)
     SconsFile = "import os\n\n"
     SconsFile += "env = Environment(ENV=os.environ)\n"
+    SconsFile += 'env.Decider("timestamp-newer")\n'
     if platform == 'Windows':
         SconsFile += 'env.Append(CCFLAGS=["/EHsc", "/std:c++17"])\n'
         SconsFile += 'env.Append(CPPDEFINES=["NOMINMAX"])\n'
@@ -508,6 +516,7 @@ def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
     #building scons file
     SconsFile = "import os\n"
     SconsFile += "\nenv = Environment(ENV=os.environ)\nenv.MergeFlags('-g -std=gnu++17 -fpermissive  -fdiagnostics-color=always')\n"
+    SconsFile += 'env.Decider("timestamp-newer")\n'
     if progOrLib=='program': SconsFileType = "Program"
     elif progOrLib=='library': SconsFileType = "Library"
     elif progOrLib=='staticlibrary': SconsFileType = "StaticLibrary"

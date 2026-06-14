@@ -1,0 +1,55 @@
+// ReactGUI Render3D adapter
+
+FileName = "ReactGUI_Render3D"
+Version = "0.1"
+CopyrightMesg = "Copyright (c) 2026-<YEAR> Bruce Long"
+Authors = "Bruce Long"
+Description = "Optional Render3D adapter for ReactGUI"
+
+featuresNeeded = [ReactGUI, Render3D]
+ProgramOrLibrary = "library"
+
+struct GLOBAL{
+    me int64: reactGuiDiagThing3DRendered
+
+    void: resetReactGuiRender3DDiagnostics() <- {
+        reactGuiDiagThing3DRendered <- 0
+    }
+
+    our ReactGUIRenderCommand: reactGuiThing3DRenderCommand(our Thing3D: thing, our Window3D: win3D) <- {
+        our ReactGUIThing3DRenderCommand:: command
+        command.thing3D <- thing
+        command.win3D <- win3D
+        return(command)
+    }
+
+    our Drawel: addThing3DToDrawing(our dashDrawing: dr, our Thing3D: thing, our Window3D: win3D) <- {
+        return(dr.addRenderCommand(reactGuiThing3DRenderCommand(thing, win3D)))
+    }
+}
+
+struct ReactGUIThing3DRenderCommand: inherits=ReactGUIRenderCommand{
+    our Thing3D: thing3D
+    our Window3D: win3D
+
+    me bool: intersectsClip(their GUI_rect: clip) <- {
+        me GUI_Scalar: pad <- 8
+        if(win3D==NULL){return(true)}
+        return(win3D.windowXPos + win3D.windowWidth3D + pad >= clip.x1
+            and win3D.windowXPos - pad <= clip.x2
+            and win3D.windowYPos + win3D.windowHeight3D + pad >= clip.y1
+            and win3D.windowYPos - pad <= clip.y2)
+    }
+
+    void: recordRenderDiagnostic() <- {
+        if(thing3D!=NULL and win3D!=NULL){
+            reactGuiDiagThing3DRendered <+- 1
+        }
+    }
+
+    void: render(their GUI_ctxt: cr) <- {
+        if(thing3D!=NULL and win3D!=NULL){
+            thing3D.draw(cr, mat4ID, 0, win3D)
+        }
+    }
+}

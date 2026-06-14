@@ -1,7 +1,6 @@
 # codeGenerator.py
 import re
 import copy
-import datetime
 import platform
 import codeDogParser
 import libraryMngr
@@ -2379,6 +2378,17 @@ class CodeGenerator(object):
         oneFileMode = str(oneFileMode).lower()
         return not (oneFileMode in ['false', 'no', '0', 'split', 'multi', 'multiple'])
 
+    def maxSplitSourceFiles(self, tags):
+        maxSplitSourceFiles = progSpec.fetchTagValue(tags, 'MaxSplitSourceFiles')
+        if maxSplitSourceFiles == None:
+            maxSplitSourceFiles = progSpec.fetchTagValue(tags, 'maxSplitSourceFiles')
+        if maxSplitSourceFiles == None:
+            return 60
+        try:
+            return int(maxSplitSourceFiles)
+        except (TypeError, ValueError):
+            cdErr("Unknown MaxSplitSourceFiles buildSpec value '{}'. Use an integer, or 0 to force split mode.".format(maxSplitSourceFiles))
+
     def generatedHeaderName(self, tags):
         return progSpec.fetchTagValue(tags, "FileName") + '.hpp'
 
@@ -2459,7 +2469,6 @@ class CodeGenerator(object):
         header += "// This file: " + filename +'\n'
         header += "// Dog File: " + self.makeTagText(tags, 'dogFilename') +'\n'
         header += "// Authors of CodeDog file: " + self.makeTagText(tags, 'Authors') +'\n'
-        header += "// Build time: " + datetime.datetime.today().strftime('%c') + '\n'
         header += "\n// " + self.makeTagText(tags, 'Description') +'\n'
         header += "\n/*  " + self.makeTagText(tags, 'LicenseText') +'\n*/\n'
         header += "\n// Build Options Used: " +'Not Implemented'+'\n'
@@ -2588,12 +2597,26 @@ class CodeGenerator(object):
                     constsEnums   += classRecord[0]
                     forwardDecls  += classRecord[1]
                     structCodeAcc += classRecord[2]
-                    if oneFileTF:
-                        funcCodeAcc += classRecord[3]
-                    else:
+                    funcCodeAcc += classRecord[3]
+                    if not oneFileTF:
                         [headerSupport, implementation] = self.splitHeaderSupportFromFuncCode(classRecord[3])
                         splitHeaderSupportAcc += headerSupport
                         splitFuncCodeByClass[className] = implementation
+
+        if not oneFileTF:
+            splitSourceCount = 1
+            for className, implementation in splitFuncCodeByClass.items():
+                if implementation.strip() != "":
+                    splitSourceCount += 1
+            maxSplitSourceFiles = self.maxSplitSourceFiles(tags)
+            if maxSplitSourceFiles > 0 and splitSourceCount > maxSplitSourceFiles:
+                buildDog.buildStatus(
+                    "Split source mode requested, but {} C++ source files exceeds MaxSplitSourceFiles={}; using single source file. Set MaxSplitSourceFiles=0 to force split mode.".format(
+                        splitSourceCount,
+                        maxSplitSourceFiles
+                    )
+                )
+                oneFileTF = True
 
         if oneFileTF: # Generate a single source file
             filename = self.makeTagText(tags, 'FileName')+fileExtension

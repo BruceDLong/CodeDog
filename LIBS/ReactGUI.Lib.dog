@@ -30,6 +30,25 @@ struct GLOBAL{
         me GUI_Scalar: deltaY <- abs(y2-y1)
         return(sqrt(deltaX*deltaX + deltaY*deltaY))
     }
+    me string: fetchStringField(our POV: info) <- {
+        if(info==NULL){return("")}
+        me string: retVal <- info.pItem.fetchString()
+        if(info.pItem.value.format==fUnknown){retVal <- ""}
+        return(retVal)
+    }
+    our POV: fetchField(our POV: info, me string: paramName) <- {
+        if(info==NULL){return(NULL)}
+        our POV: retVal <- info.pItem.fetchField(paramName)
+        return(retVal)
+    }
+    our POV: safeFetchField(our POV: source, me string: paramName) <- {
+        our POV: retPov <- fetchField(source, paramName)
+        if(retPov==NULL){
+            print("\n\nERROR: Parameter "+paramName+" was not found. Exiting.\n")
+            logFatalError("Parameter "+paramName+" was not found in:\n"+source.stringify())
+        }
+        return(retPov)
+    }
 }
 
 struct EventTrigger:inherits=<mode[tPrimaryClick, tSecondaryClick, tPrimaryUp, tPrimaryDn, tSecondaryUp, tSecondaryDn,
@@ -38,9 +57,10 @@ struct EventTrigger:inherits=<mode[tPrimaryClick, tSecondaryClick, tPrimaryUp, t
                                   ]> {}
 
 struct EventType:inherits=<mode[eNullEvent, eNormalize, eAddInfon, eDeleteInfon, eEditString, eEditInt, eEditByType,
-                                eMoveInfonInList, eMoveInfonToList, eGUI_PopupModal,
+                                eMoveInfonInList, eMoveInfonToList, eGUI_PopupModal, eClosePopup,
                                 eGUI_SetXY, eGUI_SetColor, eGUI_SetDragMode, eGUI_SetTimer, eGUI_setStr1, eGUI_setInt1,
-                                eGUI_SetViewMode, eReqRedraw, eBlockEvents
+                                eGUI_SetViewMode, eReqRedraw, eBlockEvents, eGUI_setActiveFlag,
+                                eMouseMoved, ePrimaryClick, eSecondaryClick, eKeyTyped
                                 // Add events for system events such as play_sound or fetch_file
                                ]> {}
 
@@ -53,13 +73,15 @@ struct GuiCoords{
 }
 
 struct GuiDataRec{
+    me int64: isActive   // 0=not active; 1=active, firstTime, 2=active, not first time
     me string: str1
+    me string: str2
     me int64:  int1
     me int64:  int2
     me GuiCoords:coordinates
     me cdColor: color
     our POV: pov
-
+    our ReactiveControl: ctrl
 }
 
 struct ProactEvent{
@@ -69,6 +91,7 @@ struct ProactEvent{
     me GUI_Scalar: Y
     me GUI_Scalar: W
     me GUI_Scalar: H
+    our POV: topPov
     me bool: hasRedrawBounds
     me GUI_Scalar: redrawX
     me GUI_Scalar: redrawY
@@ -87,8 +110,12 @@ struct ProactEvent{
     our dashDrawing: popupDR
     their cdColor: NewColor
 
-    void: setTrigger(me EventTrigger: trigger, their GuiCoords:RA) <- {
-        Trigger<-trigger; X<-RA.X; Y<-RA.Y; W<-RA.W; H<-RA.H; hasRedrawBounds <- false;
+    // Event vars
+    me GUI_Scalar: evX
+    me GUI_Scalar: evY
+
+    void: setTrigger(me EventTrigger: trigger, their GuiCoords:RA, our POV: TopPov<-NULL) <- {
+        Trigger<-trigger; X<-RA.X; Y<-RA.Y; W<-RA.W; H<-RA.H; topPov<-TopPov; hasRedrawBounds <- false;
     }
     void: setRedrawBounds(their GuiCoords:RA) <- {
         redrawX<-RA.X; redrawY<-RA.Y; redrawW<-RA.W; redrawH<-RA.H; hasRedrawBounds <- true;
@@ -98,9 +125,12 @@ struct ProactEvent{
     void: setGUI_Event(me EventType: evntType, our infon: target, me GUI_Scalar: a1, me GUI_Scalar: a2, me GUI_Scalar: a3, me GUI_Scalar: a4) <- {
         eventType<-evntType; arg1<-a1; arg2<-a2; arg3<-a3; arg4<-a4; done <- false;
     }
+    void: setGUI_CallFunc(me EventType: evntType, me string: dataID)<-{eventType<-evntType; dataIdTag<-dataID; done <- false}
     void: setGUI_Event1(me EventType: evntType)<-{eventType<-evntType; done <- false}
     void: setGUI_Store_Str1(me string: dataID, me string: strVal)<-{eventType<-eGUI_setStr1; dataIdTag<-dataID; text<-strVal; done <- false}
     void: setGUI_Store_Int1(me string: dataID, me int64: intVal)<-{eventType<-eGUI_setInt1; dataIdTag<-dataID; int1<-intVal; done <- false}
+    void: setGUI_ClosePopup(me string: dataID)<-{eventType<-eClosePopup; dataIdTag<-dataID; done <- false}
+    void: setGUI_SetActiveFlag(me string: dataID, me bool: active)<-{eventType<-eGUI_setActiveFlag; dataIdTag<-dataID; int1<-active; done <- false}
     void: setGUI_popupEvent(me string: dataID, our POV:POVOfInfonToShow)<-{eventType<-eGUI_PopupModal; dataIdTag<-dataID; infonX<-POVOfInfonToShow; done <- false}
     void: setGUI_Color(me string: colorSlotID, their cdColor: newColor) <- {
         eventType<-eGUI_SetColor; text<-colorSlotID; NewColor<-newColor; done <- false;
@@ -123,10 +153,16 @@ struct ParamRec{
     me GUI_Scalar: posH
     me string: text
 
+    flag: startActive
+
     me string: viewStyleTag         // How will this be drawn
-    me string: viewStyleTagArg      // arguemnts to modify it
+    me string: viewStyleTagArg      // arguments to modify it
     our ReactiveControl: viewStyleCtrl
+    our GuiDataRec: parentCtrlsData
     their fontSpec: font
+    me cdColor: foreGnd
+
+    our POV: topPov // The top level Dash for this, if there is one.
 
     // Drag args
     our POV: screenPos   <- NULL
@@ -134,6 +170,7 @@ struct ParamRec{
     our POV: yPov        <- NULL
     our POV: width       <- NULL
     our POV: height      <- NULL
+    flag: isADash  // Draggable, Z-Stackable, Can have multiple views of same data, has a config-dialog, can be on Dashboard
 
     void: init(our POV: source, me GUI_Scalar: X, me GUI_Scalar: Y, me GUI_Scalar: W, me GUI_Scalar: H) <- {
         sourcePov     <- source
@@ -147,23 +184,70 @@ struct ParamRec{
         yPov          <- NULL
         screenPos <- fetchField(propertiesPov, "screenpos")
         if(screenPos!=NULL){
-            xPov <- fetchField(screenPos, "xpos")
-            yPov <- fetchField(screenPos, "ypos")
-            posX<-xPov.pItem.fetchDouble()
-            posY<-yPov.pItem.fetchDouble()
+            xPov <- fetchField(screenPos, "xloc")
+            yPov <- fetchField(screenPos, "yloc")
+            if(xPov!=NULL and yPov!=NULL){
+                posX<-xPov.pItem.fetchDouble()
+                posY<-yPov.pItem.fetchDouble()
+            }
         }
     }
 }
 
 struct ReactiveControl{
-    me bool: isActive
+    me int64: isActive
     me bool: expandsX()<-{return(false)}
     me bool: expandsY()<-{return(false)}
-    void: setMetrics(their ParamRec: PR) <- {}
-    void: draw(our dashDrawing: dr, their ParamRec: PR, their Presenter: presenter) <- {}
-    void: fetchState() <- {}
-    void: registerStaticEvent() <- {}
-    void: registerActiveEvent() <- {}
+    void: setMetrics(our ParamRec: PR) <- {}
+    void: draw(our dashDrawing: dr, our ParamRec: iPR) <- {}
+    void: saveBack() <- {}
+    void: processEntry(me string: buffer) <- {}
+
+    me bool: mouseMoved(me GUI_Scalar:posX, me GUI_Scalar:posY) <- {return(false)}
+    me bool: primaryClick(me GUI_Scalar:posX, me GUI_Scalar:posY) <- {return(false)}
+    me bool: keyTyped(their GUI_KeyboardEvent: event) <- {return(false)}
+}
+
+struct StringView: inherits=ReactiveControl{
+    void: setMetrics(our ParamRec: PR) <- {
+        me string: text <- PR.sourcePov.pItem.value.str
+        me deltaSize: DSize <- getTextSize(text, PR.font)
+        PR.posW <- DSize.width + Yborder*2
+        PR.posH <- DSize.height + Xborder*2
+    }
+    void: draw(our dashDrawing: dr, our ParamRec: PR) <- {
+        dr.addC(cmdSetColor, styler.White)
+        me string: text
+        if(PR.sourcePov.pItem.type!=NULL){
+            text <- PR.sourcePov.pItem.type.asGiven+": "
+        }
+        text <+- PR.sourcePov.pItem.value.str
+        dr.addTF(cmdRenderText, PR.posX, PR.posY, text, PR.font)
+        dr.add1(cmdFill)
+    }
+    me bool: expandsX()<-{return(false)}
+    me bool: expandsY()<-{return(false)}
+}
+
+struct NumberView: inherits=ReactiveControl{
+    void: setMetrics(our ParamRec: PR) <- {
+        me string: text <- toString(PR.sourcePov.pItem.value.num)
+        me deltaSize: DSize <- getTextSize(text, PR.font)
+        PR.posW <- DSize.width + Yborder*2
+        PR.posH <- DSize.height + Xborder*2
+    }
+    void: draw(our dashDrawing: dr, our ParamRec: PR) <- {
+        dr.addC(cmdSetColor, styler.White)
+        me string: text
+        if(PR.sourcePov.pItem.type!=NULL){
+            text <- PR.sourcePov.pItem.type.asGiven+": "
+        }
+        text <+- toString(PR.sourcePov.pItem.value.num)
+        dr.addTF(cmdRenderText, PR.posX, PR.posY, text, PR.font)
+        dr.add1(cmdFill)
+    }
+    me bool: expandsX()<-{return(false)}
+    me bool: expandsY()<-{return(false)}
 }
 
 struct WidgetMngr{
@@ -176,7 +260,6 @@ struct WidgetMngr{
     void: setviewStyleTagCtrl(me string: key, our ReactiveControl: ctrl) <- {
         key <- unicodeMgr.normalizeStr(key)
         viewStyleTags[key] <- ctrl
-        print("SET:"+key+"\n")
     }
     me Map<string, our ReactiveControl>: viewStyleTags
 
@@ -192,12 +275,49 @@ struct WidgetMngr{
 
 struct Presenter{
     their GuiModelManager: modelMgr
+    me string: crntFocusIDStr
+    our GuiDataRec: crntGDR
+    our POV: crntFocusTopPov
 
     me List<our ProactEvent>: eventRegistry             // For events with a single target
     me List<our ProactEvent>: broadcastEventRegistry    // More than one target wants to know
 
     void: registerEvent(our ProactEvent: event) <- {eventRegistry.prepend(event)}
     void: registerBroadcastEvent(our ProactEvent: event) <- {broadcastEventRegistry.prepend(event)}
+
+    void: grabFocus(me string: widgetID, our POV: topPov<-NULL) <- {
+        if(widgetID == crntFocusIDStr){
+            if(topPov!=NULL){crntFocusTopPov <- topPov}
+            return()
+        }
+        if(crntFocusIDStr!=""){
+            our GuiDataRec: old_GDR <- modelMgr.fetchGuiData(crntFocusIDStr) // Get currently focused item
+            if(old_GDR!=NULL){old_GDR.isActive<-0}
+            //log("DEACTIVATING:"+crntFocusIDStr)
+        }
+        our GuiDataRec: new_GDR <- modelMgr.fetchGuiData(widgetID)
+        if(new_GDR==NULL){
+            Allocate(new_GDR)
+            modelMgr.guiData[widgetID] <- new_GDR
+        }
+        if(new_GDR!=NULL){
+            new_GDR.isActive <+- 1
+            crntFocusIDStr <- widgetID
+            crntGDR <- new_GDR
+            crntFocusTopPov <- topPov
+            //log("ACTIVATING:"+widgetID)
+        }
+    }
+    void: clearFocus() <- {
+        if(crntGDR!=NULL){
+            print("clearFocus()-B")
+            crntGDR.ctrl.saveBack()
+            crntGDR.isActive <- 0
+            crntGDR <- NULL
+            crntFocusIDStr <- ""
+            crntFocusTopPov <- NULL
+        }
+    }
     void: reset() <- {eventRegistry.clear(); broadcastEventRegistry.clear()}
 
     // Returns true if mouse is currently over this.
@@ -217,22 +337,28 @@ struct Presenter{
         return(mouseIsOver)
     }
 
-    me string: chooseviewStyleTag(their ParamRec: PR) <- {
+    me bool: itemIsThing(our infon: item) <- {
+        return(!item.value.items.isEmpty() and item.value.items.first().type.asGiven =="thing")
+    }
+
+    me string: chooseviewStyleTag(our ParamRec: PR) <- {
         me string: retval
+        if(PR.sourcePov.pItem.value.timelike){return("timeView")}
+        if(itemIsThing(PR.sourcePov.pItem)){return("3DThing")}
         if(PR.propertiesPov!=NULL){
             our POV: viewStyleTag <- fetchField(PR.propertiesPov, "viewStyleTag")
             if(viewStyleTag){
-                me string: viewStyleTagTag <- fetchStringField(viewStyleTag)
-                return(viewStyleTagTag)
+                me string: VSTagStr <- fetchStringField(viewStyleTag)
+                return(VSTagStr)
             }
             viewStyleTag <- fetchField(PR.propertiesPov, "viewStyleTagDefault")
             if(viewStyleTag){
-                me string: viewStyleTagTag <- fetchStringField(viewStyleTag)
-                return(viewStyleTagTag)
+                me string: VSTagStr <- fetchStringField(viewStyleTag)
+                return(VSTagStr)
             }
         }
         me string: itemsType
-        if(PR.sourcePov.pItem.type!=NULL){
+        if(PR.sourcePov!=NULL and PR.sourcePov.pItem.type!=NULL){
             itemsType <- PR.sourcePov.pItem.type.asGiven
         }
         if(itemsType!=""){retval<-itemsType}
@@ -243,10 +369,10 @@ struct Presenter{
                 case NUM:{retval<-"genericNumber"}
             }
         }
-    if(retval=="note" or retval=="role"){retval<-"genericString"}
+    if(retval=="note" or retval=="role" or retval=="title"){retval<-"genericString"}
     else if(retval=="subtasks" or retval=="members"){retval<-"genericList"}
 
-    if(PR.viewStyleTagArg=="_edit"){retval<+-"_edit"}
+        if(PR.viewStyleTagArg=="_edit"){retval<+-"_edit"}
         retval <- unicodeMgr.normalizeStr(retval)
         PR.viewStyleTag <- retval
         PR.viewStyleCtrl<- widgetMngr.getviewStyleTagCtrl(retval)
@@ -270,27 +396,22 @@ struct Presenter{
             dr.addXY(cmdLineTo, posX + radius, posY + 7*radius/4)
             dr.addXY(cmdMoveTo, posX + radius/4, posY + radius)
             dr.addXY(cmdLineTo, posX + 7*radius/4, posY + radius)
-        }
-        else if (symbol=="-") {
+        } else if (symbol=="-") {
             dr.addXY(cmdMoveTo, posX + radius/4, posY + radius)
             dr.addXY(cmdLineTo, posX + 7*radius/4, posY + radius)
-        }
-        else if (symbol=="<") {
+        } else if (symbol=="<") {
             dr.addXY(cmdMoveTo, posX + radius, posY + radius - stickLen * sqrt(2.0))
             dr.addXY(cmdLineTo, posX + radius - stickLen * sqrt(2), posY + radius)
             dr.addXY(cmdLineTo, posX + radius, posY + radius + stickLen * sqrt(2.0))
-        }
-        else if (symbol==">") {
+        } else if (symbol==">") {
             dr.addXY(cmdMoveTo, posX + radius, posY + radius - stickLen * sqrt(2.0))
             dr.addXY(cmdLineTo, posX + radius + stickLen * sqrt(2), posY + radius)
             dr.addXY(cmdLineTo, posX + radius, posY + radius + stickLen * sqrt(2.0))
-        }
-        else if (symbol=="v") {
+        } else if (symbol=="v") {
             dr.addXY(cmdMoveTo, posX  - stickLen * sqrt(2.0), posY )
             dr.addXY(cmdLineTo, posX, posY + radius)
             dr.addXY(cmdLineTo, posX  + stickLen * sqrt(2.0), posY)
-        }
-        else if (symbol=="menu") {
+        } else if (symbol=="menu") {
             dr.addXY(cmdMoveTo, posX + radius/4, posY + radius)
             dr.addXY(cmdLineTo, posX + 7*radius/4, posY + radius)
 
@@ -308,7 +429,7 @@ me int: GV_innerVert_Pad <- 5
 me int: GV_innerHorz_Pad <- 5
 me int: GV_topBottom_Pad <- 5
 
-    void: draw_X_stack_XYwh(our dashDrawing: dr, their ParamRec: PR) <- {
+    void: draw_X_stack_XYwh(our dashDrawing: dr, our ParamRec: PR) <- {
         // Draw the list body
         me GUI_Scalar: xCur <- PR.posX
         me GUI_Scalar: maxH <- 0
@@ -318,7 +439,7 @@ me int: GV_topBottom_Pad <- 5
             if(count>0){xCur <+- GV_innerHorz_Pad}
             dr.addC(cmdSetColor, surfaceBkgnd)
             our dashDrawing:: dr2
-            me ParamRec: iPR; iPR.init(pov, xCur, PR.posY, 0, 0)
+            our ParamRec:: iPR; iPR.init(pov, xCur, PR.posY, 0, 0); iPR.topPov <- PR.topPov
             chooseviewStyleTag(iPR)
             iPR.viewStyleTagArg <- PR.viewStyleTagArg
             drawItem(dr2, iPR)
@@ -332,7 +453,7 @@ me int: GV_topBottom_Pad <- 5
         PR.posH <- maxH
         PR.posW <- xCur-PR.posX
     }
-    void: draw_Y_stack_XYWh(our dashDrawing: dr, their ParamRec: PR) <- {
+    void: draw_Y_stack_XYWh(our dashDrawing: dr, our ParamRec: PR) <- {
         // Draw the list body
         me GUI_Scalar: yCur <- PR.posY+GV_topBottom_Pad
         me List<our ParamRec>: itemParams
@@ -342,6 +463,7 @@ me int: GV_topBottom_Pad <- 5
         while(pov){
             if(count>0){yCur <+- GV_innerVert_Pad}
             our ParamRec:: innerPR; innerPR.init(pov, PR.posX+GV_LeftRight_Pad, yCur, PR.posW-(GV_LeftRight_Pad*2), 0)
+            innerPR.topPov <- PR.topPov
             if(PR.viewStyleTagArg=="_edit"){innerPR.viewStyleTagArg <- PR.viewStyleTagArg}
             innerPR.font <- styler.defaultFont
             chooseviewStyleTag(innerPR)
@@ -357,13 +479,14 @@ me int: GV_topBottom_Pad <- 5
             pov <- pov.next
         }
 
+        yCur <+- GV_topBottom_Pad
+        PR.posH <- yCur-PR.posY   // return the height
+
         withEach iPR in itemParams{
             dr.addC(cmdSetColor, surfaceBkgnd)
             iPR.viewStyleTagArg <- PR.viewStyleTagArg
             drawItem(dr, iPR)
         }
-        yCur <+- GV_topBottom_Pad
-        PR.posH <- yCur-PR.posY   // return the height
     }
 }
 
@@ -372,13 +495,20 @@ struct GuiModelManager{
 
     // TODO: Use these next 5 fields to better organize sessions
     our POV: session
-    void: NewUserSession() <- {}
+    void: NewUserSession()  <- {}
     void: openUserSession() <- {}
     void: saveUserSession() <- {}
-    void: sendSaveSignal() <- {log("TODO: Request and save the model")}
+    void: sendSaveSignal()  <- {log("TODO: Request and save the model")}
 
-    our GuiDataRec: fetchGuiData(me string: itemID) <-{
-        itr Map<me string, our GuiDataRec>: it <- guiData.find(itemID)
+    void: setGuiData(me string: dataID, our GuiDataRec: GDR) <- {guiData[dataID] <- GDR}
+    void: setString(me string: dataID,  me string: val) <- {our GuiDataRec:: GDR; GDR.str1<-val; setGuiData(dataID, GDR)}
+    void: setBool  (me string: dataID,  me bool:   val) <- {our GuiDataRec:: GDR; GDR.int1<-val; setGuiData(dataID, GDR)}
+    void: setInt64 (me string: dataID,  me int64:  val) <- {our GuiDataRec:: GDR; GDR.int1<-val; setGuiData(dataID, GDR)}
+    void: setColor (me string: dataID,  their cdColor: val)  <- {our GuiDataRec:: GDR; GDR.color<-val;       setGuiData(dataID, GDR)}
+    void: setCoords(me string: dataID,  their GuiCoords: val)<- {our GuiDataRec:: GDR; GDR.coordinates<-val; setGuiData(dataID, GDR)}
+
+    our GuiDataRec: fetchGuiData(me string: dataID) <-{
+        itr Map<me string, our GuiDataRec>: it <- guiData.find(dataID)
         if(it == guiData.end()){return(NULL)}
         return(it.val)
     }
@@ -398,7 +528,7 @@ struct GuiModelManager{
         if(result==NULL){return(Default)}
         return(result.int1 != 0)
     }
-    me bool: getInt64(me string: dataID, me int64: Default) <- {
+    me int64: getInt64(me string: dataID, me int64: Default) <- {
         our GuiDataRec: result <- fetchGuiData(dataID)
         if(result==NULL){return(Default)}
         return(result.int1)
@@ -419,10 +549,19 @@ struct ProactiveGUI{
         presenter.modelMgr <- guiModelManager
     }
 }
+
+struct ReactGUIRenderCommand{
+    me bool: intersectsClip(their GUI_rect: clip) <- {
+        return(true)
+    }
+    void: recordRenderDiagnostic() <- {}
+    void: render(their GUI_ctxt: cr) <- {}
+}
+
 struct DrawCmd:inherits=<mode[cmdMoveTo, cmdLineTo, cmdDrawRect, cmdRoundRect, cmdRoundTopRect, cmdRoundBotRect,
                                  cmdRenderText, cmdRenderTextCentered, cmdDrawImage, cmdDrawBkgndImage,
                                  cmdDrawCircle, cmdSetColor, cmdSetLineWidth, cmdRoundLineCap, cmdEdgedLineCap,
-                                 cmdFill, cmdStroke, cmdSubDrawing
+                                 cmdFill, cmdStroke, cmdSubDrawing, cmdRenderCommand
                              ]> {}
 
 struct Drawel{
@@ -436,6 +575,7 @@ struct Drawel{
     me string: text
     their fontSpec: font
     our dashDrawing: drawing
+    our ReactGUIRenderCommand: renderCommand
 
     me bool: rectIntersectsClip(me GUI_Scalar: x1, me GUI_Scalar: y1, me GUI_Scalar: x2, me GUI_Scalar: y2, their GUI_rect: clip) <- {
         return(x2>=clip.x1 and x1<=clip.x2 and y2>=clip.y1 and y1<=clip.y2)
@@ -447,7 +587,7 @@ struct Drawel{
         return(cmd==cmdFill or cmd==cmdStroke)
     }
     me bool: isCullableDirectCommand() <- {
-        return(cmd==cmdRenderText or cmd==cmdRenderTextCentered)
+        return(cmd==cmdRenderText or cmd==cmdRenderTextCentered or cmd==cmdRenderCommand)
     }
     me bool: intersectsClip(their GUI_rect: clip) <- {
         me GUI_Scalar: pad <- 8
@@ -465,6 +605,10 @@ struct Drawel{
             me GUI_Scalar: textW <- text.size() * font.height
             return(rectIntersectsClip(x-(textW/2)-pad, y-font.height-pad, x+(textW/2)+pad, y+font.height+pad, clip))
         }
+        case cmdRenderCommand: {
+            if(renderCommand==NULL){return(true)}
+            return(renderCommand.intersectsClip(clip))
+        }
         }
         return(true)
     }
@@ -477,6 +621,9 @@ struct Drawel{
         case cmdDrawImage:          {reactGuiDiagImageRendered <+- 1}
         case cmdDrawBkgndImage:     {reactGuiDiagBackgroundRendered <+- 1}
         case cmdSubDrawing:         {reactGuiDiagSubDrawingRendered <+- 1}
+        case cmdRenderCommand:      {
+            if(renderCommand!=NULL){renderCommand.recordRenderDiagnostic()}
+        }
         }
     }
 
@@ -501,6 +648,9 @@ struct Drawel{
         case cmdRoundLineCap:   {cr.setRoundLineCap()}
         case cmdEdgedLineCap:   {cr.setEdgedLineCap()}
         case cmdSubDrawing:     {drawing.render(cr)}
+        case cmdRenderCommand:  {
+            if(renderCommand!=NULL){renderCommand.render(cr)}
+        }
         }
     }
 }
@@ -517,6 +667,7 @@ struct dashDrawing{
     our Drawel: addRAA(me DrawCmd: dCmd, their GuiCoords:RA, me GUI_Scalar: ARG) <-{our Drawel:: drl{RA.X,RA.Y,RA.W,RA.H,ARG}; drl.cmd<-dCmd; cmds.pushLast(drl); return(drl)}
     our Drawel: addTF(me DrawCmd: dCmd, me GUI_Scalar: X, me GUI_Scalar: Y, me string: T, their fontSpec: F) <-{our Drawel:: drl; drl.cmd<-dCmd; drl.x<-X drl.y<-Y; drl.text<-T; drl.font<-F; cmds.pushLast(drl); return(drl)}
     our Drawel: addSubDrawing(our dashDrawing: D)<-{our Drawel:: drl; drl.cmd<-cmdSubDrawing; drl.drawing<-D; cmds.pushLast(drl); return(drl)}
+    our Drawel: addRenderCommand(our ReactGUIRenderCommand: command)<-{our Drawel:: drl; drl.cmd<-cmdRenderCommand; drl.renderCommand<-command; cmds.pushLast(drl); return(drl)}
 
     me void: render(their GUI_ctxt: cr) <- {
         our GUI_rect:: clip
@@ -708,12 +859,17 @@ struct ProactiveGUIWidget: inherits=DashboardWidget{
         primaryButtonDownX <- event.x
         primaryButtonDownY <- event.y
         pendingDragStartEvent <- findEventUnderCursor(tDragStart, event.x, event.y)
+        if(pendingDragStartEvent!=NULL and pendingDragStartEvent.topPov!=NULL){
+            proactiveGUI.guiModelManager.processCommand(pendingDragStartEvent)
+        }
         return(false)
     }
     me bool: primaryClick(their GUI_ButtonEvent: event) <- {
         me bool: retval <- false
         our ProactEvent: eventNode <- findEventUnderCursor(tPrimaryClick, event.x, event.y)
         if(eventNode){
+            eventNode.evX <- event.x
+            eventNode.evY <- event.y
             proactiveGUI.guiModelManager.processCommand(eventNode)
             retval <- true
         }
@@ -733,6 +889,16 @@ struct ProactiveGUIWidget: inherits=DashboardWidget{
             }
         }
         return(false)
+    }
+
+    me bool: keyTyped(their GUI_KeyboardEvent: event) <- {
+        me bool: retval <- false
+        our GuiDataRec: GDR <- proactiveGUI.presenter.crntGDR
+        our POV: focusTopPov <- proactiveGUI.presenter.crntFocusTopPov
+        if(GDR!=NULL and GDR.ctrl!=NULL and (focusTopPov==NULL or proactiveGUI.guiModelManager.isPovTopWindow(focusTopPov))){
+            retval <- GDR.ctrl.keyTyped(event)
+        }
+        return(retval)
     }
 
     their GUI_canvas: initProactiveGUI() <- {
