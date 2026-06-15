@@ -7,7 +7,7 @@ featuresNeeded = [List, Threads]
 
 struct graphLogger{
     me List<me string>: items
-    me Map<me string, me string>: rankSlots
+    me Map<me string, me string: rangeIteration=logarithmic>: rankSlots
     me Mutex: graphLoggerMutex
 
     me string: deQuote(me string: S) <-{

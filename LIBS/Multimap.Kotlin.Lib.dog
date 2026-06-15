@@ -6,10 +6,90 @@ requirements = [
 interface={
     provides = [Multimap_implementation]
     libFiles = []
-    headers  = []
+    headers  = [java.util.TreeMap, java.util.ArrayList]
 }
 
 LibDescription ={
     useStatus   = dynamic
     description = 'Multimap provider for Kotlin'
+}
+
+embedVeryHigh = `
+data class KotlinTreeMultimapEntry<K, V>(val key: K, val value: V)
+
+class KotlinTreeMultimap<K : Comparable<K>, V> {
+    private val data = TreeMap<K, ArrayList<V>>()
+    var size: Int = 0
+        private set
+
+    val entries: Sequence<KotlinTreeMultimapEntry<K, V>>
+        get() = data.asSequence().flatMap { item ->
+            item.value.asSequence().map { value -> KotlinTreeMultimapEntry(item.key, value) }
+        }
+
+    operator fun get(key: K): V {
+        return data[key]?.firstOrNull() ?: throw NoSuchElementException("Key not found: " + key)
+    }
+
+    fun clear() {
+        data.clear()
+        size = 0
+    }
+
+    fun containsKey(key: K): Boolean {
+        return data.containsKey(key)
+    }
+
+    fun remove(key: K) {
+        val removed = data.remove(key)
+        if (removed != null) {
+            size -= removed.size
+        }
+    }
+
+    fun put(key: K, value: V) {
+        val values = data.getOrPut(key) { ArrayList<V>() }
+        values.add(value)
+        size += 1
+    }
+
+    fun isEmpty(): Boolean {
+        return size == 0
+    }
+
+    fun firstEntry(): KotlinTreeMultimapEntry<K, V> {
+        val first = data.firstEntry()
+        return KotlinTreeMultimapEntry(first.key, first.value.first())
+    }
+
+    fun lastEntry(): KotlinTreeMultimapEntry<K, V> {
+        val last = data.lastEntry()
+        return KotlinTreeMultimapEntry(last.key, last.value.last())
+    }
+
+    fun popFirst(): V {
+        val first = data.firstEntry()
+        val value = first.value.removeAt(0)
+        if (first.value.isEmpty()) {
+            data.remove(first.key)
+        }
+        size -= 1
+        return value
+    }
+}
+`
+
+struct Kotlin_TreeMultimap<keyType, valueType>: implements=Multimap wraps=KotlinTreeMultimap native=lang specs={insert=logarithmic find=logarithmic at=logarithmic rangeIteration=logarithmic}{
+    valueType: at(keyType: key)                   <- <%!%0[%1]%>
+    valueType: __index(keyType: key)              <- <%!%0[%1]%>
+    void: clear()                                 <- <%!clear()%>
+    me bool: containsKey(keyType: key)            <- <%!containsKey(%1)%>
+    void: erase(keyType: key)                     <- <%!remove(%1)%>
+    valueType: find(keyType: key)                 <- <%!%0[%1]%>
+    valueType: first()                            <- <%!%0.firstEntry().value%>
+    itr valueType: insert(keyType: key, valueType: value) <- <%!put(%1, %2)%>
+    me bool:  isEmpty()                           <- <%!isEmpty()%>
+    valueType: last()                             <- <%!%0.lastEntry().value%>
+    valueType: popFirst()                         <- <%!popFirst()%>
+    me uint:  size()                              <- <%!%0.size%>
 }

@@ -34,7 +34,7 @@ model Multimap<keyType, valueType>{
 }
 
 ////////////////////////////////////////////////////////
-struct RBMultimap<keyType, valueType>: implements=Multimap native=codeDog specs={insert=logarithmic find=logarithmic at=logarithmic}{ // constant
+struct RBMultimap<keyType, valueType>: implements=Multimap native=codeDog specs={insert=logarithmic find=logarithmic at=logarithmic rangeIteration=logarithmic}{ // constant
     // Thanks to: https://www.programiz.com/dsa/red-black-tree
     const struct: Node_RBMultimap(keyType: key, valueType: value): implements=MapNode <- {
         me keyType: key
@@ -449,4 +449,3 @@ struct RBMultimap<keyType, valueType>: implements=Multimap native=codeDog specs=
         Allocate(edge)
     }
 }
-

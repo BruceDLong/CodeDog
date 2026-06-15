@@ -14,7 +14,7 @@ LibDescription ={
     description = 'Multimap in routines for CPP'
 }
 
-struct CPP_Multimap<keyType, valueType>: implements=Multimap wraps=multimap native=lang specs={insert=logarithmic find=logarithmic at=logarithmic}{
+struct CPP_Multimap<keyType, valueType>: implements=Multimap wraps=multimap native=lang specs={insert=logarithmic find=logarithmic at=logarithmic rangeIteration=logarithmic}{
     const struct: iterator_CPP_Multimap(keyType: key, valueType: value): implements=MultimapItr native=lang <- {
         me keyType: key()                        <- <%!%0.first%>
         me valueType: val()                      <- <%!%0->second%>

@@ -173,7 +173,7 @@ struct testClass{
      'actions/listRep':      ['struct testClass{me void: runTest()<-{me List<me int>:testList<-[2,13,-22,188]\nwithEach T in testList {print(T," ")}}}', 'PGBR:2 13 -22 188 '],
      'actions/backListRep':  ['struct testClass{me void: runTest()<-{me List<me int>:testListBackward<-[2,13,-22,188]\nwithEach TB in testListBackward Backward {print(TB," ")}}}', 'PGBR:188 -22 13 2 '],
      'actions/listKeyRep':   ['struct testClass{me void: runTest()<-{me List<me int>:testKeyList<-[2,3,5,8,13,21]\nwithEach idx in range 0 .. testKeyList.size() {print(idx,"-", testKeyList[idx], " ")}}}', 'PGBR:0-2 1-3 2-5 3-8 4-13 5-21 '],
-     'actions/mapRep':       ['struct testClass{me void: runTest()<-{me Map<me string, me string>:testMap\ntestMap["E"]<-"every"\ntestMap["G"]<-"good"\ntestMap["B"]<-"boy"\ntestMap["D"]<-"does"\ntestMap["F"]<-"fine"\nwithEach M in testMap {print(M," ")}}}', 'PGBR:boy does every fine good '],
+     'actions/mapRep':       ['struct testClass{me void: runTest()<-{me Map<me string, me string: rangeIteration=logarithmic>:testMap\ntestMap["E"]<-"every"\ntestMap["G"]<-"good"\ntestMap["B"]<-"boy"\ntestMap["D"]<-"does"\ntestMap["F"]<-"fine"\nwithEach M in testMap {print(M," ")}}}', 'PGBR:boy does every fine good '],
      #'actions/mapKeyRep':    ['struct testClass{me void: runTest()<-{me Map<me string, me string>:testMapKey\ntestMapKey["E"]<-"every"\ntestMapKey["G"]<-"good"\ntestMapKey["B"]<-"boy"\ntestMapKey["D"]<-"does"\ntestMapKey["F"]<-"fine"\nwithEach MK in testMapKey {print(MK_key,"-",MK," ")}}}', 'PGBR:B-boy D-does E-every F-fine G-good '],
      #'actions/deleteListRep':['struct testClass{me void: runTest()<-{me List<me int>:testDelList<-[2,3,5,8,13,21]\nwithEach TD in testDelList {if(TD_key==3){testDelList.erase(TD_key)\nTDIdx<-TDIdx-1}\nelse{print(TD, " ")}}}}', 'PGBR:2 3 5 13 21 '],
      'actions/repetitions':  ['''
@@ -187,7 +187,7 @@ struct testClass{
         withEach TB in testListBackward Backward {print(TB," ")}
         me List<me int>:testKeyList<-[2,3,5,8,13,21]
         withEach idx in range 0 .. testKeyList.size() {print(idx,"-", testKeyList[idx], " ")}
-        me Map<me string, me string>:testMap\ntestMap["E"]<-"every"\ntestMap["G"]<-"good"\ntestMap["B"]<-"boy"\ntestMap["D"]<-"does"\ntestMap["F"]<-"fine"
+        me Map<me string, me string: rangeIteration=logarithmic>:testMap\ntestMap["E"]<-"every"\ntestMap["G"]<-"good"\ntestMap["B"]<-"boy"\ntestMap["D"]<-"does"\ntestMap["F"]<-"fine"
         withEach M in testMap {print(M," ")}
     }
 }''', 'PGBR:2 3 4 5 5 4 3 2 2 13 -22 188 188 -22 13 2 0-2 1-3 2-5 3-8 4-13 5-21 boy does every fine good ',
@@ -197,7 +197,7 @@ struct testClass{
      'actions/withEachTupleBinding': ['''
 struct testClass{
     me void: runTest()<-{
-        me Map<me int, me string>:numToWord
+        me Map<me int, me string: rangeIteration=logarithmic>:numToWord
         numToWord.insert(2, "two")
         numToWord.insert(1, "one")
         numToWord.insert(3, "three")
@@ -207,7 +207,7 @@ struct testClass{
      'actions/withEachKeyBinding': ['''
 struct testClass{
     me void: runTest()<-{
-        me Map<me int, me string>:numToWord
+        me Map<me int, me string: rangeIteration=logarithmic>:numToWord
         numToWord.insert(2, "two")
         numToWord.insert(1, "one")
         numToWord.insert(3, "three")
@@ -231,7 +231,7 @@ struct testClass{
      'actions/withEachKeysRange': ['''
 struct testClass{
     me void: runTest()<-{
-        me Map<me int, me string>:numToWord
+        me Map<me int, me string: rangeIteration=logarithmic>:numToWord
         numToWord.insert(1, "one")
         numToWord.insert(2, "two")
         numToWord.insert(3, "three")
@@ -243,7 +243,7 @@ struct testClass{
      'actions/withEachKeysRangeExact': ['''
 struct testClass{
     me void: runTest()<-{
-        me Map<me string, me int>:wordToCount
+        me Map<me string, me int: rangeIteration=logarithmic>:wordToCount
         wordToCount.insert("cat", 7)
         wordToCount.insert("dog", 8)
         me string:target <- "cat"
@@ -253,7 +253,7 @@ struct testClass{
      'actions/withEachKeysRangeExclusive': ['''
 struct testClass{
     me void: runTest()<-{
-        me Map<me string, me int>:wordToCount
+        me Map<me string, me int: rangeIteration=logarithmic>:wordToCount
         wordToCount.insert("cat", 7)
         wordToCount.insert("dog", 8)
         me string:target <- "cat"
@@ -269,7 +269,7 @@ struct testClass{
         withEach n in nums where(n > 3){print(n," ")}
         withEach n in nums until(n == 6){print(n," ")}
         withEach i in range 1 ..= 4 {print(i," ")}
-        me Map<me int, me string>:numToWord
+        me Map<me int, me string: rangeIteration=logarithmic>:numToWord
         numToWord.insert(2, "two")
         numToWord.insert(1, "one")
         numToWord.insert(4, "four")

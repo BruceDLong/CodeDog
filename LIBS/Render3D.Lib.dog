@@ -377,7 +377,7 @@ struct Thing3D{
         parts.append(thing)
     }
 
-    void: preDraw(their Matrix4: parentMatx, me float: zPos, their Multimap<me float, our Mesh>: meshList) <- {
+    void: preDraw(their Matrix4: parentMatx, me float: zPos, their Multimap<me float, our Mesh: rangeIteration=logarithmic>: meshList) <- {
         me Matrix4: xFormMatx
         xFormMatx.MultiplyMatrix(thingMatx, parentMatx)
         withEach mesh in meshes{
@@ -393,7 +393,7 @@ struct Thing3D{
         }
     }
     void: draw(their GUI_ctxt: cr, their Matrix4: parentMatx, me double: interpolation, our Window3D: win3D) <- {
-        me Multimap<me float, our Mesh>: meshList
+        me Multimap<me float, our Mesh: rangeIteration=logarithmic>: meshList
         preDraw(parentMatx, 0.0, meshList)
         withEach mesh in meshList{
             mesh.draw(cr, NULL, color, interpolation, win3D)

@@ -56,7 +56,7 @@ struct testClass{
 'maps1': ['''
 struct testClass{
     me void: runTest()<-{
-        me Map<me int, me string>: mapIntString
+        me Map<me int, me string: rangeIteration=logarithmic>: mapIntString
         print(" isEmpty:"+toString(mapIntString.isEmpty()))
         mapIntString.insert(0,"aa")
         mapIntString.insert(1,"bb")
@@ -65,9 +65,7 @@ struct testClass{
         print(" ",mapIntString.first())
         print(" ",mapIntString.size())
         print(" ",mapIntString.last())
-        withEach item in mapIntString{
-            me int: mpKey <- item.key
-            me string: mpVal <- item
+        withEach (mpKey, mpVal) in mapIntString{
             print(mpVal)
         }
         mapIntString.clear()
@@ -78,7 +76,7 @@ struct testClass{
 'maps2': ['''
 struct testClass{
     me int: runTest()<-{
-        me Map<me string, me int>: mapStringInt
+        me Map<me string, me int: rangeIteration=logarithmic>: mapStringInt
         print(" isEmpty:"+toString(mapStringInt.isEmpty()))
         mapStringInt.insert("aa",0)
         mapStringInt.insert("bb",1)
@@ -111,7 +109,7 @@ struct testClass{
 'mapReps': ['''
 struct testClass{
     me void: runTest()<-{
-        me Map<me string, me string>:testMap
+        me Map<me string, me string: rangeIteration=logarithmic>:testMap
         testMap["E"]<-"every"\ntestMap["G"]<-"good"\ntestMap["B"]<-"boy"\ntestMap["D"]<-"does"\ntestMap["F"]<-"fine"
         withEach M in testMap {print(M," ")}
     }
@@ -120,8 +118,8 @@ struct testClass{
 'twoMaps': ['''
 struct testClass{
     me void: runTest()<-{
-        me Map<me string, me string>:testMapStrStr
-        me Map<me string, me int>:testMapStrInt
+        me Map<me string, me string: rangeIteration=logarithmic>:testMapStrStr
+        me Map<me string, me int: rangeIteration=logarithmic>:testMapStrInt
         testMapStrStr.insert("aa","zero")
         testMapStrStr.insert("bb","one")
         testMapStrStr.insert("cc","two")
@@ -137,7 +135,7 @@ struct testClass{
 struct wrappedStr: wraps = string{}
 struct testClass{
     me void: runTest()<-{
-        me Map<me string, me wrappedStr>: testMapStringMyString
+        me Map<me string, me wrappedStr: rangeIteration=logarithmic>: testMapStringMyString
         testMapStringMyString.insert("aa","zero")
         testMapStringMyString.insert("bb","one")
         testMapStringMyString.insert("cc","two")
@@ -148,14 +146,14 @@ struct testClass{
 'mapReps2': ['''
 struct txtOut{
     me bool: isHidden
-    me int: val
+    me int: value
 
     void: output() <- {
-        print(" at:", val)
+        print(" at:", value)
     }
 }
 struct testClass{
-    me Map<me int, their txtOut>: txtsOut
+    me Map<me int, their txtOut: rangeIteration=logarithmic>: txtsOut
     me void: runTest()<-{
         their txtOut: Tzero{false, 0}
         their txtOut: Tone{false, 1}
@@ -174,7 +172,7 @@ struct testClass{
 'multimap': ['''
 struct testClass{
     me void: runTest()<-{
-        me Multimap<me int, me string>: mapIntString
+        me Multimap<me int, me string: rangeIteration=logarithmic>: mapIntString
         print(" isEmpty:"+toString(mapIntString.isEmpty()))
         mapIntString.insert(0,"aa")
         mapIntString.insert(1,"bb")
@@ -183,7 +181,7 @@ struct testClass{
         print(" ",mapIntString.first())
         print(" ",mapIntString.size())
         print(" ",mapIntString.last())
-        withEach item in mapIntString from 1 to 1{print(" [1..1]"+item)}
+        withEach (itemKey, item) in mapIntString keys: 1 ..= 1{print(" [1..1]"+item)}
         mapIntString.popFirst()
         mapIntString.clear()
         print(" ",mapIntString.size())
@@ -204,7 +202,7 @@ struct testClass{
 'mapAdd': ['''
 struct testClass{
     me void: runTest()<-{
-        me Map<me int, me string>: mapIntString
+        me Map<me int, me string: rangeIteration=logarithmic>: mapIntString
         mapIntString.insert(5,"ff")
         mapIntString.insert(3,"dd")
         mapIntString.insert(4,"ee")
@@ -215,6 +213,30 @@ struct testClass{
     }
 }''', 'PGBR:aabbccddeeff',
         ['', '']],
+###################################################################################################
+'kotlin/treeMapReq': ['''
+struct testClass{
+    me void: runTest()<-{
+        me Map<me int, me string: rangeIteration=logarithmic>: testMap
+        testMap.insert(3,"three")
+        testMap.insert(1,"one")
+        testMap.insert(2,"two")
+        print(testMap.first()," ",testMap.last()," ",testMap.size()," ")
+        withEach (k, v) in testMap keys: 2 ..= 3{print(k,":",v," ")}
+    }
+}''', 'PGBR:one three 3 2:two 3:three '],
+###################################################################################################
+'kotlin/linkedListReq': ['''
+struct testClass{
+    me void: runTest()<-{
+        me List<me int: prepend=constant>: nums
+        nums.append(2)
+        nums.prepend(1)
+        nums.append(3)
+        print(nums.first()," ",nums.last()," ",nums.size()," ")
+        withEach n in nums{print(n," ")}
+    }
+}''', 'PGBR:1 3 3 1 2 3 '],
 ###################################################################################################
 }
 
@@ -357,6 +379,8 @@ def gatherListOfTestsToRun(keywordList):
         testList = keywordList
     else:
         for key in testDefinitions:
+            if key.startswith("kotlin/") or key.startswith("java/") or key.startswith("swift/") or key.startswith("cpp/"):
+                continue
             testList.append(key)
     return testList
 
@@ -402,6 +426,20 @@ def getSwiftTest():
     runDirectory = workingDirectory + "/SwiftBuild"
     runListedTests(testsToRun)
 
+def getKotlinTest():
+    global xlatorLabel
+    global buildSpec
+    global runSpec
+    global runDirectory
+    global workingDirectory
+    xlatorLabel = 'TESTING: KOTLIN'
+    buildSpec = "KotlinBuild: Platform='Kotlin' Lang='Kotlin';\n"
+    buildSpec += "//JavaBuild: Platform='Swing' Lang='Java';\n"
+    buildSpec += "//LinuxBuild: Platform='Linux' Lang='CPP' LangVersion='GNU';"
+    runSpec = "java -jar containerTests.jar"
+    runDirectory = workingDirectory + "/KotlinBuild"
+    runListedTests(testsToRun)
+
 ###################################
 # Get command line: tests and xlator name
 if len(sys.argv)==1:
@@ -424,6 +462,8 @@ elif(xlatorName == "swing" or xlatorName == "java" or xlatorName == "Java"):
     getJavaTest()
 elif(xlatorName == "swift" or xlatorName == "Swift"):
     getSwiftTest()
+elif(xlatorName == "kotlin" or xlatorName == "Kotlin"):
+    getKotlinTest()
 else:
     print(("UNKNOWN XLATOR: ", xlatorName))
     exit(0)

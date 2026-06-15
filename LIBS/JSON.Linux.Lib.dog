@@ -113,5 +113,5 @@ struct JSONValue {
     int: getAsInt()
     bool: getAsBool()
     string: getAsString()
-    their Map<me string, their MultiValue>: getAsMap()
+    their Map<me string, their MultiValue: rangeIteration=logarithmic>: getAsMap()
 }

@@ -14,7 +14,7 @@ LibDescription ={
     description = 'Map in routines for CPP'
 }
 
-struct CPP_Map<keyType, valueType>: implements=Map wraps=map native=lang specs={insert=logarithmic find=logarithmic at=logarithmic}{
+struct CPP_Map<keyType, valueType>: implements=Map wraps=map native=lang specs={insert=logarithmic find=logarithmic at=logarithmic rangeIteration=logarithmic}{
     const struct: iterator_CPP_Map(keyType: key, valueType: value): implements=MapItr wraps=iterator native=lang <- {
         me keyType: key()                        <- <%!%0.first%>
         me valueType: val()                      <- <%!%0->second%>
@@ -43,4 +43,3 @@ struct CPP_Map<keyType, valueType>: implements=Map wraps=map native=lang specs={
     // TODO: need Reverse Iterators working first
     // itr iterator_CPP_Map: back() <- <%!rend()%>             // returns reverse iterator to the reverse ene of the sequence container
 }
-
