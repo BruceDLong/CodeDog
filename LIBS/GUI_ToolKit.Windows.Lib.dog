@@ -95,7 +95,9 @@ string CodeDogGetListSelectedText(HWND listWindow);
 static void CodeDogPaintPath(HDC dc, bool strokePath, bool fillPath, bool preservePath);
 static void CodeDogSetCurrentColor(int red, int green, int blue, int alpha);
 static bool CodeDogReadCurrentPath(HDC dc, vector<POINT>& pathPoints, vector<BYTE>& pathTypes);
+static bool CodeDogBuildGdiplusPath(Gdiplus::GraphicsPath& graphicsPath, const vector<POINT>& pathPoints, const vector<BYTE>& pathTypes);
 static void CodeDogFillPathWithGdiplus(HDC dc, const vector<POINT>& pathPoints, const vector<BYTE>& pathTypes);
+static void CodeDogStrokePathWithGdiplus(HDC dc, const vector<POINT>& pathPoints, const vector<BYTE>& pathTypes);
 static void CodeDogEnsureGdiplus();
 static void CodeDogApplyGdiplusClip(HDC dc, Gdiplus::Graphics& graphics);
 static void CodeDogSuspendPath(HDC dc, vector<POINT>& pathPoints, vector<BYTE>& pathTypes);
@@ -306,14 +308,12 @@ static bool CodeDogReadCurrentPath(HDC dc, vector<POINT>& pathPoints, vector<BYT
     return false;
 }
 
-static void CodeDogFillPathWithGdiplus(HDC dc, const vector<POINT>& pathPoints, const vector<BYTE>& pathTypes)
+static bool CodeDogBuildGdiplusPath(Gdiplus::GraphicsPath& graphicsPath, const vector<POINT>& pathPoints, const vector<BYTE>& pathTypes)
 {
     if(pathPoints.size() == 0 || pathTypes.size() != pathPoints.size()){
-        return;
+        return false;
     }
 
-    CodeDogEnsureGdiplus();
-    Gdiplus::GraphicsPath graphicsPath;
     POINT currentPoint = {0, 0};
     bool hasCurrentPoint = false;
 
@@ -350,8 +350,11 @@ static void CodeDogFillPathWithGdiplus(HDC dc, const vector<POINT>& pathPoints, 
             hasCurrentPoint = false;
         }
     }
+    return true;
+}
 
-    Gdiplus::Graphics graphics(dc);
+static void CodeDogPrepareGdiplusGraphics(HDC dc, Gdiplus::Graphics& graphics)
+{
     CodeDogApplyGdiplusClip(dc, graphics);
     XFORM xform;
     if(GetWorldTransform(dc, &xform)){
@@ -359,8 +362,43 @@ static void CodeDogFillPathWithGdiplus(HDC dc, const vector<POINT>& pathPoints, 
         graphics.SetTransform(&matrix);
     }
     graphics.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
+}
+
+static void CodeDogFillPathWithGdiplus(HDC dc, const vector<POINT>& pathPoints, const vector<BYTE>& pathTypes)
+{
+    CodeDogEnsureGdiplus();
+    Gdiplus::GraphicsPath graphicsPath;
+    if(!CodeDogBuildGdiplusPath(graphicsPath, pathPoints, pathTypes)){
+        return;
+    }
+
+    Gdiplus::Graphics graphics(dc);
+    CodeDogPrepareGdiplusGraphics(dc, graphics);
     Gdiplus::SolidBrush brush(Gdiplus::Color((BYTE)objectAlpha, GetRValue(objectColor), GetGValue(objectColor), GetBValue(objectColor)));
     graphics.FillPath(&brush, &graphicsPath);
+}
+
+static void CodeDogStrokePathWithGdiplus(HDC dc, const vector<POINT>& pathPoints, const vector<BYTE>& pathTypes)
+{
+    CodeDogEnsureGdiplus();
+    Gdiplus::GraphicsPath graphicsPath;
+    if(!CodeDogBuildGdiplusPath(graphicsPath, pathPoints, pathTypes)){
+        return;
+    }
+
+    Gdiplus::Graphics graphics(dc);
+    CodeDogPrepareGdiplusGraphics(dc, graphics);
+    Gdiplus::Pen pen(Gdiplus::Color((BYTE)objectAlpha, GetRValue(objectColor), GetGValue(objectColor), GetBValue(objectColor)),
+        (Gdiplus::REAL)(penWidth > 0 ? penWidth : 1));
+    if(penEndCap == PS_ENDCAP_ROUND){
+        pen.SetStartCap(Gdiplus::LineCapRound);
+        pen.SetEndCap(Gdiplus::LineCapRound);
+    } else {
+        pen.SetStartCap(Gdiplus::LineCapFlat);
+        pen.SetEndCap(Gdiplus::LineCapFlat);
+    }
+    pen.SetLineJoin(Gdiplus::LineJoinMiter);
+    graphics.DrawPath(&pen, &graphicsPath);
 }
 
 static void CodeDogResumeCapturedPath(HDC dc, const vector<POINT>& pathPoints, const vector<BYTE>& pathTypes)
@@ -393,7 +431,9 @@ static void CodeDogPaintPath(HDC dc, bool strokePath, bool fillPath, bool preser
     vector<POINT> alphaPathPoints;
     vector<BYTE> alphaPathTypes;
     bool useAlphaFill = fillPath && objectAlpha < 255;
-    if(useAlphaFill){
+    bool useAlphaStroke = strokePath && objectAlpha < 255;
+    bool useAlphaPath = useAlphaFill || useAlphaStroke;
+    if(useAlphaPath){
         if(preservePath){
             alphaPathPoints = savedPathPoints;
             alphaPathTypes = savedPathTypes;
@@ -407,7 +447,7 @@ static void CodeDogPaintPath(HDC dc, bool strokePath, bool fillPath, bool preser
     HBRUSH pathBrush = NULL;
     HGDIOBJ oldPen = NULL;
     HGDIOBJ oldBrush = NULL;
-    if(strokePath){
+    if(strokePath && !useAlphaStroke){
         pathPen = CodeDogCreateCurrentPen();
         oldPen = SelectObject(dc, pathPen);
     }
@@ -421,17 +461,21 @@ static void CodeDogPaintPath(HDC dc, bool strokePath, bool fillPath, bool preser
         CodeDogFillPathWithGdiplus(dc, alphaPathPoints, alphaPathTypes);
     }
 
-    if(strokePath && fillPath && !useAlphaFill){
+    if(strokePath && fillPath && !useAlphaFill && !useAlphaStroke){
         StrokeAndFillPath(dc);
-        pathConsumed = true;
-    }
-    else if(strokePath){
-        StrokePath(dc);
         pathConsumed = true;
     }
     else if(fillPath && !useAlphaFill){
         FillPath(dc);
         pathConsumed = true;
+    }
+    else if(strokePath && !useAlphaStroke){
+        StrokePath(dc);
+        pathConsumed = true;
+    }
+
+    if(useAlphaStroke){
+        CodeDogStrokePathWithGdiplus(dc, alphaPathPoints, alphaPathTypes);
     }
 
     if(oldPen != NULL){SelectObject(dc, oldPen);}
