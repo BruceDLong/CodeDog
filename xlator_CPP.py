@@ -942,17 +942,7 @@ class Xlator_CPP(Xlator):
         return [S, retOwner, fType]
 
     def checkIfSpecialAssignmentFormIsNeeded(self, action, indent, AltIDXFormat, RHS, rhsType, LHS, LHSParentType, LHS_FieldType):
-        # Check for string A[x] = B;  If so, render A.insert(B,x)
-        S = ''
-        assignTag = action['assignTag']
-        if assignTag == '':
-            [containerType, owner]=progSpec.getContainerType_Owner(AltIDXFormat[1])
-            if containerType == 'RBTreeMap':
-                connector = '.'
-                if progSpec.ownerIsPointer(owner): connector = self.PtrConnector
-                S = indent+AltIDXFormat[0]+connector+'insert('+AltIDXFormat[2]+', '+RHS+');\n'
-        #else: assignTag = assignTag[0]
-        return S
+        return ''
 
     ############################################
     def codeProtectBlock(self, mutex, criticalText, indent):

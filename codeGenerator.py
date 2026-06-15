@@ -44,7 +44,6 @@ class CodeGenerator(object):
     nestedClassByQualifiedName = {}
     isNestedClass      = False
     genericStructsGenerated = [ {}, [] ]
-    codeDogSpecificImpl     = ["ListX", "Map", "MapNode","MapItr", "Multimap", ]
     ForwardDeclsForGlobalFuncs = ''
     listOfFuncsWithUnknownArgTypes = {}
 
