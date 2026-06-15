@@ -1,49 +1,109 @@
 //############ Quic.cpp.Lib.dog
 requirements = [
     [tagOneOf, Lang, [CPP]],
-    [tagOneOf, Platform, [Linux]]
+    [tagOneOf, Platform, [Linux, Windows]]
 ]
 
 interface={
     provides=[Quic_implementation]
-    packages = [
-        { packageName = 'boringssl'
-          fetchMethod = 'git:https://github.com/google/boringssl@commit=251b516'
-          updateWhen  = 'never'    // Updating isn't implemented
-          buildCmds   = {
-              Linux   = {buildCmd = 'cmake . && make'
-                         installFiles = ['ssl/libssl.a', 'crypto/libcrypto.a', 'include']
-                  }
-              Windows = {buildCmd = 'cmake . && make'}
+    packagesByPlatform = {
+        Linux = [
+            { packageName = 'boringssl'
+              fetchMethod = 'git:https://github.com/google/boringssl@commit=251b516'
+              updateWhen  = 'never'    // Updating isn't implemented
+              buildCmds   = {
+                  Linux   = {buildCmd = 'cmake . && make'
+                             installFiles = ['ssl/libssl.a', 'crypto/libcrypto.a', 'include']
+                      }
+                }
+            },
+            { packageName = 'libev'
+              innerPkgName= 'libev-4.33'
+              fetchMethod = 'zip:http://dist.schmorp.de/libev/libev-4.33.tar.gz'
+              buildCmds   = {
+                  Linux   = {installFiles = ['.']}
+                }
+            },
+            { packageName = 'lsQuic'
+              fetchMethod = 'git:https://github.com/litespeedtech/lsquic.git@commit=692a910'
+              updateWhen  = 'never'    // Updating isn't implemented
+              buildCmds   = {
+                  Linux   = {buildCmd = 'git submodule init && git submodule update && cmake -DBORINGSSL_DIR="$boringssl" . && make'
+                             installFiles = ['src/liblsquic/liblsquic.a', 'include/lsquic.h', 'include/lsquic_types.h']
+                         }
+                }
             }
-        },
-        { packageName = 'libev'
-          innerPkgName= 'libev-4.33'
-          fetchMethod = 'zip:http://dist.schmorp.de/libev/libev-4.33.tar.gz'
-          buildCmds   = {
-              Linux   = {installFiles = ['.']}
+        ]
+        Windows = [
+            { packageName = 'zlib'
+              fetchMethod = 'git:https://github.com/madler/zlib.git@tag=v1.3.1'
+              updateWhen  = 'never'
+              buildCmds   = {
+                  Windows = {buildCmd = 'cmake -S . -B codedog-build -DBUILD_SHARED_LIBS=OFF && cmake --build codedog-build --config Release'
+                             installFiles = ['codedog-build/Release/zlibstatic.lib', 'zlib.h', 'codedog-build/zconf.h']
+                      }
+                }
+            },
+            { packageName = 'go'
+              innerPkgName= 'go'
+              fetchMethod = 'zip:https://go.dev/dl/go1.26.4.windows-amd64.zip'
+              updateWhen  = 'never'
+              buildCmds   = {
+                  Windows = {installFiles = ['bin/go.exe']}
+                }
+            },
+            { packageName = 'boringssl'
+              fetchMethod = 'git:https://github.com/google/boringssl@commit=251b516'
+              updateWhen  = 'never'
+              buildCmds   = {
+                  Windows = {buildCmd = 'set "GOROOT=$go@Source" && cmake -S . -B codedog-build -DCMAKE_GENERATOR_PLATFORM=x64 -DBUILD_SHARED_LIBS=OFF -DOPENSSL_NO_ASM=1 -DGO_EXECUTABLE="$go@Stage/bin/go.exe" && cmake --build codedog-build --config Release --target ssl'
+                             installFiles = ['codedog-build/ssl/Release/ssl.lib', 'codedog-build/crypto/Release/crypto.lib', 'include']
+                      }
+                }
+            },
+            { packageName = 'libev'
+              innerPkgName= 'libev-4.33'
+              fetchMethod = 'zip:http://dist.schmorp.de/libev/libev-4.33.tar.gz'
+              buildCmds   = {
+                  Windows = {buildCmd = 'powershell -NoProfile -ExecutionPolicy Bypass -EncodedCommand JABwAD0AJwBlAHYALgBjACcAOwAgACQAdAA9AEcAZQB0AC0AQwBvAG4AdABlAG4AdAAgAC0AUgBhAHcAIAAtAEwAaQB0AGUAcgBhAGwAUABhAHQAaAAgACQAcAA7ACAAJAB0AD0AJAB0AC4AUgBlAHAAbABhAGMAZQAoACcAcwB0AHIAdQBjAHQAIABlAHYAXwBvAG4AYwBlACcALAAnAHMAdAByAHUAYwB0ACAAYwBvAGQAZQBkAG8AZwBfAGUAdgBfAG8AbgBjAGUAJwApADsAIABTAGUAdAAtAEMAbwBuAHQAZQBuAHQAIAAtAEwAaQB0AGUAcgBhAGwAUABhAHQAaAAgACQAcAAgAC0AVgBhAGwAdQBlACAAJAB0ACAALQBOAG8ATgBlAHcAbABpAG4AZQA7ACAAJABoAD0AJwBlAHYALgBoACcAOwAgACQAdAA9AEcAZQB0AC0AQwBvAG4AdABlAG4AdAAgAC0AUgBhAHcAIAAtAEwAaQB0AGUAcgBhAGwAUABhAHQAaAAgACQAaAA7ACAAJAB0AD0AJAB0AC4AUgBlAHAAbABhAGMAZQAoACIAIwBpAGYAZABlAGYAIABFAFYAXwBBAFAASQBfAFMAVABBAFQASQBDAGAAcgBgAG4ARQBWAF8AQQBQAEkAXwBEAEUAQwBMACAAcwB0AHIAdQBjAHQAIABlAHYAXwBsAG8AbwBwACAAKgBlAHYAXwBkAGUAZgBhAHUAbAB0AF8AbABvAG8AcABfAHAAdAByADsAYAByAGAAbgAjAGUAbgBkAGkAZgAiACwAIAAiAEUAVgBfAEEAUABJAF8ARABFAEMATAAgAHMAdAByAHUAYwB0ACAAZQB2AF8AbABvAG8AcAAgACoAZQB2AF8AZABlAGYAYQB1AGwAdABfAGwAbwBvAHAAXwBwAHQAcgA7ACIAKQA7ACAAJAB0AD0AJAB0AC4AUgBlAHAAbABhAGMAZQAoACIAIwBpAGYAZABlAGYAIABFAFYAXwBBAFAASQBfAFMAVABBAFQASQBDAGAAbgBFAFYAXwBBAFAASQBfAEQARQBDAEwAIABzAHQAcgB1AGMAdAAgAGUAdgBfAGwAbwBvAHAAIAAqAGUAdgBfAGQAZQBmAGEAdQBsAHQAXwBsAG8AbwBwAF8AcAB0AHIAOwBgAG4AIwBlAG4AZABpAGYAIgAsACAAIgBFAFYAXwBBAFAASQBfAEQARQBDAEwAIABzAHQAcgB1AGMAdAAgAGUAdgBfAGwAbwBvAHAAIAAqAGUAdgBfAGQAZQBmAGEAdQBsAHQAXwBsAG8AbwBwAF8AcAB0AHIAOwAiACkAOwAgAFMAZQB0AC0AQwBvAG4AdABlAG4AdAAgAC0ATABpAHQAZQByAGEAbABQAGEAdABoACAAJABoACAALQBWAGEAbAB1AGUAIAAkAHQAIAAtAE4AbwBOAGUAdwBsAGkAbgBlAA=='
+                             installFiles = ['.']
+                      }
+                }
+            },
+            { packageName = 'lsQuic'
+              fetchMethod = 'git:https://github.com/litespeedtech/lsquic.git@commit=692a910'
+              updateWhen  = 'never'
+              buildCmds   = {
+                  Windows = {buildCmd = 'git submodule init && git submodule update --checkout --force --recursive && cmake -S . -B codedog-build -DCMAKE_GENERATOR_PLATFORM=x64 -DBUILD_SHARED_LIBS=OFF -DLSQUIC_BIN=OFF -DLSQUIC_TESTS=OFF -DBORINGSSL_INCLUDE="$boringssl@Stage/include" -DBORINGSSL_LIB_ssl="$boringssl@Stage/lib/ssl.lib" -DBORINGSSL_LIB_crypto="$boringssl@Stage/lib/crypto.lib" -DZLIB_INCLUDE_DIR="$zlib@Stage/include" -DZLIB_LIB="$zlib@Stage/lib/zlibstatic.lib" && cmake --build codedog-build --config Release --target lsquic'
+                             installFiles = ['codedog-build/src/liblsquic/Release/lsquic.lib', 'include/lsquic.h', 'include/lsquic_types.h', 'include/lsxpack_header.h', 'wincompat/vc_compat.h']
+                         }
+                }
             }
-        },
-        { packageName = 'lsQuic'
-          fetchMethod = 'git:https://github.com/litespeedtech/lsquic.git@commit=692a910' // could start with git, zip, file, system, etc. (system = apt install lib...)
-          updateWhen  = 'never'    // Updating isn't implemented
-          buildCmds   = {
-              Linux   = {buildCmd = 'git submodule init && git submodule update && cmake -DBORINGSSL_DIR="$boringssl" . && make'
-                         installFiles = ['src/liblsquic/liblsquic.a', 'include/lsquic.h', 'include/lsquic_types.h']
-                     }
-             // Windows =  ['cmake -DBORINGSSL_INCLUDE="/home/bruce/devl/CodeDog/Examples/LinuxBuild/boringssl/boringssl/include" . && make', ['src/lsquic.dll', 'includes/lsquic.h']]
-            }
-        }
-
-    ]
-    tools=[golang-go]
-    libFiles=[pthread, ssl, lsquic, crypto, z, m]
-    headers=[netinet/in.h, netinet/ip.h, arpa/inet.h, sys/types.h, sys/socket.h, netdb.h, openssl/pem.h, openssl/x509.h, openssl/ssl.h, ev.c, lsquic.h]
+        ]
+    }
+    toolsByPlatform = {
+        Linux = [golang-go]
+        Windows = [cmake]
+    }
+    libFilesByPlatform = {
+        Linux = [pthread, ssl, lsquic, crypto, z, m]
+        Windows = [lsquic, ssl, crypto, zlibstatic, ws2_32, Advapi32]
+    }
+    headersByPlatform = {
+        Linux = [netinet/in.h, netinet/ip.h, arpa/inet.h, sys/types.h, sys/socket.h, netdb.h, openssl/pem.h, openssl/x509.h, openssl/ssl.h, ev.c, lsquic.h]
+        Windows = [winsock2.h, ws2tcpip.h, windows.h, vector, openssl/pem.h, openssl/x509.h, openssl/ssl.h, vc_compat.h, ev.c, lsquic.h]
+    }
 }
 
 featuresNeeded = [Logger]
 
 embedAboveIncludes = `
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#endif
 #define EV_STANDALONE 1
 #define EV_COMPAT3 0
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
@@ -59,7 +119,11 @@ struct lsQuicMgr{
     enum {
         IS_SERVER  = 1 << 0,
     }                           flags;
+#ifdef _WIN32
+    SOCKET                      sock_fd;    /* socket */
+#else
     int                         sock_fd;    /* socket */
+#endif
     ev_io                       sock_w;     /* socket watcher */
     lsquic_engine_t            *engine;
     struct sockaddr_storage     local_sas;
@@ -124,7 +188,7 @@ static int load_cert(string cert_file, string key_file){
     }
     return rv;
 }
-static SSL_CTX *get_ssl_ctx (void *peer_ctx, const sockaddr* sa){
+static SSL_CTX *get_ssl_ctx (void *peer_ctx){
     return s_ssl_ctx;
 }
 enum ctl_what{
@@ -132,8 +196,38 @@ enum ctl_what{
     CW_ECN      = 1 << 1,
 };
 
+static void codedog_quic_timer_expired (EV_P_ ev_timer *quicTimer, int revents){
+    process_conns((lsQuicMgr*)quicTimer->data);
+}
+ev_timer codedog_quic_timer;
+static void process_conns (struct lsQuicMgr *quicMgr){
+    int diff;
+    ev_tstamp timeout;
+    ev_timer_stop(ev_default_loop(0), &codedog_quic_timer);
+    lsquic_engine_process_conns(quicMgr->engine);
+
+    if(lsquic_engine_earliest_adv_tick(quicMgr->engine, &diff)){
+        if(diff >= LSQUIC_DF_CLOCK_GRANULARITY)
+            /* Expected case: convert to seconds */
+            timeout = (ev_tstamp) diff / 1000000;
+        else if(diff <= 0)
+            /* It should not happen often that the next tick is in the past
+             * as we just processed connections.  Avoid a busy loop by
+             * scheduling an event:
+             */
+            timeout = 0.0;
+        else
+            /* Round up to granularity */
+            timeout = (ev_tstamp) LSQUIC_DF_CLOCK_GRANULARITY / 1000000;
+        //LOGX("converted diff %d usec to %.4lf seconds", diff, timeout);
+        ev_timer_init(&codedog_quic_timer, codedog_quic_timer_expired, timeout, 0.);
+        ev_timer_start(ev_default_loop(0), &codedog_quic_timer);
+    }
+}
+
 //////////
 
+#ifndef _WIN32
 static void setup_control_msg (struct msghdr *msg, enum ctl_what cw, const struct lsquic_out_spec *spec, unsigned char *buf, size_t bufsz){
     struct cmsghdr *cmsg;
     struct sockaddr_in *local_sa;
@@ -287,35 +381,6 @@ static int set_origdst (int fd, const struct sockaddr *sa){
 
     return s;
 }
-static void timer_expired (EV_P_ ev_timer *timer, int revents){
-    process_conns((lsQuicMgr*)timer->data);
-}
-ev_timer timer;
-static void process_conns (struct lsQuicMgr *quicMgr){
-    int diff;
-    ev_tstamp timeout;
-    ev_timer_stop(ev_default_loop(0), &timer);
-    lsquic_engine_process_conns(quicMgr->engine);
-
-    if(lsquic_engine_earliest_adv_tick(quicMgr->engine, &diff)){
-        if(diff >= LSQUIC_DF_CLOCK_GRANULARITY)
-            /* Expected case: convert to seconds */
-            timeout = (ev_tstamp) diff / 1000000;
-        else if(diff <= 0)
-            /* It should not happen often that the next tick is in the past
-             * as we just processed connections.  Avoid a busy loop by
-             * scheduling an event:
-             */
-            timeout = 0.0;
-        else
-            /* Round up to granularity */
-            timeout = (ev_tstamp) LSQUIC_DF_CLOCK_GRANULARITY / 1000000;
-        //LOGX("converted diff %d usec to %.4lf seconds", diff, timeout);
-        ev_timer_init(&timer, timer_expired, timeout, 0.);
-        ev_timer_start(ev_default_loop(0), &timer);
-    }
-}
-
 static void proc_ancillary (struct msghdr *msg, struct sockaddr_storage *storage, int *ecn){
     const struct in6_pktinfo *in6_pkt;
     struct cmsghdr *cmsg;
@@ -389,6 +454,78 @@ static void read_socket (EV_P_ ev_io *w, int revents){
 
     process_conns(quicMgr);
 }
+#else
+static int packets_out_v1 (void *packets_out_ctx, const struct lsquic_out_spec *specs, unsigned count){
+    lsQuicMgr *const quicMgr = (lsQuicMgr*)packets_out_ctx;
+    unsigned n = 0;
+    if(0 == count){return 0;}
+    do{
+        size_t totalBytes = 0;
+        for(size_t idx = 0; idx < specs[n].iovlen; ++idx){
+            totalBytes += specs[n].iov[idx].iov_len;
+        }
+        std::vector<char> payload;
+        payload.reserve(totalBytes);
+        for(size_t idx = 0; idx < specs[n].iovlen; ++idx){
+            const char *base = (const char*)specs[n].iov[idx].iov_base;
+            payload.insert(payload.end(), base, base + specs[n].iov[idx].iov_len);
+        }
+        int addrLen = AF_INET == specs[n].dest_sa->sa_family ? sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6);
+        int sentBytes = sendto(
+            (SOCKET)(uintptr_t)specs[n].peer_ctx,
+            payload.data(),
+            (int)payload.size(),
+            0,
+            specs[n].dest_sa,
+            addrLen
+        );
+        if(sentBytes == SOCKET_ERROR){
+            LOGX("sendto failed: %d", WSAGetLastError());
+            break;
+        }
+        ++n;
+    }
+    while(n < count);
+    if(n < count){LOGX("could not send all of them");}
+    return n > 0 ? (int)n : -1;
+}
+
+static int set_nonblocking (SOCKET fd){
+    u_long nonBlocking = 1;
+    return ioctlsocket(fd, FIONBIO, &nonBlocking);
+}
+static int set_ecn (SOCKET fd, const struct sockaddr *sa){
+    return 0;
+}
+static int set_origdst (SOCKET fd, const struct sockaddr *sa){
+    return 0;
+}
+
+static void read_socket (EV_P_ ev_io *w, int revents){
+    lsQuicMgr* const quicMgr = (lsQuicMgr*)w->data;
+    int ecn = 0;
+    struct sockaddr_storage peer_sas, local_sas;
+    int peerLen = sizeof(peer_sas);
+    unsigned char buf[0x1000];
+    int bytesRead = recvfrom(
+        quicMgr->sock_fd,
+        (char*)buf,
+        sizeof(buf),
+        0,
+        (struct sockaddr*)&peer_sas,
+        &peerLen
+    );
+    if(bytesRead == SOCKET_ERROR){
+        int err = WSAGetLastError();
+        if(err != WSAEWOULDBLOCK){LOGX("recvfrom failed: %d", err);}
+        return;
+    }
+
+    local_sas = quicMgr->local_sas;
+    (void) lsquic_engine_packet_in(quicMgr->engine, buf, bytesRead, (struct sockaddr *) &local_sas, (struct sockaddr *) &peer_sas, (void *) (uintptr_t) quicMgr->sock_fd, ecn);
+    process_conns(quicMgr);
+}
+#endif
 
 //////// Quic callbacks and utilities
 
@@ -439,6 +576,10 @@ struct GLOBAL{
     me ThreadedEventLoop: eventLoopThread
 
     void: initQuicSystem() <- <%{
+#ifdef _WIN32
+        WSADATA wsaData;
+        if(0 != WSAStartup(MAKEWORD(2, 2), &wsaData)){fprintf(stderr, "WSAStartup failed\n"); exit(EXIT_FAILURE);}
+#endif
         // init threaded event loop
         quicShutdownRequested.store(false);
         eventLoop = ev_default_loop(0);
@@ -480,6 +621,9 @@ struct GLOBAL{
             eventLoopThread.waitForExit();
         }
         lsquic_global_cleanup();
+#ifdef _WIN32
+        WSACleanup();
+#endif
     }%>
 
     their QuicConnection: QUIC_on_new_conn (their void: qEngine, their lsquic_conn: lsConn) <- <%{
@@ -521,7 +665,7 @@ struct GLOBAL{
             bytesUsed = quicStream->onRead_CB(&s, finished);
             cout<<"            READ "<<bytesUsed<<" of "<<len<<" bytes from STREAM_"<<quicStream->getStreamID()<<"\n";
         }
-        if((finished and bytesUsed == len) or (!finished and bytesUsed < len)){
+        if((finished && bytesUsed == len) || (!finished && bytesUsed < len)){
             string mesg="Reached end-of-stream; shutting stream down stream# "; mesg+=to_string(lsquic_stream_id(quicStream->theStream))+"\n"; LOGX(mesg.data());
             //lsquic_stream_shutdown(quicStream->theStream, 0);
             lsquic_stream_wantread(quicStream->theStream, 0);
@@ -576,7 +720,11 @@ struct QuicEngine{
 
         // Set up socket
         quicMgr.sock_fd = socket(addr.sa.sa_family, SOCK_DGRAM, 0);
+#ifdef _WIN32
+        if(quicMgr.sock_fd == INVALID_SOCKET){perror("socket error"); exit(EXIT_FAILURE);}
+#else
         if(quicMgr.sock_fd < 0){perror("socket error");            exit(EXIT_FAILURE);}
+#endif
         if(0 != set_nonblocking(quicMgr.sock_fd)){ perror("fcntl");exit(EXIT_FAILURE);}
         if(0 != set_ecn(quicMgr.sock_fd, &addr.sa))               exit(EXIT_FAILURE);
         if(isServer){
@@ -590,11 +738,11 @@ struct QuicEngine{
             quicMgr.local_sas.ss_family = addr.sa.sa_family;
             int socklen = sizeof(quicMgr.local_sas);
             if(0 != bind(quicMgr.sock_fd, (struct sockaddr *) &quicMgr.local_sas, socklen)){ perror("bind"); exit(EXIT_FAILURE);}
-            ev_init(&timer, timer_expired);
+            ev_init(&codedog_quic_timer, codedog_quic_timer_expired);
         }
-        timer.data  = &quicMgr;
+        codedog_quic_timer.data  = &quicMgr;
         quicMgr.sock_w.data = &quicMgr;
-        ev_io_init(&quicMgr.sock_w, read_socket, quicMgr.sock_fd, EV_READ);
+        ev_io_init(&quicMgr.sock_w, read_socket, (int)quicMgr.sock_fd, EV_READ);
         ev_io_start(eventLoop, &quicMgr.sock_w);
     }%>
 
@@ -656,7 +804,7 @@ struct QuicEngine{
     me bool: setupClientConnection(their QuicConnection: qConn, me string: ipAddr, me string:portNum) <- <%{
         setupSockets(ipAddr, stoi(portNum));
         qConn->lsConn = lsquic_engine_connect(
-            quicMgr.engine, LSQVER_I001,
+            quicMgr.engine, N_LSQVER,
             (struct sockaddr *) &quicMgr.local_sas, &addr.sa,
             (void *) (uintptr_t) quicMgr.sock_fd,
             (lsquic_conn_ctx_t*)qConn, NULL, 0, NULL, 0, NULL, 0

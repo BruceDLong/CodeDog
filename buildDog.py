@@ -10,6 +10,7 @@ import buildMac
 import errno
 import filecmp
 import hashlib
+import json
 import shutil
 import queue
 import threading
@@ -24,6 +25,92 @@ importantFolders = {}
 def buildStatus(message):
     print("STATUS [{}] {}".format(time.strftime("%H:%M:%S"), message), flush=True)
 
+def safePathSegment(value):
+    value = str(value)
+    return ''.join(ch if ch.isalnum() or ch in ('-', '_', '.') else '_' for ch in value)
+
+def targetKeyFromBuildTags(buildTags, platform=None):
+    if buildTags == None:
+        return safePathSegment(platform if platform else "unknown")
+    platformVal = platform if platform else buildTags.get('Platform', 'unknown')
+    parts = [
+        platformVal,
+        buildTags.get('CPU', 'any'),
+        buildTags.get('Lang', 'unknown'),
+        buildTags.get('LangVersion', 'default'),
+        buildTags.get('Configuration', buildTags.get('optimize', 'default')),
+        buildTags.get('Linkage', buildTags.get('linkage', 'default')),
+    ]
+    return safePathSegment('-'.join(str(part) for part in parts if part != None and str(part) != ""))
+
+def tagValueToString(value):
+    while (
+        not isinstance(value, (str, bytes, dict))
+        and hasattr(value, "__len__")
+        and hasattr(value, "__getitem__")
+        and len(value) == 1
+    ):
+        value = value[0]
+    text = str(value)
+    if len(text) >= 2 and ((text[0] == "'" and text[-1] == "'") or (text[0] == '"' and text[-1] == '"')):
+        return text[1:-1]
+    return text
+
+def installSpecPath(filenameSpec):
+    return tagValueToString(filenameSpec).replace("\\", "/")
+
+def sconsPathEntries(paths):
+    return ''.join('     r"{}",\n'.format(path.replace("\\", "/")) for path in paths)
+
+def replacePackageAliases(command, aliases):
+    for folderKey in sorted(aliases, key=len, reverse=True):
+        command = command.replace('$'+folderKey, aliases[folderKey])
+    return command
+
+def appendExistingPath(paths, path):
+    normPath = os.path.normpath(path)
+    if os.path.isdir(normPath):
+        normPath = normPath.replace("\\", "/")
+        if normPath not in paths:
+            paths.append(normPath)
+
+def parseFetchMethod(fetchMethod):
+    fetchMethod = tagValueToString(fetchMethod)
+    if ':' in fetchMethod:
+        fetchType, fetchSpec = fetchMethod.split(':', 1)
+    else:
+        fetchType, fetchSpec = fetchMethod, ""
+    qualifiers = {}
+    if '@' in fetchSpec:
+        fetchSpec, qualifierText = fetchSpec.split('@', 1)
+        for qualifier in qualifierText.split(','):
+            if '=' in qualifier:
+                key, val = qualifier.split('=', 1)
+                qualifiers[key.strip()] = val.strip()
+            elif qualifier.strip():
+                qualifiers['ref'] = qualifier.strip()
+    return {
+        'type': fetchType,
+        'url': fetchSpec,
+        'ref': qualifiers.get('ref') or qualifiers.get('commit') or qualifiers.get('tag') or qualifiers.get('branch'),
+        'qualifiers': qualifiers,
+    }
+
+def packageWorkspace(packageDirectory, targetKey, packageName):
+    return os.path.join(packageDirectory, ".codedog", "deps", targetKey, packageName)
+
+def packageSourceParent(packageRoot):
+    return os.path.join(packageRoot, "src")
+
+def packageBuildDir(packageRoot):
+    return os.path.join(packageRoot, "build")
+
+def packageStageDir(packageRoot):
+    return os.path.join(packageRoot, "stage")
+
+def packageManifestPath(packageRoot):
+    return os.path.join(packageRoot, "manifest.json")
+
 #TODO: error handling
 def string_escape(s, encoding='utf-8'):
     return (s.encode('latin1')         # To bytes, required by 'unicode-escape'
@@ -31,9 +118,39 @@ def string_escape(s, encoding='utf-8'):
              .encode('latin1')         # 1:1 mapping back to bytes
              .decode(encoding))        # Decode original encoding
 
+def windowsToolDirs():
+    if os.name != 'nt':
+        return []
+    candidates = [
+        r"C:\Program Files\CMake\bin",
+        r"C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin",
+        r"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin",
+        r"C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\MSBuild\Current\Bin",
+        r"C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\MSBuild\Current\Bin\amd64",
+        r"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin",
+        r"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\amd64",
+        r"C:\Program Files\Go\bin",
+    ]
+    return [path for path in candidates if os.path.isdir(path)]
+
+def commandEnvironment():
+    env = os.environ.copy()
+    toolDirs = windowsToolDirs()
+    if toolDirs:
+        env["PATH"] = os.pathsep.join(toolDirs + [env.get("PATH", "")])
+    return env
+
+def executableExistsInDirs(toolName, dirs):
+    extensions = [""] if os.path.splitext(toolName)[1] else ["", ".exe", ".bat", ".cmd"]
+    for directory in dirs:
+        for extension in extensions:
+            if os.path.isfile(os.path.join(directory, toolName + extension)):
+                return True
+    return False
+
 def runCMD(myCMD, myDir):
     print("\nCOMMAND: ", myCMD, "\n")
-    pipe = subprocess.Popen(myCMD, cwd=myDir, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    pipe = subprocess.Popen(myCMD, cwd=myDir, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=commandEnvironment())
     out, err = pipe.communicate()
     if out:
         #print("        Result: ",out)
@@ -53,7 +170,7 @@ def runCmdStreaming(myCMD, myDir):
     errText=''
     outputQueue = queue.Queue()
     heartbeatSeconds = 30
-    process = subprocess.Popen(myCMD, cwd=myDir, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines = True, bufsize=1)
+    process = subprocess.Popen(myCMD, cwd=myDir, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines = True, bufsize=1, env=commandEnvironment())
     startTime = time.monotonic()
     lastOutputTime = startTime
 
@@ -209,7 +326,9 @@ def copyWindowsRuntimeDlls(buildName):
     buildPath = Path(buildName)
     if not buildPath.is_dir():
         return
-    for dllPath in buildPath.glob("*/INSTALL/**/*.dll"):
+    dllPaths = list(buildPath.glob("*/INSTALL/**/*.dll"))
+    dllPaths.extend(buildPath.glob(".codedog/deps/*/*/stage/**/*.dll"))
+    for dllPath in dllPaths:
         targetPath = buildPath / dllPath.name
         if dllPath.resolve() == targetPath.resolve():
             continue
@@ -227,7 +346,7 @@ def copyWindowsRuntimeDlls(buildName):
                 continue
             raise
 
-def gitClone(cloneUrl, packageName, packageDirectory):
+def gitClone(cloneUrl, packageName, packageDirectory, sourceRef=None):
     emgr.CheckPipModules({'GitPython':'3.1'})
     import urllib.request
     from git import Repo
@@ -241,6 +360,33 @@ def gitClone(cloneUrl, packageName, packageDirectory):
         cdlog(1, "Cloning git repository: " + packageName)
         Repo.clone_from(cloneUrl, packagePath)
         makeDirs(packageDirectory + '/' + packageName + "/INSTALL")
+    if sourceRef:
+        repo = Repo(packagePath)
+        currentRef = repo.head.commit.hexsha
+        if not currentRef.startswith(sourceRef):
+            cdlog(1, "Checking out {} at {}".format(packageName, sourceRef))
+            repo.git.checkout(sourceRef)
+
+def gitCloneToSource(cloneUrl, packageName, sourceParent, sourceRef=None):
+    emgr.CheckPipModules({'GitPython':'3.1'})
+    import urllib.request
+    from git import Repo
+    makeDirs(sourceParent)
+    packagePath = os.path.join(sourceParent, packageName)
+    checkRepo = os.path.isdir(os.path.join(packagePath, ".git"))
+    if not checkRepo:
+        try:
+            urllib.request.urlopen(cloneUrl)
+        except (urllib.error.URLError, urllib.error.HTTPError):
+            cdErr("URL not found: " + cloneUrl)
+        cdlog(1, "Cloning git repository: " + packageName)
+        Repo.clone_from(cloneUrl, packagePath)
+    if sourceRef:
+        repo = Repo(packagePath)
+        currentRef = repo.head.commit.hexsha
+        if not currentRef.startswith(sourceRef):
+            cdlog(1, "Checking out {} at {}".format(packageName, sourceRef))
+            repo.git.checkout(sourceRef)
 
 def downloadPackageFile(downloadUrl, packageName, packageDirectory):
     downloadFileExtension = downloadUrl.rsplit('.', 1)[-1]
@@ -249,6 +395,13 @@ def downloadPackageFile(downloadUrl, packageName, packageDirectory):
     makeDirs(os.path.dirname(packagePath))
     checkRepo = os.path.isfile(packagePath)
     if not checkRepo:
+        emgr.downloadFile(packagePath, downloadUrl)
+
+def downloadPackageFileToSource(downloadUrl, packageName, sourceParent):
+    downloadFileExtension = downloadUrl.rsplit('.', 1)[-1]
+    packagePath = os.path.join(sourceParent, packageName + '.' + downloadFileExtension)
+    makeDirs(os.path.dirname(packagePath))
+    if not os.path.isfile(packagePath):
         emgr.downloadFile(packagePath, downloadUrl)
 
 def downloadExtractZip(downloadUrl, packageName, packageDirectory):
@@ -290,35 +443,161 @@ def downloadExtractZip(downloadUrl, packageName, packageDirectory):
                 except:
                     cdErr("Could not extract zip archive file: " + zipFileName)
 
+def downloadExtractArchiveToSource(downloadUrl, packageName, sourceParent):
+    zipExtension = ""
+    if downloadUrl.endswith(".zip"):
+        zipExtension = ".zip"
+    elif downloadUrl.endswith(".tar.gz"):
+        zipExtension = ".tar.gz"
+    elif downloadUrl.endswith(".tar.bz2"):
+        zipExtension = ".tar.bz2"
+    elif downloadUrl.endswith(".tar.xz"):
+        zipExtension = ".tar.xz"
+    elif downloadUrl.endswith(".tar"):
+        zipExtension = ".tar"
+
+    makeDirs(sourceParent)
+    packagePath = os.path.join(sourceParent, packageName + zipExtension)
+    zipFileName = os.path.basename(downloadUrl)
+    if not os.path.isfile(packagePath):
+        emgr.downloadFile(packagePath, downloadUrl)
+    if os.path.isfile(packagePath):
+        extractedContent = [
+            child for child in Path(sourceParent).iterdir()
+            if child.name != os.path.basename(packagePath)
+        ]
+        if not extractedContent:
+            try:
+                cdlog(1, "Extracting archive file: " + zipFileName)
+                shutil.unpack_archive(packagePath, sourceParent)
+            except:
+                try:
+                    os.remove(packagePath)
+                    emgr.downloadFile(packagePath, downloadUrl)
+                    cdlog(1, "Extracting archive file: " + zipFileName)
+                    shutil.unpack_archive(packagePath, sourceParent)
+                except:
+                    cdErr("Could not extract archive file: " + zipFileName)
+
 def getPackageName(packageMap):
     if 'packageName' in packageMap:
-        return(packageMap['packageName'][1:-1])
+        return(tagValueToString(packageMap['packageName']))
     return("")
 
 def getInnerPackageName(packageMap):
     if 'innerPkgName' in packageMap:
-        return(packageMap['innerPkgName'][1:-1])
+        return(tagValueToString(packageMap['innerPkgName']))
     return(getPackageName(packageMap))
 
 def getFetchType(packageMap):
     if 'fetchMethod' in packageMap:
-        return(packageMap['fetchMethod'][1:-1].split(':', 1)[0])
+        return(parseFetchMethod(packageMap['fetchMethod'])['type'])
     return("")
 
 def getFetchURL(packageMap):
     if 'fetchMethod' in packageMap:
-        fetchMethod = packageMap['fetchMethod'][1:-1]
-        fetchURL    = packageMap['fetchMethod'][1:-1].split(':', 1)[1]
-        splitSpec   = fetchURL.split('@', 1)
-        if len(splitSpec)>1: print("TODO: handle fetchMethod @: ",fetchURL)
-        fetchURL    = splitSpec[0]
-        return(fetchURL)
+        return(parseFetchMethod(packageMap['fetchMethod'])['url'])
     return("")
+
+def getFetchRef(packageMap):
+    if 'fetchMethod' in packageMap:
+        return(parseFetchMethod(packageMap['fetchMethod'])['ref'])
+    return(None)
+
+def isHeaderPath(path):
+    return os.path.splitext(path)[1].lower() in [".h", ".hh", ".hpp", ".hxx"]
+
+def isLibraryPath(path):
+    return os.path.splitext(path)[1].lower() in [".a", ".lib", ".so", ".dylib"]
+
+def isRuntimePath(path):
+    return os.path.splitext(path)[1].lower() in [".dll", ".exe"]
+
+def installDestination(sourcePath, installFile, stageDir):
+    normInstall = installFile.replace("\\", "/").strip("/")
+    if installFile == ".":
+        return stageDir
+    parts = [part for part in normInstall.split("/") if part != ""]
+    firstPart = parts[0].lower() if parts else ""
+    baseName = os.path.basename(normInstall)
+    if firstPart in ["include", "includes"]:
+        relPath = os.path.join(*parts[1:]) if len(parts) > 1 else ""
+        return os.path.join(stageDir, "include", relPath)
+    if firstPart in ["lib", "lib64"] or firstPart == "x64" or isLibraryPath(baseName):
+        if os.path.isdir(sourcePath):
+            return os.path.join(stageDir, "lib")
+        return os.path.join(stageDir, "lib", baseName)
+    if firstPart in ["bin", "bin64"] or isRuntimePath(baseName):
+        if os.path.isdir(sourcePath):
+            return os.path.join(stageDir, "bin")
+        return os.path.join(stageDir, "bin", baseName)
+    if isHeaderPath(baseName):
+        return os.path.join(stageDir, "include", baseName)
+    if os.path.isdir(sourcePath):
+        return os.path.join(stageDir, baseName)
+    return os.path.join(stageDir, baseName)
+
+def installPayloadDestinationExists(sourcePath, installFile, stageDir):
+    destination = installDestination(sourcePath, installFile, stageDir)
+    if os.path.isfile(sourcePath):
+        return os.path.isfile(destination)
+    if os.path.isdir(sourcePath):
+        if not os.path.isdir(destination):
+            return False
+        try:
+            return len(os.listdir(destination)) > 0
+        except OSError:
+            return False
+    return False
+
+def copyInstallPayload(sourcePath, installFile, stageDir):
+    if not os.path.exists(sourcePath):
+        cdErr("Package install payload not found: " + sourcePath)
+    destination = installDestination(sourcePath, installFile, stageDir)
+    if os.path.isfile(sourcePath):
+        makeDirs(os.path.dirname(destination))
+        shutil.copy2(sourcePath, destination)
+    else:
+        copyRecursive(sourcePath, destination)
+
+def packageManifest(packageName, targetKey, packageRoot, stageDir, sourceRef):
+    includeDirs = []
+    libDirs = []
+    runtimeFiles = []
+    appendExistingPath(includeDirs, os.path.join(stageDir, "include"))
+    appendExistingPath(includeDirs, stageDir)
+    appendExistingPath(libDirs, os.path.join(stageDir, "lib"))
+    appendExistingPath(libDirs, stageDir)
+    if os.path.isdir(stageDir):
+        for runtimePath in Path(stageDir).rglob("*"):
+            if runtimePath.is_file() and isRuntimePath(str(runtimePath)):
+                runtimeFiles.append(str(runtimePath).replace("\\", "/"))
+    return {
+        "package": packageName,
+        "targetKey": targetKey,
+        "sourceRef": sourceRef,
+        "stage": stageDir.replace("\\", "/"),
+        "includeDirs": includeDirs,
+        "libDirs": libDirs,
+        "libs": [],
+        "defines": [],
+        "cflags": [],
+        "linkFlags": [],
+        "runtimeFiles": runtimeFiles,
+    }
+
+def writePackageManifest(packageName, targetKey, packageRoot, stageDir, sourceRef):
+    manifest = packageManifest(packageName, targetKey, packageRoot, stageDir, sourceRef)
+    manifestPath = packageManifestPath(packageRoot)
+    makeDirs(os.path.dirname(manifestPath))
+    with open(manifestPath, 'w') as manifestFile:
+        json.dump(manifest, manifestFile, indent=2, sort_keys=True)
+    return manifest
 
 def packageInstallFingerprint(platform, buildCommand, installfileList):
     installFiles = []
     for filenameX in installfileList:
-        installFiles.append(filenameX[0][0][1:-1])
+        installFiles.append(installSpecPath(filenameX[0][0]))
     fingerprintText = platform + "\n" + buildCommand + "\n" + "\n".join(installFiles)
     return hashlib.sha256(fingerprintText.encode('utf-8')).hexdigest()
 
@@ -345,24 +624,10 @@ def packageInstallPayloadExists(downloadedFolder, libsFolder, installfileList):
     if not os.path.isdir(libsFolder):
         return False
     for filenameX in installfileList:
-        installFile = filenameX[0][0][1:-1]
+        installFile = installSpecPath(filenameX[0][0])
         sourcePath = os.path.normpath(os.path.join(downloadedFolder, installFile))
-        if os.path.isfile(sourcePath):
-            if not os.path.isfile(os.path.join(libsFolder, os.path.basename(sourcePath))):
-                return False
-        elif os.path.isdir(sourcePath):
-            sourceNames = os.listdir(sourcePath)
-            if not sourceNames:
-                return False
-            for sourceName in sourceNames:
-                if not os.path.exists(os.path.join(libsFolder, sourceName)):
-                    return False
-        else:
-            installName = os.path.basename(installFile.rstrip("/\\"))
-            if not installName or installName == ".":
-                return False
-            if not os.path.exists(os.path.join(libsFolder, installName)):
-                return False
+        if not installPayloadDestinationExists(sourcePath, installFile, libsFolder):
+            return False
     return True
 
 def fetchPackages(packageData, packageDirectory):
@@ -371,25 +636,74 @@ def fetchPackages(packageData, packageDirectory):
         packageName  = getPackageName(packageMap)
         fetchType    = getFetchType(packageMap)
         fetchURL     = getFetchURL(packageMap)
+        fetchRef     = getFetchRef(packageMap)
         buildCmdsMap = {}
         if packageName=="" or fetchType=="": return
         buildStatus("Checking package '{}' ({})".format(packageName, fetchType))
-        if fetchType == "git":    gitClone(fetchURL, packageName, packageDirectory)
+        if fetchType == "git":    gitClone(fetchURL, packageName, packageDirectory, fetchRef)
         elif fetchType == "file": downloadPackageFile(fetchURL, packageName, packageDirectory)
         elif fetchType == "zip":  downloadExtractZip(fetchURL, packageName, packageDirectory)
         elif fetchType == "sys":  emgr.checkAndUpgradeOSPackageVersions(packageName)
         else: pass
 
-def FindOrFetchLibraries(buildName, packageData, platform, tools):
+def fetchPackageToWorkspace(packageMap, packageName, packageRoot):
+    sourceParent = packageSourceParent(packageRoot)
+    makeDirs(sourceParent)
+    makeDirs(packageBuildDir(packageRoot))
+    makeDirs(packageStageDir(packageRoot))
+    fetchType = getFetchType(packageMap)
+    fetchURL = getFetchURL(packageMap)
+    fetchRef = getFetchRef(packageMap)
+    if packageName=="" or fetchType=="":
+        return
+    buildStatus("Checking package '{}' ({})".format(packageName, fetchType))
+    if fetchType == "git":
+        gitCloneToSource(fetchURL, packageName, sourceParent, fetchRef)
+    elif fetchType == "file":
+        downloadPackageFileToSource(fetchURL, packageName, sourceParent)
+    elif fetchType == "zip":
+        downloadExtractArchiveToSource(fetchURL, packageName, sourceParent)
+    elif fetchType == "sys":
+        emgr.checkAndUpgradeOSPackageVersions(packageName)
+
+def toolIsAvailable(platform, toolName):
+    toolName = 'go' if toolName == 'golang-go' else toolName
+    if platform == 'Windows':
+        return emgr.checkToolWindows(toolName) or executableExistsInDirs(toolName, windowsToolDirs())
+    return emgr.checkToolLinux(toolName)
+
+def ensureToolsAvailable(platform, tools):
+    for toolName in tools:
+        checkToolName = 'go' if toolName == 'golang-go' else toolName
+        if toolIsAvailable(platform, toolName):
+            continue
+        packageManagers = emgr.findPackageManager()
+        if not packageManagers:
+            cdErr("Required build tool not found and no package manager is available: " + checkToolName)
+        emgr.packageInstall(toolName)
+        if not toolIsAvailable(platform, toolName):
+            cdErr("Required build tool is still unavailable after install attempt: " + checkToolName)
+
+def FindOrFetchLibraries(buildName, packageData, platform, tools, buildTags=None):
     #print("#############:buildName:", buildName, platform)
     packageDirectory = os.path.join(os.getcwd(), buildName)
-    [includeFolders, libFolders] = ["", ""]
+    targetKey = targetKeyFromBuildTags(buildTags, platform)
+    includePaths = []
+    libPaths = []
+    folderAliases = {}
     buildStatus("Resolving {} package(s) for {}".format(len(packageData), buildName))
-    fetchPackages(packageData, packageDirectory)
     for package in packageData:
         packageMap   = progSpec.extractMapFromTagMap(package)
         packageName  = getPackageName(packageMap)
         innerPkgName = getInnerPackageName(packageMap)
+        packageRoot = packageWorkspace(packageDirectory, targetKey, packageName)
+        stageDir = packageStageDir(packageRoot)
+        fetchPackageToWorkspace(packageMap, packageName, packageRoot)
+        downloadedFolder = os.path.normpath(os.path.join(packageSourceParent(packageRoot), innerPkgName))
+        folderAliases[packageName] = downloadedFolder.replace("\\","/")
+        folderAliases[packageName+'@Source'] = downloadedFolder.replace("\\","/")
+        folderAliases[packageName+'@Stage'] = stageDir.replace("\\","/")
+        folderAliases[packageName+'@Install'] = stageDir.replace("\\","/")
         buildCmdsMap = {}
         if 'buildCmds' in packageMap:
             buildCmds = packageMap['buildCmds']
@@ -398,62 +712,57 @@ def FindOrFetchLibraries(buildName, packageData, platform, tools):
             #print("###########:",platform, ' = ', buildCmdsMap[platform])
             buildCommand = buildCmdsMap[platform]
             buildCmdMap = progSpec.extractMapFromTagMap(buildCommand)
-            downloadedFolder = packageDirectory+"/"+packageName+"/"+innerPkgName
             installfileList = []
-            LibsFolder = os.path.join(packageDirectory, packageName, 'INSTALL').replace("\\","/")
+            LibsFolder = stageDir.replace("\\","/")
             if 'installFiles' in buildCmdMap:
                 installfileList = buildCmdMap['installFiles'][1]
                 makeDirs(LibsFolder)
-                importantFolders[packageName+'@Install'] = LibsFolder
-                importantFolders[packageName] = packageDirectory + '/' + packageName + '/' + packageName
-                includeFolders += "     '"+LibsFolder+"',\n"
-                libFolders     += "     '"+LibsFolder+"',\n"
 
             actualBuildCmd = ""
             if 'buildCmd' in buildCmdMap:
-                actualBuildCmd = buildCmdMap['buildCmd'][1:-1]
-                for folderKey,folderVal in importantFolders.items():
-                    actualBuildCmd = actualBuildCmd.replace('$'+folderKey,folderVal)
+                actualBuildCmd = tagValueToString(buildCmdMap['buildCmd'])
+                actualBuildCmd = replacePackageAliases(actualBuildCmd, folderAliases)
                 #print("BUILDCOMMAND:", actualBuildCmd)#, "  INSTALL:", buildCmdsMap[platform][1])
 
             installIsCurrent = False
             if installfileList:
                 installIsCurrent = packageInstallIsCurrent(LibsFolder, platform, actualBuildCmd, installfileList)
-                if not installIsCurrent and packageInstallPayloadExists(downloadedFolder, LibsFolder, installfileList):
+                if not actualBuildCmd and not installIsCurrent and packageInstallPayloadExists(downloadedFolder, LibsFolder, installfileList):
                     writePackageBuildMarker(LibsFolder, platform, actualBuildCmd, installfileList)
                     installIsCurrent = True
                 if installIsCurrent:
                     buildStatus("Using cached package build '{}'".format(packageName))
 
             if actualBuildCmd and not installIsCurrent:
-                for toolName in tools:
-                    if emgr.checkToolLinux('go' if toolName=='golang-go' else toolName):
-                        runCmdStreaming(actualBuildCmd, downloadedFolder)
-                    else:
-                        packageManager = emgr.findPackageManager()
-                        if not packageManager:
-                            print(f"Unable to find Package Manager.\nPlease install manually : {packageName}")
-                        else:
-                            emgr.getPackageManagerCMD(toolName, packageManager, "install")
-                        runCmdStreaming(actualBuildCmd, downloadedFolder)
+                ensureToolsAvailable(platform, tools)
+                result = runCmdStreaming(actualBuildCmd, downloadedFolder)
+                if result != 0:
+                    cdErr("Package build failed: " + packageName)
 
             if installfileList and not installIsCurrent:
                 for filenameX in installfileList:
-                    filename = downloadedFolder+'/'+filenameX[0][0][1:-1]
+                    installFile = installSpecPath(filenameX[0][0])
+                    filename = os.path.normpath(os.path.join(downloadedFolder, installFile))
                     cdlog(1, "Install: "+filename)
-                    copyRecursive(filename, LibsFolder)
+                    copyInstallPayload(filename, installFile, LibsFolder)
                 writePackageBuildMarker(LibsFolder, platform, actualBuildCmd, installfileList)
+            if installfileList:
+                manifest = writePackageManifest(packageName, targetKey, packageRoot, LibsFolder, getFetchRef(packageMap))
+                for includeDir in manifest["includeDirs"]:
+                    appendExistingPath(includePaths, includeDir)
+                for libDir in manifest["libDirs"]:
+                    appendExistingPath(libPaths, libDir)
 
-    return [includeFolders, libFolders]
+    return [sconsPathEntries(includePaths), sconsPathEntries(libPaths)]
 
-def buildSconsFile(fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData, fileExtension, tools):
+def buildSconsFile(fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData, fileExtension, tools, buildTags=None):
     buildStatus("Preparing SCons build script for {}".format(fileName))
-    (includeFolders, libFolders) = FindOrFetchLibraries(buildName, packageData, platform, tools)
+    (includeFolders, libFolders) = FindOrFetchLibraries(buildName, packageData, platform, tools, buildTags)
     SconsFile = "import os\n\n"
     SconsFile += "env = Environment(ENV=os.environ)\n"
     SconsFile += 'env.Decider("timestamp-newer")\n'
     if platform == 'Windows':
-        SconsFile += 'env.Append(CCFLAGS=["/EHsc", "/std:c++17"])\n'
+        SconsFile += 'env.Append(CCFLAGS=["/EHsc", "/std:c++17", "/MD"])\n'
         SconsFile += 'env.Append(CPPDEFINES=["NOMINMAX"])\n'
     #SconsFile += "env.MergeFlags('-g -fpermissive')\n"
     if progOrLib=='program': SconsFileType = "Program"
@@ -500,7 +809,7 @@ def buildSconsFile(fileName, libFiles, buildName, platform, fileSpecs, progOrLib
     sconsFilename = fileName+".scons"
     writeFile(buildName, sconsFilename, [[[sconsFilename],SconsFile]], "")
 
-def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData, tools):
+def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData, tools, buildTags=None):
     fileExtension = '.cpp'
     buildStatus("Writing generated source for {}".format(fileName))
     writeGeneratedFiles(buildName, fileSpecs, fileExtension)
@@ -508,10 +817,7 @@ def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
     if os.path.isdir("Resources"):
         buildStatus("Copying Resources into {}".format(buildName))
         copyRecursive("Resources", buildName+"/assets")
-    (includeFolders, libFolders) = FindOrFetchLibraries(buildName, packageData, platform, tools)
-    packageDirectory = os.getcwd() + '/' + buildName
-    for packageName in packageData:
-        fetchPackages(packageName, packageDirectory)
+    (includeFolders, libFolders) = FindOrFetchLibraries(buildName, packageData, platform, tools, buildTags)
 
     #building scons file
     SconsFile = "import os\n"
@@ -561,14 +867,14 @@ def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
     writeFile(buildName, sconsFilename, [[[sconsFilename],SconsFile]], "")
     return [workingDirectory, buildStr, runStr]
 
-def WindowsBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData, tools):
+def WindowsBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData, tools, buildTags=None):
     buildStr = ''
     codeDogFolder = os.path.dirname(os.path.realpath(__file__))
     libStr = "-I " + codeDogFolder + " "
     #minLangStr = '-std=gnu++' + minLangVersion + ' '
     fileExtension = '.cpp'
     #outputFileStr = '-o ' + fileName
-    buildSconsFile(fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData, fileExtension, tools)
+    buildSconsFile(fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData, fileExtension, tools, buildTags)
 
     buildStatus("Writing generated source for {}".format(fileName))
     writeGeneratedFiles(buildName, fileSpecs, fileExtension)
@@ -654,12 +960,12 @@ def BuildAndPrintResults(workingDirectory, buildStr, runStr):
         print("\nBuild failed\n")
         exit(-1)
 
-def build(debugMode, minLangVersion, fileName, labelName, launchIconName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData, tools):
+def build(debugMode, minLangVersion, fileName, labelName, launchIconName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData, tools, buildTags=None):
     cdlog(0,"\n##############   B U I L D I N G    S Y S T E M...   ({})".format(buildName))
     buildStatus("Preparing {} build '{}'".format(platform, buildName))
     progOrLib = progOrLib.lower()
     if platform == 'Linux':
-        [workingDirectory, buildStr, runStr] = LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData, tools)
+        [workingDirectory, buildStr, runStr] = LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData, tools, buildTags)
     elif platform == 'Java' or  platform == 'Swing':
         [workingDirectory, buildStr, runStr] = SwingBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
     elif platform == 'Android':
@@ -667,7 +973,7 @@ def build(debugMode, minLangVersion, fileName, labelName, launchIconName, libFil
     elif platform == 'Swift':
         [workingDirectory, buildStr, runStr] = SwiftBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
     elif platform == 'Windows':
-        [workingDirectory, buildStr, runStr] = WindowsBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData, tools)
+        [workingDirectory, buildStr, runStr] = WindowsBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData, tools, buildTags)
     elif platform == 'MacOS':
         [workingDirectory, buildStr, runStr] = buildMac.macBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
     elif platform == 'IOS':

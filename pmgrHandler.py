@@ -1,11 +1,18 @@
 import subprocess
+import os
 
 def findPackageManager():
     installedPackageManagerList = []
-    packageManagers = ["dpkg", "brew", "yum", "gdebi", "apt-get", "pacman", "emerge", "zypper", "dnf", "rpm"]
-    for pmgr in packageManagers:
-        if checkToolLinux(pmgr):
-            installedPackageManagerList.append(pmgr)
+    if os.name == "nt":
+        packageManagers = ["choco", "winget", "scoop"]
+        for pmgr in packageManagers:
+            if checkToolWindows(pmgr):
+                installedPackageManagerList.append(pmgr)
+    else:
+        packageManagers = ["dpkg", "brew", "yum", "gdebi", "apt-get", "pacman", "emerge", "zypper", "dnf", "rpm"]
+        for pmgr in packageManagers:
+            if checkToolLinux(pmgr):
+                installedPackageManagerList.append(pmgr)
     return installedPackageManagerList
 
 def checkToolLinux(toolName):
@@ -27,8 +34,35 @@ def getPackageManagerCMD(packageName, installedPackageManagerList, commandType):
     pmgrCMD = ''
     pre = ''
     post = ''
+    windowsPackageNames = {
+        'golang-go': 'golang',
+        'go': 'golang',
+        'cmake': 'cmake',
+        'git': 'git',
+    }
     for ipm in packageManagers:
-        if packageExtension == 'deb' and ipm == 'dpkg':
+        if ipm == 'choco':
+            packageNameForManager = windowsPackageNames.get(packageName, packageName)
+            if commandType == "install":
+                pmgrCMD = "choco install -y " + packageNameForManager
+            elif commandType == "queryLocalInstall":
+                pmgrCMD = "choco list --local-only --exact " + packageNameForManager
+            elif commandType == "queryAvailVer":
+                pmgrCMD = "choco search --exact " + packageNameForManager
+            elif commandType == "remove":
+                pmgrCMD = "choco uninstall -y " + packageNameForManager
+
+        elif ipm == 'winget':
+            packageNameForManager = windowsPackageNames.get(packageName, packageName)
+            if commandType == "install":
+                pmgrCMD = "winget install --accept-package-agreements --accept-source-agreements --silent " + packageNameForManager
+
+        elif ipm == 'scoop':
+            packageNameForManager = windowsPackageNames.get(packageName, packageName)
+            if commandType == "install":
+                pmgrCMD = "scoop install " + packageNameForManager
+
+        elif packageExtension == 'deb' and ipm == 'dpkg':
             pmgr = "dpkg"
             pre = ""
             if commandType == "install":

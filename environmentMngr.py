@@ -1,5 +1,6 @@
 import os
 import subprocess
+import sys
 from progSpec import cdlog, cdErr
 from pmgrHandler import getPackageManagerCMD, findPackageManager
 
@@ -28,12 +29,16 @@ def downloadFile(fileName, downloadURL):
 def packageInstall(packageName):
     from pmgrHandler import getPackageManagerCMD
     pmgrCMD = getPackageManagerCMD(packageName, findPackageManager(),"install")
+    if not pmgrCMD:
+        print("Unable to find Package Manager.\nPlease install manually : " + packageName)
+        return False
     cdlog(1, "Package Installing: "+packageName)
-    if subprocess.call(f'{pmgrCMD}'+" > /dev/null 2>&1", shell=True) == 0:
+    if subprocess.call(pmgrCMD, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) == 0:
         print("Package installed Successfully")
         return True
     else:
         print("Unable to install package. \nPlease install manually : " + packageName)
+        return False
 
 
 def checkPackageStatus(packageName):
@@ -141,8 +146,17 @@ def CheckPipModules(requiredMinimumModulesList):
         for module in modulesList:
             print("     %s" % module)
 
-        # Request permissions to install from user
-        installationPermission = input("Do you want to install? [Y/n] ")
+        # Request permissions to install from user. Noninteractive builds must
+        # still be able to resolve declared dependencies.
+        try:
+            if sys.stdin.isatty():
+                installationPermission = input("Do you want to install? [Y/n] ")
+            else:
+                installationPermission = 'yes'
+                print("Noninteractive build: installing required Python modules.")
+        except EOFError:
+            installationPermission = 'yes'
+            print("Noninteractive build: installing required Python modules.")
         if installationPermission.lower() == 'y' or installationPermission.lower() == 'yes' or installationPermission == '':
             # If user accepts, Iterate through modules:
             for module in modulesList:

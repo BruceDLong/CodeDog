@@ -2480,6 +2480,30 @@ class CodeGenerator(object):
 
     [libInitCodeAcc,  libDeinitCodeAcc] = ['', '']
     [libEmbedAboveIncludes, libEmbedVeryHigh, libEmbedCodeHigh, libEmbedCodeLow] = ['', '', '', '']
+    def tagListItems(self, tagValue):
+        if isinstance(tagValue, list):
+            return tagValue
+        extracted = progSpec.extractListFromTagList(tagValue)
+        if extracted:
+            return extracted
+        return []
+
+    def tagPlatformMap(self, tagValue):
+        if isinstance(tagValue, dict):
+            return tagValue
+        return progSpec.extractMapFromTagMap(tagValue)
+
+    def interfaceItemsForPlatform(self, interfaceTags, tagName, platform):
+        values = []
+        if tagName in interfaceTags:
+            values += self.tagListItems(interfaceTags[tagName])
+        byPlatformName = tagName + 'ByPlatform'
+        if byPlatformName in interfaceTags:
+            platformMap = self.tagPlatformMap(interfaceTags[byPlatformName])
+            if platform in platformMap:
+                values += self.tagListItems(platformMap[platform])
+        return values
+
     def integrateLibrary(self, tags, tagsFromLibFiles, libID):
         headerStr = ''
         headerTopStr = ''
@@ -2495,8 +2519,9 @@ class CodeGenerator(object):
             if 'deinitCode'        in libFileTags: self.libDeinitCodeAcc      = libFileTags['deinitCode'] + self.libDeinitCodeAcc + "\n"
 
             if 'interface' in libFileTags:
-                if 'libFiles' in libFileTags['interface']:
-                    libFiles = libFileTags['interface']['libFiles']
+                platform = progSpec.fetchTagValue(tags, 'Platform')
+                libFiles = self.interfaceItemsForPlatform(libFileTags['interface'], 'libFiles', platform)
+                if libFiles:
 
                     for libFile in libFiles:
                         if libFile.startswith('pkg-config'):
@@ -2507,8 +2532,8 @@ class CodeGenerator(object):
                             if libFile =='pthread': self.buildStr_libs += '-pthread ';
                             else: self.buildStr_libs += "-l"+libFile+ " "
 
-                if 'headers' in libFileTags['interface']:
-                    libHeaders = libFileTags['interface']['headers']
+                libHeaders = self.interfaceItemsForPlatform(libFileTags['interface'], 'headers', platform)
+                if libHeaders:
                     for libHdr in libHeaders:
                         if libHdr == '"stdafx.h"':
                             headerTopStr = self.xlator.includeDirective(libHdr)

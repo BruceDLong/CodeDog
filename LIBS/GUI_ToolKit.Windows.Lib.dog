@@ -7,7 +7,7 @@ requirements = [
 interface={
     provides=[GUI_ToolKit_implementation]
     libFiles=[Gdi32, User32, Msimg32, Gdiplus]
-    headers=[windows.h, windowsx.h, stdlib.h, string.h, tchar.h, direct.h, winuser.h, wingdi.h, gdiplus.h, math.h]
+    headers=[windows.h, windowsx.h, objidl.h, propidl.h, stdlib.h, string.h, tchar.h, direct.h, winuser.h, wingdi.h, gdiplus.h, math.h]
 }
 
 LibDescription ={
