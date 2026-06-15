@@ -1,0 +1,15 @@
+// Multimap.Kotlin.Lib.dog
+requirements = [
+    [tagOneOf, Lang, [Kotlin]]
+]
+
+interface={
+    provides = [Multimap_implementation]
+    libFiles = []
+    headers  = []
+}
+
+LibDescription ={
+    useStatus   = dynamic
+    description = 'Multimap provider for Kotlin'
+}

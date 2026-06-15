@@ -1,0 +1,32 @@
+////////// Add routines for Kotlin Android
+requirements = [
+    [tagOneOf, Platform, [Android]]
+]
+
+interface={
+    provides = [CodeDog_platform_implementation]
+    libFiles = []
+    headers  = [android.os.Bundle, android.content.res.AssetManager]
+}
+
+LibDescription ={
+    useStatus   = dynamic
+    description = 'Built in routines for Kotlin Android'
+}
+
+struct GLOBAL{
+    me AssetManager: assetManager
+    me string: readAssetAsString(me string: filename) <- <%{
+        return try {
+            val inputStream = getAssets().open(arg_filename)
+            val bytes = inputStream.readBytes()
+            inputStream.close()
+            String(bytes)
+        } catch (e: java.io.IOException) {
+            e.printStackTrace()
+            ""
+        }
+    }%>
+    me string: getFilesDirAsString()<- <%!GLOBAL.static_Global.getFilesDir().absolutePath%>
+    me string: getAssetsDir()<- <%{ return "assets" }%>
+}

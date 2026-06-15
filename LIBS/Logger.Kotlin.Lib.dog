@@ -1,0 +1,28 @@
+/////////// Add routines for Kotlin Logger
+requirements = [
+    [tagOneOf, Lang, [Kotlin]]
+]
+
+interface={
+    provides = [Logger_implementation]
+    libFiles = []
+    headers  = []
+}
+
+LibDescription={
+    useStatus   = dynamic
+    description = 'Logger for Kotlin'
+}
+
+struct logger{
+    me void: Route(me string: routeSpec) <- {}
+}
+
+struct logManager{
+    me void: openLogFile() <- {}
+    me void: writeToLog(me string: txt) <- <%{
+        if (useConsole) {
+            System.out.print(arg_txt + "\n")
+        }
+    }%>
+}

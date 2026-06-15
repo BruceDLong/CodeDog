@@ -1,0 +1,33 @@
+// List.Kotlin.Lib.dog
+requirements = [
+    [tagOneOf, Lang, [Kotlin]]
+]
+
+interface={
+    provides = [List_implementation]
+    libFiles = []
+    headers  = [java.util.ArrayList]
+}
+
+LibDescription ={
+    useStatus   = dynamic
+    description = 'List routines for Kotlin'
+}
+
+struct Java_ArrayList<nodeType>: implements=List wraps=ArrayList native=lang specs={append=constant}{
+    void: append(nodeType: value)               <- <%!add(%1)%>
+    nodeType: at(me int: position)              <- <%!%0[%1]%>
+    void: clear()                               <- <%!clear()%>
+    void: clipToSize(me int: size)              <- <%!trimToSize()%>
+    itr nodeType: deleteNth(me int: position)   <- <%!%0.removeAt(%1)%>
+    itr nodeType: erase(itr nodeType: position) <- <%!remove(%1)%>
+    nodeType: first()                           <- <%!%0[0]%>
+    nodeType: __getAt(me int: position)         <- <%!%0[%1]%>
+    itr nodeType: insertIdx(me int: position, nodeType: value) <- <%!%0.add(%1, %2)%>
+    me bool: isEmpty()                          <- <%!isEmpty()%>
+    nodeType: last()                            <- <%!%0[%0.size - 1]%>
+    nodeType: popFirst()                        <- <%!removeAt(0)%>
+    nodeType: popLast()                         <- <%!%0.removeAt(%0.size - 1)%>
+    me void: prepend(nodeType: value)           <- <%!add(0, %1)%>
+    me uint: size()                             <- <%!%0.size%>
+}

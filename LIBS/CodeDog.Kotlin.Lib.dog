@@ -1,0 +1,86 @@
+/////////// Add routines for Kotlin
+requirements = [
+    [tagOneOf, Lang, [Kotlin]],
+    [require, CodeDog_platform_implementation]
+]
+
+interface={
+    provides = [CodeDog_implementation]
+    libFiles = []
+    headers  = [java.io.*, java.util.*, java.lang.Math.*, java.io.RandomAccessFile]
+}
+
+LibDescription ={
+    useStatus   = dynamic
+    description = 'Built in routines for Kotlin'
+}
+
+initCode = ""
+deinitCode = ""
+
+struct GLOBAL{
+    we GLOBAL: static_Global
+    me Random: javaRandomVar
+
+    me string: readFileAsString(me string: filePath)<- <%{
+        return try {
+            java.io.File(arg_filePath).readText()
+        } catch (ioe: java.io.IOException) {
+            System.out.println("Cannot read file " + ioe.message)
+            ""
+        }
+    }%>
+    me string: wideCharToMultibyte(me int:ch) <- <%{ return "" }%>
+    void: trimLeftWS(their string: str)  <- <%{}%>
+    void: trimRightWS(their string: str) <- <%{}%>
+    me string: trimWS(their string: str) <- <%{ return arg_str ?: "" }%>
+    me bool: doesFileExist(me string: filePath)<- <%!java.io.File(%1).isFile%>
+    me string: replaceCharAt(me string: s, me int: pos, me char: c)<- <%!%1.substring(0, %2) + %3 + %1.substring(%2 + 1)%>
+    me bool: isxdigit(me char: input) <- <%{
+        return arg_input in '0'..'9' || arg_input in 'a'..'f' || arg_input in 'A'..'F'
+    }%>
+    me void: print(me string: s)                                <- <%!%GSystem.out.print(%1)%>
+    me void: exit(me int: val)                                  <- <%!%GSystem.exit(%1)%>
+    me long: getCurrentTimeStamp()                              <- <%!%Gjava.util.Date().time%>
+    me int64: currentTimeStamp()                                <- <%!%Gjava.util.Date().time%>
+    me void: endFunc(me int: val)                               <- <%!%G %>
+    me int: uniqueObjectID(their any:obj)                       <- <%!%GSystem.identityHashCode(%1)%>
+    const int64: INT64_MAX                                      <- <%!%GLong.MAX_VALUE%>
+    me uint: shiftLeft (me uint: bits, me uint: shft)           <- <%!%G%1 shl %2%>
+    me uint: shiftRight(me uint: bits, me uint: shft)           <- <%!%G%1 shr %2%>
+    me uint: AndBits(me uint: bits, me uint: shft)              <- <%!%G%1 and %2%>
+    me uint: OrBits (me uint: bits, me uint: shft)              <- <%!%G%1 or %2%>
+}
+struct GLOBAL{  /////////  STRING & CHAR HANDLING    ///////////////////
+    me int: findString(me string: toSearch, me string: toFind)  <- <%!%G%1.indexOf(%2)%>
+    me bool: isalpha(me char: ch)                               <- <%!%GCharacter.isLetter(%1)%>
+    me bool: isalnum(me char: ch)                               <- <%!%GCharacter.isLetterOrDigit(%1)%>
+    me bool: isdigit(me char: ch)                               <- <%!%GCharacter.isDigit(%1)%>
+    me bool: isprint(me char: ch)                               <- <%!%G!Character.isISOControl(%1)%>
+    me bool: isspace(me char: ch)                               <- <%!%GCharacter.isWhitespace(%1)%>
+    me char: toLower(me char: ch)                               <- <%!%GCharacter.toLowerCase(%1)%>
+    me char: toUpper(me char: ch)                               <- <%!%GCharacter.toUpperCase(%1)%>
+}
+struct GLOBAL{  /////////  MATH HANDLING    ////////////////////////////
+    me int: abs(me int: val)                                    <- <%!%GMath.abs(%1)%>
+    me int: max(me int: val1, me int: val2)                     <- <%!%GMath.max(%1, %2)%>
+    me int: min(me int: a, me int: b)                           <- <%!%GMath.min(%1, %2)%>
+    me int: randInt(me int: val)                                <- <%!javaRandomVar.nextInt(%1)%>
+    me int: sqrt(me int: val)                                   <- <%!%GMath.sqrt(%1.toDouble()).toInt()%>
+}
+struct GLOBAL{  /////////  TYPE CONVERTERS  ////////////////////////////
+    me float: convertToFloatVal()                               <- <%!%G%1.toFloat()%>
+    me int: convertToIntVal(me int: val)                        <- <%!%G%1.toInt()%>
+    me timeValue: convertToL()                                  <- <%!%G%1.toLong()%>
+    me timeValue: convertToLongVal()                            <- <%!%G%1.toLong()%>
+    me timeValue: convertToTimeVal()                            <- <%!%G%1.toLong()%>
+    me timeValue: double()                                      <- <%!%G%1.toLong()%>
+    me int64: stoi(me string: str)                              <- <%!%G%1.toLong()%>
+    me long: stol(me string: S)                                 <- <%!%G%1.toLong()%>
+    me int: toInt(me string: val)                               <- <%!%G%1.toInt()%>
+    me string: toString(me double: val)                         <- <%!%G%1.toString()%>
+    me string: toString(me long: val)                           <- <%!%G%1.toString()%>
+    me string: toString(me int: val)                            <- <%!%G%1.toString()%>
+}
+
+struct _atomic_uint64: wraps=Long{}

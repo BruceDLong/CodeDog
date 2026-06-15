@@ -1,0 +1,54 @@
+// CodeDog Threads Library for Kotlin
+
+requirements = [
+   [tagOneOf, Lang, [Kotlin]]
+]
+
+interface={
+    provides=[threads_implementation]
+    libFiles=[]
+    headers =[java.lang.Thread, java.util.concurrent.locks.ReentrantLock, java.util.concurrent.Semaphore]
+}
+
+LibDescription  = {
+    useStatus   = dynamic
+    description = 'Library for Kotlin multi-thread programming'
+    features    = [Threads]
+    Lang        = [Kotlin]
+}
+
+struct GLOBAL{
+    me string: thisThreadID() <- <%!%GThread.currentThread().id.toString()%>
+}
+
+struct Threads: wraps=Thread ownerMe=their{
+    me bool: notDone <- true
+    me uint: ID()           <- <%!%0.id.toInt()%>
+    void: run()             <- {}
+    bool: isActive()        <- <%!isAlive%>
+    void: start()           <- <%!start()%>
+    void: waitForExit()     <- <%!join(0)%>
+}
+
+struct Mutex: wraps=ReentrantLock{
+    void: lock()        <- <%!lock()%>
+    void: unlock()      <- <%!unlock()%>
+    bool: tryLock()     <- <%!tryLock()%>
+}
+
+struct MutexMngr{
+    me Mutex: mtx
+
+    void: lock()        <- <%!mtx.lock()%>
+    void: unlock()      <- <%!mtx.unlock()%>
+    bool: tryLock()     <- <%!mtx.tryLock()%>
+    none: MutexMngr(me Mutex: __mutex)<-{mtx <- __mutex}
+}
+
+struct SyncLock{
+    void: wait(me MutexMngr: lock)   <- {}
+    void: notifyOne()                <- {}
+}
+
+struct Semaphore: wraps=Semaphore {
+}

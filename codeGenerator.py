@@ -1138,7 +1138,9 @@ class CodeGenerator(object):
             if fType=='flag':
                 segName=segStr[len(connector):]
                 prefix = self.staticVarNamePrefix(segName, LHSParentType)
-                if self.xlator.hasMacros:
+                if hasattr(self.xlator, "codeReadBitField"):
+                    S = self.xlator.codeReadBitField(S, connector, prevLen, prefix, segName, fType)
+                elif self.xlator.hasMacros:
                     S='getFlagBit('+S[0:prevLen]+connector+'flags' + ', ' + prefix+segName+')'
                 else:
                     bitfieldMask=self.xlator.applyTypecast('uint64', prefix+segName)
@@ -1147,7 +1149,9 @@ class CodeGenerator(object):
             elif fType=='mode':
                 segName=segStr[len(connector):]
                 prefix = self.staticVarNamePrefix(segName+"Mask", LHSParentType)
-                if self.xlator.hasMacros:
+                if hasattr(self.xlator, "codeReadBitField"):
+                    S = self.xlator.codeReadBitField(S, connector, prevLen, prefix, segName, fType)
+                elif self.xlator.hasMacros:
                     S='getModeBits('+S[0:prevLen]+connector+'flags' + ', ' + prefix+segName+')'
                 else:
                     bitfieldMask  =self.xlator.applyTypecast('uint64', prefix+segName+"Mask")
@@ -1262,7 +1266,10 @@ class CodeGenerator(object):
                     elif (i[0] == '-'): op = ' - '
                     else: cdErr("'+' or '-' expected in code generator.")
                     if i[0]=='+' :S2 = self.xlator.checkForTypeCastNeed('string', retType2, S2)
-                    S += op+S2
+                    if hasattr(self.xlator, "codePlusOperator"):
+                        S = self.xlator.codePlusOperator(S, S2, retTypeSpec, retType2, i[0])
+                    else:
+                        S += op+S2
         return [S, retTypeSpec]
 
     def codeComparison(self, item, returnType, expectedTypeSpec, LorRorP_Val, genericArgs):
@@ -1296,7 +1303,10 @@ class CodeGenerator(object):
             for i in item[1]:
                 [S2, retType2] = self.codeIsEQ(i[1], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
                 S2 = self.xlator.convertToInt(S2, retType2)
-                S+= ' & '+S2
+                if hasattr(self.xlator, "codeBitwiseOp"):
+                    S = self.xlator.codeBitwiseOp(S, S2, "&")
+                else:
+                    S+= ' & '+S2
             retTypeSpec = {'owner': 'me', 'fieldType': 'int', 'arraySpec': None, 'reqTagList': None, 'paramList': None}
         return [S, retTypeSpec]
 
@@ -1307,7 +1317,10 @@ class CodeGenerator(object):
             [S_derefd, isDerefd] = self.xlator.derefPtr(S, retTypeSpec)
             for i in item[1]:
                 [S2, retType2] = self.codeBitwiseAnd(i[1], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
-                S+= ' ^ '+S2
+                if hasattr(self.xlator, "codeBitwiseOp"):
+                    S = self.xlator.codeBitwiseOp(S, S2, "^")
+                else:
+                    S+= ' ^ '+S2
         return [S, retTypeSpec]
 
     def codeBitwiseOr(self, item, returnType, expectedTypeSpec, LorRorP_Val, genericArgs):
@@ -1317,7 +1330,10 @@ class CodeGenerator(object):
             [S_derefd, isDerefd] = self.xlator.derefPtr(S, retTypeSpec)
             for i in item[1]:
                 [S2, retType2] = self.codeBitwiseXOR(i[1], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
-                S+= ' | '+S2
+                if hasattr(self.xlator, "codeBitwiseOp"):
+                    S = self.xlator.codeBitwiseOp(S, S2, "|")
+                else:
+                    S+= ' | '+S2
         return [S, retTypeSpec]
 
     def codeLogicalAnd(self, item, returnType, expectedTypeSpec, LorRorP_Val, genericArgs):
@@ -1691,6 +1707,9 @@ class CodeGenerator(object):
                 actionText = indent + funcCallText + ';\n'
         elif (typeOfAction == 'switchStmt'):
             cdlog(5, "Switch statement: switch({})".format(str(action['switchKey'])))
+            if hasattr(self.xlator, "codeSwitchStmt"):
+                actionText += self.xlator.codeSwitchStmt(action, indent, returnType, genericArgs)
+                return actionText
             [switchKeyExpr, switchKeyTypeSpec] = self.codeExpr(action['switchKey'][0], None, None, 'RVAL', genericArgs)
             actionText += indent+"switch("+ self.xlator.codeSwitchExpr(switchKeyExpr, switchKeyTypeSpec)  + "){\n"
             blockPrefix = self.xlator.blockPrefix
