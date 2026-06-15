@@ -562,9 +562,6 @@ struct ThreadedEventLoop: inherits=Threads {
     me bool: running <- false
     void: run()<-{
         log("RUNNING_EVENT_LOOP\n")
-        Allocate(async_w)
-        ev_async_init(async_w, async_cb);
-        ev_async_start(eventLoop, async_w);
         running <- true
         ev_run(eventLoop, 0)
         running <- false
@@ -583,6 +580,11 @@ struct GLOBAL{
         // init threaded event loop
         quicShutdownRequested.store(false);
         eventLoop = ev_default_loop(0);
+        if(!eventLoopThread.async_w){
+            eventLoopThread.async_w = new ev_async();
+            ev_async_init(eventLoopThread.async_w, async_cb);
+            ev_async_start(eventLoop, eventLoopThread.async_w);
+        }
         eventLoopThread.start("eventloop");
 
         // Initialize logging
@@ -590,7 +592,11 @@ struct GLOBAL{
         string logFileName = "prefix" "_" ".log";
         logFileHandle = fopen(logFileName.data(), "ab");
         if(!logFileHandle){perror("cannot open log file for writing");exit(EXIT_FAILURE);}
+#ifdef _WIN32
+        setvbuf(logFileHandle, nullptr, _IONBF, 0);
+#else
         setvbuf(logFileHandle, nullptr, _IOLBF, 0);
+#endif
         lsquic_logger_init(&logger_if, logFileHandle, LLTS_HHMMSSUS);
 
         // Initialize constant structs
