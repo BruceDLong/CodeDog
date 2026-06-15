@@ -156,6 +156,7 @@ struct testWidget: inherits=DashboardWidget{
         cr.rectangle(66, 304, 160, 80)
         cr.fillNow()
         cr.setRGB(134, 146, 160)
+        cr.setLineWidth(1)
         cr.moveTo(66, 344)
         cr.lineTo(226, 344)
         cr.moveTo(146, 304)
