@@ -238,6 +238,55 @@ struct testClass{
     }
 }''', 'PGBR:1 3 3 1 2 3 '],
 ###################################################################################################
+'java/treeMapReq': ['''
+struct testClass{
+    me void: runTest()<-{
+        me Map<me int, me string: rangeIteration=logarithmic>: testMap
+        testMap.insert(3,"three")
+        testMap.insert(1,"one")
+        testMap.insert(2,"two")
+        print(testMap.first()," ",testMap.last()," ",testMap.size()," ")
+        withEach (k, v) in testMap keys: 2 ..= 3{print(k,":",v," ")}
+    }
+}''', 'PGBR:one three 3 2:two 3:three '],
+###################################################################################################
+'java/hashMapReq': ['''
+struct testClass{
+    me void: runTest()<-{
+        me Map<me string, me int: insert=constant find=constant at=constant rangeIteration=dontUse>: testMap
+        testMap.insert("b",2)
+        testMap.insert("a",1)
+        itr Map<me string, me int>: found <- testMap.find("b")
+        print(testMap.at("b")," ",toString(testMap.containsKey("a"))," ",testMap.size()," ")
+        if(found == testMap.end()){print("End")}
+        else{print("Found")}
+    }
+}''', 'PGBR:2 true 2 Found'],
+###################################################################################################
+'java/arrayListReq': ['''
+struct testClass{
+    me void: runTest()<-{
+        me List<me int: at=constant append=constant>: nums
+        nums.append(4)
+        nums.append(5)
+        nums.prepend(3)
+        print(nums.at(1)," ",nums.first()," ",nums.last()," ",nums.size()," ")
+        withEach n in nums{print(n," ")}
+    }
+}''', 'PGBR:4 3 5 3 3 4 5 '],
+###################################################################################################
+'java/linkedListReq': ['''
+struct testClass{
+    me void: runTest()<-{
+        me List<me int: prepend=constant>: nums
+        nums.append(2)
+        nums.prepend(1)
+        nums.append(3)
+        print(nums.first()," ",nums.last()," ",nums.size()," ")
+        withEach n in nums{print(n," ")}
+    }
+}''', 'PGBR:1 3 3 1 2 3 '],
+###################################################################################################
 }
 
 tags = """BuildCmd = ""
