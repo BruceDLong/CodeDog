@@ -37,6 +37,7 @@ from codeGenerator import CodeGenerator
 from xlator_Swift  import Xlator_Swift
 from xlator_Java   import Xlator_Java
 from xlator_CPP    import Xlator_CPP
+from xlator_Kotlin import Xlator_Kotlin
 import xlator
 
 import re
@@ -88,6 +89,9 @@ def GenerateProgram(classes, buildTags, tagsList, libsToUse):
     elif(langGenTag == 'Swift'):
         langName='S W I F T'
         xlator = Xlator_Swift()
+    elif(langGenTag == 'Kotlin'):
+        langName='K O T L I N'
+        xlator = Xlator_Kotlin()
     else:
         cdErr( "ERROR: No language generator found for ".format( langGenTag))
         exit(1)

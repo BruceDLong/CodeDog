@@ -57,9 +57,14 @@ def pathAndroid(workingDir, dirsToGen):
     for dirToGen in dirsToGen:
         makeDir(workingDir + dirToGen)
 
-def gradleFile(topDomain, domain, appName, workingDir):
+def gradleFile(topDomain, domain, appName, workingDir, langName='Java'):
     print('--------------------------------   G e n e r a t i n g   G r a d l e \n')
     fileName = "build.gradle"
+    kotlinClasspath = ''
+    kotlinPlugin = ''
+    if langName == 'Kotlin':
+        kotlinClasspath = '        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.3.72"\n'
+        kotlinPlugin = 'apply plugin: "kotlin-android"\n'
 
     outStr =    'buildscript {\n' \
                 '    repositories {\n' \
@@ -69,9 +74,11 @@ def gradleFile(topDomain, domain, appName, workingDir):
                 '    }\n' \
                 '    dependencies {\n' \
                 '        classpath "com.android.tools.build:gradle:3.6.2"\n' \
+                + kotlinClasspath + \
                 '    }\n' \
                 '}\n' \
                 'apply plugin: "com.android.application"\n' \
+                + kotlinPlugin + \
                 'android {\n' \
                 '    compileSdkVersion 28\n' \
                 '    defaultConfig {\n' \
@@ -129,14 +136,18 @@ def androidManifest(topDomain, domain, moduleName, labelName, launchIconName, ma
     fo.write(outStr)
     fo.close()
 
-def AndroidBuilder(debugMode, minLangVersion, fileName, labelName, launchIconName, libFiles, buildName, platform, outStr):
-    fileExt        = '.java'
+def AndroidBuilder(debugMode, minLangVersion, fileName, labelName, launchIconName, libFiles, buildName, platform, outStr, buildTags=None):
+    langName       = 'Java'
+    if buildTags and buildTags.get('Lang') == 'Kotlin':
+        langName = 'Kotlin'
+    fileExt        = '.kt' if langName == 'Kotlin' else '.java'
     topDomain      = "com"
     domain         = "infomage"
     currentDir     = os.getcwd()
     workingDir     = currentDir + '/' + buildName
     moduleName     = 'GLOBAL'
-    packageDir     = '/src/main/java/'+topDomain+'/'+domain+'/'+moduleName
+    sourceRoot     = 'kotlin' if langName == 'Kotlin' else 'java'
+    packageDir     = '/src/main/'+sourceRoot+'/'+topDomain+'/'+domain+'/'+moduleName
     assetsDir      = '/src/main/assets'
     drawableDir    = '/res/drawable'
     drawablePath   = workingDir + drawableDir
@@ -150,7 +161,7 @@ def AndroidBuilder(debugMode, minLangVersion, fileName, labelName, launchIconNam
         launchIconName = launchIconName+'.png'
         copyFile(launchIconName, currentDir, drawablePath)
     writeFile(workingDir, packageDir, moduleName, outStr, fileExt, packageName)
-    gradleFile(topDomain, domain, moduleName, workingDir)
+    gradleFile(topDomain, domain, moduleName, workingDir, langName)
     androidManifest(topDomain, domain, moduleName, labelName, launchIconName, workingDir+'/src/main')
     # TODO: add missing files to workingDir
     #[out, err] = runCMD( './gradlew tasks ', workingDir)

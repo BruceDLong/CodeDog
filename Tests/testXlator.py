@@ -871,6 +871,20 @@ def getSwiftTest():
     runDirectory = workingDirectory + "/SwiftBuild"
     runListedTests(testsToRun)
 
+def getKotlinTest():
+    global xlatorLabel
+    global buildSpec
+    global runSpec
+    global runDirectory
+    global workingDirectory
+    xlatorLabel = 'TESTING: KOTLIN'
+    buildSpec = "KotlinBuild: Platform='Kotlin' Lang='Kotlin';\n"
+    buildSpec += "//JavaBuild: Platform='Swing' Lang='Java';\n"
+    buildSpec += "//LinuxBuild: Platform='Linux' Lang='CPP' LangVersion='GNU';"
+    runSpec = "java -jar testXlator.jar"
+    runDirectory = workingDirectory + "/KotlinBuild"
+    runListedTests(testsToRun)
+
 ###################################
 # Get command line: tests and xlator name
 if len(sys.argv)==1:
@@ -892,6 +906,8 @@ elif(xlatorName == "swing" or xlatorName == "java" or xlatorName == "Java"):
     getJavaTest()
 elif(xlatorName == "swift" or xlatorName == "Swift"):
     getSwiftTest()
+elif(xlatorName == "kotlin" or xlatorName == "Kotlin"):
+    getKotlinTest()
 else:
     print(("UNKNOWN XLATOR: ", xlatorName))
     exit(0)

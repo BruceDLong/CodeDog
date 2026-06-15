@@ -919,6 +919,22 @@ def SwiftBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
     runStr = "./" + fileName
     return [workingDirectory, buildStr, runStr]
 
+def kotlinCompilerCommand():
+    localKotlinc = os.path.join(os.path.dirname(os.path.realpath(__file__)), ".tools", "kotlin-apt", "usr", "share", "kotlin", "kotlinc", "bin", "kotlinc")
+    if os.path.isfile(localKotlinc):
+        return '"' + localKotlinc + '"'
+    return "kotlinc"
+
+def KotlinBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs):
+    fileExtension = '.kt'
+    currentDirectory = os.getcwd()
+    workingDirectory = currentDirectory + "/" + buildName
+    makeDirs(buildName)
+    writeFile(workingDirectory, fileName, fileSpecs, fileExtension)
+    buildStr = getBuildSting(fileName, "", platform, buildName)
+    runStr = "java -jar " + fileName + ".jar"
+    return [workingDirectory, buildStr, runStr]
+
 def iOSBuilder(debugMode, minLangVersion, projectName, libFiles, buildName, platform, fileSpecs):
     # reference https://swift.org/getting-started/#using-the-package-manager
     # building without Xcode: https://theswiftdev.com/how-to-build-macos-apps-using-only-the-swift-package-manager/
@@ -969,9 +985,11 @@ def build(debugMode, minLangVersion, fileName, labelName, launchIconName, libFil
     elif platform == 'Java' or  platform == 'Swing':
         [workingDirectory, buildStr, runStr] = SwingBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
     elif platform == 'Android':
-        buildAndroid.AndroidBuilder(debugMode, minLangVersion, fileName, labelName, launchIconName, libFiles, buildName, platform, fileSpecs)
+        buildAndroid.AndroidBuilder(debugMode, minLangVersion, fileName, labelName, launchIconName, libFiles, buildName, platform, fileSpecs, buildTags)
     elif platform == 'Swift':
         [workingDirectory, buildStr, runStr] = SwiftBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
+    elif platform == 'Kotlin':
+        [workingDirectory, buildStr, runStr] = KotlinBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
     elif platform == 'Windows':
         [workingDirectory, buildStr, runStr] = WindowsBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData, tools, buildTags)
     elif platform == 'MacOS':
@@ -1026,6 +1044,9 @@ def getBuildSting (fileName, buildStr_libs, platform, buildName):
     elif platform == 'Swift':
         fileExtension = '.swift'
         buildStr = "swiftc -suppress-warnings " + fileName + fileExtension
+    elif platform == 'Kotlin':
+        fileExtension = '.kt'
+        buildStr = kotlinCompilerCommand() + " " + fileName + fileExtension + " -include-runtime -d " + fileName + ".jar"
     elif platform == 'Windows':
         codeDogPath = os.path.dirname(os.path.realpath(__file__))
         pythonExe = '"' + sys.executable + '"'

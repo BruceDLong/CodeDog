@@ -14,8 +14,8 @@ struct GLOBAL{
     }
     // Convert doubles to strings w/ a specified number of significant figures. (Pretty axes labels)
     // TODO: Rounding, trailing 0's, leading 0's, track decimal point, tolerance range test, clean integers, move label w/ high sigfigs
-    me string: dblToString(me double: val, me int: sigFigs) <- {
-        me string: S <- toString(val)
+    me string: dblToString(me double: value, me int: sigFigs) <- {
+        me string: S <- toString(value)
         me string: S2 <- ""
         me int: sizeS <- S.size()
         me int: sizeS2 <- 0
@@ -27,7 +27,7 @@ struct GLOBAL{
         if(sizeS < sigFigs) {sigFigs <- sizeS-2}
 
         // Zero is 0
-        if(val==0) {return(" 0")}
+        if(value==0) {return(" 0")}
 
         withEach Pos in range 0 .. sizeS {
             me char: ch <- S[Pos]
