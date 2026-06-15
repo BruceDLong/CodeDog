@@ -1,4 +1,5 @@
 #This file, along with Lib_Java.py specify to the CodeGenerater how to compile CodeDog source code into Java source code.
+import re
 import progSpec
 import codeDogParser
 from xlator import Xlator
@@ -48,17 +49,22 @@ class Xlator_Java(Xlator):
             modeStateNames = self.codeGen.getModeStateNames()
             if previousSegName in modeStateNames:
                 modeStruct = modeStateNames[previousSegName]
-                if modeStruct=='modeStrings': S = '[(int)' + idx + '.ordinal()]'
+                if modeStruct=='modeStrings':
+                    if self.isGlobalEnum(idxTypeSpec):
+                        S = '[(int)' + idx + '.ordinal()]'
+                    else:
+                        S = '[(int)' + idx + ']'
                 else: S= '.get((int)' + idx + ')'
             elif (ctnrTypeKW== 'string'):
                 if idxTypeKW!='numeric' and idxTypeKW!='int': S= '.charAt((int)(' + idx + '))'
                 else: S= '.charAt(' + idx + ')'    # '.substring(' + idx + ', '+ idx + '+1' +')'
             else:
+                containerInfo = progSpec.getContainerInfo(self.codeGen.classStore, containerType)
                 fieldDefAt = self.codeGen.CheckObjectVars(ctnrTypeKW, "at", "")
                 if fieldDefAt:
                     if 'typeSpec' in fieldDefAt and 'codeConverter' in fieldDefAt['typeSpec']:
                         S = fieldDefAt['typeSpec']['codeConverter']
-                        if idxTypeKW!='numeric' and idxTypeKW!='int':idx= '(int)'+idx
+                        if idxTypeKW!='numeric' and idxTypeKW!='int' and not containerInfo["isAssociative"]:idx= '(int)'+idx
                         S = S.replace('%1', idx)
                     else: S= '.at(' + idx +')'
                 else: S= '[' + idx +']'
@@ -116,6 +122,137 @@ class Xlator_Java(Xlator):
         header = f"for({ctrType} {repName}={S_low}; {repName} {cmp} {S_hi}; {step})"
         return self.emitLoopWithBody(header, "", body, returnType, mods, genericArgs, indent)
 
+    def javaContainerType(self, classes, tSpec):
+        fTypeKW = progSpec.fieldTypeKeyword(tSpec)
+        unwrappedKW = progSpec.getUnwrappedClassFieldTypeKeyWord(classes, fTypeKW)
+        return self.adjustBaseTypes(unwrappedKW, True)
+
+    def traversalLoopWithBodyStr(
+        self,
+        classes,
+        localVarsAlloc,
+        ctnrTSpec,
+        binding,
+        ctnrName,
+        body,
+        returnType,
+        mods,
+        genericArgs,
+        indent,
+        traversalMode=None,
+        rangeMode=None,
+        rangeSpec=None,
+    ):
+        containerInfo = progSpec.getContainerInfo(self.codeGen.classStore, ctnrTSpec)
+        containerCat = containerInfo["category"]
+        isAssociative = containerInfo["isAssociative"] or containerInfo["entryShape"] == "entry"
+        if rangeMode is not None and rangeMode != "keys":
+            cdErr("Java traversal range mode '" + str(rangeMode) + "' is not implemented yet.")
+
+        bkind = binding.get("kind")
+        axis = binding.get("axis")
+
+        def requireSpec(spec, message):
+            if spec == None:
+                cdErr(message)
+            return spec
+
+        def mapEntriesExpr():
+            if rangeMode == "keys":
+                caps = progSpec.getContainerCapabilities(classes, ctnrTSpec)
+                if "ordered_keys" not in caps.get("tags", set()):
+                    cdErr("keys: range requires ordered_keys capability for container '" + ctnrName + "'.")
+                if not rangeSpec:
+                    cdErr("Java keys traversal requires a range.")
+                startPR = rangeSpec.get("rangeStart", None)
+                endPR = rangeSpec.get("rangeEnd", None)
+                if startPR is None or endPR is None:
+                    cdErr("Java keys traversal requires start and end keys.")
+                [startExpr, _startTSpec] = self.codeGen.codeExpr(startPR[0], None, None, "RVAL", genericArgs)
+                [endExpr, _endTSpec] = self.codeGen.codeExpr(endPR[0], None, None, "RVAL", genericArgs)
+                inclusive = "true" if bool(getattr(rangeSpec, "inclusiveOp", False)) else "false"
+                if containerCat == "Multimap":
+                    return ctnrName + ".subEntries(" + startExpr + ", " + endExpr + ", " + inclusive + ")"
+                return ctnrName + ".subMap(" + startExpr + ", true, " + endExpr + ", " + inclusive + ").entrySet()"
+            if containerCat == "Multimap":
+                return ctnrName + ".entries()"
+            return ctnrName + ".entrySet()"
+
+        if bkind == "tuple":
+            keyName = binding.get("keyName")
+            valName = binding.get("valName")
+            if not keyName or not valName:
+                cdErr("Java tuple traversal missing key/value binding names.")
+            if not isAssociative:
+                cdErr("Java tuple traversal requires a map-like container.")
+            keyTSpec = requireSpec(containerInfo["keyTypeSpec"], "Java tuple traversal requires a key type.")
+            valTSpec = requireSpec(containerInfo["valueTypeSpec"], "Java tuple traversal requires a value type.")
+            localVarsAlloc.append([keyName, keyTSpec])
+            localVarsAlloc.append([valName, valTSpec])
+            keyType = self.codeGen.convertType(keyTSpec, "var", genericArgs)
+            valType = self.codeGen.convertType(valTSpec, "var", genericArgs)
+            entryKeyType = self.javaContainerType(classes, keyTSpec)
+            entryValType = self.javaContainerType(classes, valTSpec)
+            entryName = keyName + "_" + valName + "_entry"
+            header = "for (Map.Entry<" + entryKeyType + ", " + entryValType + "> " + entryName + " : " + mapEntriesExpr() + ")"
+            prologue = (
+                indent + "    " + keyType + " " + keyName + " = " + entryName + ".getKey();\n"
+                + indent + "    " + valType + " " + valName + " = " + entryName + ".getValue();\n"
+            )
+            return self.emitLoopWithBody(header, prologue, body, returnType, mods, genericArgs, indent)
+
+        if bkind != "single":
+            cdErr("Java traversal binding kind missing or unknown.")
+        repName = binding.get("name")
+        if not repName:
+            cdErr("Java traversal missing loop variable name.")
+        if axis is None:
+            axis = "value"
+
+        if isAssociative:
+            keyTSpec = requireSpec(containerInfo["keyTypeSpec"], "Java map traversal requires a key type.")
+            valTSpec = requireSpec(containerInfo["valueTypeSpec"], "Java map traversal requires a value type.")
+            entryKeyType = self.javaContainerType(classes, keyTSpec)
+            entryValType = self.javaContainerType(classes, valTSpec)
+            entryName = repName + "_entry"
+            header = "for (Map.Entry<" + entryKeyType + ", " + entryValType + "> " + entryName + " : " + mapEntriesExpr() + ")"
+            if axis == "key":
+                localVarsAlloc.append([repName, keyTSpec])
+                keyType = self.codeGen.convertType(keyTSpec, "var", genericArgs)
+                prologue = indent + "    " + keyType + " " + repName + " = " + entryName + ".getKey();\n"
+            elif axis == "value":
+                localVarsAlloc.append([repName, valTSpec])
+                localVarsAlloc.append([repName + "_key", keyTSpec])
+                keyType = self.codeGen.convertType(keyTSpec, "var", genericArgs)
+                valType = self.codeGen.convertType(valTSpec, "var", genericArgs)
+                prologue = (
+                    indent + "    " + valType + " " + repName + " = " + entryName + ".getValue();\n"
+                    + indent + "    " + keyType + " " + repName + "_key = " + entryName + ".getKey();\n"
+                )
+            else:
+                cdErr("Java map traversal does not support axis '" + str(axis) + "'.")
+            return self.emitLoopWithBody(header, prologue, body, returnType, mods, genericArgs, indent)
+
+        repTSpec = requireSpec(containerInfo["valueTypeSpec"], "Java traversal requires a value type.")
+        localVarsAlloc.append([repName, repTSpec])
+        loopCntrName = repName + "_key"
+        localVarsAlloc.append([loopCntrName, {"owner": "me", "fieldType": "int"}])
+        if containerCat == "string":
+            header = "for (int " + loopCntrName + " = 0; " + loopCntrName + " < " + ctnrName + ".length(); " + loopCntrName + "++)"
+            prologue = indent + "    char " + repName + " = " + ctnrName + ".charAt(" + loopCntrName + ");\n"
+            return self.emitLoopWithBody(header, prologue, body, returnType, mods, genericArgs, indent)
+
+        elemType = self.codeGen.convertType(repTSpec, "var", genericArgs)
+        if containerInfo["entryShape"] == "value":
+            if traversalMode == "Backward":
+                header = "for (int " + loopCntrName + " = " + ctnrName + ".size() - 1; " + loopCntrName + " >= 0; " + loopCntrName + "--)"
+            else:
+                header = "for (int " + loopCntrName + " = 0; " + loopCntrName + " < " + ctnrName + ".size(); " + loopCntrName + "++)"
+            prologue = indent + "    " + elemType + " " + repName + " = " + ctnrName + ".get(" + loopCntrName + ");\n"
+            return self.emitLoopWithBody(header, prologue, body, returnType, mods, genericArgs, indent)
+
+        cdErr("Java traversal for container category '" + str(containerCat) + "' is not implemented yet.")
+
 
     def getIdxType(self, tSpec):
         progSpec.isOldContainerTempFuncErr(tSpec,"xlator_java.getIdxType()")
@@ -133,99 +270,6 @@ class Xlator_Java(Xlator):
                 if indexSpec != None:
                     idxType = progSpec.fieldTypeKeyword(indexSpec)
         return idxType
-
-    def iterateRangeFromTo(self, classes,localVarsAlloc,StartKey,EndKey,ctnrTSpec,repName,ctnrName,indent):
-        willBeModifiedDuringTraversal=True   # TODO: Set this programatically later.
-        [datastructID, __ctnrOwner]=progSpec.getContainerType_Owner(ctnrTSpec)
-        idxTypeKW    = self.getIdxType(ctnrTSpec)
-        actionText   = ""
-        loopCntrName = ""
-        containerInfo = progSpec.getContainerInfo(self.codeGen.classStore, ctnrTSpec)
-        keySpec      = containerInfo["keyTypeSpec"] or containerInfo["indexTypeSpec"]
-        valueSpec    = containerInfo["valueTypeSpec"] or containerInfo["firstElementTypeSpec"]
-        repTSpec     = valueSpec if valueSpec != None else {'owner':progSpec.getOwner(ctnrTSpec), 'fieldType':progSpec.fieldTypeKeyword(ctnrTSpec)}
-        containerCat = containerInfo["category"]
-        if containerInfo["isAssociative"]:
-            if keySpec == None or valueSpec == None:
-                cdErr("Java key range traversal requires key and value specs.")
-            idxTypeKW      = progSpec.fieldTypeKeyword(keySpec)
-            valueFieldType = progSpec.fieldTypeKeyword(valueSpec)
-            keyVarSpec = {'owner':progSpec.getOwner(keySpec), 'fieldType':idxTypeKW}
-            loopCntrName = repName+'_key'
-            itrTSpec  = self.codeGen.getDataStructItrTSpec(datastructID)
-            itrTypeKW = progSpec.fieldTypeKeyword(itrTSpec)
-            idxTypeKW = self.adjustBaseTypes(idxTypeKW, True)
-            valueFieldType = self.adjustBaseTypes(valueFieldType, True)
-            localVarsAlloc.append([loopCntrName, keyVarSpec])  # Tracking local vars for scope
-            localVarsAlloc.append([repName, repTSpec]) # Tracking local vars for scope
-            if '__RB' in datastructID:
-                actionText += (indent + 'for('+itrTypeKW+' '+repName+'Entry = '+ctnrName+'.lower_bound('+StartKey+'); '+repName+'Entry.node !='+ctnrName+'.upper_bound('+EndKey+').node; '+repName+'Entry.__inc()){\n' +
-                           indent + '    '+valueFieldType+' '+ repName + ' = ' + repName+'Entry.node.value;\n' +
-                           indent + '    ' +idxTypeKW +' '+ repName+'_rep = ' + repName+'Entry.node.key;\n'  )
-            else:
-                actionText += (indent + 'for(Map.Entry<'+idxTypeKW+','+valueFieldType+'> '+repName+'Entry : '+ctnrName+'.subMap('+StartKey+', '+EndKey+').entrySet()){\n' +
-                           indent + '    '+valueFieldType+' '+ repName + ' = ' + repName+'Entry.getValue();\n' +
-                           indent + '    ' +idxTypeKW +' '+ repName+'_rep = ' + repName+'Entry.getKey();\n'  )
-        elif datastructID=='List' and not willBeModifiedDuringTraversal: pass;
-        elif datastructID=='List' and willBeModifiedDuringTraversal: pass;
-        else: cdErr("DSID iterateRangeFromTo:"+datastructID+" "+containerCat)
-        return [actionText, loopCntrName]
-
-    def iterateContainerStr(self, classes,localVarsAlloc,ctnrTSpec,repName,ctnrName,isBackward,indent,genericArgs):
-        #TODO: handle isBackward
-        willBeModifiedDuringTraversal=True   # TODO: Set this programatically later.
-        [datastructID, ctnrOwner]=progSpec.getContainerType_Owner(ctnrTSpec)
-        actionText   = ""
-        loopCntrName = repName+'_key'
-        itrIncStr    = ""
-        containerInfo = progSpec.getContainerInfo(self.codeGen.classStore, ctnrTSpec)
-        keySpec      = containerInfo["keyTypeSpec"] or containerInfo["indexTypeSpec"]
-        valueSpec    = containerInfo["valueTypeSpec"] or containerInfo["firstElementTypeSpec"]
-        firstOwner   = progSpec.getOwner(valueSpec) if valueSpec != None else progSpec.getContainerFirstElementOwner(ctnrTSpec)
-        firstType    = progSpec.fieldTypeKeyword(valueSpec) if valueSpec != None else progSpec.getContainerFirstElementType(ctnrTSpec)
-        repTSpec     = valueSpec if valueSpec != None else {'owner':firstOwner, 'fieldType':firstType}
-        itrTSpec     = self.codeGen.getDataStructItrTSpec(datastructID)
-        itrName      = repName
-        containerCat = containerInfo["category"]
-        [LDeclP, RDeclP, LDeclA, RDeclA] = self.ChoosePtrDecorationForSimpleCase(ctnrOwner)
-        if containerInfo["isAssociative"]:
-            reqTagStr    = self.getReqTagString(classes, ctnrTSpec)
-            if keySpec == None or valueSpec == None:
-                cdErr("Java map traversal requires key and value specs.")
-            if datastructID=='TreeMap' or datastructID=='Java_Map':
-                keyVarSpec  = {'owner':progSpec.getOwner(keySpec), 'fieldType':progSpec.fieldTypeKeyword(keySpec), 'codeConverter':(repName+'.getKey()')}
-                repTSpec['codeConverter'] = (repName+'.getValue()')
-                iteratorTypeStr = "Map.Entry"+reqTagStr+' '
-                actionText += indent+'for('+iteratorTypeStr + repName+' :'+ ctnrName+'.entrySet()){\n'
-            else:
-                keyVarSpec = {'owner':progSpec.getOwner(keySpec), 'fieldType':progSpec.fieldTypeKeyword(keySpec), 'codeConverter':(repName+'.node.key')}
-                repTSpec['codeConverter'] = (repName+'.node.value')
-                iteratorTypeStr    = self.codeGen.convertType(itrTSpec, 'var', genericArgs)+' '
-                frontItr   = ctnrName+'.front()'
-                if not 'generic' in ctnrTSpec: iteratorTypeStr += reqTagStr
-                actionText += indent+'for('+iteratorTypeStr + repName+' ='+frontItr + '; ' + repName + '.node!='+ctnrName+'.end().node'+'; '+repName+'.goNext()){\n'
-               #actionText += (indent + "for("+iteratorTypeStr + repName+' ='+frontItr + "; " + repName + " !=" + ctnrName+RDeclP+'end()' +"; ++"+repName  + " ){\n"
-                    # + indent+"    "+iteratorTypeStr+repName+" = *"+repName+";\n")
-        elif containerInfo["entryShape"] == "value" and containerCat != 'string':
-            containedOwner = progSpec.getOwner(ctnrTSpec)
-            keyVarSpec     = {'owner':containedOwner, 'fieldType':firstType}
-            iteratorTypeStr = self.codeGen.convertType(repTSpec, 'var', genericArgs)
-            loopVarName=repName+"Idx";
-            if(isBackward):
-                actionText += (indent + "for(int "+loopVarName+'='+ctnrName+'.size()-1; ' + loopVarName +' >=0; --' + loopVarName+'){\n'
-                            + indent + indent + iteratorTypeStr+' '+repName+" = "+ctnrName+".get("+loopVarName+");\n")
-            else:
-                actionText += (indent + "for(int "+loopVarName+"=0; " + loopVarName +' != ' + ctnrName+'.size(); ' + loopVarName+' += 1){\n'
-                            + indent + indent + iteratorTypeStr+' '+repName+" = "+ctnrName+".get("+loopVarName+");\n")
-        elif containerCat=='string':
-            keyVarSpec   = {'owner':'me', 'fieldType':'char'}
-            repTSpec     = {'owner':'me', 'fieldType':'char'}
-            actionText += indent + "for(int i = 0; i < "+ ctnrName + ".length(); i++){\n"
-            actionText += indent + "    char "  + repName + " = " + ctnrName + ".charAt(i);\n"
-        else: cdErr("iterateContainerStr() datastructID = " + datastructID)
-        localVarsAlloc.append([loopCntrName, keyVarSpec])  # Tracking local vars for scope
-        localVarsAlloc.append([repName, repTSpec]) # Tracking local vars for scope
-        return [actionText, loopCntrName, itrIncStr]
 
     def codeSwitchExpr(self, switchKeyExpr, switchKeyTypeSpec):
         return switchKeyExpr
@@ -248,6 +292,10 @@ class Xlator_Java(Xlator):
                 elif fType=='timeValue': langType = 'Long' # this is hack and should be removed ASAP
                 elif fType=='int64':     langType = 'Long'
                 elif fType=='string':    langType = 'String'
+                elif fType=='bool':      langType = 'Boolean'
+                elif fType=='boolean':   langType = 'Boolean'
+                elif fType=='char':      langType = 'Character'
+                elif fType=='float':     langType = 'Float'
                 elif fType=='uint':      langType = 'Integer'
                 elif fType=='numeric':   langType = 'Integer'
                 else:
@@ -265,6 +313,12 @@ class Xlator_Java(Xlator):
         return langType
 
     def applyIterator(self, langType, itrTypeKW, varMode):
+        if itrTypeKW:
+            genericSuffix = ''
+            genericStart = langType.find('<')
+            if genericStart != -1:
+                genericSuffix = langType[genericStart:]
+            return itrTypeKW + genericSuffix
         return langType
 
     def applyOwner(self, owner, langType, varMode):
@@ -331,6 +385,9 @@ class Xlator_Java(Xlator):
         S='String.format('+'"'+ fmtStr +'"'+ argStr +')'
         return S
 
+    def javaStringLiteralBody(self, literalBody):
+        return re.sub(r'\\x([0-9a-fA-F]{2})', lambda match: '\\u00' + match.group(1).lower(), literalBody)
+
     def LanguageSpecificDecorations(self, S, tSpec, owner, LorRorP_Val):
         return S
 
@@ -351,6 +408,8 @@ class Xlator_Java(Xlator):
                 else: return '(' + RHS + ' != 0)'
             if RHS == "0": return "false"
             if RHS == "1": return "true"
+        if LTypeKW in ('int', 'uint', 'numeric', 'int32', 'uint32', 'int64', 'long') and self.isGlobalEnum(rhsTSpec):
+            return RHS + '.ordinal()'
         if LTypeKW == 'char' and (RTypeKW == 'numeric' or RTypeKW == 'int'):
             RHS = '(char)('+ RHS +')'
         elif LTypeKW=='BigFrac' or LTypeKW=='FlexNum':
@@ -468,12 +527,19 @@ class Xlator_Java(Xlator):
         return S
 
     def isGlobalEnum(self, tSpec):
-        if 'isGlobalEnum' in tSpec and tSpec['isGlobalEnum']: return True
+        if isinstance(tSpec, dict) and 'isGlobalEnum' in tSpec and tSpec['isGlobalEnum']: return True
         return False
 
     def codeIdentityCheck(self, S, S2, retType1, retType2, opIn):
         fType1 = progSpec.fieldTypeKeyword(retType1)
         fType2 = progSpec.fieldTypeKeyword(retType2)
+        owner1 = progSpec.getOwner(retType1) if isinstance(retType1, dict) else ''
+        owner2 = progSpec.getOwner(retType2) if isinstance(retType2, dict) else ''
+        if owner1 == 'itr' or owner2 == 'itr' or fType1 in ('iterator_Java_Map', 'iterator_Java_Multimap', 'JavaMapCursor', 'JavaMultimapCursor') or fType2 in ('iterator_Java_Map', 'iterator_Java_Multimap', 'JavaMapCursor', 'JavaMultimapCursor'):
+            if opIn == '==' or opIn == '===':
+                return S + ".isEqual(" + S2 + ")"
+            if opIn == '!=' or opIn == '!==':
+                return "!" + S + ".isEqual(" + S2 + ")"
         if fType1=='BigFrac' or fType1=='BigInt':
             if fType2=='numeric' and fType1=='BigInt':
                 S2 = 'BigInteger.valueOf('+S2+')'
@@ -629,7 +695,7 @@ class Xlator_Java(Xlator):
                         else:
                             cdErr("Characters must have exactly 1 character.")
                     else:
-                        S+='"'+item0[1:-1] +'"'
+                        S+='"'+self.javaStringLiteralBody(item0[1:-1]) +'"'
                     retTypeSpec='String'
                 else:
                     S+=item0;
@@ -727,7 +793,7 @@ class Xlator_Java(Xlator):
         # Check for string A[x] = B;  If so, render A.put(B,x)
         S = ''
         assignTag = action['assignTag']
-        [datastructID, __owner]=progSpec.getContainerType_Owner(AltIDXFormat[1])
+        datastructID = progSpec.fieldTypeKeyword(AltIDXFormat[1])
         if assignTag == '':
             if LHSParentType == 'string' and LHS_FieldType == 'char':
                 S = indent+AltIDXFormat[0]+' = replaceCharAt(' +AltIDXFormat[0]+', '+ AltIDXFormat[2] + ', ' + RHS + ');\n'
@@ -735,8 +801,13 @@ class Xlator_Java(Xlator):
                 fieldDefInsert = self.codeGen.CheckObjectVars(datastructID, 'insert', '')
                 if fieldDefInsert and 'typeSpec' in fieldDefInsert:
                     if 'codeConverter' in fieldDefInsert['typeSpec']:
-                        S = indent+AltIDXFormat[0]+fieldDefIdx['typeSpec']['codeConverter']
-                        cdErr("TODO: handle checkIfSpecialAssignmentFormIsNeeded() for: "+S)
+                        converter = fieldDefInsert['typeSpec']['codeConverter']
+                        converter = converter.replace('%1', AltIDXFormat[2]).replace('%2', RHS)
+                        if '%0' in converter:
+                            converter = converter.replace('%0', AltIDXFormat[0])
+                            S = indent + converter + ';\n'
+                        else:
+                            S = indent + AltIDXFormat[0] + '.' + converter + ';\n'
                     else: S = indent+AltIDXFormat[0]+'.insert('+AltIDXFormat[2]+', '+RHS+');\n'
                 else: cdErr("TODO: handle checkIfSpecialAssignmentFormIsNeeded() for: "+datastructID)
         else:
@@ -881,7 +952,12 @@ class Xlator_Java(Xlator):
                 elif cvrtType == 'boolean': assignValue=' = false'
                 elif cvrtType == 'char':    assignValue=" = ' '"
                 else: assignValue=''
-            else:assignValue= " = new " + cvrtType + "()"
+            else:
+                modeDefault = self.modeDefaultValue(LTSpec)
+                if modeDefault is not None:
+                    assignValue = " = " + modeDefault
+                else:
+                    assignValue= " = new " + cvrtType + "()"
         varDeclareStr= cvrtType + " " + varName + assignValue
         return(varDeclareStr)
 
@@ -915,10 +991,31 @@ class Xlator_Java(Xlator):
             return True
         return False
 
+    def modeDefaultValue(self, tSpec):
+        fTypeKW = progSpec.fieldTypeKeyword(tSpec)
+        if not isinstance(fTypeKW, str) or fTypeKW not in self.codeGen.classStore[0]:
+            return None
+        classDef = self.codeGen.classStore[0][fTypeKW]
+        inherits = classDef.get('tags', {}).get('inherits', None)
+        if not inherits:
+            return None
+        fieldType = inherits.get('fieldType', {})
+        if not fieldType.get('altModeIndicator', 0):
+            return None
+        modeList = fieldType.get('altModeList', [])
+        if hasattr(modeList, 'asList'):
+            modeList = modeList.asList()
+        if not modeList:
+            return None
+        return fTypeKW + "." + modeList[0]
+
     def codeVarFieldRHS_Str(self, fieldName, cvrtType, tSpec, argList, isAllocated, typeArgList, genericArgs):
         RHS=""
         fieldOwner=progSpec.getOwner(tSpec)
         if fieldOwner=='we': cvrtType = cvrtType.replace('static ', '', 1)
+        modeDefault = self.modeDefaultValue(tSpec)
+        if modeDefault is not None and (fieldOwner=='me' or fieldOwner=='we' or fieldOwner=='const'):
+            return " = " + modeDefault
         if (not self.varTypeIsValueType(cvrtType) and (fieldOwner=='me' or fieldOwner=='we' or fieldOwner=='const')):
             if argList!=None:
                 #TODO: make test case

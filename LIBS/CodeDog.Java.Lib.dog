@@ -63,14 +63,14 @@ struct GLOBAL{
     }%>
     me bool: isxdigit(me char: input) <- <%{
         try {
-            Long.parseLong(input, 16);
+            Long.parseLong(Character.toString(input), 16);
             return true;
         }
         catch (NumberFormatException ex){return false;}
     }%>
     me void: print(me string: s)                                <- <%!%GSystem.out(%1)%>
     me void: exit(me int: val)                                  <- <%!%GSystem.exit(%1)%>
-    me long: getCurrentTimeStamp()                              <- <%!%Gnew Date().getTime()%>
+    me int64: currentTimeStamp()                                <- <%!%Gnew Date().getTime()%>
     me void: endFunc(me int: val)                               <- <%!%G %>
     me int: uniqueObjectID(their any:obj)                       <- <%!%GSystem.identityHashCode(%1)%>
     const int64: INT64_MAX                                      <- <%!%GLong.MAX_VALUE%>

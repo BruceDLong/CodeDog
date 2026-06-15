@@ -6,7 +6,7 @@ requirements = [
 interface={
     provides = [List_implementation]
     libFiles = []
-    headers  = [java.util.ArrayList]
+    headers  = [java.util.ArrayList, java.util.LinkedList]
 }
 
 LibDescription ={
@@ -14,31 +14,38 @@ LibDescription ={
     description = 'List in routines for Java'
 }
 
-struct Java_ArrayList<nodeType>: implements=List wraps=ArrayList native=lang specs={append=constant}{
-    // TODO: find Time Complexity
-    // TODO: verify code converters are correct
+struct Java_ArrayList<nodeType>: implements=List wraps=ArrayList native=lang specs={insert=linear append=constant prepend=linear at=constant rangeIteration=constant}{
     void: append(nodeType: value)               <- <%!add(%1)%>
     nodeType: at(me int: position)              <- <%!%0.get(%1)%>
     void: clear()                               <- <%!clear()%>
-    void: clipToSize(me int: size)              <- <%!resize(%1)%>
-    itr nodeType: deleteNth(me int: position)   <- <%!%0.remove(%0)%>
-    itr nodeType: end()                         <- <%!end()%>           // returns itr to past-the-end element
+    void: clipToSize(me int: size)              <- <%!while(%0.size() > %1) { %0.remove(%0.size() - 1); }%>
+    itr nodeType: deleteNth(me int: position)   <- <%!%0.remove(%1)%>
     itr nodeType: erase(itr nodeType: position) <- <%!remove(%1)%>
-    itr nodeType: begin()                       <- <%!begin()%>
     nodeType: first()                           <- <%!get(0)%>
-    itr nodeType: front()                       <- <%!begin()%>
-    nodeType: __getAt(me int: position)         <- <%!%0.at(%1)%>
-    itr nodeType: insert(itr nodeType: position, nodeType: value) <- <%!add%>
+    nodeType: __getAt(me int: position)         <- <%!%0.get(%1)%>
     itr nodeType: insertIdx(me int: position, nodeType: value) <- <%!%0.add(%1, %2)%>
     me bool: isEmpty()                          <- <%!isEmpty()%>
     nodeType: last()                            <- <%!%0.get(%0.size()-1)%>
-    itr nodeType: nthItr()                      <- <%!%0.listIterator(%1)%>
     nodeType: popFirst()                        <- <%!remove(0)%>
     nodeType: popLast()                         <- <%!%0.remove(%0.size() - 1)%>
     me void: prepend(nodeType: value)           <- <%!add(0, %1)%>
-    itr nodeType: __putAt(itr nodeType: position, nodeType: value) <- <%!insert(%1, %2)%>
     me uint: size()                             <- <%!size()%>
-    /////////////////////////////////////////
-    // TODO: need Reverse Iterators working first
-    //itr nodeType: back() <- <%!rbegin()%>             // returns reverse iterator to the reverse beginning of the sequence container
+}
+
+struct Java_LinkedList<nodeType>: implements=List wraps=LinkedList native=lang specs={insert=linear append=constant prepend=constant at=linear rangeIteration=constant}{
+    void: append(nodeType: value)               <- <%!add(%1)%>
+    nodeType: at(me int: position)              <- <%!%0.get(%1)%>
+    void: clear()                               <- <%!clear()%>
+    void: clipToSize(me int: size)              <- <%!while(%0.size() > %1) { %0.removeLast(); }%>
+    itr nodeType: deleteNth(me int: position)   <- <%!%0.remove(%1)%>
+    itr nodeType: erase(itr nodeType: position) <- <%!remove(%1)%>
+    nodeType: first()                           <- <%!getFirst()%>
+    nodeType: __getAt(me int: position)         <- <%!%0.get(%1)%>
+    itr nodeType: insertIdx(me int: position, nodeType: value) <- <%!%0.add(%1, %2)%>
+    me bool: isEmpty()                          <- <%!isEmpty()%>
+    nodeType: last()                            <- <%!getLast()%>
+    nodeType: popFirst()                        <- <%!removeFirst()%>
+    nodeType: popLast()                         <- <%!removeLast()%>
+    me void: prepend(nodeType: value)           <- <%!addFirst(%1)%>
+    me uint: size()                             <- <%!size()%>
 }

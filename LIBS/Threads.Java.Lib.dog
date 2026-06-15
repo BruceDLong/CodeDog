@@ -58,6 +58,10 @@ struct MutexMngr{
     none: MutexMngr(me Mutex: __mutex)<-{mtx <- __mutex}
 }
 
+struct GLOBAL{
+    me string: thisThreadID() <- <%!%GLong.toString(Thread.currentThread().getId())%>
+}
+
 struct SyncLock: wraps = __SyncLock {
     void: wait(me MutexMngr: lock)   <- <%!wait(%1.mtx)%>          // TODO: for Proteus codeGen
     void: notifyOne()                <- <%!notifyOne()%>          // TODO: for Proteus codeGen

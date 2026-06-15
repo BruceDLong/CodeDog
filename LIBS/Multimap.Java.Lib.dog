@@ -6,32 +6,182 @@ requirements = [
 interface={
     provides = [Multimap_implementation]
     libFiles = []
-    headers  = []
+    headers  = [java.util.TreeMap, java.util.ArrayList, java.util.Map]
 }
 
 LibDescription ={
     useStatus   = dynamic
     description = 'Multimap in routines for Java'
 }
-/*
-struct Java_Multimap<keyType, valueType>: implements=Multimap wraps=TreeMap native=lang specs={insert=logarithmic find=logarithmic at=logarithmic rangeIteration=dontUse}{
-    keyType: at(keyType: key)                   <- <%!%0.get(%1)%>
-    void: clear()                               <- <%!clear()%>
-    me bool: containsKey(keyType: key)          <- <%!containsKey(%1)%>
-    //itr nodeType: end()                       <- <%!end()%>           // returns itr to past-the-end element
-    itr nodeType: erase(keyType: key)           <- <%!remove(%1)%>
-    //itr nodeType: find(valueType: val)        <- <%!get(%1)%>
-    valueType: first()                          <- <%!get(0)%>
-    itr nodeType: front()                       <- <%!firstEntry().getValue()%>
-    itr nodeType: insert(keyType: key, valueType: value) <- <%!put(%1, %2)%>
-    me bool:  isEmpty()                         <- <%!isEmpty()%>
-    valueType: last()                           <- <%!%0.get(%0.size()-1)%>
-    itr valueType: lower_bound(keyType: key)                      <- <%!firstKey()%>
-    nodeType: popFirst()                        <- <%!%0.remove(%0.firstKey())%>
-    //nodeType: popLast()                       <- <%!pollLastEntry()%>
-    me uint:  size()                            <- <%!size()%>
-    /////////////////////////////////////////
-    // TODO: need Reverse Iterators working first
-    //itr nodeType: back() <- <%!rend()%>             // returns reverse iterator to the reverse ene of the sequence container
+embedVeryHigh = `
+class JavaTreeMultimapEntry<K, V> implements Map.Entry<K, V> {
+    private final K key;
+    private V value;
+
+    public JavaTreeMultimapEntry(K key, V value) {
+        this.key = key;
+        this.value = value;
+    }
+
+    public K getKey() {
+        return key;
+    }
+
+    public V getValue() {
+        return value;
+    }
+
+    public V setValue(V newValue) {
+        V oldValue = value;
+        value = newValue;
+        return oldValue;
+    }
 }
-*/
+
+class JavaMultimapCursor<K extends Comparable<K>, V> {
+    public K key;
+    public V val;
+    public boolean valid;
+
+    public JavaMultimapCursor() {
+        valid = false;
+    }
+
+    public JavaMultimapCursor(JavaTreeMultimap<K, V> map, K lookupKey) {
+        if (lookupKey != null && map.containsKey(lookupKey)) {
+            key = lookupKey;
+            val = map.get(lookupKey);
+            valid = true;
+        } else {
+            valid = false;
+        }
+    }
+
+    public static <K extends Comparable<K>, V> JavaMultimapCursor<K, V> end() {
+        return new JavaMultimapCursor<K, V>();
+    }
+
+    public static <K extends Comparable<K>, V> JavaMultimapCursor<K, V> endFor(JavaTreeMultimap<K, V> ignored) {
+        return end();
+    }
+
+    public boolean isEqual(JavaMultimapCursor<K, V> other) {
+        if (!valid && !other.valid) {
+            return true;
+        }
+        if (valid != other.valid) {
+            return false;
+        }
+        return key.equals(other.key);
+    }
+}
+
+class JavaTreeMultimap<K extends Comparable<K>, V> {
+    private final TreeMap<K, ArrayList<V>> data = new TreeMap<K, ArrayList<V>>();
+    private int entryCount = 0;
+
+    public Iterable<Map.Entry<K, V>> entries() {
+        ArrayList<Map.Entry<K, V>> out = new ArrayList<Map.Entry<K, V>>();
+        for (Map.Entry<K, ArrayList<V>> item : data.entrySet()) {
+            for (V value : item.getValue()) {
+                out.add(new JavaTreeMultimapEntry<K, V>(item.getKey(), value));
+            }
+        }
+        return out;
+    }
+
+    public Iterable<Map.Entry<K, V>> subEntries(K start, K end, boolean inclusive) {
+        ArrayList<Map.Entry<K, V>> out = new ArrayList<Map.Entry<K, V>>();
+        for (Map.Entry<K, ArrayList<V>> item : data.subMap(start, true, end, inclusive).entrySet()) {
+            for (V value : item.getValue()) {
+                out.add(new JavaTreeMultimapEntry<K, V>(item.getKey(), value));
+            }
+        }
+        return out;
+    }
+
+    public V get(K key) {
+        ArrayList<V> values = data.get(key);
+        if (values == null || values.isEmpty()) {
+            throw new java.util.NoSuchElementException("Key not found: " + key);
+        }
+        return values.get(0);
+    }
+
+    public void clear() {
+        data.clear();
+        entryCount = 0;
+    }
+
+    public boolean containsKey(K key) {
+        return data.containsKey(key);
+    }
+
+    public void remove(K key) {
+        ArrayList<V> removed = data.remove(key);
+        if (removed != null) {
+            entryCount -= removed.size();
+        }
+    }
+
+    public void put(K key, V value) {
+        ArrayList<V> values = data.get(key);
+        if (values == null) {
+            values = new ArrayList<V>();
+            data.put(key, values);
+        }
+        values.add(value);
+        entryCount += 1;
+    }
+
+    public boolean isEmpty() {
+        return entryCount == 0;
+    }
+
+    public Map.Entry<K, V> firstEntry() {
+        Map.Entry<K, ArrayList<V>> first = data.firstEntry();
+        return new JavaTreeMultimapEntry<K, V>(first.getKey(), first.getValue().get(0));
+    }
+
+    public Map.Entry<K, V> lastEntry() {
+        Map.Entry<K, ArrayList<V>> last = data.lastEntry();
+        ArrayList<V> values = last.getValue();
+        return new JavaTreeMultimapEntry<K, V>(last.getKey(), values.get(values.size() - 1));
+    }
+
+    public V popFirst() {
+        Map.Entry<K, ArrayList<V>> first = data.firstEntry();
+        V value = first.getValue().remove(0);
+        if (first.getValue().isEmpty()) {
+            data.remove(first.getKey());
+        }
+        entryCount -= 1;
+        return value;
+    }
+
+    public int size() {
+        return entryCount;
+    }
+}
+`
+
+struct Java_TreeMultimap<keyType, valueType>: implements=Multimap wraps=JavaTreeMultimap native=lang specs={insert=logarithmic find=logarithmic at=logarithmic rangeIteration=logarithmic}{
+    const struct: iterator_Java_Multimap(keyType: key, valueType: value): implements=MultimapItr wraps=JavaMultimapCursor native=lang <- {
+        me keyType: key()                        <- <%!%0.key%>
+        me valueType: val()                      <- <%!%0.val%>
+    }
+
+    valueType: at(keyType: key)                  <- <%!%0.get(%1)%>
+    valueType: __index(keyType: key)             <- <%!%0.get(%1)%>
+    void: clear()                                <- <%!clear()%>
+    me bool: containsKey(keyType: key)           <- <%!containsKey(%1)%>
+    itr iterator_Java_Multimap: end()            <- <%!JavaMultimapCursor.<%T0Type, %T1Type>endFor(%0)%>
+    void: erase(keyType: key)                    <- <%!remove(%1)%>
+    itr iterator_Java_Multimap: find(keyType: key) <- <%!new JavaMultimapCursor<%T0Type, %T1Type>(%0, %1)%>
+    valueType: first()                           <- <%!%0.firstEntry().getValue()%>
+    itr valueType: insert(keyType: key, valueType: value) <- <%!put(%1, %2)%>
+    me bool:  isEmpty()                          <- <%!isEmpty()%>
+    valueType: last()                            <- <%!%0.lastEntry().getValue()%>
+    valueType: popFirst()                        <- <%!popFirst()%>
+    me uint:  size()                             <- <%!size()%>
+}
