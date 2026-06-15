@@ -51,21 +51,42 @@ class Xlator_Swift(Xlator):
         return S
 
     ###################################################### CONTAINER REPETITIONS
-def codeRangeSpec(self, traversalMode, ctrType, repName, S_low, S_hi, inclusive, indent):
-    mode = traversalMode or 'Forward'
-    if mode == 'Forward':
-        if inclusive:
-            # closed range
-            return indent + f"for {repName} in Int({S_low})...Int({S_hi}) {{\n"
-        else:
-            # half-open range
-            return indent + f"for {repName} in Int({S_low})..<Int({S_hi}) {{\n"
+    def emitLoopWithBody(self, header, prologue, body, returnType, mods, genericArgs, indent):
+        actionText = indent + header + " {\n"
+        if prologue:
+            actionText += prologue
 
-    elif mode == 'Backward':
-        start = f"Int({S_hi})" if inclusive else f"(Int({S_hi})-1)"
-        return indent + f"for {repName} in stride(from: {start}, through: Int({S_low}), by: -1) {{\n"
-    else:
-        cdErr(f"Unknown traversalMode for range: {traversalMode}")
+        whereExprNode = mods.get("whereExpr") if mods else None
+        untilExprNode = mods.get("untilExpr") if mods else None
+        if whereExprNode:
+            whereExprIn = whereExprNode[0] if not isinstance(whereExprNode, str) else whereExprNode
+            [whereExpr, _whereType] = self.codeGen.codeExpr(whereExprIn, None, None, "RVAL", genericArgs)
+            actionText += indent + "    if !(" + whereExpr + ") { continue }\n"
+        if untilExprNode:
+            untilExprIn = untilExprNode[0] if not isinstance(untilExprNode, str) else untilExprNode
+            [untilExpr, _untilType] = self.codeGen.codeExpr(untilExprIn, None, None, "RVAL", genericArgs)
+            actionText += indent + "    if " + untilExpr + " { break }\n"
+
+        for repAction in body:
+            actionText += self.codeGen.codeAction(repAction, indent + "    ", returnType, genericArgs)
+        actionText += indent + "}\n"
+        return actionText
+
+    def codeRangeSpec(self, traversalMode, ctrType, repName, S_low, S_hi, inclusive, indent, body, returnType, mods, genericArgs):
+        mode = traversalMode or 'Forward'
+        if mode == 'Forward':
+            if inclusive:
+                header = f"for {repName} in Int({S_low})...Int({S_hi})"
+            else:
+                header = f"for {repName} in Int({S_low})..<Int({S_hi})"
+            return self.emitLoopWithBody(header, "", body, returnType, mods, genericArgs, indent)
+
+        elif mode == 'Backward':
+            start = f"Int({S_hi})" if inclusive else f"(Int({S_hi})-1)"
+            header = f"for {repName} in stride(from: {start}, through: Int({S_low}), by: -1)"
+            return self.emitLoopWithBody(header, "", body, returnType, mods, genericArgs, indent)
+        else:
+            cdErr(f"Unknown traversalMode for range: {traversalMode}")
 
 
     def getIdxType(self, tSpec):
@@ -79,7 +100,10 @@ def codeRangeSpec(self, traversalMode, ctrType, repName, S_low, S_hi, inclusive,
                     idxType  = ctnrTSpec['indexType']['idxBaseType'][0][0]
                     idxType  = self.applyOwner(idxOwner, idxType, '')
                 else: idxType=ctnrTSpec['indexType']['idxBaseType'][0][0]
-            else: idxType = progSpec.getNewContainerFirstElementTypeTempFunc(tSpec)
+            else:
+                indexSpec = progSpec.getContainerInfo(self.codeGen.classStore, tSpec)["indexTypeSpec"]
+                if indexSpec != None:
+                    idxType = progSpec.fieldTypeKeyword(indexSpec)
         return idxType
 
     def iterateRangeFromTo(self, classes,localVarsAlloc,StartKey,EndKey,ctnrTSpec,repName,ctnrName,indent):
@@ -90,22 +114,22 @@ def codeRangeSpec(self, traversalMode, ctrType, repName, S_low, S_hi, inclusive,
         actionText   = ""
         loopCntrName = repName+'_key'
         itrIncStr    = ""
-        firstOwner   = progSpec.getContainerFirstElementOwner(ctnrTSpec)
-        firstType    = progSpec.getContainerFirstElementType(ctnrTSpec)
-        firstTSpec   = {'owner':firstOwner, 'fieldType':firstType}
-        reqTagList   = progSpec.getReqTagList(ctnrTSpec)
+        containerInfo = progSpec.getContainerInfo(self.codeGen.classStore, ctnrTSpec)
+        keySpec      = containerInfo["keyTypeSpec"] or containerInfo["indexTypeSpec"]
+        valueSpec    = containerInfo["valueTypeSpec"] or containerInfo["firstElementTypeSpec"]
+        firstOwner   = progSpec.getOwner(valueSpec) if valueSpec != None else progSpec.getContainerFirstElementOwner(ctnrTSpec)
+        firstType    = progSpec.fieldTypeKeyword(valueSpec) if valueSpec != None else progSpec.getContainerFirstElementType(ctnrTSpec)
+        firstTSpec   = valueSpec if valueSpec != None else {'owner':firstOwner, 'fieldType':firstType}
         itrTSpec     = self.codeGen.getDataStructItrTSpec(datastructID)
         itrTypeKW    = progSpec.fieldTypeKeyword(itrTSpec) + ' '
         itrName      = repName + "Itr"
-        containerCat = progSpec.getContaineCategory(self.codeGen.classStore, ctnrTSpec)
-        if containerCat=="Map" or containerCat=="Multimap":
-            valueFieldType = progSpec.fieldTypeKeyword(ctnrTSpec)
-            if(reqTagList != None):
-                firstTSpec['owner']     = progSpec.getOwner(reqTagList[1])
-                firstTSpec['fieldType'] = progSpec.fieldTypeKeyword(reqTagList[1])
-                idxTypeKW      = progSpec.fieldTypeKeyword(reqTagList[0])
-                valueFieldType = progSpec.fieldTypeKeyword(reqTagList[1])
-            keyVarSpec = {'owner':ctnrTSpec['owner'], 'fieldType':firstType, 'codeConverter':(repName+'.first')}
+        containerCat = containerInfo["category"]
+        if containerInfo["isAssociative"]:
+            if keySpec == None or valueSpec == None:
+                cdErr("Swift key range traversal requires key and value specs.")
+            idxTypeKW = progSpec.fieldTypeKeyword(keySpec)
+            valueFieldType = progSpec.fieldTypeKeyword(valueSpec)
+            keyVarSpec = {'owner':progSpec.getOwner(keySpec), 'fieldType':idxTypeKW, 'codeConverter':(repName+'.first')}
             firstTSpec['codeConverter'] = (repName+'.value')
             localVarsAlloc.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
             localVarsAlloc.append([repName, firstTSpec]) # Tracking local vars for scope
@@ -131,23 +155,24 @@ def codeRangeSpec(self, traversalMode, ctrType, repName, S_low, S_hi, inclusive,
         actionText   = ""
         loopCntrName = repName+'_key'
         itrIncStr    = ""
-        firstOwner   = progSpec.getContainerFirstElementOwner(ctnrTSpec)
-        firstType    = progSpec.getContainerFirstElementType(ctnrTSpec)
-        firstTSpec   = {'owner':firstOwner, 'fieldType':firstType}
-        reqTagList   = progSpec.getReqTagList(ctnrTSpec)
+        containerInfo = progSpec.getContainerInfo(self.codeGen.classStore, ctnrTSpec)
+        keySpec      = containerInfo["keyTypeSpec"] or containerInfo["indexTypeSpec"]
+        valueSpec    = containerInfo["valueTypeSpec"] or containerInfo["firstElementTypeSpec"]
+        firstOwner   = progSpec.getOwner(valueSpec) if valueSpec != None else progSpec.getContainerFirstElementOwner(ctnrTSpec)
+        firstType    = progSpec.fieldTypeKeyword(valueSpec) if valueSpec != None else progSpec.getContainerFirstElementType(ctnrTSpec)
+        firstTSpec   = valueSpec if valueSpec != None else {'owner':firstOwner, 'fieldType':firstType}
         itrTSpec     = self.codeGen.getDataStructItrTSpec(datastructID)
         itrTypeKW    = progSpec.fieldTypeKeyword(itrTSpec)
         itrOwner     = progSpec.getOwner(itrTSpec)
         itrName      = repName + "Itr"
-        containerCat = progSpec.getContaineCategory(self.codeGen.classStore, ctnrTSpec)
+        containerCat = containerInfo["category"]
         [LDeclP, RDeclP, LDeclA, RDeclA] = self.ChoosePtrDecorationForSimpleCase(firstOwner)
         [LNodeP, RNodeP, LNodeA, RNodeA] = self.ChoosePtrDecorationForSimpleCase(itrOwner)
-        if containerCat=='Map':
+        if containerInfo["isAssociative"]:
             reqTagStr    = self.getReqTagString(classes, ctnrTSpec)
-            if(reqTagList != None):
-                firstTSpec['owner']     = progSpec.getOwner(reqTagList[1])
-                firstTSpec['fieldType'] = progSpec.fieldTypeKeyword(reqTagList[1])
-            keyVarSpec  = {'owner':firstOwner, 'fieldType':firstType, 'codeConverter':(repName+'!.key')}
+            if keySpec == None or valueSpec == None:
+                cdErr("Swift map traversal requires key and value specs.")
+            keyVarSpec  = {'owner':progSpec.getOwner(keySpec), 'fieldType':progSpec.fieldTypeKeyword(keySpec), 'codeConverter':(repName+'!.key')}
             firstTSpec['codeConverter'] = (repName+'!.value')
             itrTypeKW    = self.codeGen.convertType(itrTSpec, 'var', genericArgs)+' '
             itrDeclStr  = indent + 'var '+itrName+":"+itrTypeKW+' = '+ctnrName+'.front()\n'
@@ -159,7 +184,7 @@ def codeRangeSpec(self, traversalMode, ctrType, repName, S_low, S_hi, inclusive,
             actionText += (indent + 'while ' + itrName + '.node !== '+endItrName+'.node {\n')
             actionText += (indent + "    var  " + repName + " = " + itrName + ".node\n")
             # TODO: increment ITR
-        elif containerCat=="List":
+        elif containerInfo["entryShape"] == "value" and containerCat != 'string':
             if willBeModifiedDuringTraversal:
                 idxTypeKW        = self.adjustBaseTypes(idxTypeKW, False)
                 containedOwner = progSpec.getOwner(ctnrTSpec)

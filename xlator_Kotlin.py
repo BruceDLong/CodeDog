@@ -155,25 +155,26 @@ class Xlator_Kotlin(Xlator_Java):
         rangeMode=None,
         rangeSpec=None,
     ):
-        containerCat = progSpec.getContaineCategory(self.codeGen.classStore, ctnrTSpec)
+        containerInfo = progSpec.getContainerInfo(self.codeGen.classStore, ctnrTSpec)
+        containerCat = containerInfo["category"]
+        isAssociative = containerInfo["isAssociative"] or containerInfo["entryShape"] == "entry"
         if rangeMode is not None and rangeMode != "keys":
             cdErr("Kotlin traversal range mode '" + str(rangeMode) + "' is not implemented yet.")
         bkind = binding.get("kind")
         axis = binding.get("axis")
 
-        def makeSpec(owner, fieldType):
-            return {"owner": owner, "fieldType": fieldType}
-
-        def reqSpec(idx):
-            reqTagList = progSpec.getReqTagList(ctnrTSpec)
-            if reqTagList and len(reqTagList) > idx:
-                return makeSpec(reqTagList[idx]["tArgOwner"], reqTagList[idx]["tArgType"])
-            return makeSpec(progSpec.getContainerFirstElementOwner(ctnrTSpec), progSpec.getContainerFirstElementType(ctnrTSpec))
+        def requireSpec(spec, message):
+            if spec == None:
+                cdErr(message)
+            return spec
 
         def mapEntriesAndRangeFilter(entryName):
             entriesExpr = ctnrName + ".entries"
             rangeFilter = ""
             if rangeMode == "keys":
+                caps = progSpec.getContainerCapabilities(classes, ctnrTSpec)
+                if "ordered_keys" not in caps.get("tags", set()):
+                    cdErr("keys: range requires ordered_keys capability for container '" + ctnrName + "'.")
                 if not rangeSpec:
                     cdErr("Kotlin keys traversal requires a range.")
                 startPR = rangeSpec.get("rangeStart", None)
@@ -192,10 +193,10 @@ class Xlator_Kotlin(Xlator_Java):
             valName = binding.get("valName")
             if not keyName or not valName:
                 cdErr("Kotlin tuple traversal missing key/value binding names.")
-            if containerCat not in ("Map", "Multimap"):
+            if not isAssociative:
                 cdErr("Kotlin tuple traversal requires a map-like container.")
-            keyTSpec = reqSpec(0)
-            valTSpec = reqSpec(1)
+            keyTSpec = requireSpec(containerInfo["keyTypeSpec"], "Kotlin tuple traversal requires a key type.")
+            valTSpec = requireSpec(containerInfo["valueTypeSpec"], "Kotlin tuple traversal requires a value type.")
             localVarsAlloc.append([keyName, keyTSpec])
             localVarsAlloc.append([valName, valTSpec])
             keyType = self.codeGen.convertType(keyTSpec, "var", genericArgs)
@@ -218,9 +219,9 @@ class Xlator_Kotlin(Xlator_Java):
         if axis is None:
             axis = "value"
 
-        if containerCat in ("Map", "Multimap"):
-            keyTSpec = reqSpec(0)
-            valTSpec = reqSpec(1)
+        if isAssociative:
+            keyTSpec = requireSpec(containerInfo["keyTypeSpec"], "Kotlin map traversal requires a key type.")
+            valTSpec = requireSpec(containerInfo["valueTypeSpec"], "Kotlin map traversal requires a value type.")
             entryName = repName + "_entry"
             [entriesExpr, rangeFilter] = mapEntriesAndRangeFilter(entryName)
             header = "for (" + entryName + " in " + entriesExpr + ")"
@@ -242,11 +243,8 @@ class Xlator_Kotlin(Xlator_Java):
                 cdErr("Kotlin map traversal does not support axis '" + str(axis) + "'.")
             return self.emitLoopWithBody(header, prologue, body, returnType, mods, genericArgs, indent)
 
-        firstOwner = progSpec.getContainerFirstElementOwner(ctnrTSpec)
-        firstType = progSpec.getContainerFirstElementType(ctnrTSpec)
-        repTSpec = {"owner": firstOwner, "fieldType": firstType}
+        repTSpec = requireSpec(containerInfo["valueTypeSpec"], "Kotlin traversal requires a value type.")
         if containerCat == "string":
-            repTSpec = {"owner": "me", "fieldType": "char"}
             localVarsAlloc.append([repName, repTSpec])
             loopCntrName = repName + "_key"
             localVarsAlloc.append([loopCntrName, {"owner": "me", "fieldType": "Int"}])
@@ -257,7 +255,7 @@ class Xlator_Kotlin(Xlator_Java):
         loopCntrName = repName + "_key"
         localVarsAlloc.append([loopCntrName, {"owner": "me", "fieldType": "Int"}])
         elemType = self.codeGen.convertType(repTSpec, "var", genericArgs)
-        if containerCat == "List":
+        if containerInfo["entryShape"] == "value" and containerCat != "string":
             if traversalMode == "Backward":
                 header = "for (" + loopCntrName + " in (" + ctnrName + ".size - 1) downTo 0)"
             else:

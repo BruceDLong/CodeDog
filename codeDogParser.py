@@ -548,6 +548,11 @@ def _extractReqTagTypeKeyword(reqTag):
 
     return rawVarType[0]
 
+def _extractReqTagConstraints(reqTagList):
+    if reqTagList and "optionalTag" in reqTagList and reqTagList.optionalTag:
+        return extractTagDefs(reqTagList.tagDefList)
+    return None
+
 nameIDX=1
 def packParamSpec(paramSpec, className, indent):
     """Convert parsed paramSpec into a packed *parameter* structure.
@@ -562,10 +567,12 @@ def packParamSpec(paramSpec, className, indent):
 
     fieldType = None
     packedTArgList = None
+    packedReqTags = None
     if paramSpec.varType:
         fieldType = paramSpec.varType[0]
         if not isinstance(fieldType, str) and 'reqTagList' in fieldType:
             reqTagList = fieldType['reqTagList']
+            packedReqTags = _extractReqTagConstraints(reqTagList)
             packedTArgList = []
             for reqTag in reqTagList[0]:
                 reqTagVarType = _extractReqTagTypeKeyword(reqTag)
@@ -585,7 +592,10 @@ def packParamSpec(paramSpec, className, indent):
         # store verbatim text in the same two-element shape used elsewhere
         defaultValue = ['', paramSpec.defaultValueVerbatim[1]]
 
-    return progSpec.packParamSpec(owner, fieldType, arraySpec, packedTArgList, fieldName, defaultValue)
+    packedParam = progSpec.packParamSpec(owner, fieldType, arraySpec, packedTArgList, fieldName, defaultValue)
+    if packedReqTags != None:
+        packedParam['typeSpec']['reqTags'] = packedReqTags
+    return packedParam
 
 def packFieldDef(fieldResult, className, indent, comment=None):
     global nameIDX
@@ -608,12 +618,14 @@ def packFieldDef(fieldResult, className, indent, comment=None):
     isAllocated = False
     hasFuncBody = False
     packedTArgList = None
+    packedReqTags = None
 
     if(fieldResult.fieldType):
         fieldType=fieldResult.fieldType[0];
         if not isinstance(fieldType, str):
             if 'reqTagList' in fieldType:
                 reqTagList = fieldType['reqTagList']
+                packedReqTags = _extractReqTagConstraints(reqTagList)
                 packedTArgList = []
                 for reqTag in reqTagList[0]:
                     reqTagVarType = _extractReqTagTypeKeyword(reqTag)
@@ -746,6 +758,7 @@ def packFieldDef(fieldResult, className, indent, comment=None):
     if coFactuals!=None:   fieldDef['coFactuals'] = coFactuals
     if optionalTags!=None: fieldDef['tags']       = optionalTags
     if nameTypeArgs!=None: fieldDef['nameTypeArgs'] = nameTypeArgs
+    if packedReqTags!=None: fieldDef['typeSpec']['reqTags'] = packedReqTags
     if comment!=None:      fieldDef['comment']    = comment
     return fieldDef
 

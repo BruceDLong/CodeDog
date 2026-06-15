@@ -32,20 +32,24 @@ struct Outer{
         code_gen.clearBuild()
         code_gen.extractNestedClasses(classes, new_classes)
 
-        self.assertIn("Inner", classes[0])
-        self.assertIn("Leaf", classes[0])
+        self.assertIn("Outer.Inner", classes[0])
+        self.assertIn("Outer.Inner.Leaf", classes[0])
 
-        self.assertEqual(classes[0]["Inner"]["fromNested"], "Outer")
-        self.assertEqual(classes[0]["Leaf"]["fromNested"], "Inner")
+        self.assertEqual(classes[0]["Outer.Inner"]["fromNested"], "Outer")
+        self.assertEqual(classes[0]["Outer.Inner.Leaf"]["fromNested"], "Outer.Inner")
 
-        self.assertEqual(classes[0]["Inner"]["nestedPath"], "Outer::Inner")
-        self.assertEqual(classes[0]["Leaf"]["nestedPath"], "Outer::Inner::Leaf")
+        self.assertEqual(classes[0]["Outer.Inner"]["nestedPath"], "Outer.Inner")
+        self.assertEqual(classes[0]["Outer.Inner.Leaf"]["nestedPath"], "Outer.Inner.Leaf")
+        self.assertEqual(classes[0]["Outer.Inner"]["fields"][0]["fieldID"], "Outer.Inner::marker")
+        self.assertEqual(classes[0]["Outer.Inner.Leaf"]["fields"][0]["fieldID"], "Outer.Inner.Leaf::value")
 
-        self.assertEqual(code_gen.nestedClasses["Inner"], "Outer")
-        self.assertEqual(code_gen.nestedClasses["Leaf"], "Inner")
+        self.assertEqual(code_gen.nestedClasses["Outer.Inner"], "Outer")
+        self.assertEqual(code_gen.nestedClasses["Outer.Inner.Leaf"], "Outer.Inner")
 
-        self.assertEqual(code_gen.nestedClassQualifiedNames["Inner"], "Outer::Inner")
-        self.assertEqual(code_gen.nestedClassQualifiedNames["Leaf"], "Outer::Inner::Leaf")
+        self.assertEqual(code_gen.nestedClassQualifiedNames["Outer.Inner"], "Outer.Inner")
+        self.assertEqual(code_gen.nestedClassQualifiedNames["Outer.Inner.Leaf"], "Outer.Inner.Leaf")
+        self.assertEqual(code_gen.nestedClassByQualifiedName["Outer.Inner"], "Outer.Inner")
+        self.assertEqual(code_gen.nestedClassByQualifiedName["Outer.Inner.Leaf"], "Outer.Inner.Leaf")
 
     def test_parser_accepts_dotted_type_reference(self):
         parsed = codeDogParser.fieldDef.parse_string("me Outer.Inner: item", parse_all=True)
@@ -65,8 +69,8 @@ struct OuterAngle{
         code_gen.clearBuild()
         code_gen.extractNestedClasses(classes, new_classes)
 
-        self.assertIn("InnerAngle", classes[0])
-        self.assertEqual(progSpec.getTypeArgList("InnerAngle"), ["T"])
+        self.assertIn("OuterAngle.InnerAngle", classes[0])
+        self.assertEqual(progSpec.getTypeArgList("OuterAngle.InnerAngle"), ["T"])
 
     def test_nested_class_legacy_paren_type_args_still_supported(self):
         src = """
@@ -82,8 +86,8 @@ struct OuterLegacy{
         code_gen.clearBuild()
         code_gen.extractNestedClasses(classes, new_classes)
 
-        self.assertIn("InnerLegacy", classes[0])
-        self.assertEqual(progSpec.getTypeArgList("InnerLegacy"), ["typeArg"])
+        self.assertIn("OuterLegacy.InnerLegacy", classes[0])
+        self.assertEqual(progSpec.getTypeArgList("OuterLegacy.InnerLegacy"), ["typeArg"])
 
     def test_resolve_dotted_type_from_class_and_var(self):
         src = """
@@ -109,10 +113,37 @@ struct GLOBAL{
         code_gen.currentObjName = "GLOBAL"
         code_gen.localVarsAllocated.append(["out", {"owner": "me", "fieldType": ["Outer"]}])
 
-        self.assertEqual(code_gen.resolveDottedTypeKW("Outer.Inner", None), "Inner")
-        self.assertEqual(code_gen.resolveDottedTypeKW("Outer.Inner.Leaf", None), "Leaf")
-        self.assertEqual(code_gen.resolveDottedTypeKW("out.Inner", None), "Inner")
-        self.assertEqual(code_gen.resolveDottedTypeKW("out.Inner.Leaf", None), "Leaf")
+        self.assertEqual(code_gen.resolveDottedTypeKW("Outer.Inner", None), "Outer.Inner")
+        self.assertEqual(code_gen.resolveDottedTypeKW("Outer.Inner.Leaf", None), "Outer.Inner.Leaf")
+        self.assertEqual(code_gen.resolveDottedTypeKW("out.Inner", None), "Outer.Inner")
+        self.assertEqual(code_gen.resolveDottedTypeKW("out.Inner.Leaf", None), "Outer.Inner.Leaf")
+
+    def test_resolve_local_nested_type_prefers_current_nested_scope(self):
+        src = """
+struct Outer{
+    const struct: Sibling() <- {
+        me int: siblingValue
+    }
+    const struct: Inner() <- {
+        const struct: Leaf() <- {
+            me int: value
+        }
+    }
+}
+"""
+        classes, new_classes = self._parse_classes(src)
+
+        code_gen = CodeGenerator()
+        code_gen.clearBuild()
+        code_gen.classStore = classes
+        code_gen.extractNestedClasses(classes, new_classes)
+
+        code_gen.currentObjName = "Outer"
+        self.assertEqual(code_gen.resolveLocalNestedTypeKW("Inner"), "Outer.Inner")
+
+        code_gen.currentObjName = "Outer.Inner"
+        self.assertEqual(code_gen.resolveLocalNestedTypeKW("Leaf"), "Outer.Inner.Leaf")
+        self.assertEqual(code_gen.resolveLocalNestedTypeKW("Sibling"), "Outer.Sibling")
 
     def test_resolve_dotted_iterator_shorthand(self):
         src = """
@@ -136,8 +167,8 @@ struct GLOBAL{
         code_gen.currentObjName = "GLOBAL"
         code_gen.localVarsAllocated.append(["bag", {"owner": "me", "fieldType": ["Bag"]}])
 
-        self.assertEqual(code_gen.resolveDottedTypeKW("Bag.iterator", None), "iterator_Bag")
-        self.assertEqual(code_gen.resolveDottedTypeKW("bag.iterator", None), "iterator_Bag")
+        self.assertEqual(code_gen.resolveDottedTypeKW("Bag.iterator", None), "Bag.iterator_Bag")
+        self.assertEqual(code_gen.resolveDottedTypeKW("bag.iterator", None), "Bag.iterator_Bag")
 
     def test_rewrite_dotted_iterator_to_itr_owner(self):
         src = """

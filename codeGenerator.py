@@ -386,26 +386,33 @@ class CodeGenerator(object):
                     print("******WARNING: no implementation options found for container ", fTypeKW ,className,"::",fieldName)
                     # Check to confirm container type is in features needed
             else:
-                reqTags = progSpec.getReqTags(fType)
+                reqTags = progSpec.getReqTags(tSpec)
                 hiScoreVal = -1
                 hiScoreName = None
+                firstReqError = ""
                 for option in implOptions:
                     classDef = progSpec.findSpecOf(self.classStore[0], option, "struct")
                     if 'tags' in classDef and 'specs' in classDef['tags']:
                         optionTags  = classDef['tags']
                         optionSpecs = optionTags['specs']
                         [implScore, errorMsg] = progSpec.scoreImplementation(optionSpecs, reqTags)
+                        if implScore < 0:
+                            if errorMsg != "" and firstReqError == "":
+                                firstReqError = errorMsg
+                            continue
                         if 'native' in optionTags:
                             nativeTag   = optionTags['native']
                             if nativeTag == "lang": implScore += 6
                             if nativeTag == "platform": implScore += 5
-                        if(errorMsg != ""): cdErr(errorMsg)
                         if(implScore > hiScoreVal):
                             hiScoreVal = implScore
                             hiScoreName = classDef['name']
                 if hiScoreName != None:
                     implTArgs = progSpec.getTypeArgList(hiScoreName)
-                else: implTArgs = None
+                else:
+                    if firstReqError != "":
+                        cdErr(firstReqError)
+                    implTArgs = None
                 #print("IMPLEMENTS:", fTypeKW, '->', hiScoreName)
                 if hiScoreName!=None:progSpec.addDependencyToStruct(className,hiScoreName)
                 return(hiScoreName,fTypeKW,ctnrCat,implTArgs)
@@ -573,8 +580,8 @@ class CodeGenerator(object):
 
     def getContainerValueOwnerAndType(self, tSpec):
         fTypeKW    = progSpec.fieldTypeKeyword(tSpec)
-        keyOwner   = progSpec.getContainerFirstElementOwner(tSpec)
-        keyTypeKW  = progSpec.getContainerFirstElementType(tSpec)
+        containerInfo = progSpec.getContainerInfo(self.classStore, tSpec)
+        valueSpec  = containerInfo['valueTypeSpec'] or containerInfo['firstElementTypeSpec']
         reqTagList = progSpec.getReqTagList(tSpec)
         implTArgs  = progSpec.getImplementationTypeArgs(tSpec)
         fDefAt     = self.CheckObjectVars(fTypeKW, "at", "")
@@ -586,10 +593,9 @@ class CodeGenerator(object):
                 valType = reqTagList[idxAt]
                 return[valType['tArgOwner'], valType['tArgType']]
             else: return[atOwner, atTypeKW]
-        if reqTagList:
-            keyOwner    = reqTagList[0]['tArgOwner']
-            keyTypeKW   = reqTagList[0]['tArgType']
-        return[keyOwner, keyTypeKW]
+        if valueSpec != None:
+            return[progSpec.getOwner(valueSpec), progSpec.fieldTypeKeyword(valueSpec)]
+        cdErr("Could not determine container value type for " + str(tSpec))
 
     ########################################################################
     def getUnwrappedIteratorTypeKW(self, owner, fTypeKW):
@@ -599,8 +605,8 @@ class CodeGenerator(object):
             itrTypeKW   = progSpec.getUnwrappedClassFieldTypeKeyWord(self.classStore, itrTypeKW)
             # Qualified nested keys are internal lookup keys; iterator suffixes in
             # generated code should use the local nested class identifier.
-            if isinstance(itrTypeKW, str) and "::" in itrTypeKW:
-                itrTypeKW = itrTypeKW.split("::")[-1]
+            if isinstance(itrTypeKW, str) and ("::" in itrTypeKW or "." in itrTypeKW):
+                itrTypeKW = re.split(r"::|\.", itrTypeKW)[-1]
         return itrTypeKW
 
     def getNestedOutter(self, innerKW):
@@ -652,9 +658,8 @@ class CodeGenerator(object):
             return fTypeKW
 
         # Fast-path: explicit class qualification such as Outer.Inner.Leaf
-        explicitPath = fTypeKW.replace('.', '::')
-        if explicitPath in self.nestedClassByQualifiedName:
-            return self.nestedClassByQualifiedName[explicitPath]
+        if fTypeKW in self.nestedClassByQualifiedName:
+            return self.nestedClassByQualifiedName[fTypeKW]
 
         typePath = fTypeKW.split('.')
         if len(typePath) < 2:
@@ -666,7 +671,7 @@ class CodeGenerator(object):
         resolvedKW = progSpec.getUnwrappedClassFieldTypeKeyWord(self.classStore, resolvedKW)
 
         for pathSeg in typePath[1:]:
-            nestedPath = self.getNestedQualifiedName(resolvedKW) + "::" + pathSeg
+            nestedPath = self.getNestedQualifiedName(resolvedKW) + "." + pathSeg
             if nestedPath in self.nestedClassByQualifiedName:
                 resolvedKW = self.nestedClassByQualifiedName[nestedPath]
                 continue
@@ -693,14 +698,14 @@ class CodeGenerator(object):
         if self.currentObjName == "":
             return fTypeKW
 
-        outerKW = self.currentObjName
-        outerFromNested = self.getNestedOutter(outerKW)
-        if outerFromNested != None:
-            outerKW = outerFromNested
+        candidatePaths = [self.getNestedQualifiedName(self.currentObjName) + "." + fTypeKW]
+        outerKW = self.getNestedOutter(self.currentObjName)
+        if outerKW != None:
+            candidatePaths.append(self.getNestedQualifiedName(outerKW) + "." + fTypeKW)
 
-        nestedPath = self.getNestedQualifiedName(outerKW) + "::" + fTypeKW
-        if nestedPath in self.nestedClassByQualifiedName:
-            return self.nestedClassByQualifiedName[nestedPath]
+        for nestedPath in candidatePaths:
+            if nestedPath in self.nestedClassByQualifiedName:
+                return self.nestedClassByQualifiedName[nestedPath]
         return fTypeKW
 
     def rewriteDottedIteratorTypeSpec(self, tSpec, genericArgs):
@@ -708,10 +713,9 @@ class CodeGenerator(object):
         if not isinstance(fTypeKW, str) or not fTypeKW.endswith(".iterator"):
             return fTypeKW
 
-        # If an explicit nested class named "...::iterator" exists, treat this
+        # If an explicit nested class named "...iterator" exists, treat this
         # as a normal dotted nested type instead of iterator shorthand.
-        explicitPath = fTypeKW.replace('.', '::')
-        if explicitPath in self.nestedClassByQualifiedName:
+        if fTypeKW in self.nestedClassByQualifiedName:
             return fTypeKW
 
         containerPath = fTypeKW[:-len(".iterator")]
@@ -795,7 +799,7 @@ class CodeGenerator(object):
         else:
             if self.xlator.useNestedClasses:
                 if fTypeKW in self.nestedClasses: # is a nested Class
-                    nestedLocalName = fTypeKW.split("::")[-1] if isinstance(fTypeKW, str) and "::" in fTypeKW else unwrappedKW
+                    nestedLocalName = re.split(r"::|\.", fTypeKW)[-1] if isinstance(fTypeKW, str) and ("::" in fTypeKW or "." in fTypeKW) else unwrappedKW
                     if fTypeKW==self.currentObjName and self.isNestedClass:
                         # Self references from inside the nested class body should
                         # use the local nested identifier (not flattened qualified key).
@@ -1848,12 +1852,12 @@ class CodeGenerator(object):
     def codeConstructor(self, className, tags, typeArgList, genericArgs):
         baseType = progSpec.isWrappedType(self.classStore, className)
         ctorClassName = progSpec.flattenObjectName(className)
-        if '::' in className:
+        if '::' in className or '.' in className:
             classDef = progSpec.findSpecOf(self.classStore[0], className, "struct")
             if classDef != None and 'fromNested' in classDef:
                 # Constructors declared inside a true nested class must use the
                 # local nested identifier, not a flattened qualified key.
-                ctorClassName = className.split("::")[-1]
+                ctorClassName = re.split(r"::|\.", className)[-1]
         if(baseType!=None): return ''
         if not className in self.classStore[0]: return ''
         cdlog(4, "Generating Constructor for: {}".format(className))
@@ -2202,7 +2206,7 @@ class CodeGenerator(object):
                     else: classInherits.append( interfaceImplemented)
 
                 parentClass=''
-                seperatorIdx=className.rfind('::')
+                seperatorIdx=max(className.rfind('::'), className.rfind('.'))
                 if(seperatorIdx != -1):
                     parentClass=className[0:seperatorIdx]
 
@@ -2576,7 +2580,17 @@ class CodeGenerator(object):
             # ~ threads.append(thread)
         # ~ for thread in threads:
             # ~ thread.join()
-        return headerStr
+        return self.dedupeHeaderDirectives(headerStr)
+
+    def dedupeHeaderDirectives(self, headerStr):
+        seen = set()
+        dedupedLines = []
+        for line in headerStr.splitlines(True):
+            if line in seen:
+                continue
+            seen.add(line)
+            dedupedLines.append(line)
+        return ''.join(dedupedLines)
 
     def convertTemplateClasses(self, tags):
         for className in self.classStore[1]:
@@ -2829,6 +2843,23 @@ class CodeGenerator(object):
         pendingClasses = list(newClassNames)
         processedClasses = set()
 
+        def nestedMemberSuffix(fieldID, fieldName):
+            if not isinstance(fieldID, str):
+                return fieldID
+            fieldIDParts = fieldID.split("::")
+            for idx in range(len(fieldIDParts) - 1, -1, -1):
+                if fieldIDParts[idx] == fieldName:
+                    tail = "::".join(fieldIDParts[idx + 1:])
+                    if tail == "":
+                        return ""
+                    return "::" + tail
+            prefix = fieldName + "::"
+            if fieldID.startswith(prefix):
+                return fieldID[len(fieldName):]
+            if fieldID.startswith("::"):
+                return fieldID
+            return "::" + fieldID
+
         while len(pendingClasses) > 0:
             className = pendingClasses.pop(0)
             if className in processedClasses:
@@ -2841,7 +2872,7 @@ class CodeGenerator(object):
             classDef = fileClasses[0][className]
             if className not in self.nestedClassQualifiedNames:
                 if 'fromNested' in classDef and classDef['fromNested'] in self.nestedClassQualifiedNames:
-                    self.nestedClassQualifiedNames[className] = self.nestedClassQualifiedNames[classDef['fromNested']] + "::" + className
+                    self.nestedClassQualifiedNames[className] = self.nestedClassQualifiedNames[classDef['fromNested']] + "." + className
                 else:
                     self.nestedClassQualifiedNames[className] = className
 
@@ -2853,7 +2884,7 @@ class CodeGenerator(object):
                     if tSpec['owner']!='const': cdErr("Non const classes are not currently supported.")
                     fields       = []
                     fieldName    = field['fieldName']
-                    nestedPath   = outerQualifiedName + "::" + fieldName
+                    nestedPath   = outerQualifiedName + "." + fieldName
                     nestedTypeName = nestedPath
                     structFields = field['value'][0]
                     argList      = progSpec.getParamList(field)
@@ -2869,12 +2900,7 @@ class CodeGenerator(object):
                         if not 'fieldDef' in fieldVal: cdErr("No fieldDef in inner class.")
                         newField = fieldVal['fieldDef']
                         if 'fieldID' in newField and isinstance(newField['fieldID'], str):
-                            suffixID = newField['fieldID']
-                            prefix = fieldName + "::"
-                            if suffixID.startswith(prefix):
-                                suffixID = suffixID[len(fieldName):]
-                            elif not suffixID.startswith("::"):
-                                suffixID = "::" + suffixID
+                            suffixID = nestedMemberSuffix(newField['fieldID'], fieldName)
                             newField['fieldID'] = nestedTypeName + suffixID
                         fields.append(newField)
                     nestedTypeArgs = None

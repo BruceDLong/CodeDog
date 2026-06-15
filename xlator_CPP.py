@@ -55,8 +55,10 @@ class Xlator_CPP(Xlator):
         fTypeKW    = progSpec.fieldTypeKeyword(tSpec)
         itrTSpec   = self.codeGen.getDataStructItrTSpec(fTypeKW)
         itrTypeKW  = progSpec.fieldTypeKeyword(itrTSpec)
-        reqTagList = progSpec.getReqTagList(tSpec)
-        valOwner   = progSpec.getOwner(reqTagList[1])
+        valueSpec  = progSpec.getContainerInfo(self.codeGen.classStore, tSpec)["valueTypeSpec"]
+        if valueSpec == None:
+            cdErr("Could not determine iterator value type for " + str(tSpec))
+        valOwner   = progSpec.getOwner(valueSpec)
         [LNodeP, RNodeP, LNodeA, RNodeA] = self.ChoosePtrDecorationForSimpleCase(valOwner)
         itrVal     = progSpec.getCodeConverterByFieldID(self.codeGen.classStore, itrTypeKW, 'val', prevNameSeg ,RNodeP)
         return itrVal
@@ -235,30 +237,10 @@ class Xlator_CPP(Xlator):
                 cdErr("Tuple binding (k,v) requires an associative container yielding entries.")
 
         # ---- register loop locals for type tracking ----
-        def _make_tspec(owner, ftype):
-            return {'owner': owner, 'fieldType': ftype}
-
-        # Derive key/value specs from container type
-        keySpec = None
-        valSpec = None
-        containerCat = progSpec.getContaineCategory(classes, ctnrTSpec)
-        reqTagList = progSpec.getReqTagList(ctnrTSpec)
-
-        if progSpec.fieldTypeKeyword(ctnrTSpec) == "string":
-            valSpec = _make_tspec('me', 'char')
-        elif reqTagList:
-            if containerCat in ("Map", "Multimap"):
-                if len(reqTagList) > 0:
-                    keySpec = _make_tspec(reqTagList[0]['tArgOwner'], reqTagList[0]['tArgType'])
-                if len(reqTagList) > 1:
-                    valSpec = _make_tspec(reqTagList[1]['tArgOwner'], reqTagList[1]['tArgType'])
-            else:
-                valSpec = _make_tspec(reqTagList[0]['tArgOwner'], reqTagList[0]['tArgType'])
-        else:
-            firstType = progSpec.getContainerFirstElementType(ctnrTSpec)
-            if firstType:
-                firstOwner = progSpec.getContainerFirstElementOwner(ctnrTSpec)
-                valSpec = _make_tspec(firstOwner, firstType)
+        # Derive key/value specs from centralized container metadata.
+        containerInfo = caps.get("containerInfo") or progSpec.getContainerInfo(classes, ctnrTSpec)
+        keySpec = containerInfo.get("keyTypeSpec")
+        valSpec = containerInfo.get("valueTypeSpec") or containerInfo.get("firstElementTypeSpec")
 
         if bkind == "tuple":
             if keyName and keySpec:
