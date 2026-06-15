@@ -18,7 +18,6 @@ import pattern_DispData
 import pattern_GenSymbols
 import pattern_MakeMenu
 import pattern_MakeGUI
-import pattern_RBMap
 import pattern_MakeStyler
 import pattern_WriteCallProxy
 
@@ -2168,7 +2167,10 @@ class CodeGenerator(object):
                 forwardDeclsOut = ""
                 enumVals = self.classStore[0][className]['tags']['inherits']['fieldType']['altModeList']
                 if self.xlator.doesLangHaveGlobals:
-                    structCodeOut = "\n" + self.xlator.getEnumStr(className, enumVals).lstrip()
+                    if hasattr(self.xlator, "getEnumGlobalStr"):
+                        structCodeOut = "\n" + self.xlator.getEnumGlobalStr(className, enumVals).lstrip()
+                    else:
+                        structCodeOut = "\n" + self.xlator.getEnumStr(className, enumVals).lstrip()
                     funcCode = self.xlator.getEnumStringifyFunc(className, enumVals)
                     self.modeStateNames[className+'Strings']    = "GLOBAL"
                 else:
@@ -2818,7 +2820,6 @@ class CodeGenerator(object):
             elif pattName=='codeModelToString':  pattern_DispData.apply(classes, patternTags, patternArgs[0], 'text')
             elif pattName=='codeModelToProteus': pattern_DispData.apply(classes, patternTags, patternArgs[0], 'Proteus')
             elif pattName=='makeMenu':           pattern_MakeMenu.apply(classes, patternTags, patternArgs)
-            elif pattName=='makeRBMap':          pattern_RBMap.apply(   classes, patternTags, patternArgs[0], patternArgs[1])
             elif pattName=='makeStyler':         pattern_MakeStyler.apply(classes, patternTags, patternArgs[0])
             else: cdErr("\nPattern {} not recognized.\n\n".format(pattName))
         self.patternsToApply.clear()

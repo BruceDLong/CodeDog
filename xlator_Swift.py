@@ -42,13 +42,13 @@ class Xlator_Swift(Xlator):
     ###################################################### CONTAINERS
     def codeArrayIndex(self, idx, containerType, LorR_Val, previousSegName, idxTypeSpec):
         fTypeKW = progSpec.fieldTypeKeyword(containerType)
-        if (fTypeKW == 'string'):
-            S= '[index: '+idx+']'
-        else:
-            fieldDefAt = self.codeGen.CheckObjectVars(fTypeKW, "at", "")
-            if fieldDefAt: S= '.at(' + idx +')'
-            else: S= '[' + idx +']'
-        return S
+        if fTypeKW == 'string':
+            return '[index: ' + idx + ']'
+        if progSpec.isNewContainerTempFunc(containerType):
+            containerInfo = progSpec.getContainerInfo(self.codeGen.classStore, containerType)
+            if containerInfo["isAssociative"] and LorR_Val == "RVAL":
+                return '[' + idx + ']!'
+        return '[' + idx + ']'
 
     ###################################################### CONTAINER REPETITIONS
     def emitLoopWithBody(self, header, prologue, body, returnType, mods, genericArgs, indent):
@@ -88,6 +88,121 @@ class Xlator_Swift(Xlator):
         else:
             cdErr(f"Unknown traversalMode for range: {traversalMode}")
 
+    def traversalLoopWithBodyStr(
+        self,
+        classes,
+        localVarsAlloc,
+        ctnrTSpec,
+        binding,
+        ctnrName,
+        body,
+        returnType,
+        mods,
+        genericArgs,
+        indent,
+        traversalMode=None,
+        rangeMode=None,
+        rangeSpec=None,
+    ):
+        fTypeKW = progSpec.fieldTypeKeyword(ctnrTSpec)
+        bkind = binding.get("kind")
+        axis = binding.get("axis")
+
+        def requireSpec(spec, message):
+            if spec == None:
+                cdErr(message)
+            return spec
+
+        if fTypeKW == "string":
+            if rangeMode is not None:
+                cdErr("Swift string traversal ranges are not implemented yet.")
+            if bkind != "single" or (axis is not None and axis != "value"):
+                cdErr("Swift string traversal requires a single value binding.")
+            repName = binding.get("name")
+            if not repName:
+                cdErr("Swift string traversal missing loop variable name.")
+            localVarsAlloc.append([repName, {'owner': 'me', 'fieldType': 'char'}])
+            sequenceExpr = ctnrName + ".reversed()" if traversalMode == "Backward" else ctnrName
+            return self.emitLoopWithBody("for " + repName + " in " + sequenceExpr, "", body, returnType, mods, genericArgs, indent)
+
+        containerInfo = progSpec.getContainerInfo(self.codeGen.classStore, ctnrTSpec)
+        containerCat = containerInfo["category"]
+        isAssociative = containerInfo["isAssociative"] or containerInfo["entryShape"] == "entry"
+        if rangeMode is not None and rangeMode != "keys":
+            cdErr("Swift traversal range mode '" + str(rangeMode) + "' is not implemented yet.")
+
+        def mapEntriesExpr():
+            if rangeMode == "keys":
+                caps = progSpec.getContainerCapabilities(classes, ctnrTSpec)
+                if "ordered_keys" not in caps.get("tags", set()):
+                    cdErr("keys: range requires ordered_keys capability for container '" + ctnrName + "'.")
+                cdErr("Swift keys traversal ranges need a sorted map provider.")
+            if containerCat == "Multimap":
+                cdErr("Swift Multimap traversal is not implemented yet.")
+            expr = ctnrName
+            if traversalMode == "Backward":
+                expr += ".reversed()"
+            return expr
+
+        if bkind == "tuple":
+            keyName = binding.get("keyName")
+            valName = binding.get("valName")
+            if not keyName or not valName:
+                cdErr("Swift tuple traversal missing key/value binding names.")
+            if not isAssociative:
+                cdErr("Swift tuple traversal requires a map-like container.")
+            keyTSpec = requireSpec(containerInfo["keyTypeSpec"], "Swift tuple traversal requires a key type.")
+            valTSpec = requireSpec(containerInfo["valueTypeSpec"], "Swift tuple traversal requires a value type.")
+            localVarsAlloc.append([keyName, keyTSpec])
+            localVarsAlloc.append([valName, valTSpec])
+            keyType = self.codeGen.convertType(keyTSpec, "var", genericArgs)
+            valType = self.codeGen.convertType(valTSpec, "var", genericArgs)
+            entryName = keyName + "_" + valName + "_entry"
+            prologue = (
+                indent + "    var " + keyName + ": " + keyType + " = " + entryName + ".key\n"
+                + indent + "    var " + valName + ": " + valType + " = " + entryName + ".value\n"
+            )
+            return self.emitLoopWithBody("for " + entryName + " in " + mapEntriesExpr(), prologue, body, returnType, mods, genericArgs, indent)
+
+        if bkind != "single":
+            cdErr("Swift traversal binding kind missing or unknown.")
+        repName = binding.get("name")
+        if not repName:
+            cdErr("Swift traversal missing loop variable name.")
+        if axis is None:
+            axis = "value"
+
+        if isAssociative:
+            keyTSpec = requireSpec(containerInfo["keyTypeSpec"], "Swift map traversal requires a key type.")
+            valTSpec = requireSpec(containerInfo["valueTypeSpec"], "Swift map traversal requires a value type.")
+            entryName = repName + "_entry"
+            header = "for " + entryName + " in " + mapEntriesExpr()
+            if axis == "key":
+                localVarsAlloc.append([repName, keyTSpec])
+                keyType = self.codeGen.convertType(keyTSpec, "var", genericArgs)
+                prologue = indent + "    var " + repName + ": " + keyType + " = " + entryName + ".key\n"
+            elif axis == "value":
+                localVarsAlloc.append([repName, valTSpec])
+                localVarsAlloc.append([repName + "_key", keyTSpec])
+                keyType = self.codeGen.convertType(keyTSpec, "var", genericArgs)
+                valType = self.codeGen.convertType(valTSpec, "var", genericArgs)
+                prologue = (
+                    indent + "    var " + repName + ": " + valType + " = " + entryName + ".value\n"
+                    + indent + "    var " + repName + "_key: " + keyType + " = " + entryName + ".key\n"
+                )
+            else:
+                cdErr("Swift map traversal axis '" + str(axis) + "' is not implemented.")
+            return self.emitLoopWithBody(header, prologue, body, returnType, mods, genericArgs, indent)
+
+        if rangeMode is not None:
+            cdErr("Swift list traversal ranges are not implemented yet.")
+        if axis != "value":
+            cdErr("Swift list traversal only supports value bindings.")
+        valTSpec = requireSpec(containerInfo["valueTypeSpec"], "Swift list traversal requires a value type.")
+        localVarsAlloc.append([repName, valTSpec])
+        sequenceExpr = ctnrName + ".reversed()" if traversalMode == "Backward" else ctnrName
+        return self.emitLoopWithBody("for " + repName + " in " + sequenceExpr, "", body, returnType, mods, genericArgs, indent)
+
 
     def getIdxType(self, tSpec):
         progSpec.isOldContainerTempFuncErr(tSpec,"xlator_Swift.getIdxType()")
@@ -120,9 +235,11 @@ class Xlator_Swift(Xlator):
         langType = ''
         if(isinstance(fType, str)):
             if(fType=='uint8' or fType=='uint16'or fType=='uint32'): return 'UInt32'
+            elif(fType=='uint'):   return 'UInt'
             elif(fType=='int8' or fType=='int16' or fType=='int32'): return 'Int32'
             elif(fType=='uint64'): return 'UInt64'
             elif(fType=='int64'):  return 'Int64'
+            elif(fType=='long'):   return 'Int64'
             elif(fType=='int'):    return 'Int'
             elif(fType=='bool'):   return 'Bool'
             elif(fType=='void'):   return 'Void'
@@ -130,11 +247,18 @@ class Xlator_Swift(Xlator):
             elif(fType=='double'): return 'Double'
             elif(fType=='string'): return 'String'
             elif(fType=='char'):   return 'Character'
+            elif(fType=='any'):    return 'AnyObject'
             langType=progSpec.flattenObjectName(fType)
         else: langType=progSpec.flattenObjectName(fType[0])
         return langType
 
     def applyIterator(self, langType, itrTypeKW, varMode):
+        if itrTypeKW:
+            genericSuffix = ''
+            genericStart = langType.find('<')
+            if genericStart != -1:
+                genericSuffix = langType[genericStart:]
+            return itrTypeKW + genericSuffix
         return langType
 
     def applyOwner(self, owner, langType, varMode):
@@ -143,7 +267,9 @@ class Xlator_Swift(Xlator):
         elif owner=='my':       langType = langType
         elif owner=='our':      langType = langType
         elif owner=='their':    langType = langType
-        elif owner=='itr':      langType = langType
+        elif owner=='itr':
+            if langType.startswith("Dictionary<") and langType.endswith(">"):
+                langType = "SwiftMapCursor" + langType[len("Dictionary"):]
         elif owner=='const':    langType = langType
         elif owner=='we':       langType += 'public static'
         else: cdErr("ERROR: Owner of type not valid '" + owner + "'")
@@ -329,13 +455,25 @@ class Xlator_Swift(Xlator):
         return(refedClass + self.ObjConnector)
 
     def getEnumStr(self, fieldName, enumList):
-        S = ''
+        S = "typealias " + fieldName + " = Int\n"
         count=0
         for enumName in enumList:
-            S += "    " + self.getConstIntFieldStr(enumName, str(count), 32)
+            S += "static let " + enumName + ": Int = " + str(count) + ";\n"
             count=count+1
         S += "\n"
         return(S)
+
+    def getEnumGlobalStr(self, fieldName, enumList):
+        S = "typealias " + fieldName + " = Int\n"
+        count=0
+        for enumName in enumList:
+            S += "let " + enumName + ": Int = " + str(count) + ";\n"
+            count=count+1
+        S += "\n"
+        return(S)
+
+    def getEnumStringifyFunc(self, className, enumList):
+        return "let " + className + "Strings: [String] = [\"" + "\", \"".join(enumList) + "\"]\n"
 
     def codeIdentityCheck(self, S, S2, retType1, retType2, opIn):
         if opIn == '===':
@@ -366,6 +504,9 @@ class Xlator_Swift(Xlator):
         return S
 
     ###################################################### EXPRESSION CODING
+    def swiftStringLiteralContent(self, text):
+        return text.replace("\\x1b", "\\u{1B}").replace("\\x1B", "\\u{1B}")
+
     def codeNotOperator(self, S, S2,retTypeSpec):
         if progSpec.varsTypeCategory(retTypeSpec) != 'bool':
             if S2[-1]=='!': S2=S2[:-1]   # Todo: Better detect this
@@ -445,15 +586,15 @@ class Xlator_Swift(Xlator):
                     retTypeSpec='string'
                     S+=self.codeGen.codeUserMesg(item0[1:-1])
                 elif (item0[0]=='"'):
+                    innerS = self.swiftStringLiteralContent(item0[1:-1])
                     if returnType != None and returnType["fieldType"]=="char":
                         retTypeSpec='char'
-                        innerS=item0[1:-1]
                         if len(innerS)==1:
-                            S+="'"+item0[1:-1] +"'"
+                            S+='"'+innerS +'"'
                         else:
                             cdErr("Characters must have exactly 1 character.")
                     else:
-                        S+='"'+item0[1:-1] +'"'
+                        S+='"'+innerS +'"'
                     retTypeSpec='String'
                 else:
                     S+=item0;

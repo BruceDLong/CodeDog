@@ -260,8 +260,8 @@ struct Holder{
         req_tags = self._req_tags('int')
         class_store = (
             {
-                'Java_ArrayList': {
-                    'name': 'Java_ArrayList',
+                'Kotlin_ArrayList': {
+                    'name': 'Kotlin_ArrayList',
                     'stateType': 'struct',
                     'tags': {
                         'native': 'lang',
@@ -291,13 +291,13 @@ struct Holder{
                     'fields': [],
                 },
             },
-            ['Java_ArrayList', 'Kotlin_LinkedList'],
+            ['Kotlin_ArrayList', 'Kotlin_LinkedList'],
         )
         progSpec.classImplementationOptions.clear()
         progSpec.classImplementationOptions.update({
-            'List': ['Java_ArrayList', 'Kotlin_LinkedList'],
+            'List': ['Kotlin_ArrayList', 'Kotlin_LinkedList'],
         })
-        progSpec.templatesDefined['Java_ArrayList'] = ['nodeType']
+        progSpec.templatesDefined['Kotlin_ArrayList'] = ['nodeType']
         progSpec.templatesDefined['Kotlin_LinkedList'] = ['nodeType']
 
         code_gen = CodeGenerator()
@@ -313,12 +313,56 @@ struct Holder{
 
         self.assertEqual(
             code_gen.chooseStructImplementationToUse(plain_tspec, 'Holder', 'plain')[0],
-            'Java_ArrayList',
+            'Kotlin_ArrayList',
         )
         self.assertEqual(
             code_gen.chooseStructImplementationToUse(prepend_tspec, 'Holder', 'queue')[0],
             'Kotlin_LinkedList',
         )
+
+    def test_swift_hash_map_selected_for_plain_map(self):
+        req_tags = self._req_tags('string', 'int')
+        class_store = (
+            {
+                'Swift_HashMap': {
+                    'name': 'Swift_HashMap',
+                    'stateType': 'struct',
+                    'tags': {
+                        'native': 'lang',
+                        'specs': {
+                            'insert': 'constant',
+                            'find': 'constant',
+                            'at': 'constant',
+                            'rangeIteration': 'dontUse',
+                        },
+                    },
+                    'fields': [],
+                },
+            },
+            ['Swift_HashMap'],
+        )
+        progSpec.classImplementationOptions.clear()
+        progSpec.classImplementationOptions.update({
+            'Map': ['Swift_HashMap'],
+        })
+        progSpec.templatesDefined['Swift_HashMap'] = ['keyType', 'valueType']
+
+        code_gen = CodeGenerator()
+        code_gen.clearBuild()
+        code_gen.classStore = class_store
+        plain_tspec = self._make_tspec('Map', req_tags)
+        ranged_tspec = self._make_tspec(
+            'Map',
+            req_tags,
+            reqTags={'rangeIteration': 'logarithmic'},
+        )
+
+        self.assertEqual(
+            code_gen.chooseStructImplementationToUse(plain_tspec, 'Holder', 'plain')[0],
+            'Swift_HashMap',
+        )
+        with self.assertRaises(SystemExit):
+            code_gen.chooseStructImplementationToUse(ranged_tspec, 'Holder', 'ranked')
 
     def test_registered_implementation_marks_container_template(self):
         progSpec.classImplementationOptions.clear()

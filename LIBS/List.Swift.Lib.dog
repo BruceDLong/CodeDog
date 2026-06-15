@@ -15,25 +15,25 @@ LibDescription ={
     description = 'List in routines for Swift'
 }
 
-struct Swift_Array<nodeType>: implements=List wraps=Array specs={insert=linear append=constant prepend=constant}{
+struct Swift_ArrayList<nodeType>: implements=List wraps=Array native=lang specs={insert=linear append=constant prepend=linear at=constant rangeIteration=constant}{
     void: append(nodeType: value)               <- <%!append(%1)%>
     nodeType: at(me int: position)              <- <%!%0[%1]%>
     void: clear()                               <- <%!removeAll()%>
-    void: clipToSize(me int: size)              <- <%!%>
-    itr nodeType: deleteNth(me int: position)   <- <%!%>
+    void: clipToSize(me int: size)              <- <%!if %0.count > %1 { %0.removeLast(%0.count - %1) }%>
+    itr nodeType: deleteNth(me int: position)   <- <%!%0.remove(at: %1)%>
     itr nodeType: end()                         <- <%!endIndex%>           // returns itr to past-the-end element
-    itr nodeType: erase(itr nodeType: position) <- <%!remove(at:%1)%>
-    itr nodeType: begin()                       <- <%!%>
+    itr nodeType: erase(itr nodeType: position) <- <%!remove(at: %1)%>
+    itr nodeType: begin()                       <- <%!0%>
     nodeType: first()                           <- <%!%0[0]%>
-    itr nodeType: front()                       <- <%!%>
-    nodeType: __getAt(me int: position)         <- <%!%>
-    itr nodeType: insert(itr nodeType: position, nodeType: value) <- <%!insert(%2, %1)%>
-    itr nodeType: insertIdx(me int: position, nodeType: value)    <- <%!%>
+    itr nodeType: front()                       <- <%!0%>
+    nodeType: __getAt(me int: position)         <- <%!%0[%1]%>
+    itr nodeType: insert(itr nodeType: position, nodeType: value) <- <%!insert(%2, at: %1)%>
+    itr nodeType: insertIdx(me int: position, nodeType: value)    <- <%!%0.insert(%2, at: %1)%>
     me bool: isEmpty()                          <- <%!isEmpty%>
     nodeType: last()                            <- <%!%0[%0.endIndex-1]%>
     itr nodeType: nthItr()                      <- <%!%>
-    nodeType: popFirst()                        <- <%!%0[0]; %0.removeFirst()%>
-    nodeType: popLast()                         <- <%!%0.remove(at:%0.endIndex-1)%>
+    nodeType: popFirst()                        <- <%!%0.removeFirst()%>
+    nodeType: popLast()                         <- <%!%0.removeLast()%>
     me void: prepend(nodeType: value)           <- <%!%0.insert(%1, at:0)%>
     void: resize(me int: size)                  <- <%!%>
     me uint: size()                             <- <%!count%>

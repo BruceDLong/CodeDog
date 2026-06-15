@@ -78,10 +78,10 @@ struct Mutex: wraps = pthread_mutex_t{
     bool: tryLock()     <- <%!pthread_mutex_tryLock(%0)%>
 }
 
-struct MutexMngr: wraps = __MutexMngr{
-    void: lock()        <- <%!pthread_mutex_lock(&mtx)%>
-    void: unlock()      <- <%!pthread_mutex_unlock(&mtx)%>
-    bool: tryLock()     <- <%!pthread_mutex_tryLock(&mtx)%>
+struct MutexMngr: wraps = pthread_mutex_t{
+    void: lock()        <- <%!pthread_mutex_lock(&%0)%>
+    void: unlock()      <- <%!pthread_mutex_unlock(&%0)%>
+    bool: tryLock()     <- <%!pthread_mutex_tryLock(&%0)%>
 }
 
 struct SyncLock: wraps = __SyncLock{

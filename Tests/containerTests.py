@@ -287,6 +287,43 @@ struct testClass{
     }
 }''', 'PGBR:1 3 3 1 2 3 '],
 ###################################################################################################
+'swift/hashMapReq': ['''
+struct testClass{
+    me void: runTest()<-{
+        me Map<me string, me int>: scores
+        scores.insert("alpha",1)
+        scores["beta"] <- 2
+        print(scores.at("alpha"),":",scores["beta"],":",toString(scores.containsKey("alpha")),":",scores.size())
+        if(scores.find("beta") == scores.end()){print(":end")}
+        else{print(":found")}
+        scores.erase("alpha")
+        print(":",toString(scores.containsKey("alpha")),":",scores.size())
+    }
+}''', 'PGBR:1:2:true:2:found:false:1'],
+###################################################################################################
+'swift/hashMapRep': ['''
+struct testClass{
+    me void: runTest()<-{
+        me Map<me int, me int>: scores
+        me int: total <- 0
+        scores.insert(1,10)
+        scores.insert(2,20)
+        withEach (k, v) in scores{total <- total + k + v}
+        print(total)
+    }
+}''', 'PGBR:33'],
+###################################################################################################
+'swift/arrayListReq': ['''
+struct testClass{
+    me void: runTest()<-{
+        me List<me int: at=constant>: nums
+        nums.append(2)
+        nums.append(3)
+        nums.prepend(1)
+        print(nums.at(0),":",nums[1],":",nums.size())
+    }
+}''', 'PGBR:1:2:3'],
+###################################################################################################
 }
 
 tags = """BuildCmd = ""

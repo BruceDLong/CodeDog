@@ -14,33 +14,68 @@ LibDescription ={
     useStatus   = dynamic
     description = 'Map in routines for Swift'
 }
-struct RBTreeMap<keyType, valueType>{
-    const struct: Node_RBTree(keyType: key, valueType: value): implements=[MapNode, Equatable] <- {
-        me bool: __isEqual(Node_RBTree<keyType, valueType>: LHS, Node_RBTree<keyType, valueType>: RHS) <- {
-            return(LHS.value == RHS.value)
+
+embedVeryHigh = `
+public struct SwiftMapCursor<K: Hashable, V>: Equatable {
+    public var key: K?
+    public var val: V?
+    public var valid: Bool
+
+    public init() {
+        self.key = nil
+        self.val = nil
+        self.valid = false
+    }
+
+    public init(_ map: Dictionary<K, V>, _ lookupKey: K) {
+        if let found = map[lookupKey] {
+            self.key = lookupKey
+            self.val = found
+            self.valid = true
+        } else {
+            self.key = nil
+            self.val = nil
+            self.valid = false
         }
     }
+
+    public static func end() -> SwiftMapCursor<K, V> {
+        return SwiftMapCursor<K, V>()
+    }
+
+    public func isEqual(_ other: SwiftMapCursor<K, V>) -> Bool {
+        if !valid && !other.valid {
+            return true
+        }
+        if valid != other.valid {
+            return false
+        }
+        return key == other.key
+    }
+
+    public static func == (lhs: SwiftMapCursor<K, V>, rhs: SwiftMapCursor<K, V>) -> Bool {
+        return lhs.isEqual(rhs)
+    }
 }
-/*
-struct Swift_Map<keyType, valueType>: implements=Map wraps=`NSMutableOrderedSet` specs={insert=logarithmic}{
-    valueType: at(keyType)                      <- <%!%>
-    void: clear()                               <- <%!removeAllObjects()%>
-    me bool: containsKey(keyType: key)          <- <%!%>
-    itr nodeType: end()                         <- <%!%>           // returns itr to past-the-end element
-    itr nodeType: erase(itr nodeType: position) <- <%!%>
-    itr nodeType: eraseInterval(itr nodeType: start, itr nodeType: end) <- <%!%>
-    itr nodeType: find(keyType: key)            <- <%!%>
-    nodeType: first()                           <- <%!%>
-    itr nodeType: front()                       <- <%!%>
-    itr nodeType: insert(itr nodeType: position, nodeType: value) <- <%!insert(%1)%>
-    me bool:  isEmpty()                         <- <%!%>
-    nodeType: last()                            <- <%!%>
-    itr valueType: lower_bound(keyType: key)    <- <%!%>
-    //nodeType: popFirst()                        <- <%!%>
-    //nodeType: popLast()                         <- <%!%>
-    me uint:  size()                            <- <%!%>
-    /////////////////////////////////////////
-    // TODO: need Reverse Iterators working first
-    //itr nodeType: back() <- <%!%>             // returns reverse iterator to the reverse ene of the sequence container
+`
+
+struct Swift_HashMap<keyType, valueType>: implements=Map wraps=Dictionary native=lang specs={insert=constant find=constant at=constant rangeIteration=dontUse}{
+    const struct: iterator_Swift_Map(keyType: key, valueType: value): implements=MapItr wraps=SwiftMapCursor native=lang <- {
+        me keyType: key()                        <- <%!%0.key!%>
+        me valueType: val()                      <- <%!%0.val!%>
+        me bool: __isEqual(itr iterator_Swift_Map: RHS) <- <%!%0.isEqual(%1)%>
+    }
+
+    valueType: at(keyType: key)                  <- <%!%0[%1]!%>
+    valueType: __index(keyType: key)             <- <%!%0[%1]!%>
+    void: clear()                                <- <%!removeAll()%>
+    me bool: containsKey(keyType: key)           <- <%!%0[%1] != nil%>
+    itr iterator_Swift_Map: end()                <- <%!%GSwiftMapCursor<%T0Type, %T1Type>.end()%>
+    void: erase(keyType: key)                    <- <%!%0.removeValue(forKey: %1)%>
+    itr iterator_Swift_Map: find(keyType: key)   <- <%!SwiftMapCursor<%T0Type, %T1Type>(%0, %1)%>
+    valueType: first()                           <- <%!%0.values.first!%>
+    itr valueType: insert(keyType: key, valueType: value) <- <%!%0[%1] = %2%>
+    me bool:  isEmpty()                          <- <%!isEmpty%>
+    valueType: last()                            <- <%!%0.values.last!%>
+    me uint:  size()                             <- <%!count%>
 }
-*/

@@ -14,7 +14,7 @@ LibDescription ={
     description = 'List routines for Kotlin'
 }
 
-struct Java_ArrayList<nodeType>: implements=List wraps=ArrayList native=lang specs={insert=linear append=constant prepend=linear at=constant rangeIteration=constant}{
+struct Kotlin_ArrayList<nodeType>: implements=List wraps=ArrayList native=lang specs={insert=linear append=constant prepend=linear at=constant rangeIteration=constant}{
     void: append(nodeType: value)               <- <%!add(%1)%>
     nodeType: at(me int: position)              <- <%!%0[%1]%>
     void: clear()                               <- <%!clear()%>

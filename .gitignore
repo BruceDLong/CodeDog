@@ -70,12 +70,14 @@ LocalBuild/
 SwiftBuild/
 SwingBuild/
 JavaBuild/
+KotlinBuild/
 iPhoneBuild/
 LinuxBuild/
 AndroidBuild/
 MacBuild/
 LinuxTestBuild/
 WindowsBuild/
+.swift-version
 
 # Testing
 xlatorTests/

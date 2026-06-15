@@ -925,6 +925,33 @@ def kotlinCompilerCommand():
         return '"' + localKotlinc + '"'
     return "kotlinc"
 
+def quoteShellPath(path):
+    return '"' + path.replace('"', '\\"') + '"'
+
+def swiftCompilerCommand():
+    envSwiftc = os.environ.get("CODEDOG_SWIFTC")
+    if envSwiftc:
+        return quoteShellPath(envSwiftc)
+
+    swiftlyHome = os.environ.get("SWIFTLY_HOME_DIR", os.path.expanduser("~/.local/share/swiftly"))
+    swiftlyConfig = os.path.join(swiftlyHome, "config.json")
+    try:
+        with open(swiftlyConfig, "r") as configFile:
+            config = json.load(configFile)
+        inUse = config.get("inUse")
+        if inUse:
+            swiftcPath = os.path.join(swiftlyHome, "toolchains", inUse, "usr", "bin", "swiftc")
+            if os.path.isfile(swiftcPath):
+                return quoteShellPath(swiftcPath)
+    except (OSError, ValueError):
+        pass
+
+    return "swiftc"
+
+def swiftModuleCacheOption():
+    cachePath = os.environ.get("CODEDOG_SWIFT_MODULE_CACHE", "/tmp/codedog-swift-module-cache")
+    return "-module-cache-path " + quoteShellPath(cachePath)
+
 def KotlinBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs):
     fileExtension = '.kt'
     currentDirectory = os.getcwd()
@@ -1043,7 +1070,7 @@ def getBuildSting (fileName, buildStr_libs, platform, buildName):
         buildStr += '//     NOTE: Install command:        ./gradlew installDebug'
     elif platform == 'Swift':
         fileExtension = '.swift'
-        buildStr = "swiftc -suppress-warnings " + fileName + fileExtension
+        buildStr = swiftCompilerCommand() + " -suppress-warnings " + swiftModuleCacheOption() + " " + fileName + fileExtension
     elif platform == 'Kotlin':
         fileExtension = '.kt'
         buildStr = kotlinCompilerCommand() + " " + fileName + fileExtension + " -include-runtime -d " + fileName + ".jar"
