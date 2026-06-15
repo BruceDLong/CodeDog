@@ -366,8 +366,8 @@ struct GraphDataStream {
     me double: screenDataAvg
 
     void: clearInterval(me double: start, me double: end) <- {
-        itr Map<me timeValue, me datum>: startItr <- dataMap.find(start)
-        itr Map<me timeValue, me datum>: endItr   <- dataMap.find(end)
+        itr Map<me timeValue, me datum: rangeIteration=logarithmic>: startItr <- dataMap.find(start)
+        itr Map<me timeValue, me datum: rangeIteration=logarithmic>: endItr   <- dataMap.find(end)
         dataMap.eraseInterval(startItr, endItr)
     }
 }
@@ -566,8 +566,8 @@ struct graph: inherits=dash COMMAND_addCallProxy=["bundledArgs:applyDataRange"]{
 
                 ///// Gradient - requires duplicate 'invisible' data plot as boundary
                 if (dataStream.hasGradient) {
-                    withEach point in dataStream.dataMap from leftGraphTime to rightGraphTime {
-                        XPoint <- (point_key-leftGraphTime)*dblWidth/timeInterval + curX
+                    withEach (pointTime, point) in dataStream.dataMap keys: leftGraphTime ..= rightGraphTime {
+                        XPoint <- (pointTime-leftGraphTime)*dblWidth/timeInterval + curX
                         YPoint.value <- YOrig - (point.value - leftScale.lowVal)*dblHeight/(leftScale.hiVal - leftScale.lowVal)
                         if(firstTime){
                             cr.setColor(styler.bkGndColor)
@@ -590,8 +590,8 @@ struct graph: inherits=dash COMMAND_addCallProxy=["bundledArgs:applyDataRange"]{
                 ///// Visible data plot
                 firstTime <- true
                 if (dataStream.dataMap != NULL) {
-                    withEach point in dataStream.dataMap from leftGraphTime to rightGraphTime {
-                        XPoint        <- convertToGUIScalar((point_key-leftGraphTime)*dblWidth/timeInterval) + curX
+                    withEach (pointTime, point) in dataStream.dataMap keys: leftGraphTime ..= rightGraphTime {
+                        XPoint        <- convertToGUIScalar((pointTime-leftGraphTime)*dblWidth/timeInterval) + curX
                         YPoint.value  <- YOrig - convertToGUIScalar((point.value - leftScale.lowVal)*dblHeight)/convertToGUIScalar(leftScale.hiVal - leftScale.lowVal)
                         YPoint.confidenceInterval <- point.confidenceInterval
                         if(firstTime){
