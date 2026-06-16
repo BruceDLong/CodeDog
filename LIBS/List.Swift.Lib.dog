@@ -15,6 +15,186 @@ LibDescription ={
     description = 'List in routines for Swift'
 }
 
+embedVeryHigh = `
+public struct SwiftDeque<Element>: RandomAccessCollection, MutableCollection {
+    private var storage: [Element?] = []
+    private var head: Int = 0
+    public private(set) var count: Int = 0
+
+    public init() {}
+
+    public var startIndex: Int {
+        return 0
+    }
+
+    public var endIndex: Int {
+        return count
+    }
+
+    public func index(after i: Int) -> Int {
+        return i + 1
+    }
+
+    public func index(before i: Int) -> Int {
+        return i - 1
+    }
+
+    public subscript(position: Int) -> Element {
+        get {
+            checkExistingIndex(position)
+            return storage[physicalIndex(position)]!
+        }
+        set {
+            checkExistingIndex(position)
+            storage[physicalIndex(position)] = newValue
+        }
+    }
+
+    public mutating func append(_ value: Element) {
+        ensureCapacity(count + 1)
+        storage[physicalIndex(count)] = value
+        count += 1
+    }
+
+    public mutating func prepend(_ value: Element) {
+        ensureCapacity(count + 1)
+        head = wrappedIndex(head - 1)
+        storage[head] = value
+        count += 1
+    }
+
+    public mutating func pushFirst(_ value: Element) {
+        prepend(value)
+    }
+
+    public mutating func pushLast(_ value: Element) {
+        append(value)
+    }
+
+    public mutating func insert(_ value: Element, at position: Int) {
+        checkInsertionIndex(position)
+        if position == 0 {
+            prepend(value)
+            return
+        }
+        if position == count {
+            append(value)
+            return
+        }
+        var values = Array(self)
+        values.insert(value, at: position)
+        rebuild(from: values, minimumCapacity: Swift.max(storage.count, values.count))
+    }
+
+    @discardableResult
+    public mutating func remove(at position: Int) -> Element {
+        checkExistingIndex(position)
+        if position == 0 {
+            return removeFirst()
+        }
+        if position == count - 1 {
+            return removeLast()
+        }
+        var values = Array(self)
+        let removed = values.remove(at: position)
+        rebuild(from: values, minimumCapacity: storage.count)
+        return removed
+    }
+
+    @discardableResult
+    public mutating func removeFirst() -> Element {
+        precondition(count > 0, "SwiftDeque.removeFirst() on empty deque")
+        let value = storage[head]!
+        storage[head] = nil
+        head = wrappedIndex(head + 1)
+        count -= 1
+        if count == 0 {
+            head = 0
+        }
+        return value
+    }
+
+    @discardableResult
+    public mutating func removeLast() -> Element {
+        precondition(count > 0, "SwiftDeque.removeLast() on empty deque")
+        let tailIndex = physicalIndex(count - 1)
+        let value = storage[tailIndex]!
+        storage[tailIndex] = nil
+        count -= 1
+        if count == 0 {
+            head = 0
+        }
+        return value
+    }
+
+    public mutating func removeLast(_ n: Int) {
+        if n <= 0 {
+            return
+        }
+        if n >= count {
+            removeAll()
+            return
+        }
+        for _ in 0..<n {
+            _ = removeLast()
+        }
+    }
+
+    public mutating func removeAll() {
+        storage.removeAll()
+        head = 0
+        count = 0
+    }
+
+    public mutating func trim(to newCount: Int) {
+        let target = Swift.max(0, newCount)
+        if target < count {
+            removeLast(count - target)
+        }
+    }
+
+    private mutating func ensureCapacity(_ minimumCapacity: Int) {
+        if storage.count >= minimumCapacity {
+            return
+        }
+        let newCapacity = Swift.max(8, Swift.max(minimumCapacity, storage.count * 2))
+        var newStorage = Array<Element?>(repeating: nil, count: newCapacity)
+        for i in 0..<count {
+            newStorage[i] = self[i]
+        }
+        storage = newStorage
+        head = 0
+    }
+
+    private mutating func rebuild(from values: [Element], minimumCapacity: Int) {
+        let newCapacity = Swift.max(8, Swift.max(minimumCapacity, values.count))
+        storage = Array<Element?>(repeating: nil, count: newCapacity)
+        head = 0
+        count = values.count
+        for i in 0..<values.count {
+            storage[i] = values[i]
+        }
+    }
+
+    private func physicalIndex(_ logicalIndex: Int) -> Int {
+        return wrappedIndex(head + logicalIndex)
+    }
+
+    private func wrappedIndex(_ index: Int) -> Int {
+        let capacity = storage.count
+        return ((index % capacity) + capacity) % capacity
+    }
+
+    private func checkExistingIndex(_ position: Int) {
+        precondition(position >= 0 && position < count, "SwiftDeque index out of range")
+    }
+
+    private func checkInsertionIndex(_ position: Int) {
+        precondition(position >= 0 && position <= count, "SwiftDeque insertion index out of range")
+    }
+}
+`
+
 struct Swift_ArrayList<nodeType>: implements=List wraps=Array native=lang specs={insert=linear append=constant prepend=linear at=constant rangeIteration=constant}{
     void: append(nodeType: value)               <- <%!append(%1)%>
     nodeType: at(me int: position)              <- <%!%0[%1]%>
@@ -40,6 +220,35 @@ struct Swift_ArrayList<nodeType>: implements=List wraps=Array native=lang specs=
     /////////////////////////////////////////
     me void: pushFirst(nodeType: value)         <- <%!%0.insert(%1, at:0)%>
     me void: pushLast(nodeType: value)          <- <%!%0.append(%1)%>
+    // TODO: need Reverse Iterators working first
+    //itr nodeType: back() <- <%!rbegin()%>             // returns reverse iterator to the reverse beginning of the sequence container
+}
+
+struct Swift_Deque<nodeType>: implements=List wraps=SwiftDeque native=lang specs={insert=linear append=constant prepend=constant at=linear rangeIteration=constant}{
+    void: append(nodeType: value)               <- <%!append(%1)%>
+    nodeType: at(me int: position)              <- <%!%0[%1]%>
+    void: clear()                               <- <%!removeAll()%>
+    void: clipToSize(me int: size)              <- <%!%0.trim(to: %1)%>
+    itr nodeType: deleteNth(me int: position)   <- <%!%0.remove(at: %1)%>
+    itr nodeType: end()                         <- <%!endIndex%>
+    itr nodeType: erase(itr nodeType: position) <- <%!remove(at: %1)%>
+    itr nodeType: begin()                       <- <%!0%>
+    nodeType: first()                           <- <%!%0[0]%>
+    itr nodeType: front()                       <- <%!0%>
+    nodeType: __getAt(me int: position)         <- <%!%0[%1]%>
+    itr nodeType: insert(itr nodeType: position, nodeType: value) <- <%!insert(%2, at: %1)%>
+    itr nodeType: insertIdx(me int: position, nodeType: value)    <- <%!%0.insert(%2, at: %1)%>
+    me bool: isEmpty()                          <- <%!isEmpty%>
+    nodeType: last()                            <- <%!%0[%0.count-1]%>
+    itr nodeType: nthItr(me int: position)      <- <%!%1%>
+    nodeType: popFirst()                        <- <%!%0.removeFirst()%>
+    nodeType: popLast()                         <- <%!%0.removeLast()%>
+    me void: prepend(nodeType: value)           <- <%!%0.prepend(%1)%>
+    void: resize(me int: size)                  <- <%!%0.trim(to: %1)%>
+    me uint: size()                             <- <%!count%>
+    /////////////////////////////////////////
+    me void: pushFirst(nodeType: value)         <- <%!%0.pushFirst(%1)%>
+    me void: pushLast(nodeType: value)          <- <%!%0.pushLast(%1)%>
     // TODO: need Reverse Iterators working first
     //itr nodeType: back() <- <%!rbegin()%>             // returns reverse iterator to the reverse beginning of the sequence container
 }

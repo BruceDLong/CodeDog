@@ -320,6 +320,79 @@ struct Holder{
             'Kotlin_LinkedList',
         )
 
+    def test_swift_list_selection_can_request_constant_prepend(self):
+        req_tags = self._req_tags('int')
+        class_store = (
+            {
+                'Swift_ArrayList': {
+                    'name': 'Swift_ArrayList',
+                    'stateType': 'struct',
+                    'tags': {
+                        'native': 'lang',
+                        'specs': {
+                            'insert': 'linear',
+                            'append': 'constant',
+                            'prepend': 'linear',
+                            'at': 'constant',
+                            'rangeIteration': 'constant',
+                        },
+                    },
+                    'fields': [],
+                },
+                'Swift_Deque': {
+                    'name': 'Swift_Deque',
+                    'stateType': 'struct',
+                    'tags': {
+                        'native': 'lang',
+                        'specs': {
+                            'insert': 'linear',
+                            'append': 'constant',
+                            'prepend': 'constant',
+                            'at': 'linear',
+                            'rangeIteration': 'constant',
+                        },
+                    },
+                    'fields': [],
+                },
+            },
+            ['Swift_ArrayList', 'Swift_Deque'],
+        )
+        progSpec.classImplementationOptions.clear()
+        progSpec.classImplementationOptions.update({
+            'List': ['Swift_ArrayList', 'Swift_Deque'],
+        })
+        progSpec.templatesDefined['Swift_ArrayList'] = ['nodeType']
+        progSpec.templatesDefined['Swift_Deque'] = ['nodeType']
+
+        code_gen = CodeGenerator()
+        code_gen.clearBuild()
+        code_gen.classStore = class_store
+
+        plain_tspec = self._make_tspec('List', req_tags)
+        at_tspec = self._make_tspec(
+            'List',
+            req_tags,
+            reqTags={'at': 'constant'},
+        )
+        prepend_tspec = self._make_tspec(
+            'List',
+            req_tags,
+            reqTags={'prepend': 'constant'},
+        )
+
+        self.assertEqual(
+            code_gen.chooseStructImplementationToUse(plain_tspec, 'Holder', 'plain')[0],
+            'Swift_ArrayList',
+        )
+        self.assertEqual(
+            code_gen.chooseStructImplementationToUse(at_tspec, 'Holder', 'indexed')[0],
+            'Swift_ArrayList',
+        )
+        self.assertEqual(
+            code_gen.chooseStructImplementationToUse(prepend_tspec, 'Holder', 'queue')[0],
+            'Swift_Deque',
+        )
+
     def test_swift_map_selection_honors_range_iteration_requirement(self):
         req_tags = self._req_tags('string', 'int')
         class_store = (

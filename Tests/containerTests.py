@@ -343,6 +343,25 @@ struct testClass{
     }
 }''', 'PGBR:one three 4 2:two-a 2:two-b one 3 false 1'],
 ###################################################################################################
+'swift/dequeReq': ['''
+struct testClass{
+    me void: runTest()<-{
+        me List<me int: prepend=constant>: nums
+        nums.append(2)
+        nums.prepend(1)
+        nums.append(3)
+        print(nums.first()," ",nums.last()," ",nums.size()," ")
+        withEach n in nums{print(n," ")}
+        print(nums.popFirst()," ",nums.popLast()," ",nums.size()," ")
+        nums.pushFirst(7)
+        nums.pushLast(8)
+        nums.insertIdx(1,9)
+        nums.deleteNth(2)
+        nums.clipToSize(2)
+        withEach m in nums{print(m," ")}
+    }
+}''', 'PGBR:1 3 3 1 2 3 1 3 1 7 9 '],
+###################################################################################################
 'swift/arrayListReq': ['''
 struct testClass{
     me void: runTest()<-{
