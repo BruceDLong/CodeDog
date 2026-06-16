@@ -57,6 +57,343 @@ public struct SwiftMapCursor<K: Hashable, V>: Equatable {
         return lhs.isEqual(rhs)
     }
 }
+
+public struct SwiftTreeMapEntry<K: Comparable, V> {
+    public var key: K
+    public var value: V
+}
+
+public struct SwiftTreeMapCursor<K: Comparable, V>: Equatable {
+    public var key: K?
+    public var val: V?
+    public var valid: Bool
+
+    public init() {
+        self.key = nil
+        self.val = nil
+        self.valid = false
+    }
+
+    public init(_ map: SwiftTreeMap<K, V>, _ lookupKey: K) {
+        if let found = map.value(for: lookupKey) {
+            self.key = lookupKey
+            self.val = found
+            self.valid = true
+        } else {
+            self.key = nil
+            self.val = nil
+            self.valid = false
+        }
+    }
+
+    public static func end() -> SwiftTreeMapCursor<K, V> {
+        return SwiftTreeMapCursor<K, V>()
+    }
+
+    public func isEqual(_ other: SwiftTreeMapCursor<K, V>) -> Bool {
+        if !valid && !other.valid {
+            return true
+        }
+        if valid != other.valid {
+            return false
+        }
+        return key == other.key
+    }
+
+    public static func == (lhs: SwiftTreeMapCursor<K, V>, rhs: SwiftTreeMapCursor<K, V>) -> Bool {
+        return lhs.isEqual(rhs)
+    }
+}
+
+fileprivate final class SwiftTreeMapNode<K: Comparable, V> {
+    var key: K
+    var value: V
+    var height: Int
+    var left: SwiftTreeMapNode<K, V>?
+    var right: SwiftTreeMapNode<K, V>?
+
+    init(_ key: K, _ value: V) {
+        self.key = key
+        self.value = value
+        self.height = 1
+        self.left = nil
+        self.right = nil
+    }
+}
+
+public final class SwiftTreeMap<K: Comparable, V> {
+    private var root: SwiftTreeMapNode<K, V>?
+    public private(set) var size: Int = 0
+
+    public init() {}
+
+    public subscript(key: K) -> V? {
+        get {
+            return value(for: key)
+        }
+        set {
+            if let value = newValue {
+                put(key, value)
+            } else {
+                _ = remove(key)
+            }
+        }
+    }
+
+    public func value(for key: K) -> V? {
+        var node = root
+        while let current = node {
+            if key < current.key {
+                node = current.left
+            } else if key > current.key {
+                node = current.right
+            } else {
+                return current.value
+            }
+        }
+        return nil
+    }
+
+    public func get(_ key: K) -> V {
+        if let found = value(for: key) {
+            return found
+        }
+        fatalError("Key not found: \(key)")
+    }
+
+    public func containsKey(_ key: K) -> Bool {
+        return value(for: key) != nil
+    }
+
+    public func clear() {
+        root = nil
+        size = 0
+    }
+
+    public func isEmpty() -> Bool {
+        return size == 0
+    }
+
+    public func put(_ key: K, _ value: V) {
+        var inserted = false
+        root = insert(root, key, value, &inserted)
+        if inserted {
+            size += 1
+        }
+    }
+
+    @discardableResult
+    public func remove(_ key: K) -> V? {
+        var removed: V? = nil
+        root = remove(root, key, &removed)
+        if removed != nil {
+            size -= 1
+        }
+        return removed
+    }
+
+    public func findCursor(_ key: K) -> SwiftTreeMapCursor<K, V> {
+        return SwiftTreeMapCursor<K, V>(self, key)
+    }
+
+    public func entries() -> [SwiftTreeMapEntry<K, V>] {
+        var out: [SwiftTreeMapEntry<K, V>] = []
+        appendEntries(root, &out)
+        return out
+    }
+
+    public func subEntries(_ start: K, _ end: K, _ inclusive: Bool) -> [SwiftTreeMapEntry<K, V>] {
+        if start > end {
+            return []
+        }
+        var out: [SwiftTreeMapEntry<K, V>] = []
+        appendSubEntries(root, start, end, inclusive, &out)
+        return out
+    }
+
+    public func firstEntry() -> SwiftTreeMapEntry<K, V> {
+        guard let first = minNode(root) else {
+            fatalError("SwiftTreeMap.firstEntry() on empty map")
+        }
+        return SwiftTreeMapEntry(key: first.key, value: first.value)
+    }
+
+    public func lastEntry() -> SwiftTreeMapEntry<K, V> {
+        guard let last = maxNode(root) else {
+            fatalError("SwiftTreeMap.lastEntry() on empty map")
+        }
+        return SwiftTreeMapEntry(key: last.key, value: last.value)
+    }
+
+    private func nodeHeight(_ node: SwiftTreeMapNode<K, V>?) -> Int {
+        return node?.height ?? 0
+    }
+
+    private func updateHeight(_ node: SwiftTreeMapNode<K, V>) {
+        node.height = max(nodeHeight(node.left), nodeHeight(node.right)) + 1
+    }
+
+    private func balanceFactor(_ node: SwiftTreeMapNode<K, V>?) -> Int {
+        guard let node = node else {
+            return 0
+        }
+        return nodeHeight(node.left) - nodeHeight(node.right)
+    }
+
+    private func rotateRight(_ node: SwiftTreeMapNode<K, V>) -> SwiftTreeMapNode<K, V> {
+        guard let pivot = node.left else {
+            return node
+        }
+        let shifted = pivot.right
+        pivot.right = node
+        node.left = shifted
+        updateHeight(node)
+        updateHeight(pivot)
+        return pivot
+    }
+
+    private func rotateLeft(_ node: SwiftTreeMapNode<K, V>) -> SwiftTreeMapNode<K, V> {
+        guard let pivot = node.right else {
+            return node
+        }
+        let shifted = pivot.left
+        pivot.left = node
+        node.right = shifted
+        updateHeight(node)
+        updateHeight(pivot)
+        return pivot
+    }
+
+    private func rebalance(_ node: SwiftTreeMapNode<K, V>) -> SwiftTreeMapNode<K, V> {
+        updateHeight(node)
+        let balance = balanceFactor(node)
+        if balance > 1 {
+            if balanceFactor(node.left) < 0, let left = node.left {
+                node.left = rotateLeft(left)
+            }
+            return rotateRight(node)
+        }
+        if balance < -1 {
+            if balanceFactor(node.right) > 0, let right = node.right {
+                node.right = rotateRight(right)
+            }
+            return rotateLeft(node)
+        }
+        return node
+    }
+
+    private func insert(
+        _ node: SwiftTreeMapNode<K, V>?,
+        _ key: K,
+        _ value: V,
+        _ inserted: inout Bool
+    ) -> SwiftTreeMapNode<K, V> {
+        guard let current = node else {
+            inserted = true
+            return SwiftTreeMapNode<K, V>(key, value)
+        }
+        if key < current.key {
+            current.left = insert(current.left, key, value, &inserted)
+        } else if key > current.key {
+            current.right = insert(current.right, key, value, &inserted)
+        } else {
+            current.value = value
+            return current
+        }
+        return rebalance(current)
+    }
+
+    private func remove(
+        _ node: SwiftTreeMapNode<K, V>?,
+        _ key: K,
+        _ removed: inout V?
+    ) -> SwiftTreeMapNode<K, V>? {
+        guard let current = node else {
+            return nil
+        }
+        if key < current.key {
+            current.left = remove(current.left, key, &removed)
+            return rebalance(current)
+        }
+        if key > current.key {
+            current.right = remove(current.right, key, &removed)
+            return rebalance(current)
+        }
+
+        removed = current.value
+        if current.left == nil {
+            return current.right
+        }
+        if current.right == nil {
+            return current.left
+        }
+        guard let successor = minNode(current.right) else {
+            return current.left
+        }
+        current.key = successor.key
+        current.value = successor.value
+        current.right = removeMin(current.right!)
+        return rebalance(current)
+    }
+
+    private func removeMin(_ node: SwiftTreeMapNode<K, V>) -> SwiftTreeMapNode<K, V>? {
+        if node.left == nil {
+            return node.right
+        }
+        node.left = removeMin(node.left!)
+        return rebalance(node)
+    }
+
+    private func minNode(_ node: SwiftTreeMapNode<K, V>?) -> SwiftTreeMapNode<K, V>? {
+        var cursor = node
+        while let next = cursor?.left {
+            cursor = next
+        }
+        return cursor
+    }
+
+    private func maxNode(_ node: SwiftTreeMapNode<K, V>?) -> SwiftTreeMapNode<K, V>? {
+        var cursor = node
+        while let next = cursor?.right {
+            cursor = next
+        }
+        return cursor
+    }
+
+    private func appendEntries(
+        _ node: SwiftTreeMapNode<K, V>?,
+        _ out: inout [SwiftTreeMapEntry<K, V>]
+    ) {
+        guard let current = node else {
+            return
+        }
+        appendEntries(current.left, &out)
+        out.append(SwiftTreeMapEntry(key: current.key, value: current.value))
+        appendEntries(current.right, &out)
+    }
+
+    private func appendSubEntries(
+        _ node: SwiftTreeMapNode<K, V>?,
+        _ start: K,
+        _ end: K,
+        _ inclusive: Bool,
+        _ out: inout [SwiftTreeMapEntry<K, V>]
+    ) {
+        guard let current = node else {
+            return
+        }
+        if current.key > start {
+            appendSubEntries(current.left, start, end, inclusive, &out)
+        }
+        let insideUpper = inclusive ? current.key <= end : current.key < end
+        if current.key >= start && insideUpper {
+            out.append(SwiftTreeMapEntry(key: current.key, value: current.value))
+        }
+        if insideUpper {
+            appendSubEntries(current.right, start, end, inclusive, &out)
+        }
+    }
+}
 `
 
 struct Swift_HashMap<keyType, valueType>: implements=Map wraps=Dictionary native=lang specs={insert=constant find=constant at=constant rangeIteration=dontUse}{
@@ -78,4 +415,25 @@ struct Swift_HashMap<keyType, valueType>: implements=Map wraps=Dictionary native
     me bool:  isEmpty()                          <- <%!isEmpty%>
     valueType: last()                            <- <%!%0.values.last!%>
     me uint:  size()                             <- <%!count%>
+}
+
+struct Swift_TreeMap<keyType, valueType>: implements=Map wraps=SwiftTreeMap native=lang specs={insert=logarithmic find=logarithmic at=logarithmic rangeIteration=logarithmic}{
+    const struct: iterator_Swift_TreeMap(keyType: key, valueType: value): implements=MapItr wraps=SwiftTreeMapCursor native=lang <- {
+        me keyType: key()                        <- <%!%0.key!%>
+        me valueType: val()                      <- <%!%0.val!%>
+        me bool: __isEqual(itr iterator_Swift_TreeMap: RHS) <- <%!%0.isEqual(%1)%>
+    }
+
+    valueType: at(keyType: key)                  <- <%!%0.get(%1)%>
+    valueType: __index(keyType: key)             <- <%!%0[%1]!%>
+    void: clear()                                <- <%!clear()%>
+    me bool: containsKey(keyType: key)           <- <%!containsKey(%1)%>
+    itr iterator_Swift_TreeMap: end()            <- <%!%GSwiftTreeMapCursor<%T0Type, %T1Type>.end()%>
+    void: erase(keyType: key)                    <- <%!%0.remove(%1)%>
+    itr iterator_Swift_TreeMap: find(keyType: key) <- <%!%0.findCursor(%1)%>
+    valueType: first()                           <- <%!%0.firstEntry().value%>
+    itr valueType: insert(keyType: key, valueType: value) <- <%!%0.put(%1, %2)%>
+    me bool:  isEmpty()                          <- <%!isEmpty()%>
+    valueType: last()                            <- <%!%0.lastEntry().value%>
+    me uint:  size()                             <- <%!size%>
 }

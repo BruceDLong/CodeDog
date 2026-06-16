@@ -14,3 +14,183 @@ LibDescription ={
     description = 'Multimap in routines for Swift'
 }
 
+embedVeryHigh = `
+public struct SwiftTreeMultimapEntry<K: Comparable, V> {
+    public var key: K
+    public var value: V
+}
+
+public struct SwiftTreeMultimapCursor<K: Comparable, V>: Equatable {
+    public var key: K?
+    public var val: V?
+    public var valid: Bool
+
+    public init() {
+        self.key = nil
+        self.val = nil
+        self.valid = false
+    }
+
+    public init(_ map: SwiftTreeMultimap<K, V>, _ lookupKey: K) {
+        if let found = map.value(for: lookupKey) {
+            self.key = lookupKey
+            self.val = found
+            self.valid = true
+        } else {
+            self.key = nil
+            self.val = nil
+            self.valid = false
+        }
+    }
+
+    public static func end() -> SwiftTreeMultimapCursor<K, V> {
+        return SwiftTreeMultimapCursor<K, V>()
+    }
+
+    public func isEqual(_ other: SwiftTreeMultimapCursor<K, V>) -> Bool {
+        if !valid && !other.valid {
+            return true
+        }
+        if valid != other.valid {
+            return false
+        }
+        return key == other.key
+    }
+
+    public static func == (lhs: SwiftTreeMultimapCursor<K, V>, rhs: SwiftTreeMultimapCursor<K, V>) -> Bool {
+        return lhs.isEqual(rhs)
+    }
+}
+
+public final class SwiftTreeMultimap<K: Comparable, V> {
+    private var data = SwiftTreeMap<K, [V]>()
+    public private(set) var size: Int = 0
+
+    public init() {}
+
+    public subscript(key: K) -> V? {
+        get {
+            return value(for: key)
+        }
+        set {
+            if let value = newValue {
+                put(key, value)
+            } else {
+                remove(key)
+            }
+        }
+    }
+
+    public func value(for key: K) -> V? {
+        return data[key]?.first
+    }
+
+    public func get(_ key: K) -> V {
+        if let found = value(for: key) {
+            return found
+        }
+        fatalError("Key not found: \(key)")
+    }
+
+    public func containsKey(_ key: K) -> Bool {
+        return data.containsKey(key)
+    }
+
+    public func clear() {
+        data.clear()
+        size = 0
+    }
+
+    public func isEmpty() -> Bool {
+        return size == 0
+    }
+
+    public func put(_ key: K, _ value: V) {
+        var values = data[key] ?? []
+        values.append(value)
+        data.put(key, values)
+        size += 1
+    }
+
+    public func remove(_ key: K) {
+        if let removed = data.remove(key) {
+            size -= removed.count
+        }
+    }
+
+    public func findCursor(_ key: K) -> SwiftTreeMultimapCursor<K, V> {
+        return SwiftTreeMultimapCursor<K, V>(self, key)
+    }
+
+    public func entries() -> [SwiftTreeMultimapEntry<K, V>] {
+        var out: [SwiftTreeMultimapEntry<K, V>] = []
+        for item in data.entries() {
+            for value in item.value {
+                out.append(SwiftTreeMultimapEntry(key: item.key, value: value))
+            }
+        }
+        return out
+    }
+
+    public func subEntries(_ start: K, _ end: K, _ inclusive: Bool) -> [SwiftTreeMultimapEntry<K, V>] {
+        var out: [SwiftTreeMultimapEntry<K, V>] = []
+        for item in data.subEntries(start, end, inclusive) {
+            for value in item.value {
+                out.append(SwiftTreeMultimapEntry(key: item.key, value: value))
+            }
+        }
+        return out
+    }
+
+    public func firstEntry() -> SwiftTreeMultimapEntry<K, V> {
+        let item = data.firstEntry()
+        guard let value = item.value.first else {
+            fatalError("SwiftTreeMultimap.firstEntry() on empty map")
+        }
+        return SwiftTreeMultimapEntry(key: item.key, value: value)
+    }
+
+    public func lastEntry() -> SwiftTreeMultimapEntry<K, V> {
+        let item = data.lastEntry()
+        guard let value = item.value.last else {
+            fatalError("SwiftTreeMultimap.lastEntry() on empty map")
+        }
+        return SwiftTreeMultimapEntry(key: item.key, value: value)
+    }
+
+    public func popFirst() -> V {
+        let item = data.firstEntry()
+        var values = item.value
+        let value = values.removeFirst()
+        if values.isEmpty {
+            _ = data.remove(item.key)
+        } else {
+            data.put(item.key, values)
+        }
+        size -= 1
+        return value
+    }
+}
+`
+
+struct Swift_TreeMultimap<keyType, valueType>: implements=Multimap wraps=SwiftTreeMultimap native=lang specs={insert=logarithmic find=logarithmic at=logarithmic rangeIteration=logarithmic}{
+    const struct: iterator_Swift_TreeMultimap(keyType: key, valueType: value): implements=MultimapItr wraps=SwiftTreeMultimapCursor native=lang <- {
+        me keyType: key()                        <- <%!%0.key!%>
+        me valueType: val()                      <- <%!%0.val!%>
+        me bool: __isEqual(itr iterator_Swift_TreeMultimap: RHS) <- <%!%0.isEqual(%1)%>
+    }
+
+    valueType: at(keyType: key)                  <- <%!%0.get(%1)%>
+    valueType: __index(keyType: key)             <- <%!%0[%1]!%>
+    void: clear()                                <- <%!clear()%>
+    me bool: containsKey(keyType: key)           <- <%!containsKey(%1)%>
+    itr iterator_Swift_TreeMultimap: end()       <- <%!%GSwiftTreeMultimapCursor<%T0Type, %T1Type>.end()%>
+    void: erase(keyType: key)                    <- <%!%0.remove(%1)%>
+    itr iterator_Swift_TreeMultimap: find(keyType: key) <- <%!%0.findCursor(%1)%>
+    valueType: first()                           <- <%!%0.firstEntry().value%>
+    itr valueType: insert(keyType: key, valueType: value) <- <%!%0.put(%1, %2)%>
+    me bool:  isEmpty()                          <- <%!isEmpty()%>
+    valueType: last()                            <- <%!%0.lastEntry().value%>
+    valueType: popFirst()                        <- <%!popFirst()%>
+    me uint:  size()                             <- <%!size%>
+}

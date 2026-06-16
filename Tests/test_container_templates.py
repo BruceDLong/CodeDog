@@ -320,7 +320,7 @@ struct Holder{
             'Kotlin_LinkedList',
         )
 
-    def test_swift_hash_map_selected_for_plain_map(self):
+    def test_swift_map_selection_honors_range_iteration_requirement(self):
         req_tags = self._req_tags('string', 'int')
         class_store = (
             {
@@ -338,14 +338,29 @@ struct Holder{
                     },
                     'fields': [],
                 },
+                'Swift_TreeMap': {
+                    'name': 'Swift_TreeMap',
+                    'stateType': 'struct',
+                    'tags': {
+                        'native': 'lang',
+                        'specs': {
+                            'insert': 'logarithmic',
+                            'find': 'logarithmic',
+                            'at': 'logarithmic',
+                            'rangeIteration': 'logarithmic',
+                        },
+                    },
+                    'fields': [],
+                },
             },
-            ['Swift_HashMap'],
+            ['Swift_HashMap', 'Swift_TreeMap'],
         )
         progSpec.classImplementationOptions.clear()
         progSpec.classImplementationOptions.update({
-            'Map': ['Swift_HashMap'],
+            'Map': ['Swift_HashMap', 'Swift_TreeMap'],
         })
         progSpec.templatesDefined['Swift_HashMap'] = ['keyType', 'valueType']
+        progSpec.templatesDefined['Swift_TreeMap'] = ['keyType', 'valueType']
 
         code_gen = CodeGenerator()
         code_gen.clearBuild()
@@ -361,8 +376,10 @@ struct Holder{
             code_gen.chooseStructImplementationToUse(plain_tspec, 'Holder', 'plain')[0],
             'Swift_HashMap',
         )
-        with self.assertRaises(SystemExit):
-            code_gen.chooseStructImplementationToUse(ranged_tspec, 'Holder', 'ranked')
+        self.assertEqual(
+            code_gen.chooseStructImplementationToUse(ranged_tspec, 'Holder', 'ranked')[0],
+            'Swift_TreeMap',
+        )
 
     def test_registered_implementation_marks_container_template(self):
         progSpec.classImplementationOptions.clear()

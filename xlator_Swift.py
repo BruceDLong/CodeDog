@@ -131,15 +131,34 @@ class Xlator_Swift(Xlator):
         if rangeMode is not None and rangeMode != "keys":
             cdErr("Swift traversal range mode '" + str(rangeMode) + "' is not implemented yet.")
 
+        def localBindingType(tSpec):
+            return self.codeGen.convertType(tSpec, "var", genericArgs) + self.makePtrOpt(tSpec)
+
+        def keysRangeExpr():
+            if not rangeSpec:
+                cdErr("Swift keys traversal requires a range.")
+            startPR = rangeSpec.get("rangeStart", None)
+            endPR = rangeSpec.get("rangeEnd", None)
+            if startPR is None or endPR is None:
+                cdErr("Swift keys traversal requires start and end keys.")
+            [startExpr, _startTSpec] = self.codeGen.codeExpr(startPR[0], None, None, "RVAL", genericArgs)
+            [endExpr, _endTSpec] = self.codeGen.codeExpr(endPR[0], None, None, "RVAL", genericArgs)
+            inclusive = "true" if bool(getattr(rangeSpec, "inclusiveOp", False)) else "false"
+            return [startExpr, endExpr, inclusive]
+
         def mapEntriesExpr():
+            caps = progSpec.getContainerCapabilities(classes, ctnrTSpec)
             if rangeMode == "keys":
-                caps = progSpec.getContainerCapabilities(classes, ctnrTSpec)
                 if "ordered_keys" not in caps.get("tags", set()):
                     cdErr("keys: range requires ordered_keys capability for container '" + ctnrName + "'.")
-                cdErr("Swift keys traversal ranges need a sorted map provider.")
-            if containerCat == "Multimap":
-                cdErr("Swift Multimap traversal is not implemented yet.")
-            expr = ctnrName
+                [startExpr, endExpr, inclusive] = keysRangeExpr()
+                expr = ctnrName + ".subEntries(" + startExpr + ", " + endExpr + ", " + inclusive + ")"
+            elif containerCat == "Multimap":
+                expr = ctnrName + ".entries()"
+            elif "ordered_keys" in caps.get("tags", set()):
+                expr = ctnrName + ".entries()"
+            else:
+                expr = ctnrName
             if traversalMode == "Backward":
                 expr += ".reversed()"
             return expr
@@ -155,8 +174,8 @@ class Xlator_Swift(Xlator):
             valTSpec = requireSpec(containerInfo["valueTypeSpec"], "Swift tuple traversal requires a value type.")
             localVarsAlloc.append([keyName, keyTSpec])
             localVarsAlloc.append([valName, valTSpec])
-            keyType = self.codeGen.convertType(keyTSpec, "var", genericArgs)
-            valType = self.codeGen.convertType(valTSpec, "var", genericArgs)
+            keyType = localBindingType(keyTSpec)
+            valType = localBindingType(valTSpec)
             entryName = keyName + "_" + valName + "_entry"
             prologue = (
                 indent + "    var " + keyName + ": " + keyType + " = " + entryName + ".key\n"
@@ -179,13 +198,13 @@ class Xlator_Swift(Xlator):
             header = "for " + entryName + " in " + mapEntriesExpr()
             if axis == "key":
                 localVarsAlloc.append([repName, keyTSpec])
-                keyType = self.codeGen.convertType(keyTSpec, "var", genericArgs)
+                keyType = localBindingType(keyTSpec)
                 prologue = indent + "    var " + repName + ": " + keyType + " = " + entryName + ".key\n"
             elif axis == "value":
                 localVarsAlloc.append([repName, valTSpec])
                 localVarsAlloc.append([repName + "_key", keyTSpec])
-                keyType = self.codeGen.convertType(keyTSpec, "var", genericArgs)
-                valType = self.codeGen.convertType(valTSpec, "var", genericArgs)
+                keyType = localBindingType(keyTSpec)
+                valType = localBindingType(valTSpec)
                 prologue = (
                     indent + "    var " + repName + ": " + valType + " = " + entryName + ".value\n"
                     + indent + "    var " + repName + "_key: " + keyType + " = " + entryName + ".key\n"
@@ -270,6 +289,10 @@ class Xlator_Swift(Xlator):
         elif owner=='itr':
             if langType.startswith("Dictionary<") and langType.endswith(">"):
                 langType = "SwiftMapCursor" + langType[len("Dictionary"):]
+            elif langType.startswith("SwiftTreeMap<") and langType.endswith(">"):
+                langType = "SwiftTreeMapCursor" + langType[len("SwiftTreeMap"):]
+            elif langType.startswith("SwiftTreeMultimap<") and langType.endswith(">"):
+                langType = "SwiftTreeMultimapCursor" + langType[len("SwiftTreeMultimap"):]
         elif owner=='const':    langType = langType
         elif owner=='we':       langType += 'public static'
         else: cdErr("ERROR: Owner of type not valid '" + owner + "'")
@@ -278,6 +301,8 @@ class Xlator_Swift(Xlator):
     def getUnwrappedClassOwner(self, classes, tSpec, fType, varMode, ownerIn):
         ownerOut = ownerIn
         ownerOut = progSpec.getOwner(tSpec)
+        if ownerOut == 'itr':
+            return ownerOut
         baseType = progSpec.isWrappedType(classes, fType)
         if baseType!=None:  # TODO: When this is all tested and stable, un-hardcode and optimize this!!!!!
             if 'ownerMe' in baseType:ownerOut = 'their'

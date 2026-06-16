@@ -313,6 +313,36 @@ struct testClass{
     }
 }''', 'PGBR:33'],
 ###################################################################################################
+'swift/treeMapReq': ['''
+struct testClass{
+    me void: runTest()<-{
+        me Map<me int, me string: rangeIteration=logarithmic>: testMap
+        testMap.insert(3,"three")
+        testMap.insert(1,"one")
+        testMap.insert(2,"two")
+        print(testMap.first()," ",testMap.last()," ",testMap.size()," ")
+        withEach (k, v) in testMap keys: 2 ..= 3{print(k,":",v," ")}
+        testMap.erase(2)
+        print(toString(testMap.containsKey(2))," ",testMap.size())
+    }
+}''', 'PGBR:one three 3 2:two 3:three false 2'],
+###################################################################################################
+'swift/treeMultimapReq': ['''
+struct testClass{
+    me void: runTest()<-{
+        me Multimap<me int, me string: rangeIteration=logarithmic>: testMap
+        testMap.insert(2,"two-a")
+        testMap.insert(1,"one")
+        testMap.insert(2,"two-b")
+        testMap.insert(3,"three")
+        print(testMap.first()," ",testMap.last()," ",testMap.size()," ")
+        withEach (k, v) in testMap keys: 2 ..= 2{print(k,":",v," ")}
+        print(testMap.popFirst()," ",testMap.size()," ")
+        testMap.erase(2)
+        print(toString(testMap.containsKey(2))," ",testMap.size())
+    }
+}''', 'PGBR:one three 4 2:two-a 2:two-b one 3 false 1'],
+###################################################################################################
 'swift/arrayListReq': ['''
 struct testClass{
     me void: runTest()<-{
