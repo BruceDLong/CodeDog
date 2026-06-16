@@ -227,6 +227,77 @@ struct Holder{
             'Kotlin_TreeMap',
         )
 
+    def test_cpp_map_selection_can_request_hash_or_tree(self):
+        req_tags = self._req_tags('string', 'int')
+        class_store = (
+            {
+                'CPP_HashMap': {
+                    'name': 'CPP_HashMap',
+                    'stateType': 'struct',
+                    'tags': {
+                        'native': 'lang',
+                        'specs': {
+                            'insert': 'constant',
+                            'find': 'constant',
+                            'at': 'constant',
+                            'rangeIteration': 'dontUse',
+                        },
+                    },
+                    'fields': [],
+                },
+                'CPP_Map': {
+                    'name': 'CPP_Map',
+                    'stateType': 'struct',
+                    'tags': {
+                        'native': 'lang',
+                        'specs': {
+                            'insert': 'logarithmic',
+                            'find': 'logarithmic',
+                            'at': 'logarithmic',
+                            'rangeIteration': 'logarithmic',
+                        },
+                    },
+                    'fields': [],
+                },
+            },
+            ['CPP_HashMap', 'CPP_Map'],
+        )
+        progSpec.classImplementationOptions.clear()
+        progSpec.classImplementationOptions.update({
+            'Map': ['CPP_HashMap', 'CPP_Map'],
+        })
+        progSpec.templatesDefined['CPP_HashMap'] = ['keyType', 'valueType']
+        progSpec.templatesDefined['CPP_Map'] = ['keyType', 'valueType']
+
+        code_gen = CodeGenerator()
+        code_gen.clearBuild()
+        code_gen.classStore = class_store
+
+        plain_tspec = self._make_tspec('Map', req_tags)
+        hash_tspec = self._make_tspec(
+            'Map',
+            req_tags,
+            reqTags={'insert': 'constant', 'find': 'constant', 'at': 'constant', 'rangeIteration': 'dontUse'},
+        )
+        ranged_tspec = self._make_tspec(
+            'Map',
+            req_tags,
+            reqTags={'rangeIteration': 'logarithmic'},
+        )
+
+        self.assertEqual(
+            code_gen.chooseStructImplementationToUse(plain_tspec, 'Holder', 'plain')[0],
+            'CPP_HashMap',
+        )
+        self.assertEqual(
+            code_gen.chooseStructImplementationToUse(hash_tspec, 'Holder', 'lookup')[0],
+            'CPP_HashMap',
+        )
+        self.assertEqual(
+            code_gen.chooseStructImplementationToUse(ranged_tspec, 'Holder', 'ranked')[0],
+            'CPP_Map',
+        )
+
     def test_container_capabilities_respect_unordered_implementation_specs(self):
         req_tags = self._req_tags('int', 'string')
         class_store = (
@@ -318,6 +389,79 @@ struct Holder{
         self.assertEqual(
             code_gen.chooseStructImplementationToUse(prepend_tspec, 'Holder', 'queue')[0],
             'Kotlin_LinkedList',
+        )
+
+    def test_cpp_list_selection_can_request_vector_or_deque(self):
+        req_tags = self._req_tags('int')
+        class_store = (
+            {
+                'CPP_ArrayList': {
+                    'name': 'CPP_ArrayList',
+                    'stateType': 'struct',
+                    'tags': {
+                        'native': 'lang',
+                        'specs': {
+                            'insert': 'linear',
+                            'append': 'constant',
+                            'prepend': 'linear',
+                            'at': 'constant',
+                            'rangeIteration': 'constant',
+                        },
+                    },
+                    'fields': [],
+                },
+                'CPP_Deque': {
+                    'name': 'CPP_Deque',
+                    'stateType': 'struct',
+                    'tags': {
+                        'native': 'lang',
+                        'specs': {
+                            'insert': 'linear',
+                            'append': 'constant',
+                            'prepend': 'constant',
+                            'at': 'linear',
+                            'rangeIteration': 'constant',
+                        },
+                    },
+                    'fields': [],
+                },
+            },
+            ['CPP_ArrayList', 'CPP_Deque'],
+        )
+        progSpec.classImplementationOptions.clear()
+        progSpec.classImplementationOptions.update({
+            'List': ['CPP_ArrayList', 'CPP_Deque'],
+        })
+        progSpec.templatesDefined['CPP_ArrayList'] = ['nodeType']
+        progSpec.templatesDefined['CPP_Deque'] = ['nodeType']
+
+        code_gen = CodeGenerator()
+        code_gen.clearBuild()
+        code_gen.classStore = class_store
+
+        plain_tspec = self._make_tspec('List', req_tags)
+        at_tspec = self._make_tspec(
+            'List',
+            req_tags,
+            reqTags={'at': 'constant'},
+        )
+        prepend_tspec = self._make_tspec(
+            'List',
+            req_tags,
+            reqTags={'prepend': 'constant'},
+        )
+
+        self.assertEqual(
+            code_gen.chooseStructImplementationToUse(plain_tspec, 'Holder', 'plain')[0],
+            'CPP_ArrayList',
+        )
+        self.assertEqual(
+            code_gen.chooseStructImplementationToUse(at_tspec, 'Holder', 'indexed')[0],
+            'CPP_ArrayList',
+        )
+        self.assertEqual(
+            code_gen.chooseStructImplementationToUse(prepend_tspec, 'Holder', 'queue')[0],
+            'CPP_Deque',
         )
 
     def test_swift_list_selection_can_request_constant_prepend(self):

@@ -6,7 +6,7 @@ requirements = [
 interface={
     provides = [Map_implementation]
     libFiles = []
-    headers  = []
+    headers  = [map, unordered_map]
 }
 
 LibDescription ={
@@ -14,9 +14,31 @@ LibDescription ={
     description = 'Map in routines for CPP'
 }
 
+struct CPP_HashMap<keyType, valueType>: implements=Map wraps=unordered_map native=lang specs={insert=constant find=constant at=constant rangeIteration=dontUse}{
+    const struct: iterator_CPP_HashMap(keyType: key, valueType: value): implements=MapItr wraps=iterator native=lang <- {
+        me keyType: key()                        <- <%!%0->first%>
+        me valueType: val()                      <- <%!%0->second%>
+        void: goNext()                           <- <%!++%0%>
+    }
+
+    valueType: at(keyType: key)                 <- <%!at(%1)%>
+    valueType: __index(keyType: key)            <- <%!%0[%1]%>
+    void: clear()                               <- <%!clear()%>
+    me bool: containsKey(keyType: key)          <- <%!count(%1)>0%>
+    itr iterator_CPP_HashMap: end()             <- <%!end()%>
+    void: erase(keyType: key)                   <- <%!erase(%1)%>
+    itr iterator_CPP_HashMap: find(keyType: key) <- <%!find(%1)%>
+    valueType: first()                          <- <%!begin()->second%>
+    itr iterator_CPP_HashMap: front()           <- <%!%0.begin()%>
+    itr iterator_CPP_HashMap: insert(keyType: key, valueType: value) <- <%!insert(pair<%T0Type, %T1Type>(%1, %2))%>
+    me bool:  isEmpty()                         <- <%!empty()%>
+    valueType: last()                           <- <%!begin()->second%>
+    me uint:  size()                            <- <%!size()%>
+}
+
 struct CPP_Map<keyType, valueType>: implements=Map wraps=map native=lang specs={insert=logarithmic find=logarithmic at=logarithmic rangeIteration=logarithmic}{
     const struct: iterator_CPP_Map(keyType: key, valueType: value): implements=MapItr wraps=iterator native=lang <- {
-        me keyType: key()                        <- <%!%0.first%>
+        me keyType: key()                        <- <%!%0->first%>
         me valueType: val()                      <- <%!%0->second%>
         our RBNode<keyType, valueType>: goNext() <- <%!++%0%>
         our RBNode<keyType, valueType>: goPrev() <- <%!--%0%>

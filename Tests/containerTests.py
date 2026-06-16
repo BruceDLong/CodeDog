@@ -214,6 +214,43 @@ struct testClass{
 }''', 'PGBR:aabbccddeeff',
         ['', '']],
 ###################################################################################################
+'cpp/arrayListReq': ['''
+struct testClass{
+    me void: runTest()<-{
+        me List<me int: at=constant append=constant>: nums
+        nums.append(4)
+        nums.append(5)
+        nums.prepend(3)
+        print(nums.at(1)," ",nums.first()," ",nums.last()," ",nums.size()," ")
+        withEach n in nums{print(n," ")}
+    }
+}''', 'PGBR:4 3 5 3 3 4 5 '],
+###################################################################################################
+'cpp/dequeReq': ['''
+struct testClass{
+    me void: runTest()<-{
+        me List<me int: prepend=constant>: nums
+        nums.append(2)
+        nums.prepend(1)
+        nums.append(3)
+        print(nums.first()," ",nums.last()," ",nums.size()," ")
+        withEach n in nums{print(n," ")}
+    }
+}''', 'PGBR:1 3 3 1 2 3 '],
+###################################################################################################
+'cpp/hashMapReq': ['''
+struct testClass{
+    me void: runTest()<-{
+        me Map<me string, me int: insert=constant find=constant at=constant rangeIteration=dontUse>: testMap
+        testMap.insert("b",2)
+        testMap.insert("a",1)
+        itr Map<me string, me int>: found <- testMap.find("b")
+        print(testMap.at("b")," ",toString(testMap.containsKey("a"))," ",testMap.size()," ")
+        if(found == testMap.end()){print("End")}
+        else{print(found.key(),":",found.val())}
+    }
+}''', 'PGBR:2 true 2 b:2'],
+###################################################################################################
 'kotlin/treeMapReq': ['''
 struct testClass{
     me void: runTest()<-{
@@ -342,6 +379,20 @@ struct testClass{
         print(toString(testMap.containsKey(2))," ",testMap.size())
     }
 }''', 'PGBR:one three 4 2:two-a 2:two-b one 3 false 1'],
+###################################################################################################
+'swift/multimapRep': ['''
+struct testClass{
+    me void: runTest()<-{
+        me Multimap<me int, me string: rangeIteration=logarithmic>: testMap
+        testMap.insert(2,"two-a")
+        testMap.insert(1,"one")
+        testMap.insert(2,"two-b")
+        testMap.insert(3,"three")
+        withEach item in testMap{print(item_key,":",item," ")}
+        withEach (k, v) in testMap{print(k,"=",v," ")}
+        withEach (bk, bv) in testMap Backward{print(bk,"=",bv," ")}
+    }
+}''', 'PGBR:1:one 2:two-a 2:two-b 3:three 1=one 2=two-a 2=two-b 3=three 3=three 2=two-b 2=two-a 1=one '],
 ###################################################################################################
 'swift/dequeReq': ['''
 struct testClass{

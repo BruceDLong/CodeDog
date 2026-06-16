@@ -201,7 +201,7 @@ class Xlator_CPP(Xlator):
         isBackward = (traversalMode == "Backward")
 
         #---- So we need . or ->, etc to access members ----
-        [datastructID, ctnrOwner] = progSpec.getContainerType_Owner(ctnrTSpec)
+        ctnrOwner = progSpec.getOwner(ctnrTSpec)
         [LDeclP, RDeclP, LDeclA, RDeclA] = self.ChoosePtrDecorationForSimpleCase(ctnrOwner)
 
         # ---- basic iterable validation ----

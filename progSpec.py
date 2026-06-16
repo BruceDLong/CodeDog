@@ -1127,13 +1127,6 @@ def getContaineCategory(classStore, ctnrTSpec):
     fTypeKW = fieldTypeKeyword(ctnrTSpec)
     cdErr("Unknown type in progSpec.getContaineCategory() "+fTypeKW)
 
-def getContainerType_Owner(tSpec):
-    isOldContainerTempFuncErr(tSpec,"progSpec.getContainerType_Owner()")
-    owner = getOwner(tSpec)
-    if isNewContainerTempFunc(tSpec): datastructID = fieldTypeKeyword(tSpec)
-    else: datastructID = 'None'
-    return [datastructID, owner]
-
 def isContainerTemplateTempFunc(tSpec):
     if tSpec == None:
         return False

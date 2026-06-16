@@ -6,7 +6,7 @@ requirements = [
 interface={
     provides = [List_implementation]
     libFiles = []
-    headers  = []
+    headers  = [deque, vector]
 }
 
 LibDescription ={
@@ -14,7 +14,44 @@ LibDescription ={
     description = 'List in routines for CPP'
 }
 
-struct CPP_Deque<nodeType>: implements=List wraps=deque native=lang specs={insert=linear append=constant prepend=constant}{
+struct CPP_ArrayList<nodeType>: implements=List wraps=vector native=lang specs={insert=linear append=constant prepend=linear at=constant rangeIteration=constant}{
+    const struct: iteratorV(nodeType: node): implements=iterator wraps=iterator_CPP_ArrayList native=lang <- {
+        me nodeType: val  <- <%!*%0%>
+        void: goNext()    <- <%!++%0%>
+    }
+    void: append(nodeType: value)               <- <%!push_back(%1)%>
+    nodeType: at(me int: position)              <- <%!at(%1)%>
+    void: clear()                               <- <%!clear()%>
+    void: clipToSize(me int: size)              <- <%!resize(%1)%>
+    me iterator: deleteNth(me int: position)    <- <%!%0.erase(%0.begin()+%1)%>
+    me iterator: end()                          <- <%!end()%>
+    me iterator: erase(me iterator: position)   <- <%!erase(%1)%>
+    me iterator: eraseInterval(me iterator: start, me iterator: end) <- <%!erase(%1, %2)%>
+    me iterator: eraseItr(me iterator: pos)     <- <%!erase(%1)%>
+    me iterator: begin()                        <- <%!begin()%>
+    nodeType: first()                           <- <%!front()%>
+    me iterator: front()                        <- <%!begin()%>
+    nodeType: __getAt(me int: position)         <- <%!at(%1)%>
+    me iterator: insert(me iterator: position, nodeType: value) <- <%!insert(%1, %2)%>
+    me iterator: insertIdx(me int: position, nodeType: value) <- <%!%0.insert((%0.begin()+%1), %2)%>
+    me bool: isEmpty()                          <- <%!empty()%>
+    nodeType: last()                            <- <%!back()%>
+    me iterator: nthItr(me int: position)       <- <%!(%0.begin()+%1)%>
+    nodeType: popFirst()                        <- <%!%0.front(); %0.erase(%0.begin())%>
+    nodeType: popLast()                         <- <%!%0.back(); %0.pop_back()%>
+    me void: prepend(nodeType: value)           <- <%!%0.insert(%0.begin(), %1)%>
+    me iterator: __putAt(me iterator: position, nodeType: value) <- <%!insert(%1, %2)%>
+    void: resize(me int: size)                  <- <%!resize(%1)%>
+    me uint: size()                             <- <%!size()%>
+    /////////////////////////////////////////
+    me void: pushFirst(nodeType: value)         <- <%!%0.insert(%0.begin(), %1)%>
+    me void: pushLast(nodeType: value)          <- <%!push_back(%1)%>
+    me bool: contains(nodeType: value)          <- <%!(find(%0.begin(), %0.end(), %1)!=%0.end())%>
+    // TODO: need Reverse Iterators working first
+    //iterator: back() <- <%!rbegin()%>             // returns reverse iterator to the reverse beginning of the sequence container
+}
+
+struct CPP_Deque<nodeType>: implements=List wraps=deque native=lang specs={insert=linear append=constant prepend=constant at=linear rangeIteration=constant}{
     const struct: iteratorD(nodeType: node): implements=iterator wraps=iterator_CPP_Deque native=lang <- {
         me nodeType: val  <- <%!*%0%>
         void: goNext()    <- <%!++%0%>
