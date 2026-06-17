@@ -22,6 +22,315 @@ initCode = ``
 embedVeryHigh = `
 var CodeDogAppDelegate: AppDelegate?
 var CodeDogCurrentEventView: NSView?
+var CodeDogCurrentPaintRect: CGRect = .zero
+var CodeDogImageCache: [String: NSImage] = [:]
+var CodeDogCurrentTextColor: NSColor = .black
+
+func CodeDogMarkViewTreeNeedsDisplay(_ view: NSView) {
+    view.needsDisplay = true
+    for child in view.subviews {
+        CodeDogMarkViewTreeNeedsDisplay(child)
+    }
+}
+
+func CodeDogDisplayViewTree(_ view: NSView) {
+    CodeDogMarkViewTreeNeedsDisplay(view)
+    view.layoutSubtreeIfNeeded()
+    view.displayIfNeeded()
+}
+
+func CodeDogFitScrollDocument(_ scrollView: NSScrollView) {
+    guard let document = scrollView.documentView else { return }
+    var frame = document.frame
+    frame.origin = .zero
+    frame.size.width = max(frame.size.width, scrollView.contentSize.width)
+    document.frame = frame
+    CodeDogMarkViewTreeNeedsDisplay(document)
+}
+
+class CodeDogRootView: NSView {
+    var codeDogFixedSubviews: [(view: NSView, height: CGFloat)] = []
+    var codeDogExpandingSubviews: [NSView] = []
+
+    func addCodeDogSubview(_ widget: NSView, expand: Bool) {
+        if widget.superview !== self {
+            addSubview(widget)
+        }
+        codeDogFixedSubviews.removeAll { $0.view === widget }
+        codeDogExpandingSubviews.removeAll { $0 === widget }
+        if expand {
+            codeDogExpandingSubviews.append(widget)
+        } else {
+            codeDogFixedSubviews.append((view: widget, height: widget.frame.size.height))
+        }
+        layoutCodeDogSubviews()
+        needsLayout = true
+    }
+
+    func layoutCodeDogSubviews() {
+        let width = bounds.size.width
+        var topY = bounds.size.height
+        let expandingCount = max(codeDogExpandingSubviews.count, 1)
+        let fixedHeight = codeDogFixedSubviews.reduce(CGFloat(0)) { $0 + $1.height }
+        let expandingHeight = max(0, bounds.size.height - fixedHeight) / CGFloat(expandingCount)
+        var expandingY: CGFloat = 0
+        for widget in codeDogExpandingSubviews {
+            widget.frame = NSRect(x: 0, y: expandingY, width: width, height: expandingHeight)
+            CodeDogMarkViewTreeNeedsDisplay(widget)
+            expandingY += expandingHeight
+        }
+        for item in codeDogFixedSubviews {
+            topY -= item.height
+            item.view.frame = NSRect(x: 0, y: topY, width: width, height: item.height)
+            if let scrollView = item.view as? NSScrollView {
+                CodeDogFitScrollDocument(scrollView)
+            }
+            CodeDogMarkViewTreeNeedsDisplay(item.view)
+        }
+    }
+
+    override func layout() {
+        super.layout()
+        layoutCodeDogSubviews()
+    }
+
+    override func setFrameSize(_ newSize: NSSize) {
+        super.setFrameSize(newSize)
+        layoutCodeDogSubviews()
+    }
+}
+
+func CodeDogAddToContainer(_ container: NSView, _ widget: NSView, _ expand: Bool) {
+    if let scrollView = container as? NSScrollView {
+        widget.frame.origin = .zero
+        scrollView.documentView = widget
+        CodeDogFitScrollDocument(scrollView)
+        CodeDogMarkViewTreeNeedsDisplay(widget)
+        return
+    }
+    if let root = container as? CodeDogRootView {
+        root.addCodeDogSubview(widget, expand: expand)
+        return
+    }
+    if widget.superview !== container {
+        container.addSubview(widget)
+    }
+    if expand {
+        widget.frame = container.bounds
+        widget.autoresizingMask = [.width, .height]
+    }
+    CodeDogMarkViewTreeNeedsDisplay(widget)
+}
+
+func CodeDogControlEvent() -> NSEvent {
+    return NSApplication.shared.currentEvent ?? NSEvent()
+}
+
+func CodeDogResolveImagePath(_ filename: String) -> String? {
+    let fileManager = FileManager.default
+    let rawPath = (filename as NSString).expandingTildeInPath
+    let basename = (rawPath as NSString).lastPathComponent
+    let name = (basename as NSString).deletingPathExtension
+    let ext = (basename as NSString).pathExtension
+    var candidates: [String] = []
+
+    if (rawPath as NSString).isAbsolutePath {
+        candidates.append(rawPath)
+    } else {
+        candidates.append(rawPath)
+        candidates.append("./assets/" + rawPath)
+        candidates.append("./assets/" + basename)
+        candidates.append("../../Examples/Resources/" + basename)
+        candidates.append("../Examples/Resources/" + basename)
+        candidates.append("./Examples/Resources/" + basename)
+    }
+
+    for candidate in candidates {
+        let resolved = URL(fileURLWithPath: candidate).standardizedFileURL.path
+        if fileManager.fileExists(atPath: resolved) {
+            return resolved
+        }
+    }
+
+    if let bundlePath = Bundle.main.path(forResource: name, ofType: ext.isEmpty ? nil : ext) {
+        return bundlePath
+    }
+    return nil
+}
+
+func CodeDogLoadImage(_ filename: String) -> NSImage? {
+    guard let path = CodeDogResolveImagePath(filename) else {
+        return nil
+    }
+    if let cached = CodeDogImageCache[path] {
+        return cached
+    }
+    guard let image = NSImage(contentsOfFile: path) else {
+        return nil
+    }
+    CodeDogImageCache[path] = image
+    return image
+}
+
+func CodeDogFont(_ font: fontSpec) -> NSFont {
+    if let namedFont = NSFont(name: font.name, size: CGFloat(font.size)) {
+        return namedFont
+    }
+    return NSFont.systemFont(ofSize: CGFloat(font.size))
+}
+
+func CodeDogSetContextColor(_ cr: CGContext!, _ red: Double, _ green: Double, _ blue: Double, _ alpha: Double) {
+    let color = NSColor(red: CGFloat(red)/255.0, green: CGFloat(green)/255.0, blue: CGFloat(blue)/255.0, alpha: CGFloat(alpha)/255.0)
+    CodeDogCurrentTextColor = color
+    cr.setFillColor(color.cgColor)
+    cr.setStrokeColor(color.cgColor)
+}
+
+func CodeDogSetContextCdColor(_ cr: CGContext!, _ color: cdColor) {
+    CodeDogSetContextColor(cr, Double(color.red), Double(color.green), Double(color.blue), Double(color.alpha))
+}
+
+class CodeDogButton: NSButton {
+    weak var codeDogWidget: widget?
+
+    convenience init(title: String) {
+        self.init(frame: .zero)
+        self.title = title
+        self.bezelStyle = .rounded
+        self.target = self
+        self.action = #selector(codeDogClicked(_:))
+    }
+
+    @objc func codeDogClicked(_ sender: Any?) {
+        _ = codeDogWidget?.primaryClick(CodeDogControlEvent())
+    }
+}
+
+class CodeDogTextField: NSTextField, NSTextFieldDelegate {
+    weak var codeDogWidget: widget?
+
+    convenience init(text: String) {
+        self.init(frame: .zero)
+        self.stringValue = text
+        self.isEditable = true
+        self.isSelectable = true
+        self.delegate = self
+    }
+
+    func controlTextDidChange(_ obj: Notification) {
+        _ = codeDogWidget?.keyTyped(CodeDogControlEvent())
+    }
+}
+
+class CodeDogListBox: NSScrollView, NSTableViewDataSource, NSTableViewDelegate {
+    weak var codeDogWidget: widget?
+    let tableView = NSTableView()
+    var items: [String] = []
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        configure()
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        configure()
+    }
+
+    func configure() {
+        hasVerticalScroller = true
+        hasHorizontalScroller = false
+        autohidesScrollers = false
+        drawsBackground = true
+        borderType = .bezelBorder
+
+        tableView.headerView = nil
+        tableView.usesAlternatingRowBackgroundColors = true
+        tableView.allowsMultipleSelection = false
+        tableView.delegate = self
+        tableView.dataSource = self
+        tableView.target = self
+        tableView.doubleAction = #selector(codeDogDoubleClicked(_:))
+
+        let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("CodeDogListColumn"))
+        column.resizingMask = .autoresizingMask
+        tableView.addTableColumn(column)
+        documentView = tableView
+        updateTableFrame()
+    }
+
+    override func setFrameSize(_ newSize: NSSize) {
+        super.setFrameSize(newSize)
+        updateTableFrame()
+    }
+
+    func updateTableFrame() {
+        let height = max(contentSize.height, CGFloat(max(items.count, 1)) * tableView.rowHeight)
+        tableView.frame = NSRect(x: 0, y: 0, width: contentSize.width, height: height)
+        if let column = tableView.tableColumns.first {
+            column.width = contentSize.width
+        }
+    }
+
+    func addItem(_ text: String) {
+        items.append(text)
+        tableView.reloadData()
+        updateTableFrame()
+    }
+
+    func clearItems() {
+        items.removeAll()
+        tableView.deselectAll(nil)
+        tableView.reloadData()
+        updateTableFrame()
+    }
+
+    func setSelectedIndex(_ index: Int) {
+        if index >= 0 && index < items.count {
+            tableView.selectRowIndexes(IndexSet(integer: index), byExtendingSelection: false)
+            tableView.scrollRowToVisible(index)
+        } else {
+            tableView.deselectAll(nil)
+        }
+    }
+
+    func selectedIndex() -> Int {
+        return tableView.selectedRow
+    }
+
+    func selectedText() -> String {
+        let index = selectedIndex()
+        if index >= 0 && index < items.count {
+            return items[index]
+        }
+        return ""
+    }
+
+    func numberOfRows(in tableView: NSTableView) -> Int {
+        return items.count
+    }
+
+    func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
+        let identifier = NSUserInterfaceItemIdentifier("CodeDogListCell")
+        let cell = (tableView.makeView(withIdentifier: identifier, owner: self) as? NSTextField) ?? NSTextField(labelWithString: "")
+        cell.identifier = identifier
+        cell.stringValue = items[row]
+        cell.lineBreakMode = .byTruncatingTail
+        return cell
+    }
+
+    func tableViewSelectionDidChange(_ notification: Notification) {
+        if selectedIndex() >= 0 {
+            _ = codeDogWidget?.primaryClick(CodeDogControlEvent())
+        }
+    }
+
+    @objc func codeDogDoubleClicked(_ sender: Any?) {
+        if selectedIndex() >= 0 {
+            _ = codeDogWidget?.primaryDblClick(CodeDogControlEvent())
+        }
+    }
+}
 
 extension NSEvent {
     private var codeDogPointInEventView: NSPoint {
@@ -36,6 +345,13 @@ extension NSEvent {
 
     var x: Int { Int(codeDogPointInEventView.x) }
     var y: Int { Int(codeDogPointInEventView.y) }
+    var keyval: UInt {
+        if let scalar = charactersIgnoringModifiers?.unicodeScalars.first {
+            return UInt(scalar.value)
+        }
+        return UInt(keyCode)
+    }
+    var state: UInt { UInt(modifierFlags.rawValue) }
 }
 
 // APP DELEGATE /////////////////////////////////////////////////////
@@ -47,9 +363,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             backing: .buffered,
             defer: false)
         window.title = "CodeDog"
+        window.acceptsMouseMovedEvents = true
         window.center()
         window.contentViewController = ViewController()
         window.makeKeyAndOrderFront(nil)
+        if let contentView = window.contentView {
+            CodeDogDisplayViewTree(contentView)
+        }
         NSApplication.shared.activate(ignoringOtherApps: true)
     }
 }
@@ -59,7 +379,7 @@ class ViewController: NSViewController {
         super.viewDidLoad()
     }
     override func loadView() {
-        self.view = NSView(frame: NSRect(x: 0, y: 0, width: 1280, height: 800))
+        self.view = CodeDogRootView(frame: NSRect(x: 0, y: 0, width: 1280, height: 800))
         thisApp.gui.frame = self.view
         thisApp.createAppArea(self.view)
     }
@@ -72,28 +392,62 @@ class CanvasView: NSView{
     override var isFlipped: Bool { true }
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
+        wantsLayer = true
+        layerContentsRedrawPolicy = .onSetNeedsDisplay
+        needsDisplay = true
     }
     required init?(coder decoder: NSCoder) {
         super.init(coder: decoder)
+        wantsLayer = true
+        layerContentsRedrawPolicy = .onSetNeedsDisplay
+        needsDisplay = true
     }
     override func draw(_ dirtyRect: NSRect) -> Void{
         super.draw(dirtyRect)
         cr = NSGraphicsContext.current?.cgContext
+        cr.saveGState()
+        cr.clip(to: bounds)
+        CodeDogCurrentPaintRect = bounds
         CodeDogCurrentEventView = self
         parent.EventDispatcher.topWidget.draw(cr)
+        cr.restoreGState()
     }
     func setParent(_ wid: DashboardWidget!) -> Void{
         var wid = wid
         parent = wid;
+        needsDisplay = true
+    }
+    override func viewDidMoveToSuperview() {
+        super.viewDidMoveToSuperview()
+        needsDisplay = true
+    }
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        window?.makeFirstResponder(self)
+        needsDisplay = true
+    }
+    override func setFrameSize(_ newSize: NSSize) {
+        super.setFrameSize(newSize)
+        needsDisplay = true
     }
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool{
         return true
     }
     override func mouseDown(with event: NSEvent){
         CodeDogCurrentEventView = self
+        window?.makeFirstResponder(self)
         parent.EventDispatcher.dispatchPointerClickEvent(event)
     }
     override func mouseUp(with event: NSEvent){
+        CodeDogCurrentEventView = self
+        parent.EventDispatcher.dispatchPointerClickEvent(event)
+    }
+    override func rightMouseDown(with event: NSEvent){
+        CodeDogCurrentEventView = self
+        window?.makeFirstResponder(self)
+        parent.EventDispatcher.dispatchPointerClickEvent(event)
+    }
+    override func rightMouseUp(with event: NSEvent){
         CodeDogCurrentEventView = self
         parent.EventDispatcher.dispatchPointerClickEvent(event)
     }
@@ -101,12 +455,25 @@ class CanvasView: NSView{
         CodeDogCurrentEventView = self
         parent.EventDispatcher.dispatchPointerMotionEvent(event)
     }
+    override func mouseDragged(with event: NSEvent){
+        CodeDogCurrentEventView = self
+        parent.EventDispatcher.dispatchPointerMotionEvent(event)
+    }
+    override func rightMouseDragged(with event: NSEvent){
+        CodeDogCurrentEventView = self
+        parent.EventDispatcher.dispatchPointerMotionEvent(event)
+    }
+    override func scrollWheel(with event: NSEvent){
+        CodeDogCurrentEventView = self
+        parent.EventDispatcher.dispatchScrollEvent(event)
+        super.scrollWheel(with: event)
+    }
     override var acceptsFirstResponder: Bool {return true}
     override func keyDown(with event: NSEvent){
         parent.EventDispatcher.dispatchKeyboardEvent(event)
     }
     override func keyUp(with event: NSEvent){
-        parent.EventDispatcher.dispatchKeyboardEvent(event)
+        parent.EventDispatcher.dispatchKeyboardReleaseEvent(event)
     }
 };
 `
@@ -132,7 +499,8 @@ struct GUI_WindowEvent:         wraps = NSEvent{}
 struct GUI_ctxt:                wraps = CGContext{}
 /////////////////////////////////  GLOBAL WIDGET FUNCTIONS
 struct GLOBAL{
-    me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <- <%!%2.frame = %1.bounds; %2.autoresizingMask = [.width, .height]; %1.addSubview(%2)%>
+    me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!CodeDogAddToContainer(%1, %2, false)%>
+    me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <- <%!CodeDogAddToContainer(%1, %2, true)%>
 }
 /////////////////////////////////  HANDLE EVENTS
 struct GUI_MotionEvent{
@@ -160,18 +528,37 @@ struct GUI_eventDispatcher{
         topWidget.mouseMoved(event);
         return false;
     }%>
+    me bool: dispatchScrollEvent(their GUI_MotionEvent: event) <- <%{
+        return(topWidget.mouseWheel(event));
+    }%>
     me bool: dispatchPointerClickEvent(their GUI_ButtonEvent: event) <- <%{
         var returnVal: Bool = false;
         switch(event.type){
             case .leftMouseDown:
-                topWidget.primaryDn(event);
-                returnVal = true;
-                //let alert = NSAlert(); alert.messageText = "MouseDown."; alert.runModal()
+                if event.clickCount >= 2 {
+                    returnVal = topWidget.primaryDblClick(event);
+                } else {
+                    returnVal = topWidget.primaryDn(event);
+                }
                 break;
             case .leftMouseUp:
-                topWidget.primaryUp(event);
-                returnVal = true;
-                //let alert = NSAlert(); alert.messageText = "MouseUp."; alert.runModal()
+                returnVal = topWidget.primaryUp(event);
+                if(!returnVal){
+                    returnVal = topWidget.primaryClick(event);
+                }
+                break;
+            case .rightMouseDown:
+                if event.clickCount >= 2 {
+                    returnVal = topWidget.secondaryDblClick(event);
+                } else {
+                    returnVal = topWidget.secondaryDn(event);
+                }
+                break;
+            case .rightMouseUp:
+                returnVal = topWidget.secondaryUp(event);
+                if(!returnVal){
+                    returnVal = topWidget.secondaryClick(event);
+                }
                 break;
             default:
                 return false;
@@ -179,9 +566,24 @@ struct GUI_eventDispatcher{
         return returnVal;
     }%>
     me bool: dispatchKeyboardEvent(their GUI_KeyboardEvent: event) <- <%{
-        //let alert = NSAlert(); alert.messageText = "Key."; alert.runModal()
-        topWidget.keyTyped(event);
-        return(true);
+        var returnVal: Bool = topWidget.keyDown(event);
+        if(topWidget.keyTyped(event)){
+            returnVal = true;
+        }
+        return(returnVal);
+    }%>
+    me bool: dispatchKeyboardReleaseEvent(their GUI_KeyboardEvent: event) <- <%{
+        return(topWidget.keyUp(event));
+    }%>
+    me void: registerControlForEventDispatcher(me GUI_item: Widget, their widget: masterWidget) <- <%{
+        topWidget = masterWidget;
+        if let button = Widget as? CodeDogButton {
+            button.codeDogWidget = masterWidget;
+        } else if let textField = Widget as? CodeDogTextField {
+            textField.codeDogWidget = masterWidget;
+        } else if let listBox = Widget as? CodeDogListBox {
+            listBox.codeDogWidget = masterWidget;
+        }
     }%>
     me void: registerWidgetForEventDispatcher(me CanvasView: appWidget, their widget: masterWidget) <- {
         topWidget<-masterWidget
@@ -213,8 +615,49 @@ struct GUI{
 
 struct GUI{
     their GUI_item: newCanvas() <- <%!%GCanvasView()%>
-    me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%Gvar f: NSRect = %1.frame; f.size.width = %2; f.size.height = %3; %1.frame = f%>
-    //their GUI_item: newScrollingWindow() <- <%!%>
+    their GUI_item: newLabel(me string: text) <- <%{
+        let label = NSTextField(labelWithString: text)
+        label.lineBreakMode = .byTruncatingTail
+        label.alignment = .left
+        return(label);
+    }%>
+    their GUI_item: newButton(me string: text) <- <%!%GCodeDogButton(title: %1)%>
+    their GUI_item: newTextField(me string: text) <- <%!%GCodeDogTextField(text: %1)%>
+    their GUI_item: newListBox() <- <%!%GCodeDogListBox(frame: .zero)%>
+    me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%G%1.setFrameSize(NSSize(width: CGFloat(%2), height: CGFloat(%3)))%>
+    me void: setControlText(me GUI_item: widget, me string: text) <- <%{
+        if let textField = widget as? NSTextField {
+            textField.stringValue = text;
+        } else if let button = widget as? NSButton {
+            button.title = text;
+        }
+    }%>
+    me string: getControlText(me GUI_item: widget) <- <%{
+        if let textField = widget as? NSTextField {
+            return(textField.stringValue);
+        }
+        if let button = widget as? NSButton {
+            return(button.title);
+        }
+        return("");
+    }%>
+    me void: addListItem(me GUI_item: listWidget, me string: text) <- <%!%G(%1 as? CodeDogListBox)?.addItem(%2)%>
+    me void: clearList(me GUI_item: listWidget) <- <%!%G(%1 as? CodeDogListBox)?.clearItems()%>
+    me void: setListSelectedIndex(me GUI_item: listWidget, me int: index) <- <%!%G(%1 as? CodeDogListBox)?.setSelectedIndex(%2)%>
+    me int: getListSelectedIndex(me GUI_item: listWidget) <- <%{
+        return((listWidget as? CodeDogListBox)?.selectedIndex() ?? -1);
+    }%>
+    me string: getListSelectedText(me GUI_item: listWidget) <- <%{
+        return((listWidget as? CodeDogListBox)?.selectedText() ?? "");
+    }%>
+    their GUI_item: newScrollingWindow() <- <%{
+        let scrollView = NSScrollView()
+        scrollView.hasVerticalScroller = true
+        scrollView.hasHorizontalScroller = false
+        scrollView.autohidesScrollers = false
+        scrollView.drawsBackground = true
+        return(scrollView);
+    }%>
     //me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%>
     me void: setCallback() <- <%!%G%>
     me GUI_Frame: GUI_Frame(me string: label) <- <%!%GNSView()%>
@@ -223,9 +666,9 @@ struct GUI{
 struct GUI_ctxt{
     //me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!%>
     //me void: reset()                                  <- <%!%>
-    me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!%0!.setFillColor(red:CGFloat(%1)/255.0, green:CGFloat(%2)/255.0, blue:CGFloat(%3)/255.0, alpha:CGFloat(%4)/255.0);%0!.setStrokeColor(red:CGFloat(%1)/255.0, green:CGFloat(%2)/255.0, blue:CGFloat(%3)/255.0, alpha:CGFloat(%4)/255.0)%>
-    me void: setRGB (me double: red, me double: green, me double: blue) <- <%!%0!.setFillColor(red:CGFloat(%1)/255.0, green:CGFloat(%2)/255.0, blue:CGFloat(%3)/255.0, alpha:1);%0!.setStrokeColor(red:CGFloat(%1)/255.0, green:CGFloat(%2)/255.0, blue:CGFloat(%3)/255.0, alpha:1)%>
-    me void: setColor(me cdColor: color)                <- <%!%0!.setFillColor(red:CGFloat(%1.red)/255.0, green:CGFloat(%1.green)/255.0, blue:CGFloat(%1.blue)/255.0, alpha:CGFloat(%1.alpha)/255.0);%0!.setStrokeColor(red:CGFloat(%1.red)/255.0, green:CGFloat(%1.green)/255.0, blue:CGFloat(%1.blue)/255.0, alpha:CGFloat(%1.alpha)/255.0)%>
+    me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!CodeDogSetContextColor(%0, %1, %2, %3, %4)%>
+    me void: setRGB (me double: red, me double: green, me double: blue) <- <%!CodeDogSetContextColor(%0, %1, %2, %3, 255.0)%>
+    me void: setColor(me cdColor: color)                <- <%!CodeDogSetContextCdColor(%0, %1)%>
     me void: setLineWidth(me double: width)             <- <%!setLineWidth(CGFloat(%1))%>
     me void: setRoundLineCap()                          <- <%!setLineCap(.round)%>
     me void: setEdgedLineCap()                          <- <%!setLineCap(.butt)%>
@@ -240,7 +683,7 @@ struct GUI_ctxt{
     me void: curveRel(me double: dx1, me double: dy1, me double: dx2, me double: dy2, me double: dx3, me double: dy3) <- <%!%0!.addCurve(to: CGPoint(x: %0!.currentPointOfPath.x + CGFloat(%5), y: %0!.currentPointOfPath.y + CGFloat(%6)), control1: CGPoint(x: %0!.currentPointOfPath.x + CGFloat(%1), y: %0!.currentPointOfPath.y + CGFloat(%2)), control2: CGPoint(x: %0!.currentPointOfPath.x + CGFloat(%3), y: %0!.currentPointOfPath.y + CGFloat(%4)))%>
     me void: closePath()                                <- <%!closePath()%>
     me void: rectangle(me double: x, me double: y, me double: w, me double: h) <- <%!addRect(CGRect(x:%1, y:%2, width:%3, height:%4))%>
-    me void: paintNow()                                 <- <%!%0!.fill(%0!.boundingBoxOfClipPath)%>
+    me void: paintNow()                                 <- <%!%0!.fill(CodeDogCurrentPaintRect)%>
     me void: strokeNow()                                <- <%!strokePath()%>
     me void: fillNow()                                  <- <%!fillPath()%>
     me void: strokeKeep()                               <- <%!if let codeDogPath = %0!.path { %0!.strokePath(); %0!.addPath(codeDogPath) }%>
@@ -288,11 +731,12 @@ struct GLOBAL: inherits=AppCompatActivity{
     // //DRAWING ROUTINES:
     me deltaSize: renderText(their GUI_ctxt: cr, me string: text, me fontSpec: font, me GUI_Scalar: x, me GUI_Scalar: y) <- <%{
         cr.saveGState()
+        let nsFont = CodeDogFont(font)
         let attrs: [NSAttributedString.Key: Any] = [
-            .font: NSFont.boldSystemFont(ofSize: CGFloat(font.size)),
-            .foregroundColor: NSColor.black
+            .font: nsFont,
+            .foregroundColor: CodeDogCurrentTextColor
         ]
-        NSAttributedString(string: text, attributes: attrs).draw(at: CGPoint(x: CGFloat(x), y: CGFloat(y)))
+        NSAttributedString(string: text, attributes: attrs).draw(at: CGPoint(x: CGFloat(x), y: CGFloat(y) - nsFont.ascender))
         cr.restoreGState()
         //////////////////////////
         var size:deltaSize = getTextSize(cr, text, font);
@@ -303,7 +747,28 @@ struct GLOBAL: inherits=AppCompatActivity{
         renderText(cr, text, font, Int(x) - size.width/2, Int(y));
         return(size);
     }%>
-    //me deltaSize: renderTextRotate(me GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y, me double: degrees, me string: justify) <- <%{}%>
+    me deltaSize: renderTextRotate(their GUI_ctxt: cr, me string: text, their fontSpec: font, me double: x, me double: y, me double: degrees, me string: justify) <- <%{
+        let radians = degrees * (Double.pi / 180.0);
+        let size = getTextSize(text, font);
+        let hypotenuseWidth = Double(size.width);
+        var drawX = x;
+        if justify == "right" {
+            drawX = x - hypotenuseWidth;
+        } else if justify == "center" {
+            drawX = x - hypotenuseWidth / 2.0;
+        }
+        rotate(cr, x, y, Int(degrees));
+        renderText(cr, text, font, Int(drawX), Int(y));
+        cr.restoreGState();
+        let tmpSize = deltaSize();
+        tmpSize.height = Int(cos(abs(radians)) * hypotenuseWidth);
+        tmpSize.width = Int(sin(abs(radians)) * hypotenuseWidth);
+        let hypotenuseHeight = Double(size.height);
+        let heightRadians = Double.pi / 2.0 - abs(radians);
+        tmpSize.height = tmpSize.height + Int(sin(heightRadians) * hypotenuseHeight);
+        tmpSize.width = tmpSize.width + Int(cos(heightRadians) * hypotenuseHeight);
+        return(tmpSize);
+    }%>
     me void: rotate(their GUI_ctxt: cr, me double: x, me double: y, me int: degrees) <- <%{
         let radians = CGFloat(degrees) * .pi / 180.0;
         cr.saveGState();
@@ -317,7 +782,7 @@ struct GLOBAL: inherits=AppCompatActivity{
     }%>
     me deltaSize: getTextSize(me string: text, their fontSpec: font) <- <%{
         let result = deltaSize();
-        let attrs: [NSAttributedString.Key: Any] = [.font: NSFont.boldSystemFont(ofSize: CGFloat(font.size))]
+        let attrs: [NSAttributedString.Key: Any] = [.font: CodeDogFont(font)]
         let measured = (text as NSString).size(withAttributes: attrs)
         result.width = Int(measured.width)
         result.height = Int(measured.height)
@@ -332,16 +797,27 @@ struct GLOBAL: inherits=AppCompatActivity{
     void: displayBackgroundImage(their GUI_ctxt: cr, me string: filename) <- <%{
         // TODO: implement image loading for the macOS Swift toolkit.
     }%>
-    //me void: displayImage(me GUI_ctxt: cr, me string: filename, me double: x, me double: y, me double: scale) <- <%{}%>
+    me void: displayImage(their GUI_ctxt: cr, me string: filename, me double: x, me double: y, me double: scale) <- <%{
+        guard let image = CodeDogLoadImage(filename) else {
+            return;
+        }
+        let drawRect = NSRect(
+            x: CGFloat(x),
+            y: CGFloat(y),
+            width: image.size.width * CGFloat(scale),
+            height: image.size.height * CGFloat(scale)
+        );
+        image.draw(in: drawRect, from: .zero, operation: .sourceOver, fraction: 1.0);
+    }%>
 
     // //GUI INTERFACE:
     //me void: copyAssetToWritableFolder(me string: fromPath, me string: toPath)<- <%{}%>
     me void: getMetrics()                           <- <%{displayDensity = 1;}%>
     //me void: showWidget(me GUI_item: widget)      <- <%!%>
     //me void: hideWidget(their GUI_item: widget)   <- <%!%>
-    me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!%G%>
+    me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!%G%1.setNeedsDisplay(NSRect(x: CGFloat(%2), y: CGFloat(%3), width: CGFloat(%4), height: CGFloat(%5)))%>
     me GUI_item: newCanvas()                        <- <%!%GNSView()%>
-    me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%Gvar f: NSRect = %1.frame; f.size.width = %2; f.size.height = %3; %1.frame = f%>
+    me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%G%1.setFrameSize(NSSize(width: CGFloat(%2), height: CGFloat(%3)))%>
 }
 
 /////////////////////////////////  INTER-THREAD COMMUNICATION

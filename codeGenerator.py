@@ -916,6 +916,7 @@ class CodeGenerator(object):
         if(name=='allocate'): cdErr("Deprecated use of allocate()")
 
         argList  = None
+        initDeclaringClass = None
         if len(segSpec) > 1 and segSpec[1]=='(':
             if(len(segSpec)==2): argList=[]
             else: argList=segSpec[2]
@@ -980,6 +981,8 @@ class CodeGenerator(object):
                     [argListStr, fieldIDArgList] = self.getFieldIDArgList(segSpec, genericArgs)
                     tSpecOut = self.CheckObjectVars(fTypeKW, name, fieldIDArgList)
                     if tSpecOut!=0:
+                        if name == 'init' and 'fieldID' in tSpecOut and '::' in tSpecOut['fieldID']:
+                            initDeclaringClass = tSpecOut['fieldID'].split('::', 1)[0]
                         tSpecOut = self.copyTypeSpec(self.getGenericTypeSpec(genericArgs, tSpecOut['typeSpec']))
                         if isCtnr:
                             segTypeKeyWord = progSpec.fieldTypeKeyword(tSpecOut)
@@ -1009,6 +1012,8 @@ class CodeGenerator(object):
                 if not 'dummyType' in tSpecIn:
                     fTypeKW=progSpec.fieldTypeKeyword(tSpecIn)
                 else: fTypeKW=self.currentObjName
+                if initDeclaringClass:
+                    fTypeKW = initDeclaringClass
                 S=S.replace('init','__INIT_'+fTypeKW)
             S+= CPL
         if(tSpecOut==None): cdlog(logLvl(), "Type for {} was not found.".format(name))
