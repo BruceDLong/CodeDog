@@ -20,26 +20,48 @@ LibDescription ={
 initCode = ``
 
 embedVeryHigh = `
+var CodeDogAppDelegate: AppDelegate?
+var CodeDogCurrentEventView: NSView?
+
+extension NSEvent {
+    private var codeDogPointInEventView: NSPoint {
+        if let view = CodeDogCurrentEventView {
+            return view.convert(locationInWindow, from: nil)
+        }
+        if let view = window?.contentView {
+            return view.convert(locationInWindow, from: nil)
+        }
+        return locationInWindow
+    }
+
+    var x: Int { Int(codeDogPointInEventView.x) }
+    var y: Int { Int(codeDogPointInEventView.y) }
+}
+
 // APP DELEGATE /////////////////////////////////////////////////////
 class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ aNotification: Notification) {
-        window = NSWindow(contentRect: NSMakeRect(0, 0, NSScreen.main?.frame.width ?? 500, NSScreen.main?.frame.height ?? 500),
-            styleMask: [.closable],
+        NSApplication.shared.setActivationPolicy(.regular)
+        window = NSWindow(contentRect: NSMakeRect(0, 0, 1280, 800),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false)
+        window.title = "CodeDog"
+        window.center()
         window.contentViewController = ViewController()
         window.makeKeyAndOrderFront(nil)
+        NSApplication.shared.activate(ignoringOtherApps: true)
     }
 }
 // VIEW CONTROLLER ///////////////////////////////////////////////
 class ViewController: NSViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.addSubview(drawing_area!)
     }
     override func loadView() {
-        self.view = NSView(frame: NSRect(x: 0, y: 0, width: NSScreen.main?.frame.width ?? 100, height: NSScreen.main?.frame.height ?? 100))
+        self.view = NSView(frame: NSRect(x: 0, y: 0, width: 1280, height: 800))
         thisApp.gui.frame = self.view
+        thisApp.createAppArea(self.view)
     }
 }
 
@@ -47,6 +69,7 @@ class CanvasView: NSView{
     var cr: CGContext!
     var parent: DashboardWidget!
     var scaleFactor: Double = 1
+    override var isFlipped: Bool { true }
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
     }
@@ -56,6 +79,7 @@ class CanvasView: NSView{
     override func draw(_ dirtyRect: NSRect) -> Void{
         super.draw(dirtyRect)
         cr = NSGraphicsContext.current?.cgContext
+        CodeDogCurrentEventView = self
         parent.EventDispatcher.topWidget.draw(cr)
     }
     func setParent(_ wid: DashboardWidget!) -> Void{
@@ -66,12 +90,15 @@ class CanvasView: NSView{
         return true
     }
     override func mouseDown(with event: NSEvent){
+        CodeDogCurrentEventView = self
         parent.EventDispatcher.dispatchPointerClickEvent(event)
     }
     override func mouseUp(with event: NSEvent){
+        CodeDogCurrentEventView = self
         parent.EventDispatcher.dispatchPointerClickEvent(event)
     }
     override func mouseMoved(with event: NSEvent){
+        CodeDogCurrentEventView = self
         parent.EventDispatcher.dispatchPointerMotionEvent(event)
     }
     override var acceptsFirstResponder: Bool {return true}
@@ -105,20 +132,20 @@ struct GUI_WindowEvent:         wraps = NSEvent{}
 struct GUI_ctxt:                wraps = CGContext{}
 /////////////////////////////////  GLOBAL WIDGET FUNCTIONS
 struct GLOBAL{
-    me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <- <%!%1.addSubview(%2)%>
+    me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <- <%!%2.frame = %1.bounds; %2.autoresizingMask = [.width, .height]; %1.addSubview(%2)%>
 }
 /////////////////////////////////  HANDLE EVENTS
 struct GUI_MotionEvent{
-    me int: x <- <%!Int(%0!.locationInWindow.x)%>
-    me int: y <- <%!Int(%0!.locationInWindow.y)%>
+    me int: x <- <%!%0!.x%>
+    me int: y <- <%!%0!.y%>
 }
 struct GUI_ButtonEvent{
-    me int: x <- <%!Int(%0!.locationInWindow.x)%>
-    me int: y <- <%!Int(%0!.locationInWindow.y)%>
+    me int: x <- <%!%0!.x%>
+    me int: y <- <%!%0!.y%>
 }
 struct GUI_PointerEvent{
-    me int: x <- <%!Int(%0!.locationInWindow.x)%>
-    me int: y <- <%!Int(%0!.locationInWindow.y)%>
+    me int: x <- <%!%0!.x%>
+    me int: y <- <%!%0!.y%>
 }
 struct GUI_KeyboardEvent{
 }
@@ -172,9 +199,8 @@ struct GUI{
 
     me none: GUI() <- {}
     me uint32: GUI_Init() <- <%{
-        thisApp.createAppArea(frame)
-        let delegate = AppDelegate()
-        NSApplication.shared.delegate = delegate
+        CodeDogAppDelegate = AppDelegate()
+        NSApplication.shared.delegate = CodeDogAppDelegate
         _ = NSApplicationMain(CommandLine.argc, CommandLine.unsafeArgv)
         return(0);
     }%>
@@ -187,7 +213,7 @@ struct GUI{
 
 struct GUI{
     their GUI_item: newCanvas() <- <%!%GCanvasView()%>
-    me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%Gvar f: NSRect = %1.frame; f.size.width = 1280; f.size.height = 800; %1.frame = f%>
+    me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%Gvar f: NSRect = %1.frame; f.size.width = %2; f.size.height = %3; %1.frame = f%>
     //their GUI_item: newScrollingWindow() <- <%!%>
     //me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%>
     me void: setCallback() <- <%!%G%>
@@ -197,25 +223,29 @@ struct GUI{
 struct GUI_ctxt{
     //me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!%>
     //me void: reset()                                  <- <%!%>
-    me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!%0!.setFillColor(red:CGFloat(%1), green:CGFloat(%2), blue:CGFloat(%3), alpha:%4);%0!.setStrokeColor(red:CGFloat(%1), green:CGFloat(%2), blue:CGFloat(%3), alpha:%4)%>
-    me void: setRGB (me double: red, me double: green, me double: blue) <- <%!%0!.setFillColor(red:CGFloat(%1), green:CGFloat(%2), blue:CGFloat(%3), alpha:1);%0!.setStrokeColor(red:CGFloat(%1), green:CGFloat(%2), blue:CGFloat(%3), alpha:1)%>
-    me void: setColor(me cdColor: color)                <- <%!%0!.setFillColor(red:CGFloat(%1.red), green:CGFloat(%1.green), blue:CGFloat(%1.blue), alpha:1);%0!.setStrokeColor(red:CGFloat(%1.red), green:CGFloat(%1.green), blue:CGFloat(%1.blue), alpha:1)%>
+    me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!%0!.setFillColor(red:CGFloat(%1)/255.0, green:CGFloat(%2)/255.0, blue:CGFloat(%3)/255.0, alpha:CGFloat(%4)/255.0);%0!.setStrokeColor(red:CGFloat(%1)/255.0, green:CGFloat(%2)/255.0, blue:CGFloat(%3)/255.0, alpha:CGFloat(%4)/255.0)%>
+    me void: setRGB (me double: red, me double: green, me double: blue) <- <%!%0!.setFillColor(red:CGFloat(%1)/255.0, green:CGFloat(%2)/255.0, blue:CGFloat(%3)/255.0, alpha:1);%0!.setStrokeColor(red:CGFloat(%1)/255.0, green:CGFloat(%2)/255.0, blue:CGFloat(%3)/255.0, alpha:1)%>
+    me void: setColor(me cdColor: color)                <- <%!%0!.setFillColor(red:CGFloat(%1.red)/255.0, green:CGFloat(%1.green)/255.0, blue:CGFloat(%1.blue)/255.0, alpha:CGFloat(%1.alpha)/255.0);%0!.setStrokeColor(red:CGFloat(%1.red)/255.0, green:CGFloat(%1.green)/255.0, blue:CGFloat(%1.blue)/255.0, alpha:CGFloat(%1.alpha)/255.0)%>
     me void: setLineWidth(me double: width)             <- <%!setLineWidth(CGFloat(%1))%>
+    me void: setRoundLineCap()                          <- <%!setLineCap(.round)%>
+    me void: setEdgedLineCap()                          <- <%!setLineCap(.butt)%>
     //me void: finishPDF()                                <- <%!closePDF()%>
-    //me void: setScale()                                 <- <%!scaleBy(x: %1, y: %2)%>
+    me void: setScale()                                  <- <%!scaleBy(x: CGFloat(%1), y: CGFloat(%2))%>
+    me void: setOffset()                                 <- <%!translateBy(x: CGFloat(%1), y: CGFloat(%2))%>
     me void: moveTo(me double: x, me double: y)         <- <%!move(to:CGPoint(x:%1, y:%2))%>
     me void: lineTo(me double: x, me double: y)         <- <%!addLine(to:CGPoint(x:%1, y:%2))%>
-    //me void: moveRel(me double: dx, me double: dy)    <- <%!%>
-    //me void: lineRel(me double: dx, me double: dy)    <- <%!%>
-    me void: curveTo(me double: x1, me double: y1, me double: x2, me double: y2, me double: x3, me double: y3) <- <%!addCurve(to: CGPoint(x: %1, y: %2), control1: CGPoint(x: %3, y: %4), control2: CGPoint(x: %5, y: %6))%>
-    //me void: curveRel(me double: dx1, me double: dy1, me double: dx2, me double: dy2, me double: dx3, me double: dy3) <- <%!%>
+    me void: moveRel(me double: dx, me double: dy)       <- <%!%0!.move(to: CGPoint(x: %0!.currentPointOfPath.x + CGFloat(%1), y: %0!.currentPointOfPath.y + CGFloat(%2)))%>
+    me void: lineRel(me double: dx, me double: dy)       <- <%!%0!.addLine(to: CGPoint(x: %0!.currentPointOfPath.x + CGFloat(%1), y: %0!.currentPointOfPath.y + CGFloat(%2)))%>
+    me void: curveTo(me double: x1, me double: y1, me double: x2, me double: y2, me double: x3, me double: y3) <- <%!addCurve(to: CGPoint(x: %5, y: %6), control1: CGPoint(x: %1, y: %2), control2: CGPoint(x: %3, y: %4))%>
+    me void: curveRel(me double: dx1, me double: dy1, me double: dx2, me double: dy2, me double: dx3, me double: dy3) <- <%!%0!.addCurve(to: CGPoint(x: %0!.currentPointOfPath.x + CGFloat(%5), y: %0!.currentPointOfPath.y + CGFloat(%6)), control1: CGPoint(x: %0!.currentPointOfPath.x + CGFloat(%1), y: %0!.currentPointOfPath.y + CGFloat(%2)), control2: CGPoint(x: %0!.currentPointOfPath.x + CGFloat(%3), y: %0!.currentPointOfPath.y + CGFloat(%4)))%>
     me void: closePath()                                <- <%!closePath()%>
     me void: rectangle(me double: x, me double: y, me double: w, me double: h) <- <%!addRect(CGRect(x:%1, y:%2, width:%3, height:%4))%>
-    me void: paintNow()                                 <- <%!drawPath(using: .fillStroke)%>
-    me void: strokeNow()                                <- <%!drawPath(using: .fillStroke)%>
-    me void: fillNow()                                  <- <%!fill(CGRect(x:0, y:0, width:windowW, height:windowH))%>
-    //me void: strokeKeep()                             <- <%!%>
-    me void: fillKeep()                                 <- <%!fillPath()%>
+    me void: paintNow()                                 <- <%!%0!.fill(%0!.boundingBoxOfClipPath)%>
+    me void: strokeNow()                                <- <%!strokePath()%>
+    me void: fillNow()                                  <- <%!fillPath()%>
+    me void: strokeKeep()                               <- <%!if let codeDogPath = %0!.path { %0!.strokePath(); %0!.addPath(codeDogPath) }%>
+    me void: fillKeep()                                 <- <%!if let codeDogPath = %0!.path { %0!.fillPath(); %0!.addPath(codeDogPath) }%>
+    me void: strokeAndFillPath()                        <- <%!drawPath(using: .fillStroke)%>
     //me void: setFillPattern()                         <- <%!%>
     me void: circle(me int: centerX, me int: centerY, me int: radius) <- <%!addEllipse(in:CGRect(x: %1-%3, y: %2-%3, width: 2*%3, height: 2*%3))%>
     me GUI_ctxt: newPDF_ctxt(me sting: filename, me double: inchesWide, me double: inchesHigh) <- {}
@@ -258,22 +288,49 @@ struct GLOBAL: inherits=AppCompatActivity{
     // //DRAWING ROUTINES:
     me deltaSize: renderText(their GUI_ctxt: cr, me string: text, me fontSpec: font, me GUI_Scalar: x, me GUI_Scalar: y) <- <%{
         cr.saveGState()
-        cr.textPosition = CGPoint(x: x, y: y)
-        let color = CGColor.black
-        let line = CTLineCreateWithAttributedString(NSAttributedString(string: text, attributes: [.font: NSFont.boldSystemFont(ofSize: CGFloat(font.size)), .foregroundColor: color]))
-        CTLineDraw(line, cr)
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font: NSFont.boldSystemFont(ofSize: CGFloat(font.size)),
+            .foregroundColor: NSColor.black
+        ]
+        NSAttributedString(string: text, attributes: attrs).draw(at: CGPoint(x: CGFloat(x), y: CGFloat(y)))
         cr.restoreGState()
         //////////////////////////
         var size:deltaSize = getTextSize(cr, text, font);
         return(size);
     }%>
-    //me deltaSize: renderTextCentered(me GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y) <- <%{}%>
-    //me deltaSize: renderTextRotate(me GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y, me double: degrees, me string: justify) <- <%{}%>
-    //me void: rotate(me GUI_ctxt: cr, me double: x, me double: y, me int: degrees) <- <%{}%>
-    //me void: restore(me GUI_ctxt: cr) <- <%!%>
-    me deltaSize: getTextSize(their GUI_ctxt: cr, me string: text, me fontSpec: font) <- <%{
-        let size = deltaSize();
+    me deltaSize: renderTextCentered(their GUI_ctxt: cr, me string: text, their fontSpec: font, me double: x, me double: y) <- <%{
+        let size = getTextSize(text, font);
+        renderText(cr, text, font, Int(x) - size.width/2, Int(y));
         return(size);
+    }%>
+    //me deltaSize: renderTextRotate(me GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y, me double: degrees, me string: justify) <- <%{}%>
+    me void: rotate(their GUI_ctxt: cr, me double: x, me double: y, me int: degrees) <- <%{
+        let radians = CGFloat(degrees) * .pi / 180.0;
+        cr.saveGState();
+        cr.translateBy(x: CGFloat(x), y: CGFloat(y));
+        cr.rotate(by: radians);
+        cr.translateBy(x: CGFloat(-x), y: CGFloat(-y));
+    }%>
+    me void: restore(their GUI_ctxt: cr) <- <%!%1.restoreGState()%>
+    me deltaSize: getTextSize(their GUI_ctxt: cr, me string: text, me fontSpec: font) <- <%{
+        return(getTextSize(text, font));
+    }%>
+    me deltaSize: getTextSize(me string: text, their fontSpec: font) <- <%{
+        let result = deltaSize();
+        let attrs: [NSAttributedString.Key: Any] = [.font: NSFont.boldSystemFont(ofSize: CGFloat(font.size))]
+        let measured = (text as NSString).size(withAttributes: attrs)
+        result.width = Int(measured.width)
+        result.height = Int(measured.height)
+        return(result);
+    }%>
+    me deltaSize: getTextSizeX1024(me string: text, their fontSpec: font) <- <%{
+        let result = getTextSize(text, font);
+        result.width = result.width * 1024;
+        result.height = result.height * 1024;
+        return(result);
+    }%>
+    void: displayBackgroundImage(their GUI_ctxt: cr, me string: filename) <- <%{
+        // TODO: implement image loading for the macOS Swift toolkit.
     }%>
     //me void: displayImage(me GUI_ctxt: cr, me string: filename, me double: x, me double: y, me double: scale) <- <%{}%>
 

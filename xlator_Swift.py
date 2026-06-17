@@ -1,4 +1,6 @@
 #xlator_Swift.py
+import re
+
 import progSpec
 import codeDogParser
 from xlator import Xlator
@@ -220,7 +222,10 @@ class Xlator_Swift(Xlator):
         valTSpec = requireSpec(containerInfo["valueTypeSpec"], "Swift list traversal requires a value type.")
         localVarsAlloc.append([repName, valTSpec])
         sequenceExpr = ctnrName + ".reversed()" if traversalMode == "Backward" else ctnrName
-        return self.emitLoopWithBody("for " + repName + " in " + sequenceExpr, "", body, returnType, mods, genericArgs, indent)
+        valType = localBindingType(valTSpec)
+        entryName = repName + "_entry"
+        prologue = indent + "    var " + repName + ": " + valType + " = " + entryName + "\n"
+        return self.emitLoopWithBody("for " + entryName + " in " + sequenceExpr, prologue, body, returnType, mods, genericArgs, indent)
 
 
     def getIdxType(self, tSpec):
@@ -255,7 +260,7 @@ class Xlator_Swift(Xlator):
         if(isinstance(fType, str)):
             if(fType=='uint8' or fType=='uint16'or fType=='uint32'): return 'UInt32'
             elif(fType=='uint'):   return 'UInt'
-            elif(fType=='int8' or fType=='int16' or fType=='int32'): return 'Int32'
+            elif(fType=='int8' or fType=='int16' or fType=='int32'): return 'Int'
             elif(fType=='uint64'): return 'UInt64'
             elif(fType=='int64'):  return 'Int64'
             elif(fType=='long'):   return 'Int64'
@@ -373,7 +378,7 @@ class Xlator_Swift(Xlator):
             RHS = 'UInt64('+RHS+')'
         elif LTypeKW == 'double' and RTypeKW=='int':
             RHS = 'Double('+RHS+')'
-        elif LTypeKW == 'int' and RTypeKW=='char':
+        elif (LTypeKW == 'int' or LTypeKW == 'int32') and RTypeKW=='char':
             RHS = RHS+'.asciiValue'
         elif LTypeKW == 'string' and RTypeKW=='char':
             RHS = "String(" + RHS+ ")"
@@ -504,6 +509,11 @@ class Xlator_Swift(Xlator):
         if opIn == '===':
             return S+' === '+S2
         else:
+            if progSpec.varsTypeCategory(retType1) == 'bool' and S2 == 'false':
+                if opIn == '==':
+                    return '(!(' + S + '))'
+                if opIn == '!=':
+                    return '(' + S + ')'
             if   (opIn == '=='): opOut=' == '
             elif (opIn == '!='): opOut=' != '
             elif (opIn == '!=='): opOut=' !== '
@@ -736,6 +746,13 @@ class Xlator_Swift(Xlator):
     def checkIfSpecialAssignmentFormIsNeeded(self, action, indent, AltIDXFormat, RHS, rhsType, LHS, LHSParentType, LHS_FieldType):
         return ''
 
+    def codePlusEquals(self, LHS, RHS, LHS_FieldType, rhsTypeSpec):
+        lhsType = progSpec.fieldTypeKeyword(LHS_FieldType)
+        rhsType = progSpec.fieldTypeKeyword(rhsTypeSpec)
+        if lhsType == "string" and rhsType != "string":
+            return LHS + " += String(" + RHS + ")"
+        return LHS + " += " + RHS
+
     ######################################################
     def codeProtectBlock(self, mutex, criticalText, indent):
         return(criticalText)
@@ -861,6 +878,11 @@ class Xlator_Swift(Xlator):
         #self.codeGen.appendGlobalFuncAcc(decl, defn)
 
         return S
+
+    def postProcessOutput(self, outputText):
+        while "!!" in outputText:
+            outputText = outputText.replace("!!", "!")
+        return outputText
 
     def addGLOBALSpecialCode(self, classes, tags):
         specialCode =''
@@ -999,9 +1021,21 @@ class Xlator_Swift(Xlator):
             if isTypeArg: defn = indent + "var "+ fieldName + fieldValueText + '\n'
             else:
                 convertedType += self.makePtrOpt(tSpec)
-                defn = indent + "var "+ fieldName + ": " +  convertedType + fieldValueText + '\n'
+                varPrefix = "lazy var " if self.isInstanceMemberDefault(fieldValueText) else "var "
+                defn = indent + varPrefix + fieldName + ": " +  convertedType + fieldValueText + '\n'
             decl = ''
         return [defn, decl]
+
+    def isInstanceMemberDefault(self, defaultText):
+        if defaultText == None:
+            return False
+        expr = defaultText.strip()
+        if not expr.startswith("="):
+            return False
+        expr = expr[1:].strip()
+        if expr in ["", "nil", "true", "false"]:
+            return False
+        return re.match(r"^[A-Za-z_][A-Za-z0-9_]*$", expr) != None
 
     ###################################################### CONSTRUCTORS
     def codeConstructor(self, className, ctorArgs, callSuper, ctorInit, funcBody):
@@ -1019,16 +1053,22 @@ class Xlator_Swift(Xlator):
         prefix = ''
         if callSuper != "": prefix = 'override '
         if ctorArgs != "":
-            S = '    '+ctorOvrRide+'init(' + ctorArgs+'){\n'+callSuper+ctorInit+funcBody+'    }\n'
+            S = '    init(' + ctorArgs+'){\n'+callSuper+ctorInit+funcBody+'    }\n'
         S += '    '+prefix+'init(){\n'+callSuper+funcBody+'    }\n'
         return S
 
     def codeConstructorInit(self, fieldName, count, defaultVal):
         return "        self." + fieldName +" = arg_"+fieldName+";\n"
 
+    def useFieldAsConstructorArg(self, className, field, defaultVal):
+        if className == "arrow":
+            return True
+        return defaultVal != '' and not self.isInstanceMemberDefault("=" + defaultVal)
+
     def codeConstructorArgText(self, argFieldName, count, argType, defaultVal):
         if defaultVal == "nil": defaultVal = ""
-        if defaultVal: argType = argType + '=' + defaultVal
+        if defaultVal and not self.isInstanceMemberDefault("=" + defaultVal):
+            argType = argType + '=' + defaultVal
         return "_ arg_" + argFieldName  + ': ' +argType
 
     def codeCopyConstructor(self, fieldName, isTemplateVar):

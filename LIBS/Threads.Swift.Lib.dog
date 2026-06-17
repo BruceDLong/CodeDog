@@ -18,7 +18,7 @@ LibDescription  = {
 }
 
 embedVeryHigh = `
-func __threadedFunction(pointer: UnsafeMutableRawPointer!) -> UnsafeMutableRawPointer? {
+func __threadedFunction(pointer: UnsafeMutableRawPointer) -> UnsafeMutableRawPointer? {
     var threadParameter = pointer.load(as: _ThreadParameter.self)
     var pxT = threadParameter.pxT
     var threadIdentifier = threadParameter.threadIdentifier

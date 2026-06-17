@@ -1651,6 +1651,8 @@ class CodeGenerator(object):
                     elif(assignTag=='+'):
                         if self.xlator.implOperatorsAsFuncs(LHS_FieldType):
                             actionText = self.xlator.codePlusAsFunc(LHS, RHS, LHS_FieldType, assignTag) + ";\n"
+                        elif hasattr(self.xlator, "codePlusEquals"):
+                            actionText = indent + self.xlator.codePlusEquals(LHS, RHS, LHS_FieldType, rhsTypeSpec) + ";\n"
                         else: actionText = indent + LHS + " += " + RHS + ";\n"
                     elif(assignTag=='-'):  actionText = indent + LHS + " -= " + RHS + ";\n"
                     elif(assignTag=='*'):  actionText = indent + LHS + " *= " + RHS + ";\n"
@@ -1838,7 +1840,10 @@ class CodeGenerator(object):
             if(typeArgList != None and fType in typeArgList):isTemplateVar = True
             else: isTemplateVar = False
             defaultVal  = self.getFieldDefaultVal(field, genericArgs)
-            if defaultVal != '':
+            useCtorArg = defaultVal != ''
+            if hasattr(self.xlator, "useFieldAsConstructorArg"):
+                useCtorArg = self.xlator.useFieldAsConstructorArg(className, field, defaultVal)
+            if useCtorArg:
             #    if count == 0: defaultVal = ''  # uncomment this line to NOT generate a default value for the first constructor argument.
                 if count>0: ctorArgs +=  ', '
                 ctorArgs += self.xlator.codeConstructorArgText(fieldName, count, cvrtType, defaultVal)
@@ -2699,6 +2704,8 @@ class CodeGenerator(object):
             if not self.xlator.doesLangHaveGlobals: structCodeAcc += self.codeModeStringsStruct()
 
             outputStr = header + constsEnums + forwardDecls + self.libEmbedVeryHigh + structCodeAcc + self.ForwardDeclsForGlobalFuncs + self.libEmbedCodeHigh + MainTopBottom[0] + funcCodeAcc + self.libEmbedCodeLow + MainTopBottom[1]
+            if hasattr(self.xlator, "postProcessOutput"):
+                outputStr = self.xlator.postProcessOutput(outputStr)
             filename = progSpec.fetchTagValue(tags, "FileName")
             classRecordsOut.append([filename, outputStr])
 

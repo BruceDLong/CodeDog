@@ -89,3 +89,4 @@ LibraryAnalysisReport.txt
 
 VSC-extension
 .tools/
+.codedog-python/

@@ -51,10 +51,14 @@ def macBuilder(debugMode, minLangVersion, projectName, libFiles, buildName, plat
     ############################################################
     rmPackageCmd    = "rm "+packageName
     packageInitCmd  = "swift package init --type executable"
-    buildCmd        = "swift build -Xswiftc -suppress-warnings"
-    runCmd          = "swift run  -Xswiftc -suppress-warnings"
+    swift5ModeArgs  = " -Xswiftc -swift-version -Xswiftc 5"
+    buildCmd        = "swift build -Xswiftc -suppress-warnings" + swift5ModeArgs
+    runCmd          = "swift run  -Xswiftc -suppress-warnings" + swift5ModeArgs
     ############################################################
     if os.path.isfile(projectDirectory+'/'+packageName): runCMD(rmPackageCmd, projectDirectory)
     runCMD(packageInitCmd, projectDirectory)
+    sourcesDirectory = projectDirectory+"/Sources"
+    if os.path.isdir(sourcesDirectory):
+        shutil.rmtree(sourcesDirectory)
     writeFile(projectDirectory+"/Sources/"+projectName, fileName, fileSpecs, fileExtension)
     return [projectDirectory, buildCmd, runCmd]
