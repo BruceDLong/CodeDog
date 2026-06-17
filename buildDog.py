@@ -899,7 +899,9 @@ def SwingBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
     fileExtension = '.java'
 
     writeFile(buildName, fileName, fileSpecs, fileExtension)
-    copyRecursive("Resources", buildName+"/assets")
+    if os.path.isdir("Resources"):
+        buildStatus("Copying Resources into {}".format(buildName))
+        copyRecursive("Resources", buildName+"/assets")
     currentDirectory = os.getcwd()
     #TODO check if above is typo
     workingDirectory = currentDirectory + "/" + buildName

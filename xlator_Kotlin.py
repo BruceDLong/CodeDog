@@ -483,6 +483,87 @@ class Xlator_Kotlin(Xlator_Java):
 
     def codeSpecialReference(self, segSpec, genericArgs):
         funcName = segSpec[0]
+        if len(segSpec) > 2 and funcName == "callPeriodically":
+            argList = segSpec[2]
+            [callbackClassName, _callbackClassTypeSpec] = self.codeGen.codeExpr(argList[0][0], None, None, "ARG", genericArgs)
+            [objName, tSpec] = self.codeGen.codeExpr(argList[1][0], None, None, "ARG", genericArgs)
+            [interval, _intTypeSpec] = self.codeGen.codeExpr(argList[2][0], None, None, "ARG", genericArgs)
+            varTypeSpec = progSpec.fieldTypeKeyword(tSpec)
+            if varTypeSpec == None or varTypeSpec == "void":
+                varTypeSpec = callbackClassName.strip('"').strip("'")
+            callbackTargetExpr = objName
+            if progSpec.ownerIsPointer(progSpec.getOwner(tSpec)) and objName != "this":
+                callbackTargetExpr = "(" + objName + ")!!"
+            androidBody = "callbackTarget.run(); callbackHandler.postDelayed(this, callbackIntervalMillis)"
+            timerBody = "callbackTarget.run()"
+            platform = None
+            if hasattr(self.codeGen, "buildTags") and self.codeGen.buildTags != None:
+                platform = progSpec.fetchTagValue([self.codeGen.buildTags], "Platform")
+            if self.codeGen.tagStore != None:
+                platform = platform or progSpec.fetchTagValue([self.codeGen.tagStore], "Platform")
+            if platform == "Android":
+                S = (
+                    "run {\n"
+                    "    val callbackTarget = " + callbackTargetExpr + "\n"
+                    "    val callbackIntervalMillis = (" + interval + ").toLong()\n"
+                    "    val callbackHandler = android.os.Handler(android.os.Looper.getMainLooper())\n"
+                    "    val callbackRunnable = object : Runnable {\n"
+                    "        override fun run() {\n"
+                    "            " + androidBody + "\n"
+                    "        }\n"
+                    "    }\n"
+                    "    callbackHandler.postDelayed(callbackRunnable, callbackIntervalMillis)\n"
+                    "}"
+                )
+            else:
+                S = (
+                    "run {\n"
+                    "    val callbackTarget = " + callbackTargetExpr + "\n"
+                    "    val callbackIntervalMillis = (" + interval + ").toLong()\n"
+                    "    val callbackTimer = java.util.Timer()\n"
+                    "    callbackTimer.scheduleAtFixedRate(object : java.util.TimerTask() {\n"
+                    "        override fun run() {\n"
+                    "            " + timerBody + "\n"
+                    "        }\n"
+                    "    }, callbackIntervalMillis, callbackIntervalMillis)\n"
+                    "}"
+                )
+            return [S, "me", "void"]
+        if len(segSpec) > 2 and funcName == "callOnce":
+            argList = segSpec[2]
+            [callbackClassName, _callbackClassTypeSpec] = self.codeGen.codeExpr(argList[0][0], None, None, "ARG", genericArgs)
+            [objName, tSpec] = self.codeGen.codeExpr(argList[1][0], None, None, "ARG", genericArgs)
+            [methodName, _methodTypeSpec] = self.codeGen.codeExpr(argList[2][0], None, None, "ARG", genericArgs)
+            [interval, _intTypeSpec] = self.codeGen.codeExpr(argList[3][0], None, None, "ARG", genericArgs)
+            callbackTargetExpr = objName
+            if progSpec.ownerIsPointer(progSpec.getOwner(tSpec)) and objName != "this":
+                callbackTargetExpr = "(" + objName + ")!!"
+            methodName = methodName.strip('"').strip("'")
+            platform = None
+            if hasattr(self.codeGen, "buildTags") and self.codeGen.buildTags != None:
+                platform = progSpec.fetchTagValue([self.codeGen.buildTags], "Platform")
+            if self.codeGen.tagStore != None:
+                platform = platform or progSpec.fetchTagValue([self.codeGen.tagStore], "Platform")
+            if platform == "Android":
+                S = (
+                    "run {\n"
+                    "    val callbackTarget = " + callbackTargetExpr + "\n"
+                    "    val callbackIntervalMillis = (" + interval + ").toLong()\n"
+                    "    val callbackHandler = android.os.Handler(android.os.Looper.getMainLooper())\n"
+                    "    callbackHandler.postDelayed({ callbackTarget." + methodName + "() }, callbackIntervalMillis)\n"
+                    "}"
+                )
+            else:
+                S = (
+                    "run {\n"
+                    "    val callbackTarget = " + callbackTargetExpr + "\n"
+                    "    val callbackIntervalMillis = (" + interval + ").toLong()\n"
+                    "    java.util.Timer().schedule(object : java.util.TimerTask() {\n"
+                    "        override fun run() { callbackTarget." + methodName + "() }\n"
+                    "    }, callbackIntervalMillis)\n"
+                    "}"
+                )
+            return [S, "me", "void"]
         if len(segSpec) > 2 and funcName == "print":
             exprs = []
             for P in segSpec[2]:

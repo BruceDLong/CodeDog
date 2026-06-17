@@ -275,6 +275,7 @@ struct GLOBAL: inherits=AppCompatActivity{
     me int: widgetHeight() <- <%!%G%1.getHeight()%>
     me int: widgetWidth() <- <%!%G%1.getWidth()%>
     me long: ticksPerSec() <- <%!%G1000%>
+    me int64: guiMonotonicMillis() <- <%!%GSystem.nanoTime()/1000000L%>
     me Toolbar: toolbar
     me int: displayHeightPx
     me int: displayWidthPx
@@ -327,7 +328,6 @@ struct GLOBAL: inherits=AppCompatActivity{
         size.width = bounds.width();
         return(size);
     } %>
-    me void: roundedRectangle(me GUI_ctxt: cr, me double: x, me double: y, me double: w, me double: h, me double: r) <- <%{} %>
     me void: displayImage(me GUI_ctxt: cr, me string: filename, me double: x, me double: y, me double: scale) <- <%{
         boolean filter = false;
         try {

@@ -775,6 +775,37 @@ class Xlator_Java(Xlator):
             elif(funcName=='Allocate'):
                 [varName,  varTypeSpec]=self.codeGen.codeExpr(argList[0][0], None, None, 'ARG', genericArgs)
                 S = varName+" = "+self.codeGen.codeAllocater(varTypeSpec, argList[1:], genericArgs)
+            elif(funcName=='callOnce'):
+                [callbackClassName, callbackClassTypeSpec] = self.codeGen.codeExpr(argList[0][0], None, None, 'ARG', genericArgs)
+                [objName, tSpec] = self.codeGen.codeExpr(argList[1][0], None, None, 'ARG', genericArgs)
+                [methodName, methodTypeSpec] = self.codeGen.codeExpr(argList[2][0], None, None, 'ARG', genericArgs)
+                [interval, intTypeSpec] = self.codeGen.codeExpr(argList[3][0], None, None, 'ARG', genericArgs)
+                varTypeSpec = progSpec.fieldTypeKeyword(tSpec)
+                if varTypeSpec == None or varTypeSpec == 'void':
+                    varTypeSpec = callbackClassName.strip('"').strip("'")
+                callbackType = self.adjustBaseTypes(varTypeSpec, False)
+                methodName = methodName.strip('"').strip("'")
+                platform = None
+                if hasattr(self.codeGen, 'buildTags') and self.codeGen.buildTags != None:
+                    platform = progSpec.fetchTagValue([self.codeGen.buildTags], 'Platform')
+                if self.codeGen.tagStore != None:
+                    platform = platform or progSpec.fetchTagValue([self.codeGen.tagStore], 'Platform')
+                if platform == 'Android':
+                    S = (
+                        '{ final ' + callbackType + ' callbackTarget = ' + objName + '; '
+                        'final long callbackIntervalMillis = (long)(' + interval + '); '
+                        'final android.os.Handler callbackHandler = new android.os.Handler(android.os.Looper.getMainLooper()); '
+                        'callbackHandler.postDelayed(new java.lang.Runnable(){ public void run(){callbackTarget.' + methodName + '();} }, callbackIntervalMillis); }'
+                    )
+                else:
+                    S = (
+                        '{ final ' + callbackType + ' callbackTarget = ' + objName + '; '
+                        'javax.swing.Timer callbackTimer = new javax.swing.Timer((int)(' + interval + '), new java.awt.event.ActionListener(){'
+                        ' public void actionPerformed(java.awt.event.ActionEvent event){callbackTarget.' + methodName + '();}'
+                        '}); '
+                        'callbackTimer.setRepeats(false); '
+                        'callbackTimer.start(); }'
+                    )
             elif(funcName=='break'):
                 if len(argList)==0: S='break'
             elif(funcName=='return'):
@@ -846,9 +877,13 @@ class Xlator_Java(Xlator):
     def codeStructText(self, classes, attrList, parentClass, classInherits, classImplements, className, structCode, tags):
         classAttrs=''
         Platform = progSpec.fetchTagValue(tags, 'Platform')
+        seenAttrs = set()
         if len(attrList)>0:
             for attr in attrList:
-                if attr=='abstract' and className!='GLOBAL': classAttrs += 'abstract '
+                attr = str(attr).strip()
+                if attr=='abstract' and className!='GLOBAL' and attr not in seenAttrs:
+                    classAttrs += 'abstract '
+                    seenAttrs.add(attr)
         if parentClass != "":
             parentClass = parentClass.replace('::', '_')
             parentClass = progSpec.getUnwrappedClassFieldTypeKeyWord(classes, className)
@@ -1001,7 +1036,7 @@ class Xlator_Java(Xlator):
             return None
         classDef = self.codeGen.classStore[0][fTypeKW]
         inherits = classDef.get('tags', {}).get('inherits', None)
-        if not inherits:
+        if not isinstance(inherits, dict):
             return None
         fieldType = inherits.get('fieldType', {})
         if not fieldType.get('altModeIndicator', 0):
@@ -1017,6 +1052,7 @@ class Xlator_Java(Xlator):
         RHS=""
         fieldOwner=progSpec.getOwner(tSpec)
         if fieldOwner=='we': cvrtType = cvrtType.replace('static ', '', 1)
+        allocType = cvrtType.replace('static ', '').replace('final ', '')
         modeDefault = self.modeDefaultValue(tSpec)
         if modeDefault is not None and (fieldOwner=='me' or fieldOwner=='we' or fieldOwner=='const'):
             return " = " + modeDefault
@@ -1026,10 +1062,10 @@ class Xlator_Java(Xlator):
                 if argList[-1] == "^&useCtor//8":
                     del argList[-1]
                 [CPL, paramTypeList] = self.codeGen.codeArgList(fieldName, argList, None, genericArgs)
-                RHS=" = new " + cvrtType + CPL
+                RHS=" = new " + allocType + CPL
             elif typeArgList == None:
                 if cvrtType=='BigInteger' or cvrtType=='Locale': RHS=""
-                else: RHS=" = new " + cvrtType + "()"
+                else: RHS=" = new " + allocType + "()"
         return RHS
 
     def codeConstField_Str(self, convertedType, fieldName, RHS, className, indent):

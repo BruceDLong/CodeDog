@@ -456,7 +456,7 @@ struct DashboardWidget: inherits=Dashboard{
     me int64: animationFrameLastTweenMillis
     me int64: animationFrameFPSWindowStartMillis
     me int64: animationFrameFPSWindowCount
-    me int: animationFrameFPS
+    me int64: animationFrameFPS
     me GUI_Scalar: animationFrameRedrawX
     me GUI_Scalar: animationFrameRedrawY
     me GUI_Scalar: animationFrameRedrawW
@@ -532,60 +532,59 @@ struct DashboardWidget: inherits=Dashboard{
     me string: animationDiagnosticsLine3() <- {
         return("redraw rect/full:" + toString(animationFrameRectRedrawCount) + "/" + toString(animationFrameFullRedrawCount))
     }
-    void: scheduleAnimationFrameIn(me int: frameMillis) <- <%{
-        if(frameMillis < 1){frameMillis = 1;}
-        if(this->animationFramePending){
-            this->animationFrameCoalescedCount += 1;
-            return;
+    void: scheduleAnimationFrameIn(me int: frameMillis) <- {
+        if(frameMillis < 1){frameMillis <- 1}
+        if(animationFramePending){
+            animationFrameCoalescedCount <+- 1
+            return()
         }
-        this->animationFramePending = true;
-        this->animationFrameScheduledCount += 1;
-        CodeDogCallPeriodically((int)frameMillis, [](void* data)->int {
-            DashboardWidget* dashWidget = (DashboardWidget*)data;
-            int64_t callbackStartMillis = CodeDogGuiMonotonicMillis();
-            bool redrawRect = dashWidget->animationFrameHasRedrawRect;
-            double redrawX = dashWidget->animationFrameRedrawX;
-            double redrawY = dashWidget->animationFrameRedrawY;
-            double redrawW = dashWidget->animationFrameRedrawW;
-            double redrawH = dashWidget->animationFrameRedrawH;
-            dashWidget->animationFramePending = false;
-            dashWidget->animationFrameHasRedrawRect = false;
-            dashWidget->animationFrameCallbackCount += 1;
-            if(dashWidget->animationFrameLastCallbackMillis > 0){
-                dashWidget->animationFrameLastDeltaMillis = callbackStartMillis - dashWidget->animationFrameLastCallbackMillis;
-            }
-            dashWidget->animationFrameLastCallbackMillis = callbackStartMillis;
-            if(dashWidget->animationFrameFPSWindowStartMillis == 0){
-                dashWidget->animationFrameFPSWindowStartMillis = callbackStartMillis;
-            }
-            dashWidget->animationFrameFPSWindowCount += 1;
-            GUI_TimeEvent event;
-            int64_t tweenStartMillis = CodeDogGuiMonotonicMillis();
-            bool keepAnimating = dashWidget->tweenTick(&event);
-            dashWidget->animationFrameLastTweenMillis = CodeDogGuiMonotonicMillis() - tweenStartMillis;
+        animationFramePending <- true
+        animationFrameScheduledCount <+- 1
+        callOnce("DashboardWidget", self, "animationFrameTimerFired", frameMillis)
+    }
+    void: animationFrameTimerFired() <- {
+        me int64: callbackStartMillis <- guiMonotonicMillis()
+        me bool: redrawRect <- animationFrameHasRedrawRect
+        me GUI_Scalar: redrawX <- animationFrameRedrawX
+        me GUI_Scalar: redrawY <- animationFrameRedrawY
+        me GUI_Scalar: redrawW <- animationFrameRedrawW
+        me GUI_Scalar: redrawH <- animationFrameRedrawH
+        animationFramePending <- false
+        animationFrameHasRedrawRect <- false
+        animationFrameCallbackCount <+- 1
+        if(animationFrameLastCallbackMillis > 0){
+            animationFrameLastDeltaMillis <- callbackStartMillis - animationFrameLastCallbackMillis
+        }
+        animationFrameLastCallbackMillis <- callbackStartMillis
+        if(animationFrameFPSWindowStartMillis == 0){
+            animationFrameFPSWindowStartMillis <- callbackStartMillis
+        }
+        animationFrameFPSWindowCount <+- 1
+        me GUI_TimeEvent: event
+        me int64: tweenStartMillis <- guiMonotonicMillis()
+        me bool: keepAnimating <- tweenTick(event)
+        animationFrameLastTweenMillis <- guiMonotonicMillis() - tweenStartMillis
+        if(redrawRect){
+            animationFrameRectRedrawCount <+- 1
+            requestRedrawRect(redrawX, redrawY, redrawW, redrawH)
+        } else {
+            animationFrameFullRedrawCount <+- 1
+            requestRedraw()
+        }
+        me int64: fpsElapsedMillis <- callbackStartMillis - animationFrameFPSWindowStartMillis
+        if(fpsElapsedMillis >= 1000){
+            animationFrameFPS <- (animationFrameFPSWindowCount * 1000) / fpsElapsedMillis
+            animationFrameFPSWindowStartMillis <- callbackStartMillis
+            animationFrameFPSWindowCount <- 0
+        }
+        if(keepAnimating){
             if(redrawRect){
-                dashWidget->animationFrameRectRedrawCount += 1;
-                dashWidget->requestRedrawRect(redrawX, redrawY, redrawW, redrawH);
+                requestAnimationFrameRectIn(redrawX, redrawY, redrawW, redrawH, animationFrameIntervalMillis)
             } else {
-                dashWidget->animationFrameFullRedrawCount += 1;
-                dashWidget->requestRedraw();
+                requestAnimationFrame()
             }
-            int64_t fpsElapsedMillis = callbackStartMillis - dashWidget->animationFrameFPSWindowStartMillis;
-            if(fpsElapsedMillis >= 1000){
-                dashWidget->animationFrameFPS = (int)((dashWidget->animationFrameFPSWindowCount * 1000) / fpsElapsedMillis);
-                dashWidget->animationFrameFPSWindowStartMillis = callbackStartMillis;
-                dashWidget->animationFrameFPSWindowCount = 0;
-            }
-            if(keepAnimating){
-                if(redrawRect){
-                    dashWidget->requestAnimationFrameRectIn(redrawX, redrawY, redrawW, redrawH, dashWidget->animationFrameIntervalMillis);
-                } else {
-                    dashWidget->requestAnimationFrame();
-                }
-            }
-            return 0;
-        }, this);
-    }%>
+        }
+    }
     their DashboardWidget: getDashBrdMngr()<-{return(self)}
     their GUI_canvas: init(me string: label) <- {
         base <- self

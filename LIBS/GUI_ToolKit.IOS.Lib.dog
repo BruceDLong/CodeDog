@@ -224,6 +224,7 @@ struct GLOBAL: inherits=AppCompatActivity{
     // //TIME ROUTINES:
     //me long: ticksPerSec()    <- <%!%>
     //me int64: getCurrentTimeStamp() <- <%!%>
+    me int64: guiMonotonicMillis() <- <%!%GInt64(ProcessInfo.processInfo.systemUptime * 1000)%>
     their UIWindow: window
     me int: widgetHeight() <- <%!%G(Int)(%1.bounds.size.height)%>
     me int: widgetWidth()  <- <%!%G(Int)(%1.bounds.size.width)%>
@@ -254,17 +255,6 @@ struct GLOBAL: inherits=AppCompatActivity{
         let size = deltaSize();
         return(size);
     }%>
-    me void: roundedRectangle(me GUI_ctxt: cr, me double: x, me double: y, me double: w, me double: h, me double: r) <- {
-        cr.moveTo(x+r,y);                      //# Move to A
-        cr.lineTo(x+w-r,y);                    //# Straight line to B
-        cr.curveTo(x+w,y,x+w,y,x+w,y+r);       //# Curve to C, Control points are both at Q
-        cr.lineTo(x+w,y+h-r);                  //# Move to D
-        cr.curveTo(x+w,y+h,x+w,y+h,x+w-r,y+h); //# Curve to E
-        cr.lineTo(x+r,y+h);                    //# Line to F
-        cr.curveTo(x,y+h,x,y+h,x,y+h-r);       //# Curve to G
-        cr.lineTo(x,y+r);                      //# Line to H
-        cr.curveTo(x,y,x,y,x+r,y);             //# Curve to A;
-    }
     //me void: displayImage(me GUI_ctxt: cr, me string: filename, me double: x, me double: y, me double: scale) <- <%{}%>
 
     // //GUI INTERFACE:

@@ -1,6 +1,7 @@
 /////////// Add routines for C++
 requirements = [
-    [tagOneOf, Platform, [Android]]
+    [tagOneOf, Platform, [Android]],
+    [tagOneOf, Lang, [Java]]
 ]
 
 interface={

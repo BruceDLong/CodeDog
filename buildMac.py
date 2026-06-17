@@ -15,7 +15,8 @@ def runCMD(myCMD, myDir):
         print("        Result: ",out)
     if err:
         print("\n", err)
-        if (err.find("ERROR")) >= 0:
+        errText = err.decode(errors='replace') if isinstance(err, bytes) else err
+        if (errText.find("ERROR")) >= 0:
             exit(1)
     return [out, err]
 

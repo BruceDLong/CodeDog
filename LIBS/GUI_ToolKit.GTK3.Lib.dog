@@ -481,7 +481,7 @@ struct GLOBAL{
 
     me void: displayImage(their GUI_ctxt: cr, me string: filename, me double: x, me double: y, me double: scale) <- <%{
         filename = "./assets/" + filename;
-        map< string, cairo_surface_t* >::iterator picPtr=InkImgCache.find(filename);
+        auto picPtr=InkImgCache.find(filename);
         cairo_surface_t* pic=0;
         if (picPtr==InkImgCache.end()) {
             pic=cairo_image_surface_create_from_png(filename.data());
@@ -499,7 +499,7 @@ struct GLOBAL{
     void: displayBackgroundImage(their GUI_ctxt: cr, me string: filename) <- <%{
         filename = "./assets/" + filename;
         cairo_surface_t* pic=0;
-        map<string, cairo_surface_t*>::iterator picPtr=InkImgCache.find(filename);
+        auto picPtr=InkImgCache.find(filename);
         if (picPtr==InkImgCache.end()) {InkImgCache[filename]=pic=cairo_image_surface_create_from_png(filename.data());}
         else pic=picPtr->second;
         double picWidth = cairo_image_surface_get_width(pic);

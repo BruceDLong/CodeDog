@@ -14,14 +14,33 @@ LibDescription ={
     description = 'Map provider for Kotlin'
 }
 
+embedVeryHigh = `
+data class KotlinMapCursor<K, V>(val key: K?, val value: V?, val valid: Boolean) {
+    constructor() : this(null, null, false)
+
+    companion object {
+        fun <K, V> end(): KotlinMapCursor<K, V> {
+            return KotlinMapCursor<K, V>()
+        }
+    }
+}
+`
+
 struct Kotlin_HashMap<keyType, valueType>: implements=Map wraps=HashMap native=lang specs={insert=constant find=constant at=constant rangeIteration=dontUse}{
+    const struct: iterator_Kotlin_Map(keyType: key, valueType: value): implements=MapItr wraps=KotlinMapCursor native=lang <- {
+        me keyType: key()                         <- <%!%0.key!!%>
+        me valueType: val()                       <- <%!%0.value!!%>
+    }
+
     valueType: at(keyType: key)                   <- <%!%0.getValue(%1)%>
     valueType: __index(keyType: key)              <- <%!%0.getValue(%1)%>
     void: clear()                                 <- <%!clear()%>
     me bool: containsKey(keyType: key)            <- <%!containsKey(%1)%>
+    itr iterator_Kotlin_Map: end()                <- <%!%GKotlinMapCursor.end<%T0Type, %T1Type>()%>
     void: erase(keyType: key)                     <- <%!remove(%1)%>
-    valueType: find(keyType: key)                 <- <%!%0[%1]%>
+    itr iterator_Kotlin_Map: find(keyType: key)   <- <%!KotlinMapCursor<%T0Type, %T1Type>(%1, %0[%1], %0.containsKey(%1))%>
     valueType: first()                            <- <%!%0.entries.sortedBy { it.key }.first().value%>
+    itr iterator_Kotlin_Map: front()              <- <%!KotlinMapCursor<%T0Type, %T1Type>(%0.keys.first(), %0.values.first(), !%0.isEmpty())%>
     itr valueType: insert(keyType: key, valueType: value) <- <%!put(%1, %2)%>
     me bool:  isEmpty()                           <- <%!isEmpty()%>
     valueType: last()                             <- <%!%0.entries.sortedBy { it.key }.last().value%>
@@ -29,13 +48,20 @@ struct Kotlin_HashMap<keyType, valueType>: implements=Map wraps=HashMap native=l
 }
 
 struct Kotlin_TreeMap<keyType, valueType>: implements=Map wraps=TreeMap native=lang specs={insert=logarithmic find=logarithmic at=logarithmic rangeIteration=logarithmic}{
+    const struct: iterator_Kotlin_Map(keyType: key, valueType: value): implements=MapItr wraps=KotlinMapCursor native=lang <- {
+        me keyType: key()                         <- <%!%0.key!!%>
+        me valueType: val()                       <- <%!%0.value!!%>
+    }
+
     valueType: at(keyType: key)                   <- <%!%0.getValue(%1)%>
     valueType: __index(keyType: key)              <- <%!%0.getValue(%1)%>
     void: clear()                                 <- <%!clear()%>
     me bool: containsKey(keyType: key)            <- <%!containsKey(%1)%>
+    itr iterator_Kotlin_Map: end()                <- <%!%GKotlinMapCursor.end<%T0Type, %T1Type>()%>
     void: erase(keyType: key)                     <- <%!remove(%1)%>
-    valueType: find(keyType: key)                 <- <%!%0[%1]%>
+    itr iterator_Kotlin_Map: find(keyType: key)   <- <%!KotlinMapCursor<%T0Type, %T1Type>(%1, %0[%1], %0.containsKey(%1))%>
     valueType: first()                            <- <%!%0.firstEntry().value%>
+    itr iterator_Kotlin_Map: front()              <- <%!KotlinMapCursor<%T0Type, %T1Type>(%0.firstKey(), %0.firstEntry().value, !%0.isEmpty())%>
     itr valueType: insert(keyType: key, valueType: value) <- <%!put(%1, %2)%>
     me bool:  isEmpty()                           <- <%!isEmpty()%>
     valueType: last()                             <- <%!%0.lastEntry().value%>

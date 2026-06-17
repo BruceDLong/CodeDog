@@ -693,16 +693,30 @@ class Xlator_Swift(Xlator):
                     count=count+1
                 S+=")"
             elif(funcName=='callPeriodically'):
+                [callbackClassName, callbackClassTypeSpec]=self.codeGen.codeExpr(argList[0][0], None, None, 'ARG', genericArgs)
                 [objName,  fType]=self.codeGen.codeExpr(argList[1][0], None, None, 'ARG', genericArgs)
                 [interval,  intSpec] = self.codeGen.codeExpr(argList[2][0], None, None, 'ARG', genericArgs)
-                varTypeSpec= fType['fieldType'][0]
-                wrapperName="cb_wraps_"+varTypeSpec
-                S+='g_timeout_add('+interval+', '+wrapperName+', '+objName+')'
-
-                # Create a global function wrapping the class
-                decl='\nint '+wrapperName+'(void* data)'
-                defn='{'+varTypeSpec+'* self = ('+varTypeSpec+'*)data; self.run(); return true;}\n\n'
-                self.codeGen.appendGlobalFuncAcc(decl, defn)
+                varTypeSpec = progSpec.fieldTypeKeyword(fType)
+                if varTypeSpec == None or varTypeSpec == 'void':
+                    varTypeSpec = callbackClassName.strip('"').strip("'")
+                callbackTargetExpr = objName
+                if progSpec.ownerIsPointer(progSpec.getOwner(fType)) and objName != 'self' and not objName.endswith('!'):
+                    callbackTargetExpr = objName + '!'
+                callbackBody = 'callbackTarget.run()'
+                S += 'let callbackTarget = ' + callbackTargetExpr + '; Timer.scheduledTimer(withTimeInterval: Double(' + interval + ') / 1000.0, repeats: true) { timer in ' + callbackBody + ' }'
+                fType = 'void'
+            elif(funcName=='callOnce'):
+                [callbackClassName, callbackClassTypeSpec]=self.codeGen.codeExpr(argList[0][0], None, None, 'ARG', genericArgs)
+                [objName,  fType]=self.codeGen.codeExpr(argList[1][0], None, None, 'ARG', genericArgs)
+                [methodName,  methodSpec]=self.codeGen.codeExpr(argList[2][0], None, None, 'ARG', genericArgs)
+                [interval,  intSpec] = self.codeGen.codeExpr(argList[3][0], None, None, 'ARG', genericArgs)
+                callbackTargetExpr = objName
+                if progSpec.ownerIsPointer(progSpec.getOwner(fType)) and objName != 'self' and not objName.endswith('!'):
+                    callbackTargetExpr = objName + '!'
+                methodName = methodName.strip('"').strip("'")
+                callbackBody = 'callbackTarget.' + methodName + '()'
+                S += 'let callbackTarget = ' + callbackTargetExpr + '; Timer.scheduledTimer(withTimeInterval: Double(' + interval + ') / 1000.0, repeats: false) { timer in ' + callbackBody + ' }'
+                fType = 'void'
             elif(funcName=='break'):
                 if len(argList)==0: S='break'
             elif(funcName=='return'):

@@ -156,7 +156,9 @@ def AndroidBuilder(debugMode, minLangVersion, fileName, labelName, launchIconNam
     dirsToGen = [assetsDir, packageDir, drawableDir]
     print('Building for Android: ', drawablePath)
     pathAndroid(workingDir, dirsToGen)
-    copyTree("Resources", buildName+assetsDir)
+    if os.path.isdir("Resources"):
+        buildDog.buildStatus("Copying Resources into {}".format(buildName))
+        copyTree("Resources", buildName+assetsDir)
     if launchIconName:
         launchIconName = launchIconName+'.png'
         copyFile(launchIconName, currentDir, drawablePath)

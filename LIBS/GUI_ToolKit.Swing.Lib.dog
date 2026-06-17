@@ -110,7 +110,7 @@ struct MasterMouseMotionListener: implements=MouseMotionListener{
 }
 
 /////////////////////////////////  HANDLE LISTENERS
-struct Swing_eventDispatcher{
+struct GUI_eventDispatcher{
     their widget: topWidget
 
     me MasterMouseListener: mouseListener
@@ -144,11 +144,12 @@ struct Swing_eventDispatcher{
         appWidget.addMouseMotionListener(mouseMotionListener);
         topWidget = masterWidget;
     } %>
+    me void: registerControlForEventDispatcher(me GUI_item: Widget, their widget: masterWidget) <- {}
 }
 
 /////////////////////////////////   Event callbacks for GTK3
 struct GLOBAL{
-    me Swing_eventDispatcher: EventDispatcher
+    me GUI_eventDispatcher: EventDispatcher
 }
 
 /////////////////////////////////  HANDLE GUI
@@ -250,6 +251,10 @@ struct JavaGUI_ctxt: inherits=JPanel{
     }%>
 }
 
+struct GUI_canvas{
+    me void: setParent(our DashboardWidget: wid) <- <%!%G%>
+}
+
 ///////////////////////////////// TIME
 struct tm{
     me Calendar: tm
@@ -302,13 +307,9 @@ struct GLOBAL{
     }
     me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!%G%1.repaint(%2, %3, %4, %5)%>
     me long: ticksPerSec() <- <%!%G1000%>
+    me int64: guiMonotonicMillis() <- <%!%GSystem.nanoTime()/1000000L%>
     me void: copyAssetToWritableFolder(me string: fromPath, me string: toPath)<- <%{
         //TODO finish this if need to package swing build
-    }%>
-    me string: getFilesDirAsString()<- <%{
-        String s = Paths.get(".").toAbsolutePath().normalize().toString();
-        System.out.println("Current relative path is: " + s);
-        return s;
     }%>
 
     me int: widgetHeight() <- <%!%G%1.getHeight()%>

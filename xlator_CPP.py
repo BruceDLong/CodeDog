@@ -899,10 +899,13 @@ class Xlator_CPP(Xlator):
                     count=count+1
                 S+=")"
             elif(funcName=='callPeriodically'):
+                [callbackClassName, callbackClassTypeSpec]=self.codeGen.codeExpr(argList[0][0], None, None, 'ARG', genericArgs)
                 [objName,  tSpec]=self.codeGen.codeExpr(argList[1][0], None, None, 'ARG', genericArgs)
                 [interval,  intTypeSpec]   =self.codeGen.codeExpr(argList[2][0], None, None, 'ARG', genericArgs)
                 fType = progSpec.fieldTypeKeyword(tSpec)
                 varTypeSpec= fType
+                if varTypeSpec == None or varTypeSpec == 'void':
+                    varTypeSpec = callbackClassName.strip('"').strip("'")
                 wrapperName="cb_wraps_"+varTypeSpec
                 S+='CodeDogCallPeriodically('+interval+', '+wrapperName+', '+objName+')'
 
@@ -910,6 +913,23 @@ class Xlator_CPP(Xlator):
                 decl='\nint '+wrapperName+'(void* data)'
                 defn='{'+varTypeSpec+'* self = ('+varTypeSpec+'*)data; self->run(); return true;}\n\n'
                 self.codeGen.appendGlobalFuncAcc(decl, defn)
+                fType = 'void'
+            elif(funcName=='callOnce'):
+                [callbackClassName, callbackClassTypeSpec]=self.codeGen.codeExpr(argList[0][0], None, None, 'ARG', genericArgs)
+                [objName,  tSpec]=self.codeGen.codeExpr(argList[1][0], None, None, 'ARG', genericArgs)
+                [methodName,  methodTypeSpec]=self.codeGen.codeExpr(argList[2][0], None, None, 'ARG', genericArgs)
+                [interval,  intTypeSpec]=self.codeGen.codeExpr(argList[3][0], None, None, 'ARG', genericArgs)
+                varTypeSpec = progSpec.fieldTypeKeyword(tSpec)
+                if varTypeSpec == None or varTypeSpec == 'void':
+                    varTypeSpec = callbackClassName.strip('"').strip("'")
+                methodName = methodName.strip('"').strip("'")
+                wrapperName="cb_once_"+progSpec.flattenObjectName(varTypeSpec)+"_"+methodName
+                S+='CodeDogCallPeriodically('+interval+', '+wrapperName+', '+objName+')'
+
+                decl='\nint '+wrapperName+'(void* data)'
+                defn='{'+varTypeSpec+'* self = ('+varTypeSpec+'*)data; self->'+methodName+'(); return false;}\n\n'
+                self.codeGen.appendGlobalFuncAcc(decl, defn)
+                fType = 'void'
             elif(funcName=='break'):
                 if len(argList)==0: S='break'
             elif(funcName=='return'):

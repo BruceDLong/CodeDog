@@ -50,7 +50,7 @@ Contents
    getStarted
    basicReference
    libraries
+   timers
    dependencyManagement
    extending
    contributing
-

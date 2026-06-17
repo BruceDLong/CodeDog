@@ -2203,7 +2203,7 @@ class CodeGenerator(object):
                     if modificationMode == 'implement':
                         if classImplements is None:
                             classImplements=[]
-                        classImplements.append( [interfaceImplemented])
+                        classImplements.append(interfaceImplemented)
                     else: classInherits.append( interfaceImplemented)
 
                 parentClass=''
@@ -2342,6 +2342,17 @@ class CodeGenerator(object):
         return classRecords
 
     def codeStructureCommands(self, tags):
+        def commandArgText(item):
+            if isinstance(item, str):
+                return item.strip('"').strip("'")
+            if isinstance(item, (list, tuple)):
+                if len(item) == 0:
+                    return ''
+                if len(item) == 1:
+                    return commandArgText(item[0])
+                return ''.join(commandArgText(part) for part in item)
+            return str(item)
+
         for command in progSpec.ModifierCommands:
             if (command[3] == 'addImplements'):
                 calledFuncID = command[1]
@@ -2355,7 +2366,10 @@ class CodeGenerator(object):
                             count=1
                             for P in argList:
                                 oldTextTag='%'+str(count)
-                                [newText, argTSpec]= self.codeExpr(P[0], {}, None, None, 'ARG', genericArgs)
+                                try:
+                                    [newText, argTSpec]= self.codeExpr(P[0], None, None, 'ARG', None)
+                                except Exception:
+                                    newText = commandArgText(P[0])
                                 commandArgs=commandArgs.replace(oldTextTag, newText)
                                 count+=1
                             #print commandArgs
@@ -2748,6 +2762,7 @@ class CodeGenerator(object):
         # self.buildStr_libs = self.xlator.BuildStrPrefix
         self.classStore=classes
         self.tagStore=tags[0]
+        self.buildTags=tags[1] if len(tags) > 1 else {}
         # self.buildStr_libs +=  progSpec.fetchTagValue(tags, "FileName")
         self.libInterfacesText=self.connectLibraries(tags, libsToUse)
         self.applyPatterns(classes, tags)

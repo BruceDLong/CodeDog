@@ -418,10 +418,11 @@ def addField(objSpecs, className, stateType, packedField):
         if not (taggedClassName in MarkedObjects):
             MarkedFields.append([taggedClassName, fieldID])
 
-    if 'optionalTags' in packedField:
-        for tag in packedField['optionalTags']:
+    optionalTags = packedField.get('optionalTags', packedField.get('tags', None))
+    if optionalTags:
+        for tag in optionalTags:
             if tag[:7]=='COMMAND':
-                newCommand = packedField['optionalTags'][tag]
+                newCommand = optionalTags[tag]
                 commandArg = tag[8:]
                 addModifierCommand(objSpecs, taggedClassName, fieldID, commandArg, newCommand)
 

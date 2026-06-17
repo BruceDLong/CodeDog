@@ -6,7 +6,7 @@ requirements = [
 interface={
     provides = [CodeDog_platform_implementation]
     libFiles = []
-    headers  = []
+    headers  = [java.nio.file.Paths]
 }
 
 
@@ -20,7 +20,7 @@ struct GLOBAL{
         return "";
     }%>
     me string: getFilesDirAsString()<- <%{
-        return "";
+        return Paths.get(".").toAbsolutePath().normalize().toString();
     }%>
     me string: getAssetsDir()<- <%{
         return "assets";

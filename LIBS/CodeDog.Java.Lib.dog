@@ -8,7 +8,7 @@ requirements = [
 interface={
     provides = [CodeDog_implementation]
     libFiles = []
-    headers  = [java.lang.String, java.io.*, java.util.*,java.lang.Math.*, java.lang.Object, java.io.RandomAccessFile]
+    headers  = [java.lang.String, java.io.*, java.util.*, java.util.concurrent.*, java.lang.Math.*, java.lang.Object, java.io.RandomAccessFile]
 }
 
 LibDescription ={
@@ -81,7 +81,7 @@ struct GLOBAL{
     //const int32: INT_MIN                                      <- <%!%GLLONG_MIN%>
     //const uint32: UINT_MAX                                    <- <%!%GLLONG_MAX%>
     //const uint32: UINT_MIN                                    <- <%!%GLLONG_MIN%>
-    me timeOutID: callPeriodically(me string: varClass, me string: funcToCall, me int:microSecs): COMMAND_addImplements="Runnable:ToClass:%1" <- <%!%GScheduledExecutorService timerID=Executors.newSingleThreadScheduledExecutor(); timerID.scheduleAtFixedRate(%2, 0, %3, TimeUnit.MILLISECONDS)%>
+    me timeOutID: callPeriodically(me string: varClass, me string: funcToCall, me int: microSecs): COMMAND_addImplements="Runnable:ToClass:%1" <- <%!%GScheduledExecutorService timerID=Executors.newSingleThreadScheduledExecutor(); timerID.scheduleAtFixedRate(%2, 0, %3, TimeUnit.MILLISECONDS)%>
     //me uint: shiftLeft (me uint: bits, me uint: shft) <- {}
     //me uint: shiftRight(me uint: bits, me uint: shft) <- {}
     //me uint: AndBits(me uint: bits, me uint: shft) <- {}
