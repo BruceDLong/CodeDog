@@ -959,13 +959,13 @@ def _normalizeContainerCategory(containerCategory):
     return None
 
 def isKnownContainerModelKW(fTypeKW):
-    return isinstance(fTypeKW, str) and fTypeKW in ('List', 'Map', 'Multimap')
+    return isinstance(fTypeKW, str) and fTypeKW in ('List', 'Map', 'Multimap', 'Set')
 
 def _containerCategoryFromRegisteredImplementation(fTypeKW):
     global classImplementationOptions
     if not isinstance(fTypeKW, str):
         return None
-    for modelKW in ('List', 'Map', 'Multimap'):
+    for modelKW in ('List', 'Map', 'Multimap', 'Set'):
         implOptions = classImplementationOptions.get(modelKW)
         if implOptions and fTypeKW in implOptions:
             return modelKW
@@ -1057,6 +1057,11 @@ def getContainerInfo(classStore, tSpec):
                 info['indexTypeSpec'] = info['keyTypeSpec']
             if len(reqTagList) > 1:
                 info['valueTypeSpec'] = _typeArgToTypeSpec(reqTagList[1])
+    elif category == 'Set':
+        info['entryShape'] = 'value'
+        if reqTagList:
+            info['firstElementTypeSpec'] = _typeArgToTypeSpec(reqTagList[0])
+            info['valueTypeSpec'] = info['firstElementTypeSpec']
     elif category == 'string':
         charSpec = {'owner': 'me', 'fieldType': 'char'}
         info['entryShape'] = 'value'
@@ -1651,6 +1656,19 @@ def getContainerCapabilities(classes, ctnrTSpec):
                 "supportsBackward": False,
                 "isOrdered": False,
             })
+
+    elif containerCat == 'Set':
+        caps.update({
+            "kind": "set",
+            "hasBeginEnd": True,
+            "hasRBeginREnd": False,
+            "iteratorCategory": "forward",
+            "supportsBackward": False,
+            "supportsEraseCurrent": True,
+            "isAssociative": False,
+            "isOrdered": False,
+            "entryShape": "value",
+        })
 
     elif containerCat == 'string':
         caps.update({

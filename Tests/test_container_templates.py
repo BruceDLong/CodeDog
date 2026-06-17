@@ -81,6 +81,20 @@ class TestContainerTemplateDetection(unittest.TestCase):
         self.assertEqual(info['entryShape'], 'value')
         self.assertEqual(info['valueTypeSpec']['fieldType'], 'int')
 
+    def test_container_info_for_set_exposes_value_spec(self):
+        req_tags = self._req_tags('string')
+        t_spec = self._make_tspec('AnySet', req_tags, fromImplemented='Set')
+
+        info = progSpec.getContainerInfo(None, t_spec)
+
+        self.assertTrue(info['isContainer'])
+        self.assertEqual(info['category'], 'Set')
+        self.assertFalse(info['isAssociative'])
+        self.assertFalse(info['isOrdered'])
+        self.assertEqual(info['entryShape'], 'value')
+        self.assertEqual(info['valueTypeSpec']['fieldType'], 'string')
+        self.assertIsNone(info['indexTypeSpec'])
+
     def test_codegen_container_value_type_uses_value_spec(self):
         req_tags = self._req_tags('string', 'int')
         t_spec = self._make_tspec('AnyImplMap', req_tags, fromImplemented='Map')
@@ -296,6 +310,53 @@ struct Holder{
         self.assertEqual(
             code_gen.chooseStructImplementationToUse(ranged_tspec, 'Holder', 'ranked')[0],
             'CPP_Map',
+        )
+
+    def test_set_implementation_selection_uses_hash_provider(self):
+        req_tags = self._req_tags('string')
+        class_store = (
+            {
+                'CPP_HashSet': {
+                    'name': 'CPP_HashSet',
+                    'stateType': 'struct',
+                    'tags': {
+                        'native': 'lang',
+                        'specs': {
+                            'insert': 'constant',
+                            'find': 'constant',
+                            'contains': 'constant',
+                            'rangeIteration': 'dontUse',
+                        },
+                    },
+                    'fields': [],
+                },
+            },
+            ['CPP_HashSet'],
+        )
+        progSpec.classImplementationOptions.clear()
+        progSpec.classImplementationOptions.update({
+            'Set': ['CPP_HashSet'],
+        })
+        progSpec.templatesDefined['CPP_HashSet'] = ['nodeType']
+
+        code_gen = CodeGenerator()
+        code_gen.clearBuild()
+        code_gen.classStore = class_store
+
+        plain_tspec = self._make_tspec('Set', req_tags)
+        hash_tspec = self._make_tspec(
+            'Set',
+            req_tags,
+            reqTags={'insert': 'constant', 'find': 'constant', 'contains': 'constant', 'rangeIteration': 'dontUse'},
+        )
+
+        self.assertEqual(
+            code_gen.chooseStructImplementationToUse(plain_tspec, 'Holder', 'plain')[0],
+            'CPP_HashSet',
+        )
+        self.assertEqual(
+            code_gen.chooseStructImplementationToUse(hash_tspec, 'Holder', 'lookup')[0],
+            'CPP_HashSet',
         )
 
     def test_container_capabilities_respect_unordered_implementation_specs(self):

@@ -1,0 +1,45 @@
+// Set.Kotlin.Lib.dog
+requirements = [
+    [tagOneOf, Lang, [Kotlin]]
+]
+
+interface={
+    provides = [Set_implementation]
+    libFiles = []
+    headers  = [java.util.HashSet]
+}
+
+LibDescription ={
+    useStatus   = dynamic
+    description = 'Hash set provider for Kotlin'
+}
+
+embedVeryHigh = `
+data class KotlinSetCursor<T>(val value: T?, val valid: Boolean) {
+    constructor() : this(null, false)
+
+    companion object {
+        fun <T> end(): KotlinSetCursor<T> {
+            return KotlinSetCursor<T>()
+        }
+    }
+}
+`
+
+struct Kotlin_HashSet<nodeType>: implements=Set wraps=HashSet native=lang specs={insert=constant find=constant contains=constant rangeIteration=dontUse}{
+    const struct: iterator_Kotlin_Set(nodeType: value): implements=SetItr wraps=KotlinSetCursor native=lang <- {
+        me nodeType: val()                      <- <%!%0.value!!%>
+    }
+
+    void: add(nodeType: value)                  <- <%!add(%1)%>
+    void: clear()                               <- <%!clear()%>
+    me bool: contains(nodeType: value)          <- <%!contains(%1)%>
+    itr iterator_Kotlin_Set: end()              <- <%!%GKotlinSetCursor.end<%T0Type>()%>
+    void: erase(nodeType: value)                <- <%!remove(%1)%>
+    itr iterator_Kotlin_Set: find(nodeType: value) <- <%!KotlinSetCursor<%T0Type>(if (%0.contains(%1)) %1 else null, %0.contains(%1))%>
+    nodeType: first()                           <- <%!first()%>
+    itr iterator_Kotlin_Set: front()            <- <%!KotlinSetCursor<%T0Type>(%0.first(), !%0.isEmpty())%>
+    void: insert(nodeType: value)               <- <%!add(%1)%>
+    me bool: isEmpty()                          <- <%!isEmpty()%>
+    me uint: size()                             <- <%!%0.size%>
+}

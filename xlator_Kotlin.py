@@ -255,6 +255,12 @@ class Xlator_Kotlin(Xlator_Java):
         loopCntrName = repName + "_key"
         localVarsAlloc.append([loopCntrName, {"owner": "me", "fieldType": "Int"}])
         elemType = self.codeGen.convertType(repTSpec, "var", genericArgs)
+        if containerCat == "Set":
+            if traversalMode == "Backward":
+                cdErr("Kotlin Set traversal does not support Backward.")
+            header = "for (" + repName + " in " + ctnrName + ")"
+            return self.emitLoopWithBody(header, "", body, returnType, mods, genericArgs, indent)
+
         if containerInfo["entryShape"] == "value" and containerCat != "string":
             if traversalMode == "Backward":
                 header = "for (" + loopCntrName + " in (" + ctnrName + ".size - 1) downTo 0)"

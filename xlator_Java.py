@@ -243,6 +243,12 @@ class Xlator_Java(Xlator):
             return self.emitLoopWithBody(header, prologue, body, returnType, mods, genericArgs, indent)
 
         elemType = self.codeGen.convertType(repTSpec, "var", genericArgs)
+        if containerCat == "Set":
+            if traversalMode == "Backward":
+                cdErr("Java Set traversal does not support Backward.")
+            header = "for (" + elemType + " " + repName + " : " + ctnrName + ")"
+            return self.emitLoopWithBody(header, "", body, returnType, mods, genericArgs, indent)
+
         if containerInfo["entryShape"] == "value":
             if traversalMode == "Backward":
                 header = "for (int " + loopCntrName + " = " + ctnrName + ".size() - 1; " + loopCntrName + " >= 0; " + loopCntrName + "--)"
@@ -533,9 +539,7 @@ class Xlator_Java(Xlator):
     def codeIdentityCheck(self, S, S2, retType1, retType2, opIn):
         fType1 = progSpec.fieldTypeKeyword(retType1)
         fType2 = progSpec.fieldTypeKeyword(retType2)
-        owner1 = progSpec.getOwner(retType1) if isinstance(retType1, dict) else ''
-        owner2 = progSpec.getOwner(retType2) if isinstance(retType2, dict) else ''
-        if owner1 == 'itr' or owner2 == 'itr' or fType1 in ('iterator_Java_Map', 'iterator_Java_Multimap', 'JavaMapCursor', 'JavaMultimapCursor') or fType2 in ('iterator_Java_Map', 'iterator_Java_Multimap', 'JavaMapCursor', 'JavaMultimapCursor'):
+        if fType1 in ('iterator_Java_Map', 'iterator_Java_Multimap', 'iterator_Java_Set', 'JavaMapCursor', 'JavaMultimapCursor', 'JavaSetCursor') or fType2 in ('iterator_Java_Map', 'iterator_Java_Multimap', 'iterator_Java_Set', 'JavaMapCursor', 'JavaMultimapCursor', 'JavaSetCursor'):
             if opIn == '==' or opIn == '===':
                 return S + ".isEqual(" + S2 + ")"
             if opIn == '!=' or opIn == '!==':

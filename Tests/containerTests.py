@@ -251,6 +251,41 @@ struct testClass{
     }
 }''', 'PGBR:2 true 2 b:2'],
 ###################################################################################################
+'hashSetReq': ['''
+struct testClass{
+    me void: runTest()<-{
+        me Set<me string>: values
+        values.insert("b")
+        values.add("a")
+        values.insert("a")
+        print(toString(values.contains("a"))," ",toString(values.contains("z"))," ",values.size()," ")
+        me int: total <- 0
+        withEach item in values{
+            if(item == "a"){total <- total + 1}
+            if(item == "b"){total <- total + 10}
+        }
+        print(total," ")
+        values.erase("a")
+        print(toString(values.contains("a"))," ",values.size())
+    }
+}''', 'PGBR:true false 2 11 false 1'],
+###################################################################################################
+'hashSetFind': ['''
+struct testClass{
+    me void: runTest()<-{
+        me Set<me string>: values
+        values.insert("a")
+        values.insert("b")
+        itr Set<me string>: found <- values.find("b")
+        itr Set<me string>: missing <- values.find("z")
+        if(found == values.end()){print("missing")}
+        else{print(found.val())}
+        print(" ")
+        if(missing == values.end()){print("end")}
+        else{print("found")}
+    }
+}''', 'PGBR:b end'],
+###################################################################################################
 'kotlin/treeMapReq': ['''
 struct testClass{
     me void: runTest()<-{
@@ -299,6 +334,22 @@ struct testClass{
         else{print("Found")}
     }
 }''', 'PGBR:2 true 2 Found'],
+###################################################################################################
+'java/multimapFind': ['''
+struct testClass{
+    me void: runTest()<-{
+        me Multimap<me int, me string: rangeIteration=logarithmic>: testMap
+        testMap.insert(1,"one")
+        testMap.insert(2,"two")
+        itr Multimap<me int, me string>: found <- testMap.find(2)
+        itr Multimap<me int, me string>: missing <- testMap.find(3)
+        if(found == testMap.end()){print("missing")}
+        else{print(found.key(),":",found.val())}
+        print(" ")
+        if(missing == testMap.end()){print("end")}
+        else{print("found")}
+    }
+}''', 'PGBR:2:two end'],
 ###################################################################################################
 'java/arrayListReq': ['''
 struct testClass{
@@ -434,7 +485,7 @@ CopyrightMesg = "Copyright (c) 2015-2016 Bruce Long"
 Authors = "Bruce Long"
 Description = "DataDog gives you the numbers of your life."
 ProgramOrLibrary = "program"
-featuresNeeded = [List, Multimap]
+featuresNeeded = [List, Multimap, Set]
 LicenseText = `This file is part of the "Proteus suite" All Rights Reserved.`
 runCode=<runCodeGoesHere>"""
 

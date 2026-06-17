@@ -1,0 +1,34 @@
+// Set.CPP.Lib.dog
+requirements = [
+    [tagOneOf, Lang, [CPP]]
+]
+
+interface={
+    provides = [Set_implementation]
+    libFiles = []
+    headers  = [unordered_set]
+}
+
+LibDescription ={
+    useStatus   = dynamic
+    description = 'Hash set provider for CPP'
+}
+
+struct CPP_HashSet<nodeType>: implements=Set wraps=unordered_set native=lang specs={insert=constant find=constant contains=constant rangeIteration=dontUse}{
+    const struct: iterator_CPP_HashSet(nodeType: value): implements=SetItr wraps=iterator native=lang <- {
+        me nodeType: val()                      <- <%!*%0%>
+        void: goNext()                          <- <%!++%0%>
+    }
+
+    void: add(nodeType: value)                  <- <%!insert(%1)%>
+    void: clear()                               <- <%!clear()%>
+    me bool: contains(nodeType: value)          <- <%!count(%1)>0%>
+    itr iterator_CPP_HashSet: end()             <- <%!end()%>
+    void: erase(nodeType: value)                <- <%!erase(%1)%>
+    itr iterator_CPP_HashSet: find(nodeType: value) <- <%!find(%1)%>
+    nodeType: first()                           <- <%!*begin()%>
+    itr iterator_CPP_HashSet: front()           <- <%!%0.begin()%>
+    void: insert(nodeType: value)               <- <%!insert(%1)%>
+    me bool: isEmpty()                          <- <%!empty()%>
+    me uint: size()                             <- <%!size()%>
+}

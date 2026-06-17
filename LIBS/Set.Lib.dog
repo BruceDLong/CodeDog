@@ -1,0 +1,24 @@
+// CodeDog Set model
+
+requirements = [
+    [require, Set_implementation]
+]
+
+model Set<nodeType>{
+    const model: SetItr(nodeType: value) <- {
+        me nodeType: val()
+        void: goNext()
+    }
+
+    void: add(nodeType: value)
+    void: clear()
+    me bool: contains(nodeType: value)
+    our SetItr: end()
+    void: erase(nodeType: value)
+    our SetItr: find(nodeType: value)
+    nodeType: first()
+    our SetItr: front()
+    void: insert(nodeType: value)
+    me bool: isEmpty()
+    me uint: size()
+}
