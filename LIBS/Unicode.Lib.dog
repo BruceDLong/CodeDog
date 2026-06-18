@@ -55,6 +55,8 @@ struct DateTimeFields{
     me int: millisecond
 }
 
+struct UnicodeStr{}
+struct sysLocale{}
 struct DateFormat:    wraps=SimpleDateFormat{}
 struct Normalizer:    wraps=Normalizer2{}
 struct USpoofChecker: wraps=USpoofChecker{}

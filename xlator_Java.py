@@ -60,7 +60,7 @@ class Xlator_Java(Xlator):
                 else: S= '.charAt(' + idx + ')'    # '.substring(' + idx + ', '+ idx + '+1' +')'
             else:
                 containerInfo = progSpec.getContainerInfo(self.codeGen.classStore, containerType)
-                fieldDefAt = self.codeGen.CheckObjectVars(ctnrTypeKW, "at", "")
+                fieldDefAt = self.codeGen.CheckObjectVars(ctnrTypeKW, "at", "", containerType)
                 if fieldDefAt:
                     if 'typeSpec' in fieldDefAt and 'codeConverter' in fieldDefAt['typeSpec']:
                         S = fieldDefAt['typeSpec']['codeConverter']
@@ -71,7 +71,7 @@ class Xlator_Java(Xlator):
         else:
             containerInfo = progSpec.getContainerInfo(self.codeGen.classStore, containerType)
             if containerInfo["isContainer"] and containerInfo["category"] != 'string':
-                fieldDefIdx = self.codeGen.CheckObjectVars(ctnrTypeKW, "__index", "")
+                fieldDefIdx = self.codeGen.CheckObjectVars(ctnrTypeKW, "__index", "", containerType)
                 if fieldDefIdx and 'typeSpec' in fieldDefIdx:
                     if 'codeConverter' in fieldDefIdx['typeSpec']:
                         S = fieldDefIdx['typeSpec']['codeConverter']
@@ -833,7 +833,7 @@ class Xlator_Java(Xlator):
             if LHSParentType == 'string' and LHS_FieldType == 'char':
                 S = indent+AltIDXFormat[0]+' = replaceCharAt(' +AltIDXFormat[0]+', '+ AltIDXFormat[2] + ', ' + RHS + ');\n'
             else:
-                fieldDefInsert = self.codeGen.CheckObjectVars(datastructID, 'insert', '')
+                fieldDefInsert = self.codeGen.CheckObjectVars(datastructID, 'insert', '', AltIDXFormat[1])
                 if fieldDefInsert and 'typeSpec' in fieldDefInsert:
                     if 'codeConverter' in fieldDefInsert['typeSpec']:
                         converter = fieldDefInsert['typeSpec']['codeConverter']
@@ -848,7 +848,7 @@ class Xlator_Java(Xlator):
         else:
             assignTag = assignTag[0]
             if(assignTag=='+'):
-                fieldDefSet = self.codeGen.CheckObjectVars(datastructID, 'set', '' )
+                fieldDefSet = self.codeGen.CheckObjectVars(datastructID, 'set', '', AltIDXFormat[1])
                 if fieldDefSet and 'typeSpec' in fieldDefSet:
                     if 'codeConverter' in fieldDefSet['typeSpec']:
                         S = indent+AltIDXFormat[0]+fieldDefIdx['typeSpec']['codeConverter']

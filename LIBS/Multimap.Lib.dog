@@ -29,6 +29,7 @@ model Multimap<keyType, valueType>{
     our MultimapItr: insert(keyType: key, valueType: value)
     me bool:  isEmpty()
     valueType: last()
+    valueType: popFirst()
     //itr valueType: lower_bound(keyType: key)
     me uint:  size()
 }

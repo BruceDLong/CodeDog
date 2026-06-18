@@ -30,7 +30,23 @@ struct Threads{
     void: requestClose() <- {notDone <- false}
 
 }
-struct Mutex{}
-struct MutexMngr{}
-struct SyncLock{}
-struct Semaphore{}
+struct Mutex{
+    void: lock()
+    void: unlock()
+    bool: tryLock()
+}
+struct MutexMngr{
+    void: lock()
+    void: unlock()
+    bool: tryLock()
+    none: MutexMngr(me Mutex: __mutex)
+}
+struct SyncLock{
+    void: wait(me MutexMngr: lock)
+    void: notifyOne()
+    void: notifyAll()
+}
+struct Semaphore{
+    void: post()
+    void: wait()
+}

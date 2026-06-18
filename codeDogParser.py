@@ -1002,12 +1002,15 @@ def extractFuncBody(funcName, funcBodyIn):
         exit(1)
     return funcBodyOut, funcTextVerbatim
 
-def extractFieldDefs(ProgSpec, className, stateType, fieldResults):
+def extractFieldDefs(ProgSpec, className, stateType, fieldResults, libName=None):
     cdlog(logLvl(), "EXTRACTING {}".format(className))
     for fieldResult in fieldResults:
         comment = None
         if(fieldResult[0][0]=='/*^' or fieldResult[0][0]=='//^' ): comment = fieldResult[0]
         fieldDef=packFieldDef(fieldResult.fieldDef, className, '', comment)
+        if libName != None:
+            fieldDef['libName'] = libName
+            fieldDef['libLevel'] = progSpec.getLibLevel(libName)
         progSpec.addField(ProgSpec, className, stateType, fieldDef)
 
 def extractBuildSpecs(buildSpecResults):    # buildSpecResults is sometimes a parseResult, often an empty string
@@ -1036,7 +1039,7 @@ def extractObjectSpecs(ProgSpec, classNames, spec, stateType,description, commen
     else: objTags = {}
     taggedName = progSpec.addClass(ProgSpec, classNames, className, stateType, configType,description, comments)
     progSpec.addObjTags(ProgSpec, className, stateType, objTags)
-    extractFieldDefs(ProgSpec, className, stateType, spec.fieldDefs)
+    extractFieldDefs(ProgSpec, className, stateType, spec.fieldDefs, description)
     ############Grab optional typeArgList
     if 'typeArgList' in spec[1]:
         typeArgList = extractTypeArgList(spec[1].typeArgList)

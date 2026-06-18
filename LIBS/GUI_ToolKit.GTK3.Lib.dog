@@ -345,8 +345,8 @@ struct GUI_ctxt{
     me void: setRoundLineCap() <- <%!cairo_set_line_cap(%0, CAIRO_LINE_CAP_ROUND)%>
     me void: setEdgedLineCap() <- <%!cairo_set_line_cap(%0, CAIRO_LINE_CAP_BUTT)%>
     me void: finishPDF() <- <%!cairo_surface_finish(cairo_get_group_target(%0))%>
-    me void: setScale() <- <%!cairo_scale(%0, %1, %2)%>
-    me void: setOffset() <- <%!cairo_translate(%0, %1, %2)%>
+    me void: setScale(me double: scaleX, me double: scaleY) <- <%!cairo_scale(%0, %1, %2)%>
+    me void: setOffset(me double: offsetX, me double: offsetY) <- <%!cairo_translate(%0, %1, %2)%>
     me void: moveTo(me double: x, me double: y) <- <%!cairo_move_to(%0, %1, %2)%>
     me void: lineTo(me double: x, me double: y) <- <%!cairo_line_to(%0, %1, %2)%>
     me void: moveRel(me double: dx, me double: dy) <- <%!cairo_rel_move_to(%0, %1, %2)%>

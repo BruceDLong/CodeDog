@@ -92,6 +92,22 @@ struct GLOBAL{
     void: setwindowMetrics()<-{windowW <- widgetWidth(drawing_area); windowH <- widgetHeight(drawing_area)}
     me int64: guiMonotonicMillis()
     our string: getClipboardAsText()
+    me deltaSize: getTextSize(me string: text, their fontSpec: font)
+    me deltaSize: getTextSizeX1024(me string: text, their fontSpec: font)
+    void: displayBackgroundImage(their GUI_ctxt: cr, me string: filename)
+    me void: displayImage(their GUI_ctxt: cr, me string: filename, me double: x, me double: y, me double: scale)
+    me void: fetchAreaToBeDrawn(their GUI_ctxt: cr, their GUI_rect: area)
+    me deltaSize: renderText(their GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y)
+    me deltaSize: renderTextCentered(their GUI_ctxt: cr, me string: text, their fontSpec: font, me double: x, me double: y)
+    me deltaSize: renderTextRotate(their GUI_ctxt: cr, me string: text, their fontSpec: font, me double: x, me double: y, me double: degrees, me string: justify)
+    me void: showWidget(me GUI_item: widget)
+    me void: hideWidget(their GUI_item: widget)
+    me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height)
+    me int: widgetHeight()
+    me int: widgetWidth()
+    me void: addToContainer(me GUI_container: container, me GUI_item: widget)
+    me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget)
+    me void: addToZStack(me GUI_container: container, me GUI_item: widget)
 }
 
 ///////// Widgets and events
@@ -254,11 +270,15 @@ struct GUI_KeyboardEvent{
 }
 /////////////////////////////////  EVENT DISPATCHER
 struct GUI_eventDispatcher{
+    me void: registerWidgetForEventDispatcher(their GUI_item: Widget, their widget: masterWidget)
     me void: registerControlForEventDispatcher(me GUI_item: Widget, their widget: masterWidget)
 }
 /////////////////////////////////  HANDLE GUI
 struct GUI_canvas{}
 struct GUI{
+    me uint32: GUI_Init()
+    me uint32: GUI_Run()
+    me void: GUI_Deinit()
     me GUI_item: newCanvas()
     me GUI_item: newLabel(me string: text)
     me GUI_item: newButton(me string: text)
@@ -285,8 +305,8 @@ struct GUI_ctxt {
     me void: setRoundLineCap()
     me void: setEdgedLineCap()
     me void: finishPDF()
-    me void: setScale()
-    me void: setOffset()
+    me void: setScale(me double: scaleX, me double: scaleY)
+    me void: setOffset(me double: offsetX, me double: offsetY)
     me void: moveTo(me double: x, me double: y)
     me void: lineTo(me double: x, me double: y)
     me void: moveRel(me double: dx, me double: dy)
@@ -294,7 +314,7 @@ struct GUI_ctxt {
     me void: curveTo(me double: x1, me double: y1, me double: x2, me double: y2, me double: x3, me double: y3)
     me void: curveRel(me double: dx1, me double: dy1, me double: dx2, me double: dy2, me double: dx3, me double: dy3)
     me void: closePath()
-    me void: rectangle()
+    me void: rectangle(me double: x, me double: y, me double: w, me double: h)
     me void: paintNow()
     me void: strokeNow()
     me void: fillNow()
@@ -347,6 +367,121 @@ struct GLOBAL{
 /////////////////////////////////  INTER-THREAD COMMUNICATION
 struct MessagePasser{}
 struct workerMsgThread{}
+struct GLOBAL{
+    their MessagePasser: GUI_threads_messagePasser
+    their MessagePasser: workerThreadMessagePasser
+    their MessagePasser: threadsMesgPasser()
+    their MessagePasser: GUIsMesgPasser()
+    void: invokeFunctionInThread(their MessagePasser: mesgPasser, their void: objToCall, their void: classToCall, their void: funcToCall, their void: arguments)
+}
+struct GLOBAL{ // Key constants
+    const int: KEY_HOME
+    const int: KEY_END
+    const int: KEY_ESCAPE
+    const int: KEY_TAB
+    const int: KEY_INSERT
+    const int: KEY_DELETE
+    const int: KEY_PAGEUP
+    const int: KEY_PAGEDOWN
+    const int: KEY_PAUSE
+    const int: KEY_RETURN
+    const int: KEY_UP
+    const int: KEY_DOWN
+    const int: KEY_LEFT
+    const int: KEY_RIGHT
+    const int: KEY_BACKSPACE
+    const int: KEY_F1
+    const int: KEY_F2
+    const int: KEY_F3
+    const int: KEY_F4
+    const int: KEY_F5
+    const int: KEY_F6
+    const int: KEY_F7
+    const int: KEY_F8
+    const int: KEY_F9
+    const int: KEY_F10
+    const int: KEY_F11
+    const int: KEY_F12
+    const int: KP_0
+    const int: KP_1
+    const int: KP_2
+    const int: KP_3
+    const int: KP_4
+    const int: KP_5
+    const int: KP_6
+    const int: KP_7
+    const int: KP_8
+    const int: KP_9
+    const int: KP_ENTER
+    const int: KP_PLUS
+    const int: KP_MINUS
+    const int: KP_MULTIPLY
+    const int: KP_DIVIDE
+    const int: KP_PERIOD
+    const int: KP_DELETE
+    const int: KP_UP
+    const int: KP_DOWN
+    const int: KP_LEFT
+    const int: KP_RIGHT
+    const int: KP_HOME
+    const int: KP_END
+    const int: KP_PAGEUP
+    const int: KP_PAGEDOWN
+    const int: KEY_a
+    const int: KEY_b
+    const int: KEY_c
+    const int: KEY_d
+    const int: KEY_e
+    const int: KEY_f
+    const int: KEY_g
+    const int: KEY_h
+    const int: KEY_i
+    const int: KEY_j
+    const int: KEY_k
+    const int: KEY_l
+    const int: KEY_m
+    const int: KEY_n
+    const int: KEY_o
+    const int: KEY_p
+    const int: KEY_q
+    const int: KEY_r
+    const int: KEY_s
+    const int: KEY_t
+    const int: KEY_u
+    const int: KEY_v
+    const int: KEY_w
+    const int: KEY_x
+    const int: KEY_y
+    const int: KEY_z
+    const int: KEY_A
+    const int: KEY_B
+    const int: KEY_C
+    const int: KEY_D
+    const int: KEY_E
+    const int: KEY_F
+    const int: KEY_G
+    const int: KEY_H
+    const int: KEY_I
+    const int: KEY_J
+    const int: KEY_K
+    const int: KEY_L
+    const int: KEY_M
+    const int: KEY_N
+    const int: KEY_O
+    const int: KEY_P
+    const int: KEY_Q
+    const int: KEY_R
+    const int: KEY_S
+    const int: KEY_T
+    const int: KEY_U
+    const int: KEY_V
+    const int: KEY_W
+    const int: KEY_X
+    const int: KEY_Y
+    const int: KEY_Z
+    const int: SHIFT_MASK
+    const int: CONTROL_MASK
+}
 struct APP {
     me GUI: gui
     me GUI_Frame: thisFrame

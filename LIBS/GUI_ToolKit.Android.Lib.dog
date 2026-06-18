@@ -214,7 +214,7 @@ struct GUI_ctxt: inherits=Canvas{
     me void: setColor(me cdColor: color) <- <%!%0.paint.setColor( Color.rgb(%1.red, %1.green, %1.blue))%>
     me void: setLineWidth(me double: width) <- <%!paint.setStrokeWidth(%1)%>
     me void: finishPDF() <- <%!%GSystem.out.print("PDF Functions not given.")%>
-    me void: setScale() <- <%!%G%>  // TODO: Finish setScale()
+    me void: setScale(me double: scaleX, me double: scaleY) <- <%!%G%>  // TODO: Finish setScale()
     me void: moveTo(me double: x, me double: y) <- <%!%0.cur_x=%1; %0.cur_y=%2; %0.GPath.moveTo((float)(%1), (float)(%2))%>
     me void: lineTo(me double: x, me double: y) <- <%!%0.cur_x=%1; %0.cur_y=%2; %0.GPath.lineTo((float)(%1), (float)(%2))%>
     me void: moveRel(me double: dx, me double: dy) <- <%!GPath.moveTo((float)(cr.cur_x+%1), (float)(cr.cur_y+%2))%>
@@ -222,7 +222,7 @@ struct GUI_ctxt: inherits=Canvas{
     me void: curveTo(me double: x1, me double: y1, me double: x2, me double: y2, me double: x3, me double: y3) <- <%!GPath.curve_to(cr, %1, %2, %3, %4, %5, %6)%>
     me void: curveRel(me double: dx1, me double: dy1, me double: dx2, me double: dy2, me double: dx3, me double: dy3) <- <%!rel_curve_to(cr, %1, %2, %3, %4, %5, %6)%>
     me void: closePath()      <- <%!GPath.close()%>
-    me void: rectangle()      <- <%!%0.drawRect((float)%1, (float)%2, (float)%3, (float)%4, cr.paint)%>
+    me void: rectangle(me double: x, me double: y, me double: w, me double: h) <- <%!%0.drawRect((float)%1, (float)%2, (float)%3, (float)%4, cr.paint)%>
     me void: paintNow()       <- <%!paint.setStyle(Paint.Style.FILL);cr.GCanvas.drawPaint(cr.paint)%>
     me void: strokeNow()      <- <%!%0.paint.setStyle(Paint.Style.STROKE); %0.GCanvas.drawPath(cr.GPath, cr.paint); cr.GPath.rewind()%>
     me void: fillNow()        <- <%!%0.paint.setStyle(Paint.Style.FILL);   %0.GCanvas.drawPath(cr.GPath, cr.paint); cr.GPath.rewind()%>

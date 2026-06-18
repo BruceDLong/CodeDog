@@ -21,6 +21,8 @@ featuresNeeded = [Logger,IOBuffer]
 struct GLOBAL{
     const int: bufSize <- 1024
     me int: lastTaskID <- 0
+    void: initQuicSystem()
+    void: deinitQuicSystem()
 }
 struct QuicConnectionID{}
 
@@ -49,6 +51,7 @@ struct QuicConnection{
     void: onConnectionClosed_CB()                  <- {print("BASE::onConnectionClosed_CB!!!!!!!!!!!!!!!!!\n")}
     their QuicConnectionID: getConnectionID()
     their QuicStream: allocNewStream()             <- {print("BASE::allocNewStream!!!!!!!!!!!!!!!!!\n"); return(0)} // Just allocate and return your descendent of QuicStream
+    void: createNewStream()
     void: abort()
     //void: ping()
 
@@ -76,7 +79,10 @@ struct QuicStream{
 
     void: nextOpIsRead()
     void: nextOpIsWrite()
+    void: doneReading()
+    void: doneWriting()
     void: close()
+    me uint64: getStreamID()
     me int: read(me string: buf)
     me int: write(me string: buf)
     void: setPriority(me 1..256: priority)  // Lower value  = higher priority

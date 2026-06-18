@@ -93,7 +93,7 @@ def findLibraryChildren(libID):
     libs=[]
     for item in libPaths:
         itemBaseName = os.path.basename(item)
-        if(itemBaseName.endswith('Lib.dog') and itemBaseName.startswith(libID)):
+        if(itemBaseName.endswith('Lib.dog') and itemBaseName.startswith(libID + ".")):
             innerName = itemBaseName[len(libID)+1:-8]
             if (innerName != '' and innerName.find('.')==-1):
                 libs.append(item)

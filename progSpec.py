@@ -379,18 +379,38 @@ def addField(objSpecs, className, stateType, packedField):
     else: taggedClassName = className
     if stateType!='string':
         fieldIfExists = doesClassDirectlyImlementThisField(objSpecs, className, fieldID)
+        if fieldIfExists == True:
+            existingField = None
+            for candidate in objSpecs[taggedClassName]["fields"]:
+                if 'fieldID' in candidate and candidate['fieldID'] == fieldID:
+                    existingField = candidate
+                    break
+            existingIsTopLevelDecl = isinstance(existingField, dict) and existingField.get('libLevel', objSpecs[taggedClassName].get('libLevel', 1)) != 2 and (not ('value' in existingField) or existingField['value'] == None)
+            incomingHasImplValue = packedField.get('libLevel', objSpecs[taggedClassName].get('libLevel', 1)) == 2 and 'value' in packedField and packedField['value'] != None
+            if existingIsTopLevelDecl and incomingHasImplValue:
+                fieldIfExists = existingField
+            else:
+                cdlog(2, "Note: The field '" + fieldID + "' already exists. Not re-adding")
+                return
         field=fieldIfExists
         if fieldIfExists:
-            cdlog(2, "Note: The field '" + fieldID + "' already exists. Not re-adding")
-            if not isinstance(fieldIfExists, dict): return
-            if not ('value' in field) or field['value']==None: return
-            if not ('value' in packedField)   or packedField['value']  ==None: return
-            if field['value']==packedField['value']: return
-            if owner=='const' and fTypeKW=='struct': # append inner struct & extracted struct
-                appendActionList(objSpecs[taggedClassName]["fields"], fieldID, packedField['value'][0])
-                appendExtractedStruct(objSpecs, fieldID.split('::')[1].split('(')[0], packedField['value'][0])
-                return
-            cdErr(fieldID+" is being contradictorily redefined.")
+            existingIsImpl = isinstance(fieldIfExists, dict) and fieldIfExists.get('libLevel', objSpecs[taggedClassName].get('libLevel', 1)) == 2
+            incomingIsTopLevelDecl = packedField.get('libLevel', objSpecs[taggedClassName].get('libLevel', 1)) != 2 and (not ('value' in packedField) or packedField['value'] == None)
+            existingIsTopLevelDecl = isinstance(fieldIfExists, dict) and fieldIfExists.get('libLevel', objSpecs[taggedClassName].get('libLevel', 1)) != 2 and (not ('value' in fieldIfExists) or fieldIfExists['value'] == None)
+            incomingHasImplValue = packedField.get('libLevel', objSpecs[taggedClassName].get('libLevel', 1)) == 2 and 'value' in packedField and packedField['value'] != None
+            if existingIsTopLevelDecl and incomingHasImplValue:
+                pass
+            elif not (existingIsImpl and incomingIsTopLevelDecl):
+                cdlog(2, "Note: The field '" + fieldID + "' already exists. Not re-adding")
+                if not isinstance(fieldIfExists, dict): return
+                if not ('value' in field) or field['value']==None: return
+                if not ('value' in packedField)   or packedField['value']  ==None: return
+                if field['value']==packedField['value']: return
+                if owner=='const' and fTypeKW=='struct': # append inner struct & extracted struct
+                    appendActionList(objSpecs[taggedClassName]["fields"], fieldID, packedField['value'][0])
+                    appendExtractedStruct(objSpecs, fieldID.split('::')[1].split('(')[0], packedField['value'][0])
+                    return
+                cdErr(fieldID+" is being contradictorily redefined.")
 
         # Don't override flags and modes in derived Classes
         if fTypeKW=='flag' or fTypeKW=='mode':
@@ -554,6 +574,10 @@ def insertOrReplaceField(fieldListToUpdate, field):
     idx=0
     for F in fieldListToUpdate:
         if field['fieldID']==F['fieldID']:
+            existingIsImpl = isinstance(F, dict) and F.get('libLevel', 1) == 2
+            incomingIsTopLevelDecl = field.get('libLevel', 1) != 2 and (not ('value' in field) or field['value'] == None)
+            if existingIsImpl and incomingIsTopLevelDecl:
+                return
             fieldListToUpdate[idx]=field
             return
         idx+=1

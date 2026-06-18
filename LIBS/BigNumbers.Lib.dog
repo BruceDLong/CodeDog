@@ -17,6 +17,9 @@ struct GLOBAL{
     me bool: __notEqual(me FlexNum: LHS, me FlexNum: RHS)               <- {return(LHS.val != RHS.val)}
     me bool: __notEqual(me FlexNum: LHS, me int: RHS)                   <- {return(LHS.val != RHS)}
     me string: toString(me FlexNum: FN)                                 <-{return(FN.stringify())}
+    me string: toString(me BigInt: val)
+    me string: toString(me BigFrac: val)
+    me string: toString(me BigFloat: val)
     me BigInt: min(me BigInt: A, me BigInt: B) <-{
         if(A<=B){return(A)}
         return(B)
@@ -34,11 +37,22 @@ struct GLOBAL{
         return(B)
     }
 }
-struct BigInt{}
+struct BigInt{
+    me int64: convertToIntVal()
+    me BigInt: hexNumToBigInt(me string: val)
+    me BigInt: binNumToBigInt(me string: val)
+    me BigInt: decNumToBigInt(me string: val)
+}
 struct BigFloat{
     me string: stringify()
 }
-struct BigFrac{}
+struct BigFrac{
+    me double: convertToFloat()
+    me double: normalize()
+    me int: hexNumToBigFrac(me string: val)
+    me int: binNumToBigFrac(me string: val)
+    me int: decNumToBigFrac(me string: val)
+}
 struct FlexNum{
     //TODO: fix decPlaces
     me int: decPlaces <- -1
@@ -48,6 +62,8 @@ struct FlexNum{
     void: setDenominator(me string: denominator)
     me BigInt: getNumerator()
     me BigInt: getDenominator()
+    me double: convertToFloat()
+    me double: convertToInt()
     void: normalize()
 
     me int: countDigits(me BigInt:num) <- {
@@ -166,6 +182,9 @@ struct FlexNum{
     none: FlexNum(me string:str) <- {
         fromString(str)
     }
+    none: FlexNum(me BigInt:num)
+    none: FlexNum(me int64:num)
+    none: FlexNum(me uint64:num)
     none: FlexNum(me double:num) <- {val <- num}
     none: FlexNum(me float:num)  <- {val <- num}
 }

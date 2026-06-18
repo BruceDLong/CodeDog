@@ -673,8 +673,8 @@ struct GUI_ctxt{
     me void: setRoundLineCap()                          <- <%!setLineCap(.round)%>
     me void: setEdgedLineCap()                          <- <%!setLineCap(.butt)%>
     //me void: finishPDF()                                <- <%!closePDF()%>
-    me void: setScale()                                  <- <%!scaleBy(x: CGFloat(%1), y: CGFloat(%2))%>
-    me void: setOffset()                                 <- <%!translateBy(x: CGFloat(%1), y: CGFloat(%2))%>
+    me void: setScale(me double: scaleX, me double: scaleY) <- <%!scaleBy(x: CGFloat(%1), y: CGFloat(%2))%>
+    me void: setOffset(me double: offsetX, me double: offsetY) <- <%!translateBy(x: CGFloat(%1), y: CGFloat(%2))%>
     me void: moveTo(me double: x, me double: y)         <- <%!move(to:CGPoint(x:%1, y:%2))%>
     me void: lineTo(me double: x, me double: y)         <- <%!addLine(to:CGPoint(x:%1, y:%2))%>
     me void: moveRel(me double: dx, me double: dy)       <- <%!%0!.move(to: CGPoint(x: %0!.currentPointOfPath.x + CGFloat(%1), y: %0!.currentPointOfPath.y + CGFloat(%2)))%>

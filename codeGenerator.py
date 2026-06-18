@@ -35,6 +35,8 @@ class CodeGenerator(object):
     localVarsAllocated = []   # Format: [varName, typeSpec]
     localArgsAllocated = []   # Format: [varName, typeSpec]
     currentObjName     = ''
+    currentDefinitionLibLevel = 1
+    currentDefinitionLibName = None
     inheritedEnums     = {}
     constFieldAccs     = {}
     modeStringsAcc     = ''
@@ -168,7 +170,7 @@ class CodeGenerator(object):
                     count += 1
             return True
 
-    def CheckObjectVars(self, className, itemName, fieldIDArgList):
+    def CheckObjectVars(self, className, itemName, fieldIDArgList, receiverTypeSpec=None):
         # also used to fetch codeConverter
         # if returning wrong overloaded codeConverter check fieldIDArgList
         className = progSpec.normalizeClassNameKey(className)
@@ -181,7 +183,6 @@ class CodeGenerator(object):
             progSpec.setCurrentCheckObjectVars(message)
             return 0
         retVal=None
-        #if("libLevel" in classDef and classDef["libLevel"] == 2 and not 'implements' in classDef): if(classDef["libLevel"] == 2): cdErr(searchFieldID+ " is not defined in parent library of "+str(classDef["libName"]))
 
         wrappedTypeSpec = progSpec.isWrappedType(self.classStore, className)
         if(wrappedTypeSpec != None):
@@ -212,14 +213,21 @@ class CodeGenerator(object):
             fieldName=field['fieldName']
             if fullSearchFieldID== field['fieldID']:
                 #print("fullSearchFieldID:",fullSearchFieldID)
+                self.ensureFieldVisibleFromCurrentContext(className, field, receiverTypeSpec, classDef)
                 return field
             if fieldName==itemName and 'number_type' in field['fieldID']:
                 num_typeFieldID = self.convertFieldIDType(fullSearchFieldID, "number_type")
                 if(field['fieldID'] == num_typeFieldID):
+                    self.ensureFieldVisibleFromCurrentContext(className, field, receiverTypeSpec, classDef)
                     return field
             if fieldName==itemName:
-                foundFieldID = field
+                if self.fieldVisibleFromCurrentContext(className, field, receiverTypeSpec, classDef):
+                    foundFieldID = field
+                elif foundFieldID == 'None':
+                    foundFieldID = ['hidden', field]
         if foundFieldID != 'None':
+            if isinstance(foundFieldID, list) and foundFieldID[0] == 'hidden':
+                self.reportImplementationVisibilityError("member", foundFieldID[1]['fieldID'], foundFieldID[1].get('libName', classDef.get('libName')))
             #doIDsMatch = self.doFieldIDsMatch(foundFieldID['fieldID'], fullSearchFieldID)
             #print ("Found", itemName)
             return foundFieldID
@@ -242,7 +250,135 @@ class CodeGenerator(object):
         classDef = progSpec.findSpecOf(self.classStore[0], itemName, "struct")
         if classDef==None:
             return None
+        if self.classIsImplementationOnly(itemName) and not self.currentCodeMayUseImplementationSymbols():
+            self.reportImplementationVisibilityError("class", itemName, classDef.get('libName'))
         return [{'owner':'me', 'fieldType':[itemName], 'StaticMode':'yes'}, "CLASS:"+itemName]
+
+    def currentCodeMayUseImplementationSymbols(self):
+        return getattr(self, 'currentDefinitionLibLevel', 1) == 2
+
+    def findVisibilityClassDef(self, className):
+        classDef = progSpec.findSpecOf(self.classStore[0], className, "struct")
+        if classDef == None:
+            classDef = progSpec.findSpecOf(self.classStore[0], className, "model")
+        if classDef == None:
+            classDef = progSpec.findSpecOf(self.classStore[0], className, "string")
+        return classDef
+
+    def fieldLibLevel(self, field, classDef=None):
+        if isinstance(field, dict) and 'libLevel' in field:
+            return field['libLevel']
+        if classDef != None and 'libLevel' in classDef:
+            return classDef['libLevel']
+        return 1
+
+    def classIsImplementationOnly(self, className):
+        classDef = self.findVisibilityClassDef(className)
+        return classDef != None and classDef.get('libLevel', 1) == 2
+
+    def fieldDeclaredInTopLevelSurface(self, className, field):
+        if not isinstance(field, dict) or 'fieldID' not in field:
+            return False
+        targetFieldID = progSpec.fieldOnlyID(field['fieldID'])
+        surfaceNames = [className]
+        visitedSurfaceNames = set()
+        searchIdx = 0
+        while searchIdx < len(surfaceNames):
+            surfaceName = surfaceNames[searchIdx]
+            searchIdx += 1
+            if surfaceName in visitedSurfaceNames:
+                continue
+            visitedSurfaceNames.add(surfaceName)
+            classDef = progSpec.findSpecOf(self.classStore[0], surfaceName, "struct")
+            if classDef == None:
+                classDef = progSpec.findSpecOf(self.classStore[0], surfaceName, "model")
+            if classDef == None:
+                continue
+            for tagName in ["inherits", "implements"]:
+                relatedSurfaces = progSpec.searchATagStore(classDef.get("tags", {}), tagName)
+                if relatedSurfaces == None:
+                    continue
+                if isinstance(relatedSurfaces, str):
+                    relatedSurfaces = [relatedSurfaces]
+                for relatedSurface in relatedSurfaces:
+                    if isinstance(relatedSurface, str) and relatedSurface not in surfaceNames:
+                        surfaceNames.append(relatedSurface)
+        if isinstance(className, str):
+            nestedSuffix = "." + className
+            for storedName in self.classStore[1]:
+                normalizedName = storedName
+                if isinstance(normalizedName, str) and len(normalizedName) > 0 and normalizedName[0] in ["%", "$"]:
+                    normalizedName = normalizedName[1:]
+                if isinstance(normalizedName, str) and normalizedName.endswith(nestedSuffix) and normalizedName not in surfaceNames:
+                    surfaceNames.append(normalizedName)
+        for surfaceName in surfaceNames:
+            for stateType in ["struct", "model"]:
+                classDef = progSpec.findSpecOf(self.classStore[0], surfaceName, stateType)
+                if classDef == None:
+                    continue
+                for candidate in classDef.get("fields", []):
+                    if self.fieldLibLevel(candidate, classDef) == 2:
+                        continue
+                    if 'fieldID' in candidate and progSpec.fieldOnlyID(candidate['fieldID']) == targetFieldID:
+                        return True
+        return False
+
+    def implementedSurfaceNames(self, classDef):
+        if classDef == None or 'tags' not in classDef:
+            return []
+        implements = progSpec.searchATagStore(classDef['tags'], 'implements')
+        if implements == None:
+            return []
+        if isinstance(implements, str):
+            return [implements]
+        names = []
+        for surfaceName in implements:
+            if isinstance(surfaceName, str):
+                names.append(surfaceName)
+            elif isinstance(surfaceName, (ParseResults, list, tuple)) and len(surfaceName) > 0 and isinstance(surfaceName[0], str):
+                names.append(surfaceName[0])
+        return names
+
+    def fieldVisibleFromCurrentContext(self, className, field, receiverTypeSpec=None, classDef=None):
+        if self.currentCodeMayUseImplementationSymbols():
+            return True
+        if self.fieldLibLevel(field, classDef) != 2:
+            return True
+        if self.fieldDeclaredInTopLevelSurface(className, field):
+            return True
+        if isinstance(receiverTypeSpec, dict):
+            fromImplemented = progSpec.getFromImpl(receiverTypeSpec)
+            if fromImplemented and self.fieldDeclaredInTopLevelSurface(fromImplemented, field):
+                return True
+        for surfaceName in self.implementedSurfaceNames(classDef):
+            if self.fieldDeclaredInTopLevelSurface(surfaceName, field):
+                return True
+        return False
+
+    def ensureFieldVisibleFromCurrentContext(self, className, field, receiverTypeSpec=None, classDef=None):
+        if not self.fieldVisibleFromCurrentContext(className, field, receiverTypeSpec, classDef):
+            self.reportImplementationVisibilityError("member", field['fieldID'], field.get('libName', classDef.get('libName') if classDef else None))
+
+    def typeSpecUsesGeneratedImplementation(self, tSpec):
+        return isinstance(tSpec, dict) and progSpec.getFromImpl(tSpec) != None
+
+    def ensureTypeSpecVisibleFromCurrentContext(self, tSpec):
+        if self.currentCodeMayUseImplementationSymbols() or tSpec == None:
+            return
+        fTypeKW = progSpec.fieldTypeKeyword(tSpec)
+        if isinstance(fTypeKW, str) and self.classIsImplementationOnly(fTypeKW) and not self.typeSpecUsesGeneratedImplementation(tSpec):
+            classDef = self.findVisibilityClassDef(fTypeKW)
+            self.reportImplementationVisibilityError("class", fTypeKW, classDef.get('libName') if classDef else None)
+        reqTagList = progSpec.getReqTagList(tSpec)
+        if reqTagList:
+            for reqTag in reqTagList:
+                self.ensureTypeSpecVisibleFromCurrentContext(reqTag)
+
+    def reportImplementationVisibilityError(self, symbolKind, symbolName, libName):
+        source = ""
+        if libName:
+            source = " from " + str(libName)
+        cdErr("Implementation-only {} '{}'{} cannot be used from non-implementation code. Declare it in the top-level library API first.".format(symbolKind, symbolName, source))
 
     StaticMemberVars={} # Used to find parent-class of const and enums
 
@@ -582,7 +718,7 @@ class CodeGenerator(object):
         valueSpec  = containerInfo['valueTypeSpec'] or containerInfo['firstElementTypeSpec']
         reqTagList = progSpec.getReqTagList(tSpec)
         implTArgs  = progSpec.getImplementationTypeArgs(tSpec)
-        fDefAt     = self.CheckObjectVars(fTypeKW, "at", "")
+        fDefAt     = self.CheckObjectVars(fTypeKW, "at", "", tSpec)
         if implTArgs and fDefAt:
             atOwner  = progSpec.getOwner(fDefAt)
             atTypeKW = progSpec.fieldTypeKeyword(fDefAt)
@@ -783,6 +919,7 @@ class CodeGenerator(object):
                 elif len(fType) > 0:
                     tSpec['fieldType'][0] = resolvedTypeKW
             fTypeKW = resolvedTypeKW
+        self.ensureTypeSpecVisibleFromCurrentContext(tSpec)
         ownerIn  = progSpec.getOwner(tSpec)
         ownerOut = self.xlator.getUnwrappedClassOwner(self.classStore, tSpec, fTypeKW, varMode, ownerIn)
         unwrappedKW = progSpec.getUnwrappedClassFieldTypeKeyWord(self.classStore, fTypeKW)
@@ -979,7 +1116,7 @@ class CodeGenerator(object):
                     itrTypeKW = progSpec.convertItrType(self.classStore, owner, fTypeKW)
                     if itrTypeKW!=None: fTypeKW = itrTypeKW
                     [argListStr, fieldIDArgList] = self.getFieldIDArgList(segSpec, genericArgs)
-                    tSpecOut = self.CheckObjectVars(fTypeKW, name, fieldIDArgList)
+                    tSpecOut = self.CheckObjectVars(fTypeKW, name, fieldIDArgList, tSpecIn)
                     if tSpecOut!=0:
                         if name == 'init' and 'fieldID' in tSpecOut and '::' in tSpecOut['fieldID']:
                             initDeclaringClass = tSpecOut['fieldID'].split('::', 1)[0]
@@ -2076,31 +2213,47 @@ class CodeGenerator(object):
             ################################################################
             ### extracting FIELD data
             ################################################################
+            prevDefinitionLibLevel = self.currentDefinitionLibLevel
+            prevDefinitionLibName = self.currentDefinitionLibName
+            self.currentDefinitionLibLevel = self.fieldLibLevel(field, classDef)
+            self.currentDefinitionLibName = field.get('libName', classDef.get('libName'))
             self.localArgsAllocated = []
-            tSpec   = progSpec.getTypeSpec(field)
-            fTypeKW = progSpec.fieldTypeKeyword(tSpec)
-            if(fTypeKW=='flag' or fTypeKW=='mode'): continue
-            if 'value' in field and field['value']!=None and len(field['value'])>1:
-                verbatimText=field['value'][1]      # This function body is 'verbatim'.
-                if (verbatimText!='' and verbatimText[0]=='!'): continue  # This is a code conversion pattern. Don't write a function decl or body.
-            if(fTypeKW=='model' or fTypeKW=='struct'):
-                [structCode, funcDefCode, globalFuncs, topFuncDefCode] = self.codeSpaceSeq(className, field, indent)
-            else:
-                [structCode, funcDefCode, globalFuncs, topFuncDefCode] = self.codeTimeSeq(className, classDef, field, typeArgList, genericArgs, tags, indent)
-            if 'comment' in field:
-                comment = field['comment']
-                commentStr = self.codeComment(comment[0], comment[1], indent)
-                structCode = commentStr + "\n" + structCode
-            ## Accumulate field code
-            structCodeAcc     += structCode
-            funcDefCodeAcc    += funcDefCode
-            globalFuncsAcc    += globalFuncs
-            topFuncDefCodeAcc += topFuncDefCode
+            try:
+                tSpec   = progSpec.getTypeSpec(field)
+                fTypeKW = progSpec.fieldTypeKeyword(tSpec)
+                if(fTypeKW=='flag' or fTypeKW=='mode'): continue
+                if 'value' in field and field['value']!=None and len(field['value'])>1:
+                    verbatimText=field['value'][1]      # This function body is 'verbatim'.
+                    if (verbatimText!='' and verbatimText[0]=='!'): continue  # This is a code conversion pattern. Don't write a function decl or body.
+                if(fTypeKW=='model' or fTypeKW=='struct'):
+                    [structCode, funcDefCode, globalFuncs, topFuncDefCode] = self.codeSpaceSeq(className, field, indent)
+                else:
+                    [structCode, funcDefCode, globalFuncs, topFuncDefCode] = self.codeTimeSeq(className, classDef, field, typeArgList, genericArgs, tags, indent)
+                if 'comment' in field:
+                    comment = field['comment']
+                    commentStr = self.codeComment(comment[0], comment[1], indent)
+                    structCode = commentStr + "\n" + structCode
+                ## Accumulate field code
+                structCodeAcc     += structCode
+                funcDefCodeAcc    += funcDefCode
+                globalFuncsAcc    += globalFuncs
+                topFuncDefCodeAcc += topFuncDefCode
+            finally:
+                self.currentDefinitionLibLevel = prevDefinitionLibLevel
+                self.currentDefinitionLibName = prevDefinitionLibName
 
         # TODO: Remove this Hard Coded widget. It should apply to any abstract class.
         if self.xlator.MakeConstructors and (className!='GLOBAL')  and (className!='widget'):
-            ctorCode       = self.codeConstructor(className, tags, typeArgList, genericArgs)
-            structCodeAcc += "\n"+ctorCode
+            prevDefinitionLibLevel = self.currentDefinitionLibLevel
+            prevDefinitionLibName = self.currentDefinitionLibName
+            self.currentDefinitionLibLevel = classDef.get('libLevel', 1)
+            self.currentDefinitionLibName = classDef.get('libName')
+            try:
+                ctorCode       = self.codeConstructor(className, tags, typeArgList, genericArgs)
+                structCodeAcc += "\n"+ctorCode
+            finally:
+                self.currentDefinitionLibLevel = prevDefinitionLibLevel
+                self.currentDefinitionLibName = prevDefinitionLibName
         funcDefCodeAcc     = topFuncDefCodeAcc + funcDefCodeAcc
         return [structCodeAcc, funcDefCodeAcc, globalFuncsAcc]
 
@@ -2754,6 +2907,8 @@ class CodeGenerator(object):
         self.localVarsAllocated = []
         self.localArgsAllocated = []
         self.currentObjName=''
+        self.currentDefinitionLibLevel = 1
+        self.currentDefinitionLibName = None
         self.libInterfacesText=''
         self.libInitCodeAcc=''
         self.libDeinitCodeAcc=''

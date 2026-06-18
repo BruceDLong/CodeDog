@@ -29,6 +29,7 @@ model Map<keyType, valueType>{
     our MapItr: insert(keyType: key, valueType: value)
     me bool:  isEmpty()
     valueType: last()
-    //itr valueType: lower_bound(keyType: key)
+    our MapItr: lower_bound(keyType: key)
+    our MapItr: upper_bound(keyType: key)
     me uint:  size()
 }

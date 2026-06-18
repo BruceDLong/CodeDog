@@ -8,6 +8,149 @@ requirements = [
 
 featuresNeeded = [Logger]
 
+struct GLOBAL{
+    const int: WINDOWEVENT_MOVED
+    const int: WINDOWEVENT_SIZE_CHANGED
+    const int: WINDOWEVENT_MINIMIZED
+    const int: WINDOWEVENT_MAXIMIZED
+    const int: WINDOWEVENT_RESTORED
+    const int: WINDOWEVENT_FOCUS_GAINED
+    const int: WINDOWEVENT_FOCUS_LOST
+    const int: WINDOWEVENT_CLOSE
+    const int: WINDOWEVENT_ENTER
+    const int: WINDOWEVENT_LEAVE
+    const int: SCANCODE_ESCAPE
+    const int: BUTTON_LEFT
+    const int: BUTTON_MIDDLE
+    const int: BUTTON_RIGHT
+    const int: USEREVENT
+    const int: WINDOWEVENT
+    const int: KEYDOWN
+    const int: KEYUP
+    const int: MOUSEMOTION
+    const int: MOUSEBUTTONDOWN
+    const int: MOUSEBUTTONUP
+    const int: MOUSEWHEEL
+    const int: QUIT
+    const int: KEY_QUOTE
+    const int: KEY_BACKSLASH
+    const int: KEY_BACKSPACE
+    const int: KEY_CAPSLOCK
+    const int: KEY_COMMA
+    const int: KEY_DELETE
+    const int: KEY_DOWN
+    const int: KEY_END
+    const int: KEY_EQUALS
+    const int: KEY_ESCAPE
+    const int: KEY_BACKQUOTE
+    const int: KEY_HOME
+    const int: KEY_INSERT
+    const int: KEY_LALT
+    const int: KEY_LCTRL
+    const int: KEY_LEFT
+    const int: KEY_LEFTBRACKET
+    const int: KEY_LSHIFT
+    const int: KEY_MINUS
+    const int: KEY_PAGEDOWN
+    const int: KEY_PAGEUP
+    const int: KEY_PAUSE
+    const int: KEY_PERIOD
+    const int: KEY_PRINTSCREEN
+    const int: KEY_RALT
+    const int: KEY_RCTRL
+    const int: KEY_RETURN
+    const int: KEY_RIGHT
+    const int: KEY_RIGHTBRACKET
+    const int: KEY_RSHIFT
+    const int: KEY_SEMICOLON
+    const int: KEY_SLASH
+    const int: KEY_SPACE
+    const int: KEY_TAB
+    const int: KEY_UP
+    const int: KEY_AMPERSAND
+    const int: KEY_ASTERISK
+    const int: KEY_AT
+    const int: KEY_CARET
+    const int: KEY_COLON
+    const int: KEY_DOLLAR
+    const int: KEY_EXCLAIM
+    const int: KEY_GREATER
+    const int: KEY_HASH
+    const int: KEY_LEFTPAREN
+    const int: KEY_LESS
+    const int: KEY_PERCENT
+    const int: KEY_PLUS
+    const int: KEY_QUESTION
+    const int: KEY_QUOTEDBL
+    const int: KEY_RIGHTPAREN
+    const int: KEY_UNDERSCORE
+    const int: KP_0
+    const int: KP_1
+    const int: KP_2
+    const int: KP_3
+    const int: KP_4
+    const int: KP_5
+    const int: KP_6
+    const int: KP_7
+    const int: KP_8
+    const int: KP_9
+    const int: KP_DIVIDE
+    const int: KP_ENTER
+    const int: KP_EQUALS
+    const int: KP_MINUS
+    const int: KP_MULTIPLY
+    const int: KP_PERIOD
+    const int: KP_PLUS
+    const int: KEY_F1
+    const int: KEY_F2
+    const int: KEY_F3
+    const int: KEY_F4
+    const int: KEY_F5
+    const int: KEY_F6
+    const int: KEY_F7
+    const int: KEY_F8
+    const int: KEY_F9
+    const int: KEY_F10
+    const int: KEY_F11
+    const int: KEY_F12
+    const int: KEY_0
+    const int: KEY_1
+    const int: KEY_2
+    const int: KEY_3
+    const int: KEY_4
+    const int: KEY_5
+    const int: KEY_6
+    const int: KEY_7
+    const int: KEY_8
+    const int: KEY_9
+    const int: KEY_a
+    const int: KEY_b
+    const int: KEY_c
+    const int: KEY_d
+    const int: KEY_e
+    const int: KEY_f
+    const int: KEY_g
+    const int: KEY_h
+    const int: KEY_i
+    const int: KEY_j
+    const int: KEY_k
+    const int: KEY_l
+    const int: KEY_m
+    const int: KEY_n
+    const int: KEY_o
+    const int: KEY_p
+    const int: KEY_q
+    const int: KEY_r
+    const int: KEY_s
+    const int: KEY_t
+    const int: KEY_u
+    const int: KEY_v
+    const int: KEY_w
+    const int: KEY_x
+    const int: KEY_y
+    const int: KEY_z
+}
+
 struct GameMode{
     our GameLooper: looper
 
@@ -126,6 +269,7 @@ struct GameLooper{
     me double: recentFPS
     me int: framesLog
     me List<our GameMode>: modeStack
+    me bool: PollForEvent(their GameEvent: event)
 
     void: setGameMode(our GameMode: gameMode) <- {
         crntGameMode <- gameMode
@@ -262,14 +406,36 @@ struct GUI_container{}
 struct INK_Image{}
 struct deltaSize{me int: width    me int: height}
 struct GRWindow{}
-struct GameEvent{}
-struct UserEvent{}
-struct WindowEvent{}
-struct KeyboardEvent{}
-struct MouseButtonEvent{}
+struct GameEvent{
+    me int32: type
+    me UserEvent: user
+    me WindowEvent: window
+    me KeyboardEvent: key
+    me MouseButtonEvent: button
+    me MouseMotionEvent: motion
+    me MouseWheelEvent: wheel
+}
+struct UserEvent{
+    me int32: code
+}
+struct WindowEvent{
+    me int32: event
+    me int32: data1
+    me int32: data2
+}
+struct KeyboardEvent{
+    me KeyInfo: keysym
+}
+struct MouseButtonEvent{
+    me int32: type
+    me int32: x
+    me int32: y
+}
 struct MouseMotionEvent{}
 struct MouseWheelEvent{}
-struct KeyInfo{}
+struct KeyInfo{
+    me Keycode: sym
+}
 struct Keycode{}
 struct SoundData{}
 struct GameSurface{}
@@ -299,40 +465,48 @@ struct GLOBAL{
     me int: windowW
     me int: windowH
 
+    void: getTickCount()
+    me bool: getFullScreenMode()
+    void: fullScreenModeOn()
+    void: fullScreenModeOff()
+    void: deallocateWindow(their GRWindow: window)
+    void: deallocateGraphicsSystem()
+    their GUI_ctxt: createGUI_ctxt()
+    void: initializeGraphics(me bool: startFullScreen)
+    void: resetWindowSize(me int: width, me int: height)
+    me deltaSize: renderText(their GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y)
+    me deltaSize: renderTextCentered(their GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y)
+    me void: rotate(their GUI_ctxt: cr, me double: x, me double: y, me int: degrees)
+    me void: restore()
+    me deltaSize: getTextSize(their GUI_ctxt: cr, me string: text, me fontSpec: font)
+    void: displayImage(their GUI_ctxt: cr, me string: filename, me double: x, me double: y, me double: xScale, me double: yScale)
+    void: displayBackgroundImage(their GUI_ctxt: cr, me string: filename)
+
     void: deinitGraphics() <- {
         deallocateWindow(window)
         deallocateGraphicsSystem()
     }
 }
+struct GRWindow{
+    void: requestRedraw()
+}
 struct GUI_ctxt{
     //me void: fetchAreaToBeDrawn(me GUI_rect: area)
-   /* me void: reset()
-    me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha)
-    me void: setRGB (me double: red, me double: green, me double: blue)
     me void: setColor(me cdColor: color)
     me void: setLineWidth(me double: width)
-    me void: setScale()
     me void: moveTo(me double: x, me double: y)
     me void: lineTo(me double: x, me double: y)
-    me void: moveRel(me double: dx, me double: dy)
-    me void: lineRel(me double: dx, me double: dy)
-    me void: curveTo(me double: x1, me double: y1, me double: x2, me double: y2, me double: x3, me double: y3)
-    me void: curveRel(me double: dx1, me double: dy1, me double: dx2, me double: dy2, me double: dx3, me double: dy3)
-    me void: closePath()
-    me void: rectangle()
-    me void: paintNow()
+    me void: rectangle(me double: x, me double: y, me double: w, me double: h)
     me void: strokeNow()
     me void: fillNow()
-    me void: strokeKeep()
-    me void: fillKeep()
-    me void: setFillPattern()
-    me void: circle(me int: centerX, me int: centerY, me int: radius)*/
 }
 struct GameImage{
     me string: name
     their INK_Image: img
     me int: height
     me int: width
+    void: loadFromFile(me string: fileName)
+    void: draw(their GUI_ctxt: cr, me double: x, me double: y, me double: scale)
 
     void: deInit() <- {
         // TODO: free image memory
@@ -341,5 +515,7 @@ struct GameImage{
 struct GameSound{
     me string: name
     their SoundData: data
+    void: loadFromFile(me string: fileName)
+    void: play()
 }
 struct GUI_Scalar{}

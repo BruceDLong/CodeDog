@@ -436,6 +436,10 @@ struct listOfItems: inherits=dash{
     }
 }
 
+struct GUI_canvas{
+    me void: setParent(our DashboardWidget: wid)
+}
+
 struct DashboardWidget: inherits=Dashboard{
     their GUI_canvas: canvas
     their GUI_canvas: managedWidget

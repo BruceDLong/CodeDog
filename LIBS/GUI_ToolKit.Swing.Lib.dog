@@ -227,7 +227,7 @@ struct GUI_ctxt: inherits=JPanel{
     me void: curveTo(me double: x1, me double: y1, me double: x2, me double: y2, me double: x3, me double: y3) <- <%!GPath.curve_to(cr, %1, %2, %3, %4, %5, %6)%>
     me void: curveRel(me double: dx1, me double: dy1, me double: dx2, me double: dy2, me double: dx3, me double: dy3) <- <%!rel_curve_to(cr, %1, %2, %3, %4, %5, %6)%>
     me void: closePath() <- <%!GPath.closePath()%>
-    me void: rectangle() <- <%!%0.gr.drawRect(%1, %2, %3, %4)%>
+    me void: rectangle(me double: x, me double: y, me double: w, me double: h) <- <%!%0.gr.drawRect(%1, %2, %3, %4)%>
     me void: paintNow() <- <%!gr.fill(cr.GPath)%>
     me void: strokeNow() <- <%!gr.draw(cr.GPath)%>
     me void: fillNow() <- <%!gr.fill(cr.GPath)%>
