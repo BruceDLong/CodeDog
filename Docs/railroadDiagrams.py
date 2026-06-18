@@ -8,7 +8,12 @@ buildDir = "./build/html"
 def writeDiagram(filename, diagram):
     fullName = buildDir +"/" + filename+".svg"
     f = open(fullName, "w")
-    diagram.writeSvg(f.write)
+    # writeStandalone (not writeSvg) emits a self-contained SVG: it adds the
+    # xmlns namespace and embeds the railroad stylesheet.  Without xmlns,
+    # browsers refuse to render the file when it is loaded via an <img> tag
+    # (which is what Sphinx's ".. image::" directive produces), and without the
+    # embedded CSS the diagram has no styling.
+    diagram.writeStandalone(f.write)
     f.close()
 
     with open(fullName) as f:
@@ -96,18 +101,24 @@ writeDiagram("NameAndValue", Diagram(
 # -------------------------
 # withEach (single diagram)
 # -------------------------
+# The four parts (Binding/Source/Modifiers/Body) are stacked vertically rather
+# than laid out in one horizontal Sequence.  Side-by-side they produce a diagram
+# ~2500px wide, which the docs theme then scales down to fit the content column,
+# crushing it into an illegible sliver.  Stacking keeps the width comparable to
+# the other diagrams so it renders at a readable size.
 writeDiagram("withEach", Diagram(
-  Sequence(
-    'withEach',
-
-    Group(Sequence(
-        Choice(0,
-            # tuple binding: (k, v)
-            Group(Sequence('(', NonTerminal('identifier'), ',', NonTerminal('identifier'), ')'), '(key, value) binding'),
-            # single binding: [axis] name
-            Group(Sequence(Optional(NonTerminal('loopBindMode')), NonTerminal('identifier')), 'single binding'),
-        )
-    ), "Binding"),
+  Stack(
+    Sequence(
+        'withEach',
+        Group(Sequence(
+            Choice(0,
+                # tuple binding: (k, v)
+                Group(Sequence('(', NonTerminal('identifier'), ',', NonTerminal('identifier'), ')'), '(key, value) binding'),
+                # single binding: [axis] name
+                Group(Sequence(Optional(NonTerminal('loopBindMode')), NonTerminal('identifier')), 'single binding'),
+            )
+        ), "Binding"),
+    ),
 
     Group(Sequence(
         Choice(0,
@@ -127,7 +138,7 @@ writeDiagram("withEach", Diagram(
         )
     ), "Source"),
 
-    Group(Sequence(
+    Group(Stack(
         Optional(Sequence('skip', NonTerminal('Expression'))),
         Optional(Sequence('take', NonTerminal('Expression'))),
         Optional(Sequence('where', '(', NonTerminal('Expression'), ')')),
