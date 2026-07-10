@@ -1294,7 +1294,7 @@ def setCurrentCheckObjectVars(message):
     currentCheckObjectVars = message
 
 def ownerIsPointer(owner):
-    if owner == 'their' or owner == 'our' or owner == 'my' or owner == 'id_their' or owner == 'id_our': isPointer=True
+    if owner == 'their' or owner == 'our' or owner == 'my': isPointer=True
     else: isPointer=False
     return isPointer
 

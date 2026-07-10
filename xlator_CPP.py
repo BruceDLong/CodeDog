@@ -522,8 +522,6 @@ class Xlator_CPP(Xlator):
             elif owner=='their':    langType += '*'
             elif owner=='const':    langType = "static const "+langType
             elif owner=='we':       langType = 'static '+langType
-            elif owner=='id_our':   langType="shared_ptr<"+langType + '>*'
-            elif owner=='id_their': langType += '**'
             elif owner=='dblTheir': langType += '**'
             else: cdErr("ERROR: Owner of type not valid '" + owner + "'")
         return langType
@@ -601,7 +599,6 @@ class Xlator_CPP(Xlator):
         if LVAL==0 or LVAL==None or isinstance(LVAL, str): return ['', '']
         LeftOwner =progSpec.getOwner(LVAL)
         RightOwner=progSpec.getOwner(RVAL)
-        if(LeftOwner=="id_their" and RightOwner=="id_their"): return ["&", ""]
         if LeftOwner == RightOwner: return ["", ""]
         if LeftOwner=='me' and progSpec.typeIsPointer(RVAL):
             return ["(*", "   )"]
