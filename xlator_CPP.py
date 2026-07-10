@@ -65,7 +65,7 @@ class Xlator_CPP(Xlator):
 
     def codeArrayIndex(self, idx, containerType, LorR_Val, previousSegName, idxTypeSpec):
         owner = progSpec.getOwner(idxTypeSpec)
-        if owner=='their' or owner=='our' or owner=='itr': idx = "*"+idx
+        if owner=='their' or owner=='our': idx = "*"+idx
         S= '[' + idx +']'
         return S
 
@@ -520,7 +520,6 @@ class Xlator_CPP(Xlator):
             elif owner=='my':       langType = "unique_ptr<"+langType + ' >'
             elif owner=='our':      langType = "shared_ptr<"+langType + ' >'
             elif owner=='their':    langType += '*'
-            elif owner=='itr' :     langType
             elif owner=='const':    langType = "static const "+langType
             elif owner=='we':       langType = 'static '+langType
             elif owner=='id_our':   langType="shared_ptr<"+langType + '>*'
@@ -581,13 +580,9 @@ class Xlator_CPP(Xlator):
         if tSpec!=None and isinstance(tSpec, dict) and 'owner' in tSpec:
             owner=progSpec.getOwner(tSpec)
             if progSpec.isNewContainerTempFunc(tSpec):
-                if owner=='itr':
-                    itrVal = self.getIteratorValueCodeConverter(tSpec, '')
-                    return ['', itrVal, False]
                 return ['', '', False]
             if progSpec.typeIsPointer(owner):
-                if owner!='itr':
-                    return ['(*', ')', True]
+                return ['(*', ')', True]
         return ['', '', False]
 
     def derefPtr(self, varRef, tSpec):
@@ -608,10 +603,6 @@ class Xlator_CPP(Xlator):
         RightOwner=progSpec.getOwner(RVAL)
         if(LeftOwner=="id_their" and RightOwner=="id_their"): return ["&", ""]
         if LeftOwner == RightOwner: return ["", ""]
-        if LeftOwner!='itr' and RightOwner=='itr':
-            # TODO: test this change.  This looks like code that handled codeDog 1.0 container iterators, which is now handled in codeConverters
-            #return ["", "->second"]
-            return ["", ""]
         if LeftOwner=='me' and progSpec.typeIsPointer(RVAL):
             return ["(*", "   )"]
         if progSpec.typeIsPointer(LVAL) and RightOwner=='me':
@@ -639,10 +630,6 @@ class Xlator_CPP(Xlator):
         RightOwner=progSpec.getOwner(RTSpec)
         if not isinstance(assignTag, str):
             assignTag = assignTag[0]
-        # Iterators in C++ are value-like types; avoid implicit address/deref
-        # rewrites when one side is tagged 'itr' and the other is 'me'.
-        if (LeftOwner == 'itr' and RightOwner == 'me') or (LeftOwner == 'me' and RightOwner == 'itr'):
-            return ['','',  '','']
         if progSpec.typeIsPointer(LTSpec) and progSpec.typeIsPointer(RTSpec):
             if assignTag=='deep' :return ['(*',')',  '(*',')']
             elif LeftOwner=='their' and (RightOwner=='our' or RightOwner=='my'): return ['','', '','.get()']
@@ -716,10 +703,9 @@ class Xlator_CPP(Xlator):
         else:
             if (opIn == '=='): opOut=' == '
             elif (opIn == '!='): opOut=' != '
-            if not(leftOwner=='itr' and rightOwner=='itr'):
-                [S_derefd, isDerefd] = self.derefPtr(S, retType1)
-                if S2!='NULL' and S2!=self.nullValue: S=S_derefd
-                [S2, isDerefd]=self.derefPtr(S2, retType2)
+            [S_derefd, isDerefd] = self.derefPtr(S, retType1)
+            if S2!='NULL' and S2!=self.nullValue: S=S_derefd
+            [S2, isDerefd]=self.derefPtr(S2, retType2)
             return S+ opOut+S2
         return S
 

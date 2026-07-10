@@ -489,7 +489,7 @@ class CodeGenerator(object):
 
     def checkForReservedWord(self, identifier, currentObjName):
         # TODO: other cases such as class names and enum values are not checked.
-        if identifier in ['auto', 'and', 'or', 'const', 'me', 'my', 'our', 'their', 'we', 'itr', 'while', 'withEach'
+        if identifier in ['auto', 'and', 'or', 'const', 'me', 'my', 'our', 'their', 'we', 'while', 'withEach'
                 'do', 'else', 'flag', 'mode', 'for', 'if', 'model', 'struct', 'switch', 'typedef', 'void']:
             if currentObjName!="": currentObjName = " in "+currentObjName
             cdErr("Reserved word '"+identifier+"' cannot be used as an identifier"+ currentObjName)
@@ -674,9 +674,7 @@ class CodeGenerator(object):
             tSpec = self.copyTypeSpec(tSpec)
             genericType = genericArgs[fTypeKW]
             fTypeOut    = progSpec.fieldTypeKeyword(genericType)
-            ownerIn     = progSpec.getOwner(tSpec)
             ownerOut    = progSpec.getOwner(genericType)
-            if ownerIn=='itr': ownerOut = 'itr'
             tSpec['fieldType'] = fTypeOut
             tSpec['owner']     = ownerOut
             tSpec['generic']   = fTypeKW
@@ -732,16 +730,58 @@ class CodeGenerator(object):
         cdErr("Could not determine container value type for " + str(tSpec))
 
     ########################################################################
-    def getUnwrappedIteratorTypeKW(self, owner, fTypeKW):
-        itrTypeKW   = None
-        if owner=='itr' and not progSpec.isItrType(fTypeKW):
-            itrTypeKW   = progSpec.convertItrType(self.classStore, owner, fTypeKW)
-            itrTypeKW   = progSpec.getUnwrappedClassFieldTypeKeyWord(self.classStore, itrTypeKW)
-            # Qualified nested keys are internal lookup keys; iterator suffixes in
-            # generated code should use the local nested class identifier.
-            if isinstance(itrTypeKW, str) and ("::" in itrTypeKW or "." in itrTypeKW):
-                itrTypeKW = re.split(r"::|\.", itrTypeKW)[-1]
+    def getUnwrappedIteratorTypeKW(self, iteratorTypeKW):
+        if iteratorTypeKW == None:
+            return None
+        itrTypeKW = progSpec.getUnwrappedClassFieldTypeKeyWord(self.classStore, iteratorTypeKW)
+        # Qualified nested keys are internal lookup keys; iterator suffixes in
+        # generated code should use the local nested class identifier.
+        if isinstance(itrTypeKW, str) and ("::" in itrTypeKW or "." in itrTypeKW):
+            itrTypeKW = re.split(r"::|\.", itrTypeKW)[-1]
         return itrTypeKW
+
+    def getIteratorContainerTypeSpec(self, tSpec, fTypeKW):
+        if isinstance(tSpec, dict) and 'iteratorOfTypeSpec' in tSpec:
+            return tSpec['iteratorOfTypeSpec']
+
+        outerKW = self.getNestedOutter(fTypeKW)
+        if outerKW == None:
+            return None
+
+        containerTSpec = {'owner':'me', 'fieldType':[outerKW], 'arraySpec':None, 'paramList':None}
+        reqTagList = progSpec.getReqTagList(tSpec)
+        if reqTagList != None:
+            containerTSpec['reqTagList'] = copy.deepcopy(reqTagList)
+            containerTSpec['fieldType'].append(copy.deepcopy(reqTagList))
+        if isinstance(tSpec, dict):
+            for prop in ['fromImplemented', 'containerCategory', 'implTypeArgs']:
+                if prop in tSpec:
+                    containerTSpec[prop] = copy.copy(tSpec[prop])
+        return containerTSpec
+
+    def convertIteratorType(self, tSpec, fTypeKW, ownerOut, varMode, genericArgs):
+        containerTSpec = self.getIteratorContainerTypeSpec(tSpec, fTypeKW)
+        if containerTSpec == None:
+            return None
+
+        iteratorTypeKW = fTypeKW
+        containerTypeKW = progSpec.fieldTypeKeyword(containerTSpec)
+        unwrappedKW = progSpec.getUnwrappedClassFieldTypeKeyWord(self.classStore, containerTypeKW)
+        reqTagList = progSpec.getReqTagList(containerTSpec)
+        reqTagStr = self.xlator.getReqTagString(self.classStore, containerTSpec)
+
+        if self.xlator.renderGenerics=='True':
+            if reqTagList and not progSpec.isWrappedType(self.classStore, containerTypeKW) and not progSpec.isAbstractStruct(self.classStore[0], containerTypeKW):
+                unwrappedKW = self.generateGenericStructName(containerTypeKW, reqTagList, genericArgs)
+            else:
+                unwrappedKW += reqTagStr
+        else:
+            unwrappedKW += reqTagStr
+
+        langType = self.xlator.adjustBaseTypes(unwrappedKW, progSpec.isNewContainerTempFunc(containerTSpec))
+        langType = self.xlator.applyIterator(langType, self.getUnwrappedIteratorTypeKW(iteratorTypeKW), varMode)
+        langType = self.xlator.applyOwner(ownerOut, langType, varMode)
+        return langType
 
     def getNestedOutter(self, innerKW):
         outerKW = None
@@ -813,9 +853,9 @@ class CodeGenerator(object):
                 resolvedKW = pathSeg
                 continue
 
-            # Compatibility shorthand: containerOrType.iterator
+            # Shorthand: containerOrType.iterator
             if pathSeg == "iterator":
-                itrTypeKW = progSpec.convertItrType(self.classStore, 'itr', resolvedKW)
+                itrTypeKW = progSpec.findContainerIteratorType(self.classStore, resolvedKW)
                 if itrTypeKW != None:
                     resolvedKW = itrTypeKW
                     continue
@@ -870,31 +910,45 @@ class CodeGenerator(object):
             return fTypeKW
 
         containerKW = progSpec.normalizeClassNameKey(containerKW)
+
+        iteratorOfTypeSpec = {'owner':'me', 'fieldType':[containerKW], 'arraySpec':None, 'paramList':None}
+        if containerTSpec != None:
+            iteratorOfTypeSpec = self.copyTypeSpec(containerTSpec)
+        else:
+            reqTagList = progSpec.getReqTagList(tSpec)
+            if reqTagList != None:
+                iteratorOfTypeSpec['reqTagList'] = copy.deepcopy(reqTagList)
+                iteratorOfTypeSpec['fieldType'].append(copy.deepcopy(reqTagList))
+
+        if progSpec.isKnownContainerModelKW(containerKW):
+            self.applyStructImplemetation(iteratorOfTypeSpec, self.currentObjName, 'iterator')
+            containerKW = progSpec.fieldTypeKeyword(iteratorOfTypeSpec)
+
+        iteratorKW = progSpec.findContainerIteratorType(self.classStore, containerKW)
+        if iteratorKW == None:
+            return fTypeKW
+
+        reqTagList = progSpec.getReqTagList(iteratorOfTypeSpec)
+        if reqTagList != None:
+            tSpec['reqTagList'] = copy.deepcopy(reqTagList)
+            if 'fieldType' in tSpec and not isinstance(tSpec['fieldType'], str):
+                if len(tSpec['fieldType']) > 1:
+                    tSpec['fieldType'][1] = copy.deepcopy(reqTagList)
+                else:
+                    tSpec['fieldType'].append(copy.deepcopy(reqTagList))
+
+        for prop in ['fromImplemented', 'containerCategory', 'implTypeArgs']:
+            if prop in iteratorOfTypeSpec:
+                tSpec[prop] = copy.copy(iteratorOfTypeSpec[prop])
+
         if 'fieldType' in tSpec:
             fType = tSpec['fieldType']
             if isinstance(fType, str):
-                tSpec['fieldType'] = containerKW
+                tSpec['fieldType'] = iteratorKW
             elif len(fType) > 0:
-                tSpec['fieldType'][0] = containerKW
-
-        if containerTSpec != None:
-            reqTagList = progSpec.getReqTagList(containerTSpec)
-            if reqTagList != None:
-                tSpec['reqTagList'] = copy.deepcopy(reqTagList)
-                if 'fieldType' in tSpec and not isinstance(tSpec['fieldType'], str):
-                    if len(tSpec['fieldType']) > 1:
-                        tSpec['fieldType'][1] = copy.deepcopy(reqTagList)
-                    else:
-                        tSpec['fieldType'].append(copy.deepcopy(reqTagList))
-
-            if 'fromImplemented' in containerTSpec:
-                tSpec['fromImplemented'] = copy.copy(containerTSpec['fromImplemented'])
-            if 'containerCategory' in containerTSpec:
-                tSpec['containerCategory'] = copy.copy(containerTSpec['containerCategory'])
-            if 'implTypeArgs' in containerTSpec:
-                tSpec['implTypeArgs'] = copy.copy(containerTSpec['implTypeArgs'])
-        tSpec['owner'] = 'itr'
-        return containerKW
+                tSpec['fieldType'][0] = iteratorKW
+        tSpec['iteratorOfTypeSpec'] = iteratorOfTypeSpec
+        return iteratorKW
 
     def convertType(self, tSpec, varMode, genericArgs):
         # varMode is 'var' or 'arg' or 'alloc' or 'func' for function Header. Large items are passed as pointers
@@ -922,13 +976,14 @@ class CodeGenerator(object):
         self.ensureTypeSpecVisibleFromCurrentContext(tSpec)
         ownerIn  = progSpec.getOwner(tSpec)
         ownerOut = self.xlator.getUnwrappedClassOwner(self.classStore, tSpec, fTypeKW, varMode, ownerIn)
+        iteratorLangType = self.convertIteratorType(tSpec, fTypeKW, ownerOut, varMode, genericArgs)
+        if iteratorLangType != None:
+            return iteratorLangType
         unwrappedKW = progSpec.getUnwrappedClassFieldTypeKeyWord(self.classStore, fTypeKW)
         reqTagList  = progSpec.getReqTagList(tSpec)
-        itrTypeKW   = self.getUnwrappedIteratorTypeKW(ownerOut, fTypeKW)
         reqTagStr = self.xlator.getReqTagString(self.classStore, tSpec)
         if self.xlator.renderGenerics=='True':
             if reqTagList and not progSpec.isWrappedType(self.classStore, fTypeKW) and not progSpec.isAbstractStruct(self.classStore[0], fTypeKW):
-                if itrTypeKW: fTypeKW = itrTypeKW
                 unwrappedKW = self.generateGenericStructName(fTypeKW, reqTagList, genericArgs)
             else: unwrappedKW += reqTagStr
         else:
@@ -956,7 +1011,7 @@ class CodeGenerator(object):
                 else: unwrappedKW += reqTagStr
             else: unwrappedKW += reqTagStr
         langType = self.xlator.adjustBaseTypes(unwrappedKW, progSpec.isNewContainerTempFunc(tSpec))
-        langType = self.xlator.applyIterator(langType, itrTypeKW, varMode)
+        langType = self.xlator.applyIterator(langType, None, varMode)
         langType = self.xlator.applyOwner(ownerOut, langType, varMode)
         return langType
 
@@ -1099,22 +1154,8 @@ class CodeGenerator(object):
             elif(name[0]=='[' and (fTypeKW=='uint' or fTypeKW=='int')):
                 cdErr("Error: integers can't be indexed: "+previousSegName+":"+name)
 
-            elif owner=="itr" and 'fromRep' in tSpecIn:
-                reqTagList = tSpecIn['reqTagList']
-                if name=="key":
-                    keyOwner  = progSpec.getOwner(reqTagList[0])
-                    keyTypeKW = progSpec.fieldTypeKeyword(reqTagList[0])
-                    tSpecOut={'owner':keyOwner, 'fieldType': keyTypeKW}
-                    name = "first"
-                elif name=="val":
-                    valOwner  = progSpec.getOwner(reqTagList[1])
-                    valTypeKW = progSpec.fieldTypeKeyword(reqTagList[1])
-                    tSpecOut={'owner':valOwner, 'fieldType': valTypeKW}
-                    name = "second"
             else:
                 if fTypeKW!="string":
-                    itrTypeKW = progSpec.convertItrType(self.classStore, owner, fTypeKW)
-                    if itrTypeKW!=None: fTypeKW = itrTypeKW
                     [argListStr, fieldIDArgList] = self.getFieldIDArgList(segSpec, genericArgs)
                     tSpecOut = self.CheckObjectVars(fTypeKW, name, fieldIDArgList, tSpecIn)
                     if tSpecOut!=0:
@@ -1125,7 +1166,7 @@ class CodeGenerator(object):
                             segTypeKeyWord = progSpec.fieldTypeKeyword(tSpecOut)
                             segTypeOwner   = progSpec.getOwner(tSpecOut)
                             [innerTypeOwner, innerTypeKeyWord] = progSpec.queryTagFunction(self.classStore, fTypeKW, "__getAt", segTypeKeyWord, tSpecIn)
-                            if(innerTypeOwner and segTypeOwner != 'itr'):
+                            if(innerTypeOwner):
                                 tSpecOut['owner'] = innerTypeOwner
                             if(innerTypeKeyWord): tSpecOut['fieldType'][0] = innerTypeKeyWord
                         tSpecOut = self.copyTypeSpec(tSpecOut)
@@ -1264,7 +1305,7 @@ class CodeGenerator(object):
 
             # Should this be called C style?
             if(segStr.find("%0") >= 0):
-        #        if connector=='->' and owner!='itr': S="*("+S+")"
+        #        if connector=='->': S="*("+S+")"
                 S=segStr.replace("%0", S)
                 lenConnector = len(connector)
                 if S[:lenConnector]==connector: S=S[lenConnector:]

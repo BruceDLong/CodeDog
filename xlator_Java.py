@@ -333,7 +333,6 @@ class Xlator_Java(Xlator):
         elif owner=='my':       langType = langType
         elif owner=='our':      langType = langType
         elif owner=='their':    langType = langType
-        elif owner=='itr':      langType = langType
         elif owner=='const':    langType = "final "+langType
         elif owner=='we':       langType = 'static '+langType
         else: cdErr("ERROR: Owner of type not valid '" + owner + "'")

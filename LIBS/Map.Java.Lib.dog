@@ -64,11 +64,11 @@ struct Java_HashMap<keyType, valueType>: implements=Map wraps=HashMap native=lan
     valueType: __index(keyType: key)             <- <%!%0.get(%1)%>
     void: clear()                                <- <%!clear()%>
     me bool: containsKey(keyType: key)           <- <%!containsKey(%1)%>
-    itr iterator_Java_Map: end()                 <- <%!JavaMapCursor.<%T0Type, %T1Type>endFor(%0)%>
+    me iterator_Java_Map: end()                 <- <%!JavaMapCursor.<%T0Type, %T1Type>endFor(%0)%>
     void: erase(keyType: key)                    <- <%!remove(%1)%>
-    itr iterator_Java_Map: find(keyType: key)    <- <%!new JavaMapCursor<%T0Type, %T1Type>(%0, %1)%>
+    me iterator_Java_Map: find(keyType: key)    <- <%!new JavaMapCursor<%T0Type, %T1Type>(%0, %1)%>
     valueType: first()                           <- <%!%0.values().iterator().next()%>
-    itr valueType: insert(keyType: key, valueType: value) <- <%!put(%1, %2)%>
+    me valueType: insert(keyType: key, valueType: value) <- <%!put(%1, %2)%>
     me bool:  isEmpty()                          <- <%!isEmpty()%>
     valueType: last()                            <- <%!%0.values().iterator().next()%>
     me uint:  size()                             <- <%!size()%>
@@ -84,14 +84,14 @@ struct Java_TreeMap<keyType, valueType>: implements=Map wraps=TreeMap native=lan
     valueType: __index(keyType: key)             <- <%!%0.get(%1)%>
     void: clear()                                <- <%!clear()%>
     me bool: containsKey(keyType: key)           <- <%!containsKey(%1)%>
-    itr iterator_Java_Map: end()                 <- <%!JavaMapCursor.<%T0Type, %T1Type>endFor(%0)%>
+    me iterator_Java_Map: end()                 <- <%!JavaMapCursor.<%T0Type, %T1Type>endFor(%0)%>
     void: erase(keyType: key)                    <- <%!remove(%1)%>
-    itr iterator_Java_Map: find(keyType: key)    <- <%!new JavaMapCursor<%T0Type, %T1Type>(%0, %1)%>
+    me iterator_Java_Map: find(keyType: key)    <- <%!new JavaMapCursor<%T0Type, %T1Type>(%0, %1)%>
     valueType: first()                           <- <%!%0.firstEntry().getValue()%>
-    itr valueType: insert(keyType: key, valueType: value) <- <%!put(%1, %2)%>
+    me valueType: insert(keyType: key, valueType: value) <- <%!put(%1, %2)%>
     me bool:  isEmpty()                          <- <%!isEmpty()%>
     valueType: last()                            <- <%!%0.lastEntry().getValue()%>
-    itr iterator_Java_Map: lower_bound(keyType: key) <- <%!new JavaMapCursor<%T0Type, %T1Type>(%0, %0.ceilingKey(%1))%>
-    itr iterator_Java_Map: upper_bound(keyType: key) <- <%!new JavaMapCursor<%T0Type, %T1Type>(%0, %0.higherKey(%1))%>
+    me iterator_Java_Map: lower_bound(keyType: key) <- <%!new JavaMapCursor<%T0Type, %T1Type>(%0, %0.ceilingKey(%1))%>
+    me iterator_Java_Map: upper_bound(keyType: key) <- <%!new JavaMapCursor<%T0Type, %T1Type>(%0, %0.higherKey(%1))%>
     me uint:  size()                             <- <%!size()%>
 }

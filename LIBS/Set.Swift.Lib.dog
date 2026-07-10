@@ -55,17 +55,17 @@ public class SwiftSetCursor<T: Hashable>: Equatable {
 struct Swift_HashSet<nodeType>: implements=Set wraps=Set native=lang specs={insert=constant find=constant contains=constant rangeIteration=dontUse}{
     const struct: iterator_Swift_Set(nodeType: value): implements=SetItr wraps=SwiftSetCursor native=lang <- {
         me nodeType: val()                      <- <%!%0.val!%>
-        me bool: __isEqual(itr iterator_Swift_Set: RHS) <- <%!%0.isEqual(%1)%>
+        me bool: __isEqual(me iterator_Swift_Set: RHS) <- <%!%0.isEqual(%1)%>
     }
 
     void: add(nodeType: value)                  <- <%!insert(%1)%>
     void: clear()                               <- <%!removeAll()%>
     me bool: contains(nodeType: value)          <- <%!contains(%1)%>
-    itr iterator_Swift_Set: end()               <- <%!%GSwiftSetCursor<%T0Type>.end()%>
+    me iterator_Swift_Set: end()               <- <%!%GSwiftSetCursor<%T0Type>.end()%>
     void: erase(nodeType: value)                <- <%!remove(%1)%>
-    itr iterator_Swift_Set: find(nodeType: value) <- <%!SwiftSetCursor<%T0Type>(%0, %1)%>
+    me iterator_Swift_Set: find(nodeType: value) <- <%!SwiftSetCursor<%T0Type>(%0, %1)%>
     nodeType: first()                           <- <%!%0.first!%>
-    itr iterator_Swift_Set: front()             <- <%!SwiftSetCursor<%T0Type>(%0, %0.first!)%>
+    me iterator_Swift_Set: front()             <- <%!SwiftSetCursor<%T0Type>(%0, %0.first!)%>
     void: insert(nodeType: value)               <- <%!insert(%1)%>
     me bool: isEmpty()                          <- <%!isEmpty%>
     me uint: size()                             <- <%!count%>

@@ -400,18 +400,18 @@ struct Swift_HashMap<keyType, valueType>: implements=Map wraps=Dictionary native
     const struct: iterator_Swift_Map(keyType: key, valueType: value): implements=MapItr wraps=SwiftMapCursor native=lang <- {
         me keyType: key()                        <- <%!%0.key!%>
         me valueType: val()                      <- <%!%0.val!%>
-        me bool: __isEqual(itr iterator_Swift_Map: RHS) <- <%!%0.isEqual(%1)%>
+        me bool: __isEqual(me iterator_Swift_Map: RHS) <- <%!%0.isEqual(%1)%>
     }
 
     valueType: at(keyType: key)                  <- <%!%0[%1]!%>
     valueType: __index(keyType: key)             <- <%!%0[%1]!%>
     void: clear()                                <- <%!removeAll()%>
     me bool: containsKey(keyType: key)           <- <%!%0[%1] != nil%>
-    itr iterator_Swift_Map: end()                <- <%!%GSwiftMapCursor<%T0Type, %T1Type>.end()%>
+    me iterator_Swift_Map: end()                <- <%!%GSwiftMapCursor<%T0Type, %T1Type>.end()%>
     void: erase(keyType: key)                    <- <%!%0.removeValue(forKey: %1)%>
-    itr iterator_Swift_Map: find(keyType: key)   <- <%!SwiftMapCursor<%T0Type, %T1Type>(%0, %1)%>
+    me iterator_Swift_Map: find(keyType: key)   <- <%!SwiftMapCursor<%T0Type, %T1Type>(%0, %1)%>
     valueType: first()                           <- <%!%0.values.first!%>
-    itr valueType: insert(keyType: key, valueType: value) <- <%!%0[%1] = %2%>
+    me valueType: insert(keyType: key, valueType: value) <- <%!%0[%1] = %2%>
     me bool:  isEmpty()                          <- <%!isEmpty%>
     valueType: last()                            <- <%!%0.values.last!%>
     me uint:  size()                             <- <%!count%>
@@ -421,18 +421,18 @@ struct Swift_TreeMap<keyType, valueType>: implements=Map wraps=SwiftTreeMap nati
     const struct: iterator_Swift_TreeMap(keyType: key, valueType: value): implements=MapItr wraps=SwiftTreeMapCursor native=lang <- {
         me keyType: key()                        <- <%!%0.key!%>
         me valueType: val()                      <- <%!%0.val!%>
-        me bool: __isEqual(itr iterator_Swift_TreeMap: RHS) <- <%!%0.isEqual(%1)%>
+        me bool: __isEqual(me iterator_Swift_TreeMap: RHS) <- <%!%0.isEqual(%1)%>
     }
 
     valueType: at(keyType: key)                  <- <%!%0.get(%1)%>
     valueType: __index(keyType: key)             <- <%!%0[%1]!%>
     void: clear()                                <- <%!clear()%>
     me bool: containsKey(keyType: key)           <- <%!containsKey(%1)%>
-    itr iterator_Swift_TreeMap: end()            <- <%!%GSwiftTreeMapCursor<%T0Type, %T1Type>.end()%>
+    me iterator_Swift_TreeMap: end()            <- <%!%GSwiftTreeMapCursor<%T0Type, %T1Type>.end()%>
     void: erase(keyType: key)                    <- <%!%0.remove(%1)%>
-    itr iterator_Swift_TreeMap: find(keyType: key) <- <%!%0.findCursor(%1)%>
+    me iterator_Swift_TreeMap: find(keyType: key) <- <%!%0.findCursor(%1)%>
     valueType: first()                           <- <%!%0.firstEntry().value%>
-    itr valueType: insert(keyType: key, valueType: value) <- <%!%0.put(%1, %2)%>
+    me valueType: insert(keyType: key, valueType: value) <- <%!%0.put(%1, %2)%>
     me bool:  isEmpty()                          <- <%!isEmpty()%>
     valueType: last()                            <- <%!%0.lastEntry().value%>
     me uint:  size()                             <- <%!size%>

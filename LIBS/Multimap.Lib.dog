@@ -15,6 +15,7 @@ model Multimap<keyType, valueType>{
         our MultimapNode<keyType, valueType>: node
         our MultimapNode<keyType, valueType>: goNext()
         //our MultimapNode<keyType, valueType>: goPrev()
+        me keyType: key()
         me valueType: val()
     }
 
@@ -30,6 +31,6 @@ model Multimap<keyType, valueType>{
     me bool:  isEmpty()
     valueType: last()
     valueType: popFirst()
-    //itr valueType: lower_bound(keyType: key)
+    //me valueType: lower_bound(keyType: key)
     me uint:  size()
 }

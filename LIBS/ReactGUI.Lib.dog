@@ -508,7 +508,7 @@ struct GuiModelManager{
     void: setCoords(me string: dataID,  their GuiCoords: val)<- {our GuiDataRec:: GDR; GDR.coordinates<-val; setGuiData(dataID, GDR)}
 
     our GuiDataRec: fetchGuiData(me string: dataID) <-{
-        itr Map<me string, our GuiDataRec>: it <- guiData.find(dataID)
+        me guiData.iterator: it <- guiData.find(dataID)
         if(it == guiData.end()){return(NULL)}
         return(it.val)
     }

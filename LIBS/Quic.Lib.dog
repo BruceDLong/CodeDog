@@ -257,7 +257,7 @@ struct QuicClient_Engine: inherits=QuicEngine{
     their QuicClient_Connection: getClientConnection(me string: ipAddr, me string:portNum) <- {
         me string: connID <- ipAddr+"@"+portNum
         their QuicClient_Connection: retVal <- NULL
-        itr Map<me string, their QuicClient_Connection>: connItr <- currentConnections.find(connID)
+        me currentConnections.iterator: connItr <- currentConnections.find(connID)
         if(connItr != currentConnections.end()){
             retVal <- connItr.val
         } else {

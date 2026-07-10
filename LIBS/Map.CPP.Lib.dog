@@ -25,12 +25,12 @@ struct CPP_HashMap<keyType, valueType>: implements=Map wraps=unordered_map nativ
     valueType: __index(keyType: key)            <- <%!%0[%1]%>
     void: clear()                               <- <%!clear()%>
     me bool: containsKey(keyType: key)          <- <%!count(%1)>0%>
-    itr iterator_CPP_HashMap: end()             <- <%!end()%>
+    me iterator_CPP_HashMap: end()             <- <%!end()%>
     void: erase(keyType: key)                   <- <%!erase(%1)%>
-    itr iterator_CPP_HashMap: find(keyType: key) <- <%!find(%1)%>
+    me iterator_CPP_HashMap: find(keyType: key) <- <%!find(%1)%>
     valueType: first()                          <- <%!begin()->second%>
-    itr iterator_CPP_HashMap: front()           <- <%!%0.begin()%>
-    itr iterator_CPP_HashMap: insert(keyType: key, valueType: value) <- <%!insert(pair<%T0Type, %T1Type>(%1, %2))%>
+    me iterator_CPP_HashMap: front()           <- <%!%0.begin()%>
+    me iterator_CPP_HashMap: insert(keyType: key, valueType: value) <- <%!insert(pair<%T0Type, %T1Type>(%1, %2))%>
     me bool:  isEmpty()                         <- <%!empty()%>
     valueType: last()                           <- <%!begin()->second%>
     me uint:  size()                            <- <%!size()%>
@@ -47,21 +47,21 @@ struct CPP_Map<keyType, valueType>: implements=Map wraps=map native=lang specs={
     valueType: at(keyType: key)                 <- <%!at(%1)%>
     void: clear()                               <- <%!clear()%>
     me bool: containsKey(keyType: key)          <- <%!count(%1)>0%>
-    itr iterator_CPP_Map: end()                 <- <%!end()%>           // returns itr to past-the-end element
+    me iterator_CPP_Map: end()                 <- <%!end()%>           // returns iterator to past-the-end element
     void: erase(keyType: key)                   <- <%!erase(%1)%>
-    itr iterator_CPP_Map: eraseInterval(itr iterator_CPP_Map: start, itr iterator_CPP_Map: end) <- <%!erase(%1, %2)%>
-    itr iterator_CPP_Map: find(keyType: key)    <- <%!find(%1)%>
+    me iterator_CPP_Map: eraseInterval(me iterator_CPP_Map: start, me iterator_CPP_Map: end) <- <%!erase(%1, %2)%>
+    me iterator_CPP_Map: find(keyType: key)    <- <%!find(%1)%>
     valueType: first()                          <- <%!begin()->second%>
-    itr iterator_CPP_Map: front()               <- <%!%0.begin()%>
-    itr iterator_CPP_Map: insert(keyType: key, valueType: value) <- <%!insert(pair<%T0Type, %T1Type>(%1, %2))%>
+    me iterator_CPP_Map: front()               <- <%!%0.begin()%>
+    me iterator_CPP_Map: insert(keyType: key, valueType: value) <- <%!insert(pair<%T0Type, %T1Type>(%1, %2))%>
     me bool:  isEmpty()                         <- <%!empty()%>
     valueType: last()                           <- <%!rbegin()->second%>
-    itr iterator_CPP_Map<keyType, valueType>: lower_bound(keyType: key)  <- <%!lower_bound(%1)%>
-    itr iterator_CPP_Map<keyType, valueType>: upper_bound(keyType: key)  <- <%!upper_bound(%1)%>
-    // itr iterator_CPP_Map: popFirst()              <- <%!%0.front(); %0.pop_front()%>
-    // itr iterator_CPP_Map: popLast()               <- <%!%0.back(); %0.pop_back()%>
+    me iterator_CPP_Map<keyType, valueType>: lower_bound(keyType: key)  <- <%!lower_bound(%1)%>
+    me iterator_CPP_Map<keyType, valueType>: upper_bound(keyType: key)  <- <%!upper_bound(%1)%>
+    // me iterator_CPP_Map: popFirst()               <- <%!%0.front(); %0.pop_front()%>
+    // me iterator_CPP_Map: popLast()                <- <%!%0.back(); %0.pop_back()%>
     me uint:  size()                            <- <%!size()%>
     /////////////////////////////////////////
     // TODO: need Reverse Iterators working first
-    // itr iterator_CPP_Map: back() <- <%!rend()%>             // returns reverse iterator to the reverse ene of the sequence container
+    // me iterator_CPP_Map: back() <- <%!rend()%>              // returns reverse iterator to the reverse end of the sequence container
 }

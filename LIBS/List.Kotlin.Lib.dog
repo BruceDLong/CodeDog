@@ -19,11 +19,11 @@ struct Kotlin_ArrayList<nodeType>: implements=List wraps=ArrayList native=lang s
     nodeType: at(me int: position)              <- <%!%0[%1]%>
     void: clear()                               <- <%!clear()%>
     void: clipToSize(me int: size)              <- <%!trimToSize()%>
-    itr nodeType: deleteNth(me int: position)   <- <%!%0.removeAt(%1)%>
-    itr nodeType: erase(itr nodeType: position) <- <%!remove(%1)%>
+    me nodeType: deleteNth(me int: position)   <- <%!%0.removeAt(%1)%>
+    me nodeType: erase(me nodeType: position) <- <%!remove(%1)%>
     nodeType: first()                           <- <%!%0[0]%>
     nodeType: __getAt(me int: position)         <- <%!%0[%1]%>
-    itr nodeType: insertIdx(me int: position, nodeType: value) <- <%!%0.add(%1, %2)%>
+    me nodeType: insertIdx(me int: position, nodeType: value) <- <%!%0.add(%1, %2)%>
     me bool: isEmpty()                          <- <%!isEmpty()%>
     nodeType: last()                            <- <%!%0[%0.size - 1]%>
     nodeType: popFirst()                        <- <%!removeAt(0)%>
@@ -37,11 +37,11 @@ struct Kotlin_LinkedList<nodeType>: implements=List wraps=LinkedList native=lang
     nodeType: at(me int: position)              <- <%!%0[%1]%>
     void: clear()                               <- <%!clear()%>
     void: clipToSize(me int: size)              <- <%!while(%0.size > %1) { %0.removeLast() }%>
-    itr nodeType: deleteNth(me int: position)   <- <%!%0.removeAt(%1)%>
-    itr nodeType: erase(itr nodeType: position) <- <%!remove(%1)%>
+    me nodeType: deleteNth(me int: position)   <- <%!%0.removeAt(%1)%>
+    me nodeType: erase(me nodeType: position) <- <%!remove(%1)%>
     nodeType: first()                           <- <%!%0[0]%>
     nodeType: __getAt(me int: position)         <- <%!%0[%1]%>
-    itr nodeType: insertIdx(me int: position, nodeType: value) <- <%!%0.add(%1, %2)%>
+    me nodeType: insertIdx(me int: position, nodeType: value) <- <%!%0.add(%1, %2)%>
     me bool: isEmpty()                          <- <%!isEmpty()%>
     nodeType: last()                            <- <%!%0[%0.size - 1]%>
     nodeType: popFirst()                        <- <%!removeFirst()%>

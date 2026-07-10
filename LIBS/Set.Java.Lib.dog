@@ -60,11 +60,11 @@ struct Java_HashSet<nodeType>: implements=Set wraps=HashSet native=lang specs={i
     void: add(nodeType: value)                  <- <%!add(%1)%>
     void: clear()                               <- <%!clear()%>
     me bool: contains(nodeType: value)          <- <%!contains(%1)%>
-    itr iterator_Java_Set: end()                <- <%!JavaSetCursor.<%T0Type>endFor(%0)%>
+    me iterator_Java_Set: end()                <- <%!JavaSetCursor.<%T0Type>endFor(%0)%>
     void: erase(nodeType: value)                <- <%!remove(%1)%>
-    itr iterator_Java_Set: find(nodeType: value) <- <%!new JavaSetCursor<%T0Type>(%0, %1)%>
+    me iterator_Java_Set: find(nodeType: value) <- <%!new JavaSetCursor<%T0Type>(%0, %1)%>
     nodeType: first()                           <- <%!%0.iterator().next()%>
-    itr iterator_Java_Set: front()              <- <%!new JavaSetCursor<%T0Type>(%0, %0.iterator().next())%>
+    me iterator_Java_Set: front()              <- <%!new JavaSetCursor<%T0Type>(%0, %0.iterator().next())%>
     void: insert(nodeType: value)               <- <%!add(%1)%>
     me bool: isEmpty()                          <- <%!isEmpty()%>
     me uint: size()                             <- <%!size()%>

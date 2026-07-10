@@ -78,7 +78,7 @@ writeDiagram("StructureSpec", Diagram(
 
 # Field Def
 writeDiagram("FieldDef", Diagram(
-   Choice(2, "const", "my", "me", "our", "their", "we", "itr"),
+   Choice(2, "const", "my", "me", "our", "their", "we"),
    Choice(1, NonTerminal('classID'), NonTerminal('baseType'), NonTerminal('numberRange'), NonTerminal('modeSpec'), 'flag'),
    Optional(NonTerminal('NameAndValue'))
 ))
@@ -173,4 +173,3 @@ writeDiagram("rangeSpec", Diagram(
         Optional(NonTerminal('Expression')),
     )
 ))
-

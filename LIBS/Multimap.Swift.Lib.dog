@@ -177,18 +177,18 @@ struct Swift_TreeMultimap<keyType, valueType>: implements=Multimap wraps=SwiftTr
     const struct: iterator_Swift_TreeMultimap(keyType: key, valueType: value): implements=MultimapItr wraps=SwiftTreeMultimapCursor native=lang <- {
         me keyType: key()                        <- <%!%0.key!%>
         me valueType: val()                      <- <%!%0.val!%>
-        me bool: __isEqual(itr iterator_Swift_TreeMultimap: RHS) <- <%!%0.isEqual(%1)%>
+        me bool: __isEqual(me iterator_Swift_TreeMultimap: RHS) <- <%!%0.isEqual(%1)%>
     }
 
     valueType: at(keyType: key)                  <- <%!%0.get(%1)%>
     valueType: __index(keyType: key)             <- <%!%0[%1]!%>
     void: clear()                                <- <%!clear()%>
     me bool: containsKey(keyType: key)           <- <%!containsKey(%1)%>
-    itr iterator_Swift_TreeMultimap: end()       <- <%!%GSwiftTreeMultimapCursor<%T0Type, %T1Type>.end()%>
+    me iterator_Swift_TreeMultimap: end()       <- <%!%GSwiftTreeMultimapCursor<%T0Type, %T1Type>.end()%>
     void: erase(keyType: key)                    <- <%!%0.remove(%1)%>
-    itr iterator_Swift_TreeMultimap: find(keyType: key) <- <%!%0.findCursor(%1)%>
+    me iterator_Swift_TreeMultimap: find(keyType: key) <- <%!%0.findCursor(%1)%>
     valueType: first()                           <- <%!%0.firstEntry().value%>
-    itr valueType: insert(keyType: key, valueType: value) <- <%!%0.put(%1, %2)%>
+    me valueType: insert(keyType: key, valueType: value) <- <%!%0.put(%1, %2)%>
     me bool:  isEmpty()                          <- <%!isEmpty()%>
     valueType: last()                            <- <%!%0.lastEntry().value%>
     valueType: popFirst()                        <- <%!popFirst()%>

@@ -15,6 +15,7 @@ model Map<keyType, valueType>{
         our MapNode<keyType, valueType>: node
         our MapNode<keyType, valueType>: goNext()
         //our MapNode<keyType, valueType>: goPrev()
+        me keyType: key()
         me valueType: val()
     }
 

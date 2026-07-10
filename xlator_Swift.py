@@ -291,13 +291,6 @@ class Xlator_Swift(Xlator):
         elif owner=='my':       langType = langType
         elif owner=='our':      langType = langType
         elif owner=='their':    langType = langType
-        elif owner=='itr':
-            if langType.startswith("Dictionary<") and langType.endswith(">"):
-                langType = "SwiftMapCursor" + langType[len("Dictionary"):]
-            elif langType.startswith("SwiftTreeMap<") and langType.endswith(">"):
-                langType = "SwiftTreeMapCursor" + langType[len("SwiftTreeMap"):]
-            elif langType.startswith("SwiftTreeMultimap<") and langType.endswith(">"):
-                langType = "SwiftTreeMultimapCursor" + langType[len("SwiftTreeMultimap"):]
         elif owner=='const':    langType = langType
         elif owner=='we':       langType += 'public static'
         else: cdErr("ERROR: Owner of type not valid '" + owner + "'")
@@ -306,8 +299,6 @@ class Xlator_Swift(Xlator):
     def getUnwrappedClassOwner(self, classes, tSpec, fType, varMode, ownerIn):
         ownerOut = ownerIn
         ownerOut = progSpec.getOwner(tSpec)
-        if ownerOut == 'itr':
-            return ownerOut
         baseType = progSpec.isWrappedType(classes, fType)
         if baseType!=None:  # TODO: When this is all tested and stable, un-hardcode and optimize this!!!!!
             if 'ownerMe' in baseType:ownerOut = 'their'
@@ -354,7 +345,7 @@ class Xlator_Swift(Xlator):
         return S
 
     def LanguageSpecificDecorations(self, S, tSpec, owner, LorRorP_Val):
-        if tSpec!= 0 and progSpec.typeIsPointer(tSpec) and tSpec['owner']!='itr' and not 'codeConverter' in tSpec:
+        if tSpec!= 0 and progSpec.typeIsPointer(tSpec) and not 'codeConverter' in tSpec:
             if LorRorP_Val == "ARG" and S=="nil":
                 cvrtType = self.codeGen.convertType(tSpec, 'arg', genericArgs)
                 S = 'Optional<'+cvrtType+'>.none'
@@ -389,20 +380,8 @@ class Xlator_Swift(Xlator):
         if itemTypeSpec!=None and isinstance(itemTypeSpec, dict) and 'owner' in itemTypeSpec:
             if progSpec.isNewContainerTempFunc(itemTypeSpec): return ['', '', False]
             if progSpec.typeIsPointer(itemTypeSpec):
-                owner=progSpec.getOwner(itemTypeSpec)
-                if progSpec.isNewContainerTempFunc(itemTypeSpec):
-                    if owner=='itr':
-                        # OLD: ctnrCat = progSpec.getDatastructID(itemTypeSpec)
-                        cdErr("####### TODO: needs to work with new container type #######")
-                        ctnrCat = progSpec.getContaineCategory(self.codeGen.classStore, itemTypeSpec) # NEW
-                        if ctnrCat =='map' or ctnrCat == 'multimap':
-                            return ['', '', False]
-                    # OPTIONALS
-                    return ['', '!', False]
-                else:
-                    if owner!='itr':
-                        # OPTIONALS
-                        return ['', '!', True]
+                # OPTIONALS
+                return ['', '!', True]
         return ['', '', False]
 
     def derefPtr(self, varRef, itemTypeSpec):
@@ -424,8 +403,6 @@ class Xlator_Swift(Xlator):
         LeftOwner =progSpec.getOwner(LVAL)
         RightOwner=progSpec.getOwner(RVAL)
         if LeftOwner == RightOwner: return ["", ""]
-        if LeftOwner!='itr' and RightOwner=='itr':
-            return ["", ""]
         if LeftOwner=='me' and progSpec.typeIsPointer(RVAL):
             return ['', '!']             # OPTIONALS
         if progSpec.typeIsPointer(LVAL) and RightOwner=='me':

@@ -200,18 +200,18 @@ struct Swift_ArrayList<nodeType>: implements=List wraps=Array native=lang specs=
     nodeType: at(me int: position)              <- <%!%0[%1]%>
     void: clear()                               <- <%!removeAll()%>
     void: clipToSize(me int: size)              <- <%!if %0.count > %1 { %0.removeLast(%0.count - %1) }%>
-    itr nodeType: deleteNth(me int: position)   <- <%!%0.remove(at: %1)%>
-    itr nodeType: end()                         <- <%!endIndex%>           // returns itr to past-the-end element
-    itr nodeType: erase(itr nodeType: position) <- <%!remove(at: %1)%>
-    itr nodeType: begin()                       <- <%!0%>
+    me nodeType: deleteNth(me int: position)   <- <%!%0.remove(at: %1)%>
+    me nodeType: end()                         <- <%!endIndex%>           // returns iterator to past-the-end element
+    me nodeType: erase(me nodeType: position) <- <%!remove(at: %1)%>
+    me nodeType: begin()                       <- <%!0%>
     nodeType: first()                           <- <%!%0[0]%>
-    itr nodeType: front()                       <- <%!0%>
+    me nodeType: front()                       <- <%!0%>
     nodeType: __getAt(me int: position)         <- <%!%0[%1]%>
-    itr nodeType: insert(itr nodeType: position, nodeType: value) <- <%!insert(%2, at: %1)%>
-    itr nodeType: insertIdx(me int: position, nodeType: value)    <- <%!%0.insert(%2, at: %1)%>
+    me nodeType: insert(me nodeType: position, nodeType: value) <- <%!insert(%2, at: %1)%>
+    me nodeType: insertIdx(me int: position, nodeType: value)    <- <%!%0.insert(%2, at: %1)%>
     me bool: isEmpty()                          <- <%!isEmpty%>
     nodeType: last()                            <- <%!%0[%0.endIndex-1]%>
-    itr nodeType: nthItr()                      <- <%!%>
+    me nodeType: nthItr()                      <- <%!%>
     nodeType: popFirst()                        <- <%!%0.removeFirst()%>
     nodeType: popLast()                         <- <%!%0.removeLast()%>
     me void: prepend(nodeType: value)           <- <%!%0.insert(%1, at:0)%>
@@ -221,7 +221,7 @@ struct Swift_ArrayList<nodeType>: implements=List wraps=Array native=lang specs=
     me void: pushFirst(nodeType: value)         <- <%!%0.insert(%1, at:0)%>
     me void: pushLast(nodeType: value)          <- <%!%0.append(%1)%>
     // TODO: need Reverse Iterators working first
-    //itr nodeType: back() <- <%!rbegin()%>             // returns reverse iterator to the reverse beginning of the sequence container
+    //me nodeType: back() <- <%!rbegin()%>              // returns reverse iterator to the reverse beginning of the sequence container
 }
 
 struct Swift_Deque<nodeType>: implements=List wraps=SwiftDeque native=lang specs={insert=linear append=constant prepend=constant at=linear rangeIteration=constant}{
@@ -229,18 +229,18 @@ struct Swift_Deque<nodeType>: implements=List wraps=SwiftDeque native=lang specs
     nodeType: at(me int: position)              <- <%!%0[%1]%>
     void: clear()                               <- <%!removeAll()%>
     void: clipToSize(me int: size)              <- <%!%0.trim(to: %1)%>
-    itr nodeType: deleteNth(me int: position)   <- <%!%0.remove(at: %1)%>
-    itr nodeType: end()                         <- <%!endIndex%>
-    itr nodeType: erase(itr nodeType: position) <- <%!remove(at: %1)%>
-    itr nodeType: begin()                       <- <%!0%>
+    me nodeType: deleteNth(me int: position)   <- <%!%0.remove(at: %1)%>
+    me nodeType: end()                         <- <%!endIndex%>
+    me nodeType: erase(me nodeType: position) <- <%!remove(at: %1)%>
+    me nodeType: begin()                       <- <%!0%>
     nodeType: first()                           <- <%!%0[0]%>
-    itr nodeType: front()                       <- <%!0%>
+    me nodeType: front()                       <- <%!0%>
     nodeType: __getAt(me int: position)         <- <%!%0[%1]%>
-    itr nodeType: insert(itr nodeType: position, nodeType: value) <- <%!insert(%2, at: %1)%>
-    itr nodeType: insertIdx(me int: position, nodeType: value)    <- <%!%0.insert(%2, at: %1)%>
+    me nodeType: insert(me nodeType: position, nodeType: value) <- <%!insert(%2, at: %1)%>
+    me nodeType: insertIdx(me int: position, nodeType: value)    <- <%!%0.insert(%2, at: %1)%>
     me bool: isEmpty()                          <- <%!isEmpty%>
     nodeType: last()                            <- <%!%0[%0.count-1]%>
-    itr nodeType: nthItr(me int: position)      <- <%!%1%>
+    me nodeType: nthItr(me int: position)      <- <%!%1%>
     nodeType: popFirst()                        <- <%!%0.removeFirst()%>
     nodeType: popLast()                         <- <%!%0.removeLast()%>
     me void: prepend(nodeType: value)           <- <%!%0.prepend(%1)%>
@@ -250,5 +250,5 @@ struct Swift_Deque<nodeType>: implements=List wraps=SwiftDeque native=lang specs
     me void: pushFirst(nodeType: value)         <- <%!%0.pushFirst(%1)%>
     me void: pushLast(nodeType: value)          <- <%!%0.pushLast(%1)%>
     // TODO: need Reverse Iterators working first
-    //itr nodeType: back() <- <%!rbegin()%>             // returns reverse iterator to the reverse beginning of the sequence container
+    //me nodeType: back() <- <%!rbegin()%>              // returns reverse iterator to the reverse beginning of the sequence container
 }

@@ -303,7 +303,7 @@ In CodeDog memory releasing is done for you, so you won't be manually releasing 
     **their** - the "their" element is a small piece of memory that points to a location in memory on the heap that is managed by another class. In CodeDog "their" is less commonly used than "me" and "our", it is used primarily for pointers received from an API or another class. Analogous to an unmanaged pointer in C++.
     Advanced ownership types
 
-The ownership types of "my", "we" and "itr" are intended for more advanced use cases and will be explained later.
+The ownership types of "my" and "we" are intended for more advanced use cases and will be explained later.
 
 Basic Data Types
 ****************

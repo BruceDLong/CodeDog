@@ -366,8 +366,8 @@ struct GraphDataStream {
     me double: screenDataAvg
 
     void: clearInterval(me double: start, me double: end) <- {
-        itr Map<me timeValue, me datum: rangeIteration=logarithmic>: startItr <- dataMap.find(start)
-        itr Map<me timeValue, me datum: rangeIteration=logarithmic>: endItr   <- dataMap.find(end)
+        me dataMap.iterator: startItr <- dataMap.find(start)
+        me dataMap.iterator: endItr   <- dataMap.find(end)
         dataMap.eraseInterval(startItr, endItr)
     }
 }

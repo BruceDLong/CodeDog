@@ -42,7 +42,7 @@ struct fontSpec{
     me Map<int32, int>: charWidths
 
     me int: getCharWidthX1024(me int32: chr) <- {
-        itr Map<int32, int>: chrWidthItr <- charWidths.find(chr)
+        me charWidths.iterator: chrWidthItr <- charWidths.find(chr)
         if(chrWidthItr!=charWidths.end()){
             return(chrWidthItr.val)
         }

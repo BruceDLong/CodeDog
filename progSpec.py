@@ -856,73 +856,76 @@ def getImplementationOptionsFor(fType):
         return classImplementationOptions[fType]
     return None
 ###############  Various Dynamic Type-handling functions
-def isItrType(fTypeKW):
+def isIteratorType(fTypeKW):
     fTypeKW = fieldTypeKeyword(fTypeKW)
+    if fTypeKW == None:
+        return False
     if fTypeKW[:8]=='iterator': return True
     return False
 
-def convertItrType(classStore, owner, fTypeKW):
-    if owner=='itr':
-        classDef = findSpecOf(classStore[0], fTypeKW, "struct")
-        if classDef == None:
-            classDef = findSpecOf(classStore[0], fTypeKW, "model")
-        if classDef == None:
-            return None
+def findContainerIteratorType(classStore, fTypeKW):
+    if classStore == None or fTypeKW == None:
+        return None
+    classDef = findSpecOf(classStore[0], fTypeKW, "struct")
+    if classDef == None:
+        classDef = findSpecOf(classStore[0], fTypeKW, "model")
+    if classDef == None:
+        return None
 
-        def _extract_implements_names(field):
-            implNames = []
-            tags = field.get('tags') if isinstance(field, dict) else None
-            implSpec = searchATagStore(tags, 'implements')
-            if implSpec == None:
-                return implNames
-            implVal = implSpec[0]
-            if isinstance(implVal, str):
-                return [implVal]
-            if isinstance(implVal, ParseResults):
-                implVal = implVal.asList()
-            if isinstance(implVal, list):
-                for item in implVal:
-                    if isinstance(item, ParseResults):
-                        item = item.asList()
-                    if isinstance(item, list):
-                        if len(item) > 0 and isinstance(item[0], str):
-                            implNames.append(item[0])
-                    elif isinstance(item, str):
-                        implNames.append(item)
+    def _extract_implements_names(field):
+        implNames = []
+        tags = field.get('tags') if isinstance(field, dict) else None
+        implSpec = searchATagStore(tags, 'implements')
+        if implSpec == None:
             return implNames
+        implVal = implSpec[0]
+        if isinstance(implVal, str):
+            return [implVal]
+        if isinstance(implVal, ParseResults):
+            implVal = implVal.asList()
+        if isinstance(implVal, list):
+            for item in implVal:
+                if isinstance(item, ParseResults):
+                    item = item.asList()
+                if isinstance(item, list):
+                    if len(item) > 0 and isinstance(item[0], str):
+                        implNames.append(item[0])
+                elif isinstance(item, str):
+                    implNames.append(item)
+        return implNames
 
-        bestName = None
-        bestScore = -1
-        for field in classDef['fields']:
-            KW = fieldTypeKeyword(field)
-            if KW!='struct' and KW!='model':
-                continue
-            fieldName = field['fieldName']
-            nestedTypeName = field.get('nestedTypeName') if isinstance(field, dict) else None
-            nestedPath = field.get('nestedPath') if isinstance(field, dict) else None
-            resolvedName = fieldName
-            if isinstance(nestedTypeName, str) and nestedTypeName != "":
-                resolvedName = nestedTypeName
-            elif isinstance(nestedPath, str) and nestedPath != "":
-                resolvedName = nestedPath
-            score = 0
-            if isItrType(fieldName):
-                score = 100
-            elif isinstance(fieldName, str) and fieldName.endswith('Itr'):
-                score = 90
+    bestName = None
+    bestScore = -1
+    for field in classDef['fields']:
+        KW = fieldTypeKeyword(field)
+        if KW!='struct' and KW!='model':
+            continue
+        fieldName = field['fieldName']
+        nestedTypeName = field.get('nestedTypeName') if isinstance(field, dict) else None
+        nestedPath = field.get('nestedPath') if isinstance(field, dict) else None
+        resolvedName = fieldName
+        if isinstance(nestedTypeName, str) and nestedTypeName != "":
+            resolvedName = nestedTypeName
+        elif isinstance(nestedPath, str) and nestedPath != "":
+            resolvedName = nestedPath
+        score = 0
+        if isIteratorType(fieldName):
+            score = 100
+        elif isinstance(fieldName, str) and fieldName.endswith('Itr'):
+            score = 90
 
-            implNames = _extract_implements_names(field)
-            for implName in implNames:
-                if isinstance(implName, str) and implName.endswith('Itr'):
-                    score = max(score, 95)
-                    break
+        implNames = _extract_implements_names(field)
+        for implName in implNames:
+            if isinstance(implName, str) and implName.endswith('Itr'):
+                score = max(score, 95)
+                break
 
-            if score > bestScore:
-                bestScore = score
-                bestName = resolvedName
+        if score > bestScore:
+            bestScore = score
+            bestName = resolvedName
 
-        if bestScore >= 90:
-            return bestName
+    if bestScore >= 90:
+        return bestName
     return None
 
 def getGenericArgs(ObjectDef):
@@ -1291,7 +1294,7 @@ def setCurrentCheckObjectVars(message):
     currentCheckObjectVars = message
 
 def ownerIsPointer(owner):
-    if owner == 'their' or owner == 'our' or owner == 'my' or owner == 'itr' or owner == 'id_their' or owner == 'id_our': isPointer=True
+    if owner == 'their' or owner == 'our' or owner == 'my' or owner == 'id_their' or owner == 'id_our': isPointer=True
     else: isPointer=False
     return isPointer
 

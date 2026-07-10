@@ -301,8 +301,6 @@ class Xlator_Kotlin(Xlator_Java):
         langType = self._cleanType(langType)
         if owner in ("me", "const", "we"):
             return langType
-        if owner == "itr":
-            return langType
         if owner in ("my", "our", "their", "id_their", "id_our"):
             if not langType.endswith("?"):
                 return langType + "?"

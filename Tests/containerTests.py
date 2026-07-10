@@ -193,7 +193,7 @@ struct testClass{
     me void: runTest()<-{
         me Map<me int, me string>: testMap
         testMap.insert(1, "A")
-        itr Map<me int, me string>: testItr <- testMap.find(1)
+        me testMap.iterator: testItr <- testMap.find(1)
         if(testItr == testMap.end()){print("End")}
         else{print("Found")}
     }
@@ -244,7 +244,7 @@ struct testClass{
         me Map<me string, me int: insert=constant find=constant at=constant rangeIteration=dontUse>: testMap
         testMap.insert("b",2)
         testMap.insert("a",1)
-        itr Map<me string, me int>: found <- testMap.find("b")
+        me testMap.iterator: found <- testMap.find("b")
         print(testMap.at("b")," ",toString(testMap.containsKey("a"))," ",testMap.size()," ")
         if(found == testMap.end()){print("End")}
         else{print(found.key(),":",found.val())}
@@ -276,8 +276,8 @@ struct testClass{
         me Set<me string>: values
         values.insert("a")
         values.insert("b")
-        itr Set<me string>: found <- values.find("b")
-        itr Set<me string>: missing <- values.find("z")
+        me values.iterator: found <- values.find("b")
+        me values.iterator: missing <- values.find("z")
         if(found == values.end()){print("missing")}
         else{print(found.val())}
         print(" ")
@@ -328,7 +328,7 @@ struct testClass{
         me Map<me string, me int: insert=constant find=constant at=constant rangeIteration=dontUse>: testMap
         testMap.insert("b",2)
         testMap.insert("a",1)
-        itr Map<me string, me int>: found <- testMap.find("b")
+        me testMap.iterator: found <- testMap.find("b")
         print(testMap.at("b")," ",toString(testMap.containsKey("a"))," ",testMap.size()," ")
         if(found == testMap.end()){print("End")}
         else{print("Found")}
@@ -341,8 +341,8 @@ struct testClass{
         me Multimap<me int, me string: rangeIteration=logarithmic>: testMap
         testMap.insert(1,"one")
         testMap.insert(2,"two")
-        itr Multimap<me int, me string>: found <- testMap.find(2)
-        itr Multimap<me int, me string>: missing <- testMap.find(3)
+        me testMap.iterator: found <- testMap.find(2)
+        me testMap.iterator: missing <- testMap.find(3)
         if(found == testMap.end()){print("missing")}
         else{print(found.key(),":",found.val())}
         print(" ")

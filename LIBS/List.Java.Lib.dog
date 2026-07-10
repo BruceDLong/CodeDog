@@ -19,11 +19,11 @@ struct Java_ArrayList<nodeType>: implements=List wraps=ArrayList native=lang spe
     nodeType: at(me int: position)              <- <%!%0.get(%1)%>
     void: clear()                               <- <%!clear()%>
     void: clipToSize(me int: size)              <- <%!while(%0.size() > %1) { %0.remove(%0.size() - 1); }%>
-    itr nodeType: deleteNth(me int: position)   <- <%!%0.remove(%1)%>
-    itr nodeType: erase(itr nodeType: position) <- <%!remove(%1)%>
+    me nodeType: deleteNth(me int: position)   <- <%!%0.remove(%1)%>
+    me nodeType: erase(me nodeType: position) <- <%!remove(%1)%>
     nodeType: first()                           <- <%!get(0)%>
     nodeType: __getAt(me int: position)         <- <%!%0.get(%1)%>
-    itr nodeType: insertIdx(me int: position, nodeType: value) <- <%!%0.add(%1, %2)%>
+    me nodeType: insertIdx(me int: position, nodeType: value) <- <%!%0.add(%1, %2)%>
     me bool: isEmpty()                          <- <%!isEmpty()%>
     nodeType: last()                            <- <%!%0.get(%0.size()-1)%>
     nodeType: popFirst()                        <- <%!remove(0)%>
@@ -37,11 +37,11 @@ struct Java_LinkedList<nodeType>: implements=List wraps=LinkedList native=lang s
     nodeType: at(me int: position)              <- <%!%0.get(%1)%>
     void: clear()                               <- <%!clear()%>
     void: clipToSize(me int: size)              <- <%!while(%0.size() > %1) { %0.removeLast(); }%>
-    itr nodeType: deleteNth(me int: position)   <- <%!%0.remove(%1)%>
-    itr nodeType: erase(itr nodeType: position) <- <%!remove(%1)%>
+    me nodeType: deleteNth(me int: position)   <- <%!%0.remove(%1)%>
+    me nodeType: erase(me nodeType: position) <- <%!remove(%1)%>
     nodeType: first()                           <- <%!getFirst()%>
     nodeType: __getAt(me int: position)         <- <%!%0.get(%1)%>
-    itr nodeType: insertIdx(me int: position, nodeType: value) <- <%!%0.add(%1, %2)%>
+    me nodeType: insertIdx(me int: position, nodeType: value) <- <%!%0.add(%1, %2)%>
     me bool: isEmpty()                          <- <%!isEmpty()%>
     nodeType: last()                            <- <%!getLast()%>
     nodeType: popFirst()                        <- <%!removeFirst()%>

@@ -156,7 +156,7 @@ reservedWordSet = set([
    # "keys", "index", "iters", "key", "value", "entry", "index", "iter", "FILE",
    # "void", "bool", "int32", "int64", "double", "char", "uint32", "uint64", "string", "int",
     #"list", "opt", "map", "multimap", "tree", "graph", "iterableList",
-    "const", "me", "my", "our", "their", "we", "itr", "id_our", "id_their",
+    "const", "me", "my", "our", "their", "we", "id_our", "id_their",
     #"model", "struct", "string"
 ])
 
@@ -347,7 +347,7 @@ coFactualEl  = Group("(" + Group(fieldDef + "<=>" + Group(OneOrMore(SetFieldStmt
 sequenceEl   = "{" - fieldDefs + "}"
 alternateEl  = "[" - Group(OneOrMore((coFactualEl | fieldDef) + Optional("|").suppress()))("fieldDefs") + "]"
 anonModel    = sequenceEl("sequenceEl") | alternateEl("alternateEl")
-owners     <<= Keyword("const") | Keyword("me") | Keyword("my") | Keyword("our") | Keyword("their") | Keyword("we") | Keyword("itr") | Keyword("id_our") | Keyword("id_their")
+owners     <<= Keyword("const") | Keyword("me") | Keyword("my") | Keyword("our") | Keyword("their") | Keyword("we") | Keyword("id_our") | Keyword("id_their")
 fullFieldDef <<= Optional('>')('isNext') + Optional(owners)('owner') + Group(baseType | altModeSpec | classSpec | Group(anonModel) | datastructID)('fieldType') + Optional(arraySpec) + Optional(nameAndVal)
 fieldDef   <<= Group(flagDef('flagDef') | modeSpec('modeDef') | (quotedString('constStr') + Optional("[opt]") + Optional(":"+CID)) | intNum('constNum') | nameAndVal('nameVal') | fullFieldDef('fullFieldDef'))("fieldDef")
 
