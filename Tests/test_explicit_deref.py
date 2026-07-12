@@ -111,10 +111,13 @@ struct Widget{
         code_gen = self._cpp_generator()
         code_gen.localVarsAllocated = [
             ["owned", {"owner": "my", "fieldType": "string", "arraySpec": None, "paramList": None}],
+            ["value", {"owner": "me", "fieldType": "string", "arraySpec": None, "paramList": None}],
         ]
 
         with self.assertRaises(SystemExit):
             self._code_ref(code_gen, "owned!")
+        with self.assertRaises(SystemExit):
+            self._code_ref(code_gen, "value!")
 
     def test_java_kotlin_reject_bare_explicit_deref_assignment(self):
         for xlator in (Xlator_Java(), Xlator_Kotlin()):
@@ -142,11 +145,11 @@ struct Widget{
         cases = (
             (
                 Xlator_Java(),
-                {"p!": "p", "p!.value": "p.value", "s![n]": "s.charAt(n)"},
+                {"p!": "p", "p!.value": "p.value", "p.value": "p.value", "s![n]": "s.charAt(n)"},
             ),
             (
                 Xlator_Kotlin(),
-                {"p!": "p!!", "p!.value": "p!!.value", "s![n]": "s!![n]"},
+                {"p!": "p!!", "p!.value": "p!!.value", "p.value": "p!!.value", "s![n]": "s!![n]"},
             ),
         )
         for xlator, expectations in cases:
@@ -201,7 +204,7 @@ struct Widget{
 
                 self.assertEqual(self._code_action(code_gen, "p!.value <- 1").strip(), expected)
 
-    def test_warning_mode_reports_implicit_deref_value_contexts(self):
+    def test_warning_mode_allows_unambiguous_value_assignment(self):
         code_gen = self._generator(Xlator_Kotlin())
         self._enable_deref_warnings(code_gen)
         code_gen.localVarsAllocated = [
@@ -212,18 +215,57 @@ struct Widget{
         implicit_expr = codeDogParser.expr.parse_string("pi + 1", parse_all=True)[0]
         explicit_expr = codeDogParser.expr.parse_string("pi! + 1", parse_all=True)[0]
 
-        implicit_warnings = self._captured_stdout(lambda: code_gen.codeExpr(implicit_expr, None, None, "RVAL", {}))
         explicit_warnings = self._captured_stdout(lambda: code_gen.codeExpr(explicit_expr, None, None, "RVAL", {}))
         assign_warnings = self._captured_stdout(lambda: self._code_action(code_gen, "mi <- pi"))
         explicit_assign_warnings = self._captured_stdout(lambda: self._code_action(code_gen, "mi <- pi!"))
 
-        self.assertIn("implicit dereference", implicit_warnings)
-        self.assertIn("additive expression", implicit_warnings)
+        with self.assertRaises(SystemExit):
+            code_gen.codeExpr(implicit_expr, None, None, "RVAL", {})
         self.assertEqual(explicit_warnings, "")
-        self.assertIn("assignment to a me value", assign_warnings)
+        self.assertEqual(assign_warnings, "")
         self.assertEqual(explicit_assign_warnings, "")
+        self.assertEqual(self._code_action(code_gen, "mi <- pi").strip(), "mi = (pi!!);")
+        self.assertEqual(self._code_action(code_gen, "mi <- pi!").strip(), "mi = pi!!;")
 
-    def test_warning_mode_reports_implicit_member_and_index_access(self):
+    def test_cpp_auto_derefs_unambiguous_value_assignment(self):
+        code_gen = self._cpp_generator()
+        self._enable_deref_warnings(code_gen)
+        code_gen.localVarsAllocated = [
+            ["pi", {"owner": "their", "fieldType": "int", "arraySpec": None, "paramList": None}],
+            ["mi", {"owner": "me", "fieldType": "int", "arraySpec": None, "paramList": None}],
+        ]
+
+        assign_warnings = self._captured_stdout(lambda: self._code_action(code_gen, "mi <- pi"))
+
+        self.assertEqual(assign_warnings, "")
+        self.assertEqual(self._code_action(code_gen, "mi <- pi").strip(), "mi = (*pi);")
+
+    def test_strict_mode_rejects_ambiguous_implicit_derefs(self):
+        src = """
+struct Widget{
+    me int: value
+}
+"""
+        prog_spec = {}
+        obj_names = []
+        _tags, _build_specs, classes, _new_classes = codeDogParser.parseCodeDogString(
+            src, prog_spec, obj_names, {}, "strict deref test"
+        )
+        code_gen = self._cpp_generator(classes)
+        code_gen.tagStore = {"ExplicitDeref": "strict"}
+        code_gen.buildTags = {}
+        code_gen.localVarsAllocated = [
+            ["p", {"owner": "their", "fieldType": ["Widget"], "arraySpec": None, "paramList": None}],
+            ["pi", {"owner": "their", "fieldType": "int", "arraySpec": None, "paramList": None}],
+            ["mi", {"owner": "me", "fieldType": "int", "arraySpec": None, "paramList": None}],
+        ]
+
+        self.assertEqual(self._code_action(code_gen, "mi <- pi").strip(), "mi = (*pi);")
+        self.assertEqual(self._code_ref(code_gen, "p.value")[0], "p->value")
+        with self.assertRaises(SystemExit):
+            self._code_action(code_gen, "pi <- mi")
+
+    def test_warning_mode_allows_member_access_and_rejects_index_access(self):
         src = """
 struct Widget{
     me int: value
@@ -244,13 +286,27 @@ struct Widget{
 
         member_warnings = self._captured_stdout(lambda: self._code_ref(code_gen, "p.value"))
         explicit_member_warnings = self._captured_stdout(lambda: self._code_ref(code_gen, "p!.value"))
-        index_warnings = self._captured_stdout(lambda: self._code_ref(code_gen, "s[n]"))
         explicit_index_warnings = self._captured_stdout(lambda: self._code_ref(code_gen, "s![n]"))
 
-        self.assertIn("member access", member_warnings)
+        self.assertEqual(self._code_ref(code_gen, "p.value")[0], "p->value")
+        self.assertEqual(member_warnings, "")
         self.assertEqual(explicit_member_warnings, "")
-        self.assertIn("string index access", index_warnings)
+        with self.assertRaises(SystemExit):
+            self._code_ref(code_gen, "s[n]")
         self.assertEqual(explicit_index_warnings, "")
+
+    def test_warning_mode_reports_deprecated_deep_assignment(self):
+        code_gen = self._cpp_generator()
+        self._enable_deref_warnings(code_gen)
+        code_gen.localVarsAllocated = [
+            ["A", {"owner": "their", "fieldType": "int", "arraySpec": None, "paramList": None}],
+            ["B", {"owner": "their", "fieldType": "int", "arraySpec": None, "paramList": None}],
+        ]
+
+        warnings = self._captured_stdout(lambda: self._code_action(code_gen, "B <deep- A"))
+
+        self.assertIn("deprecated '<deep-' assignment", warnings)
+        self.assertIn("B! <- A!", warnings)
 
     def test_warning_mode_skips_code_converter_member_calls(self):
         src = """
@@ -306,10 +362,10 @@ struct Widget{
         value_check = codeDogParser.expr.parse_string("p == 1", parse_all=True)[0]
 
         null_warnings = self._captured_stdout(lambda: code_gen.codeExpr(null_check, None, None, "RVAL", {}))
-        value_warnings = self._captured_stdout(lambda: code_gen.codeExpr(value_check, None, None, "RVAL", {}))
 
         self.assertEqual(null_warnings, "")
-        self.assertIn("equality comparison", value_warnings)
+        with self.assertRaises(SystemExit):
+            code_gen.codeExpr(value_check, None, None, "RVAL", {})
 
     def test_null_literal_detection_is_codedog_null_only(self):
         code_gen = self._cpp_generator()
@@ -319,19 +375,50 @@ struct Widget{
         self.assertFalse(code_gen.isNullLiteralExpr("null", {"owner": "their", "fieldType": "int"}))
         self.assertFalse(code_gen.isNullLiteralExpr("nil", {"owner": "their", "fieldType": "int"}))
 
-    def test_warning_mode_reports_bare_pointer_conditions(self):
+    def test_warning_mode_allows_pointer_bool_contexts(self):
         code_gen = self._cpp_generator()
         self._enable_deref_warnings(code_gen)
         code_gen.localVarsAllocated = [
             ["p", {"owner": "their", "fieldType": "bool", "arraySpec": None, "paramList": None}],
+            ["q", {"owner": "their", "fieldType": "bool", "arraySpec": None, "paramList": None}],
         ]
-        parsed = codeDogParser.conditionalAction.parse_string("if(p){}", parse_all=True)[0]
-        action = codeDogParser.extractActItem("testFunc", parsed)
+        if_parsed = codeDogParser.conditionalAction.parse_string("if(p){}", parse_all=True)[0]
+        if_action = codeDogParser.extractActItem("testFunc", if_parsed)
+        while_parsed = codeDogParser.whileAction.parse_string("while(p){}", parse_all=True)[0]
+        while_action = codeDogParser.extractActItem("testFunc", while_parsed)
+        logical_expr = codeDogParser.expr.parse_string("p and q", parse_all=True)[0]
+        not_expr = codeDogParser.expr.parse_string("!p", parse_all=True)[0]
 
-        warnings = self._captured_stdout(lambda: code_gen.codeAction(action, "    ", None, {}))
+        if_warnings = self._captured_stdout(lambda: code_gen.codeAction(if_action, "    ", None, {}))
+        while_warnings = self._captured_stdout(lambda: code_gen.codeAction(while_action, "    ", None, {}))
+        logical_warnings = self._captured_stdout(lambda: code_gen.codeExpr(logical_expr, None, None, "RVAL", {}))
+        not_warnings = self._captured_stdout(lambda: code_gen.codeExpr(not_expr, None, None, "RVAL", {}))
 
-        self.assertIn("bare their bool 'p' used as if condition", warnings)
-        self.assertIn("p != NULL", warnings)
+        self.assertEqual(if_warnings, "")
+        self.assertEqual(while_warnings, "")
+        self.assertEqual(logical_warnings, "")
+        self.assertEqual(not_warnings, "")
+        self.assertEqual(code_gen.codeExpr(logical_expr, None, None, "RVAL", {})[0], "p && q")
+        self.assertEqual(code_gen.codeExpr(not_expr, None, None, "RVAL", {})[0], "!p")
+
+    def test_jvm_pointer_bool_contexts_use_null_checks(self):
+        cases = (
+            (Xlator_Java(), "p != null && q != null", "(p == null)"),
+            (Xlator_Kotlin(), "(p != null) && (q != null)", "(p == null)"),
+        )
+        logical_expr = codeDogParser.expr.parse_string("p and q", parse_all=True)[0]
+        not_expr = codeDogParser.expr.parse_string("!p", parse_all=True)[0]
+        for xlator, expected_logical, expected_not in cases:
+            with self.subTest(language=xlator.LanguageName):
+                code_gen = self._generator(xlator)
+                self._enable_deref_warnings(code_gen)
+                code_gen.localVarsAllocated = [
+                    ["p", {"owner": "their", "fieldType": "bool", "arraySpec": None, "paramList": None}],
+                    ["q", {"owner": "their", "fieldType": "bool", "arraySpec": None, "paramList": None}],
+                ]
+
+                self.assertEqual(code_gen.codeExpr(logical_expr, None, None, "RVAL", {})[0], expected_logical)
+                self.assertEqual(code_gen.codeExpr(not_expr, None, None, "RVAL", {})[0], expected_not)
 
     def test_warning_mode_can_be_enabled_by_environment(self):
         code_gen = self._cpp_generator()
@@ -342,14 +429,13 @@ struct Widget{
         old_value = os.environ.get("CODEDOG_EXPLICIT_DEREF")
         os.environ["CODEDOG_EXPLICIT_DEREF"] = "warn"
         try:
-            warnings = self._captured_stdout(lambda: code_gen.codeExpr(expr, None, None, "RVAL", {}))
+            with self.assertRaises(SystemExit):
+                code_gen.codeExpr(expr, None, None, "RVAL", {})
         finally:
             if old_value == None:
                 del os.environ["CODEDOG_EXPLICIT_DEREF"]
             else:
                 os.environ["CODEDOG_EXPLICIT_DEREF"] = old_value
-
-        self.assertIn("additive expression", warnings)
 
 
 if __name__ == "__main__":

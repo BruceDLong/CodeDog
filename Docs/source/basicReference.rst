@@ -445,7 +445,8 @@ Compound assignments can be made by inserting an operator in the middle of an as
     <|-
     <&-
     <^-
-    <deep-              // copy the contents even if there is a pointer
+
+Legacy code may still contain ``<deep-`` for referent-to-referent assignment through pointer-owned values. Prefer explicit dereference with normal assignment, such as ``lhs! <- rhs!`` when both sides are pointer-owned.
 
 Function call Actions
 ^^^^^^^^^^^^^^^^^^^^^

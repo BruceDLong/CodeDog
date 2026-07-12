@@ -40,7 +40,7 @@ struct testWidget: inherits=DashboardWidget{
         cr.setLineWidth(1)
         cr.strokeNow()
         cr.setRGB(34, 38, 44)
-        renderText(cr, title, labelFont, x + 12, y + 23)
+        renderText(cr, title, labelFont!, x + 12, y + 23)
     }
 
     void: drawAlignmentMarks(their GUI_ctxt: cr, me int: canvasW, me int: canvasH) <- {
@@ -109,13 +109,13 @@ struct testWidget: inherits=DashboardWidget{
 
         panel(cr, 30, 82, 260, 150, "text + color")
         cr.setRGB(0, 250, 255)
-        renderText(cr, "Hello World!", bodyFont, 58, 126)
+        renderText(cr, "Hello World!", bodyFont!, 58, 126)
         cr.setRGB(180, 30, 30)
-        renderText(cr, "red", smallFont, 58, 160)
+        renderText(cr, "red", smallFont!, 58, 160)
         cr.setRGB(20, 120, 55)
-        renderText(cr, "green", smallFont, 118, 160)
+        renderText(cr, "green", smallFont!, 118, 160)
         cr.setRGB(30, 70, 190)
-        renderText(cr, "blue", smallFont, 198, 160)
+        renderText(cr, "blue", smallFont!, 198, 160)
         cr.setRGB(235, 88, 88)
         cr.rectangle(60, 180, 40, 24)
         cr.fillNow()
@@ -140,7 +140,7 @@ struct testWidget: inherits=DashboardWidget{
         cr.strokeNow()
         cr.setLineWidth(1)
         cr.setRGB(56, 62, 70)
-        renderText(cr, "round cap above, edged cap below", smallFont, 342, 216)
+        renderText(cr, "round cap above, edged cap below", smallFont!, 342, 216)
 
         panel(cr, 610, 82, 260, 150, "circles + rectangles")
         cr.setLineWidth(5)
@@ -149,7 +149,7 @@ struct testWidget: inherits=DashboardWidget{
         cr.rectangle(792, 112, 18, 86)
         cr.strokeNow()
         cr.setRGB(56, 62, 70)
-        renderText(cr, "ellipse and rect should be crisp", smallFont, 636, 216)
+        renderText(cr, "ellipse and rect should be crisp", smallFont!, 636, 216)
 
         panel(cr, 30, 260, 260, 170, "fill + alpha")
         cr.setRGB(226, 235, 244)
@@ -168,7 +168,7 @@ struct testWidget: inherits=DashboardWidget{
         cr.fillKeep()
         cr.strokeNow()
         cr.setRGB(56, 62, 70)
-        renderText(cr, "blue square should be translucent", smallFont, 58, 414)
+        renderText(cr, "blue square should be translucent", smallFont!, 58, 414)
 
         panel(cr, 320, 260, 260, 170, "moveRel + lineRel")
         cr.setLineWidth(4)
@@ -188,7 +188,7 @@ struct testWidget: inherits=DashboardWidget{
         cr.lineRel(48, 24)
         cr.strokeNow()
         cr.setRGB(56, 62, 70)
-        renderText(cr, "relative path should step cleanly", smallFont, 344, 414)
+        renderText(cr, "relative path should step cleanly", smallFont!, 344, 414)
 
         panel(cr, 610, 260, 260, 170, "curveTo + curveRel")
         cr.setLineWidth(4)
@@ -201,7 +201,7 @@ struct testWidget: inherits=DashboardWidget{
         cr.curveRel(44, -66, 86, 54, 164, -18)
         cr.strokeNow()
         cr.setRGB(56, 62, 70)
-        renderText(cr, "two smooth Bezier curves", smallFont, 642, 414)
+        renderText(cr, "two smooth Bezier curves", smallFont!, 642, 414)
 
         panel(cr, 30, 458, 260, 170, "offset + scale")
         rotate(cr, 0, 0, 0)
@@ -219,10 +219,10 @@ struct testWidget: inherits=DashboardWidget{
         cr.lineTo(0, 62)
         cr.strokeNow()
         cr.setRGB(18, 40, 72)
-        renderText(cr, "scaled", smallFont, 31, 38)
+        renderText(cr, "scaled", smallFont!, 31, 38)
         restore(cr)
         cr.setRGB(56, 62, 70)
-        renderText(cr, "later panels should not be transformed", smallFont, 54, 612)
+        renderText(cr, "later panels should not be transformed", smallFont!, 54, 612)
 
         panel(cr, 320, 458, 260, 170, "strokeAndFillPath")
         cr.setRGB(255, 218, 132)
@@ -231,12 +231,12 @@ struct testWidget: inherits=DashboardWidget{
         cr.setRGB(102, 72, 28)
         renderTextCentered(cr, "filled rounded path", bodyFont, 446, 554)
         cr.setRGB(56, 62, 70)
-        renderText(cr, "one call should fill and stroke", smallFont, 348, 612)
+        renderText(cr, "one call should fill and stroke", smallFont!, 348, 612)
 
         panel(cr, 610, 458, 260, 170, "gradient reference")
         drawManualGradient(cr, 650, 514)
         cr.setRGB(56, 62, 70)
-        renderText(cr, "manual bands; pattern API pending", smallFont, 626, 612)
+        renderText(cr, "manual bands; pattern API pending", smallFont!, 626, 612)
 
         cr.setRGBA(255, 0, 0, 210)
         cr.setLineWidth(3)
@@ -250,34 +250,34 @@ struct testWidget: inherits=DashboardWidget{
     }
 
     me bool: primaryClick(their GUI_ButtonEvent: event) <- {
-        me GUI_Scalar: eventX <- event.x
-        me GUI_Scalar: eventY <- event.y
+        me GUI_Scalar: eventX <- event!.x
+        me GUI_Scalar: eventY <- event!.y
         print("CLICK! (x:", eventX, ", y:", eventY, ")\n")
         return(true)
     }
 
     me bool: secondaryClick(their GUI_ButtonEvent: event) <- {
-        me GUI_Scalar: eventX <- event.x
-        me GUI_Scalar: eventY <- event.y
+        me GUI_Scalar: eventX <- event!.x
+        me GUI_Scalar: eventY <- event!.y
         print("SECONDARY CLICK! (x:", eventX, ", y:", eventY, ")\n")
         return(true)
     }
     me bool: primaryUp(their GUI_ButtonEvent: event) <- {
-        me GUI_Scalar: eventX <- event.x
-        me GUI_Scalar: eventY <- event.y
+        me GUI_Scalar: eventX <- event!.x
+        me GUI_Scalar: eventY <- event!.y
         print("Primary up! (x:", eventX, ", y:", eventY, ")\n")
         return(true)
     }
 
     me bool: mouseMoved(their GUI_ButtonEvent: event) <- {
-        me GUI_Scalar: eventX <- event.x
-        me GUI_Scalar: eventY <- event.y
+        me GUI_Scalar: eventX <- event!.x
+        me GUI_Scalar: eventY <- event!.y
         print("MOVE CLICK! (x:", eventX, ", y:", eventY, ")\n")
         return(true)
     }
     me bool: primaryDn(their GUI_ButtonEvent: event) <- {
-        me GUI_Scalar: eventX <- event.x
-        me GUI_Scalar: eventY <- event.y
+        me GUI_Scalar: eventX <- event!.x
+        me GUI_Scalar: eventY <- event!.y
         print("Primary Down! (x:", eventX, ", y:", eventY, ")\n")
         return(true)
     }
@@ -295,7 +295,7 @@ struct APP{
         drawing_area  <- gui.newCanvas()
         drawing_area.setParent(drawAnX)
         gui.setWidgetSize(drawing_area, 1200, 1200)
-        drawAnX.EventDispatcher.registerWidgetForEventDispatcher(drawing_area, drawAnX)
+        drawAnX!.EventDispatcher.registerWidgetForEventDispatcher(drawing_area, drawAnX)
         addToContainerAndExpand (frame, drawing_area)
     }
 }

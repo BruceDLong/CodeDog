@@ -443,7 +443,7 @@ struct GLOBAL{
         cairo_translate(cr,-x,-y);
     }%>
 
-    me void: restore() <- <%!cairo_restore(cr)%>
+    me void: restore(their GUI_ctxt: cr) <- <%!cairo_restore(%1)%>
 
     their cairo_t: fontCheckerCR
 

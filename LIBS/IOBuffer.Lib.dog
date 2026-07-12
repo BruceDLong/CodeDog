@@ -14,19 +14,19 @@ struct strBufItr{
     their strBuf: theStrBuf
     their strInnerBuf: crntInnerBuf
     me int64: crntRelPos
-    me int64: crntAbsPos() <- {return(crntInnerBuf.myOffset + crntRelPos)}
+    me int64: crntAbsPos() <- {return(crntInnerBuf!.myOffset + crntRelPos)}
     me mode[bfWaiting, bfOK, bfEOB, bfError]: status
     me char: ch() <- {
-        return(crntInnerBuf.buf[crntRelPos])
+        return(crntInnerBuf!.buf[crntRelPos])
     }
     me int: goNext() <- {
         crntRelPos <+- 1
-        if(crntRelPos >= crntInnerBuf.buf.size()){
+        if(crntRelPos >= crntInnerBuf!.buf.size()){
             their strInnerBuf: prevInnerBuf <- crntInnerBuf
-            crntInnerBuf <- theStrBuf.findInrBufWithPos(crntAbsPos())
+            crntInnerBuf <- theStrBuf!.findInrBufWithPos(crntAbsPos())
             if(prevInnerBuf === crntInnerBuf){return(bfOK)}
             if(crntInnerBuf==NULL){
-                if(theStrBuf.bufferClosed){status <- bfEOB}
+                if(theStrBuf!.bufferClosed){status <- bfEOB}
                 else{status <- bfError}
             }else{
                 crntRelPos <- 0
@@ -37,7 +37,7 @@ struct strBufItr{
     }
     me string: stringify() <- {
         me string: retVal
-        if(crntInnerBuf){retVal <- "'"+crntInnerBuf.buf +"'("+toString(crntRelPos)+ ")\n"}
+        if(crntInnerBuf!=NULL){retVal <- "'"+crntInnerBuf!.buf +"'("+toString(crntRelPos)+ ")\n"}
         else{retVal <- "NULL"}
         return(retVal)
     }
@@ -72,28 +72,28 @@ struct strBuf{
             return()
         }
         their strInnerBuf:: innerBuf
-        innerBuf.buf <- data
-        innerBuf.myOffset <- crntStreamSize
-        innerBuf.refCount <- 1
+        innerBuf!.buf <- data
+        innerBuf!.myOffset <- crntStreamSize
+        innerBuf!.refCount <- 1
         crntStreamSize <+- data.size()
         me int64: newLines <- numNewlines(data)
         if(tail==NULL){
             head <- innerBuf
-            innerBuf.endingLineNumber <- newLines
+            innerBuf!.endingLineNumber <- newLines
         } else {
-            tail.next <- innerBuf
-            innerBuf.prev <- tail
-            innerBuf.endingLineNumber <- innerBuf.prev.endingLineNumber + newLines
+            tail!.next <- innerBuf
+            innerBuf!.prev <- tail
+            innerBuf!.endingLineNumber <- innerBuf!.prev!.endingLineNumber + newLines
         }
         tail <- innerBuf
         //log("NOTIFYING:")
-        //log("endingLineNumber of InnerBuf:"+toString(innerBuf.endingLineNumber))
+        //log("endingLineNumber of InnerBuf:"+toString(innerBuf!.endingLineNumber))
         bufLock.notifyOne()
     }
     their strInnerBuf: findInrBufWithPos(me int64: pos) <- {
         //log("in FindInrBufWithPos(): "+ toString(pos))
         me MutexMngr: bufMtxMgr{bufMutex}
-        while(tail==NULL or (tail.myOffset + tail.buf.size() <= pos)){
+        while(tail==NULL or (tail!.myOffset + tail!.buf.size() <= pos)){
             if(bufferClosed){return(NULL)}
             //log("WAITING(findInrBufWithPos)")
             bufLock.wait(bufMtxMgr)
@@ -101,44 +101,44 @@ struct strBuf{
         }
         their strInnerBuf: bufr <- tail
         while(bufr!=NULL){
-            if(bufr.myOffset <= pos and bufr.myOffset + bufr.buf.size() > pos){
+            if(bufr!.myOffset <= pos and bufr!.myOffset + bufr!.buf.size() > pos){
                 return(bufr)
             }
-            bufr <- bufr.prev
+            bufr <- bufr!.prev
         }
         return(NULL)
     }
     me char: at(me int64: pos) <- {
         their strInnerBuf: crntInnerBuf <- findInrBufWithPos(pos)
         if(crntInnerBuf==NULL){return(0)}
-        me char: retChar <- crntInnerBuf.buf[pos-crntInnerBuf.myOffset]
+        me char: retChar <- crntInnerBuf!.buf[pos-crntInnerBuf!.myOffset]
         return(retChar)
     }
     our strBufItr: getItrAt(me int64: pos) <- {
         their strInnerBuf: crntInnerBuf <- findInrBufWithPos(pos)
         if(crntInnerBuf==NULL){return(NULL)}
         our strBufItr:: retVal
-        retVal.theStrBuf    <- self
-        retVal.crntInnerBuf <- crntInnerBuf
-        retVal.crntRelPos   <- pos - retVal.crntInnerBuf.myOffset
-        retVal.status       <- bfOK
+        retVal!.theStrBuf    <- self
+        retVal!.crntInnerBuf <- crntInnerBuf
+        retVal!.crntRelPos   <- pos - retVal!.crntInnerBuf!.myOffset
+        retVal!.status       <- bfOK
         return(retVal)
     }
     me string:atSafe(me int64: pos) <- {
         // Use this to print or log; Won't return 0 or block
         if(tail==NULL){return("BufEmpty")}
-        if(tail.myOffset + tail.buf.size() <= pos){return("PastEOB")}
+        if(tail!.myOffset + tail!.buf.size() <= pos){return("PastEOB")}
         their strInnerBuf: bufr <- tail
         while(bufr!=NULL){
-            if(bufr.myOffset <= pos and bufr.myOffset + bufr.buf.size() > pos){
-                me char: ch <- bufr.buf[pos-bufr.myOffset]
+            if(bufr!.myOffset <= pos and bufr!.myOffset + bufr!.buf.size() > pos){
+                me char: ch <- bufr!.buf[pos-bufr!.myOffset]
                 if(ch=="\n"){return("\\n")}
                 if(ch=="\t"){return("\\t")}
                 if(ch<" "){me int: chNum<-ch; return("\\"+toString(chNum))}
                 me string: S; S <+- ch
                 return(S)
             }
-            bufr <- bufr.prev
+            bufr <- bufr!.prev
         }
         return("BufERROR")
     }
@@ -148,20 +148,20 @@ struct strBuf{
         me int64: lastLinePos <- 0
         me int64: errLineNum <- 1
         me int64: errCharPos <- 0
-        if(bufWithChar.prev){
-            errLineNum <- bufWithChar.prev.endingLineNumber
+        if(bufWithChar!.prev!=NULL){
+            errLineNum <- bufWithChar!.prev!.endingLineNumber
         }
-        me int: bufSize <- bufWithChar.buf.size()
+        me int: bufSize <- bufWithChar!.buf.size()
         withEach idx in range 0 .. bufSize {
-            if(bufWithChar.myOffset + idx > charPos){
+            if(bufWithChar!.myOffset + idx > charPos){
                 break()
             }
-            if(bufWithChar.buf[idx] == "\n"){
+            if(bufWithChar!.buf[idx] == "\n"){
                 errLineNum <+- 1
                 lastLinePos <- idx
             }
         }
-        errCharPos <- charPos-(lastLinePos+bufWithChar.myOffset)
+        errCharPos <- charPos-(lastLinePos+bufWithChar!.myOffset)
         return(streamName+":"+toString(errLineNum)+":"+toString(errCharPos))
     }
     void: notifyWaitingThread() <- {bufLock.notifyOne()}
@@ -188,8 +188,8 @@ struct strBuf{
         me string: retVal
         their strInnerBuf: crnt <- head
         while(crnt!=NULL){
-            retVal <- "'"+crnt.buf + "'\n"
-            crnt <- crnt.next
+            retVal <- "'"+crnt!.buf + "'\n"
+            crnt <- crnt!.next
         }
         return(retVal)
     }
@@ -221,9 +221,9 @@ struct strBuf{
     void: deleteTentativeChars(me int64: pos, me int64:N) <- { // And shorten buffer by N
         me MutexMngr: bufMtxMgr{bufMutex}
         crntStreamSize <-- N
-        me int64: innerPos <- pos-tail.myOffset
-        tail.endingLineNumber <-- numNewlines(tail.buf.subStr(innerPos, innerPos+N))
-        tail.buf <- tail.buf.subStr(0, innerPos-1) + tail.buf.subStr(innerPos+N)
+        me int64: innerPos <- pos-tail!.myOffset
+        tail!.endingLineNumber <-- numNewlines(tail!.buf.subStr(innerPos, innerPos+N))
+        tail!.buf <- tail!.buf.subStr(0, innerPos-1) + tail!.buf.subStr(innerPos+N)
         bufLock.notifyOne()
     }
     void: insertTentativeStr(me int64: pos, me string: data) <- { // And lengthen buffer by data.size() then fill with data
@@ -233,9 +233,9 @@ struct strBuf{
         } else {
             me MutexMngr: bufMtxMgr{bufMutex}
             crntStreamSize <+- data.size()
-            me int64: innerPos <- pos-tail.myOffset
-            tail.buf <- tail.buf.subStr(0, innerPos-1) + data + tail.buf.subStr(innerPos)
-            tail.endingLineNumber <+- numNewlines(data)
+            me int64: innerPos <- pos-tail!.myOffset
+            tail!.buf <- tail!.buf.subStr(0, innerPos-1) + data + tail!.buf.subStr(innerPos)
+            tail!.endingLineNumber <+- numNewlines(data)
             bufLock.notifyOne()
         }
     }
@@ -246,8 +246,8 @@ struct strBuf{
         } else {
             me MutexMngr: bufMtxMgr{bufMutex}
             crntStreamSize <+- data.size()
-            tail.buf <+- data
-            tail.endingLineNumber <+- numNewlines(data)
+            tail!.buf <+- data
+            tail!.endingLineNumber <+- numNewlines(data)
             bufLock.notifyOne()
         }
     }
@@ -258,22 +258,22 @@ struct strBuf{
         me int64: L <- s.size()
         our strBufItr: txtItr <- getItrAt(pos)
         withEach i in range 0  ..  L {
-            if(txtItr == NULL or txtItr.status!=bfOK or txtItr.ch() != s[i]){return(-1)}
-            txtItr.goNext()
+            if(txtItr == NULL or txtItr!.status!=bfOK or txtItr!.ch() != s[i]){return(-1)}
+            txtItr!.goNext()
         }
         return(L)
     }
     me int64: scrapeUntil(me int64: pos, me string:endStr) <- {
         me char: ender <- endStr[0]
         our strBufItr: txtItr <- getItrAt(pos)
-        while(txtItr != NULL and txtItr.status==bfOK){
-            me char: ch <- txtItr.ch()
+        while(txtItr != NULL and txtItr!.status==bfOK){
+            me char: ch <- txtItr!.ch()
             if(ch==ender){
-                me int64: p <- txtItr.crntAbsPos()
+                me int64: p <- txtItr!.crntAbsPos()
                 me int64: nxtLen <- chkStr(p, endStr)
                 if(nxtLen>0){return((p+nxtLen)-pos)}
             }
-            txtItr.goNext()
+            txtItr!.goNext()
         }
         return(-1)
     }
@@ -284,13 +284,13 @@ struct strBuf{
         me string: escCharStr <- "\\ "
         me char: escChar <- escCharStr[0]
         our strBufItr: txtItr <- getItrAt(pos)
-        while(txtItr != NULL and txtItr.status==bfOK){
-            me char: ch <- txtItr.ch()
-            me int64: p <- txtItr.crntAbsPos()
+        while(txtItr != NULL and txtItr!.status==bfOK){
+            me char: ch <- txtItr!.ch()
+            me int64: p <- txtItr!.crntAbsPos()
             if(prevChar!=escChar and ch==ender){return(p-pos)}
             if(prevChar==escChar and ch==escChar) {prevChar<-escCharStr[1]}
             else {prevChar <- ch}
-            txtItr.goNext()
+            txtItr!.goNext()
         }
         return(-1)
     }
@@ -299,15 +299,15 @@ struct strBuf{
         me int: count <- 0
         me int: expectedBytes <- -1
         me string: bufr <- ""
-        while(txtItr != NULL and txtItr.status==bfOK){
-            me char: ch <- txtItr.ch()
+        while(txtItr != NULL and txtItr!.status==bfOK){
+            me char: ch <- txtItr!.ch()
             if(count==0){
                 expectedBytes <- remainingOctets(ch) + 1
             }
             bufr <+- ch
             count <+- 1
             if(count==expectedBytes){break()}
-            txtItr.goNext()
+            txtItr!.goNext()
         }
         if(count!=expectedBytes){return(-1)}
         me int64: p<-0
@@ -317,13 +317,13 @@ struct strBuf{
     me int64: scrapeAlphaSeq(me int64: pos) <- {
         me int64: charsUsed <- 0
         our strBufItr: txtItr <- getItrAt(pos)
-        while(txtItr != NULL and txtItr.status==bfOK){
-            me char: ch <- txtItr.ch()
+        while(txtItr != NULL and txtItr!.status==bfOK){
+            me char: ch <- txtItr!.ch()
             if(!isalpha(ch)){
                 if(charsUsed==0){return(-1)}
                 else{return(charsUsed)}
             }
-            txtItr.goNext()
+            txtItr!.goNext()
             charsUsed <+- 1
         }
         return(charsUsed)
@@ -331,13 +331,13 @@ struct strBuf{
     me int64: scrapeUintSeq(me int64: pos) <- {
         me int64: charsUsed <- 0
         our strBufItr: txtItr <- getItrAt(pos)
-        while(txtItr != NULL and txtItr.status==bfOK){
-            me char: ch <- txtItr.ch()
+        while(txtItr != NULL and txtItr!.status==bfOK){
+            me char: ch <- txtItr!.ch()
             if(!isdigit(ch)){
                 if(charsUsed==0){return(-1)}
                 else{return(charsUsed)}
             }
-            txtItr.goNext()
+            txtItr!.goNext()
             charsUsed <+- 1
         }
         return(charsUsed)
@@ -345,13 +345,13 @@ struct strBuf{
     me int64: scrapeHexNum(me int64: pos) <- {
         me int64: charsUsed <- 0
         our strBufItr: txtItr <- getItrAt(pos)
-        while(txtItr != NULL and txtItr.status==bfOK){
-            me char: ch <- txtItr.ch()
+        while(txtItr != NULL and txtItr!.status==bfOK){
+            me char: ch <- txtItr!.ch()
             if(!isxdigit(ch)){
                 if(charsUsed==0){return(-1)}
                 else{return(charsUsed)}
             }
-            txtItr.goNext()
+            txtItr!.goNext()
             charsUsed <+- 1
         }
         return(charsUsed)
@@ -359,13 +359,13 @@ struct strBuf{
     me int64: scrapeBinNum(me int64: pos) <- {
         me int64: charsUsed <- 0
         our strBufItr: txtItr <- getItrAt(pos)
-        while(txtItr != NULL and txtItr.status==bfOK){
-            me char: ch <- txtItr.ch()
+        while(txtItr != NULL and txtItr!.status==bfOK){
+            me char: ch <- txtItr!.ch()
             if(!isxdigit(ch)){
                 if(charsUsed==0){return(-1)}
                 else{return(charsUsed)}
             }
-            txtItr.goNext()
+            txtItr!.goNext()
             charsUsed <+- 1
         }
         return(charsUsed)
@@ -373,13 +373,13 @@ struct strBuf{
     me int64: scrapeAlphaNumSeq(me int64: pos) <- {
         me int64: charsUsed <- 0
         our strBufItr: txtItr <- getItrAt(pos)
-        while(txtItr != NULL and txtItr.status==bfOK){
-            me char: ch <- txtItr.ch()
+        while(txtItr != NULL and txtItr!.status==bfOK){
+            me char: ch <- txtItr!.ch()
             if(!isalnum(ch)){
                 if(charsUsed==0){return(-1)}
                 else{return(charsUsed)}
             }
-            txtItr.goNext()
+            txtItr!.goNext()
             charsUsed <+- 1
         }
         return(charsUsed)
@@ -388,10 +388,10 @@ struct strBuf{
         me int64: charsUsed <- 0
         me bool: sepCharFound <- false  // '.' or '/' was found.
         our strBufItr: txtItr <- getItrAt(pos)
-        if(txtItr.ch()=="." or txtItr.ch()=="/"){return(-1)}
+        if(txtItr!.ch()=="." or txtItr!.ch()=="/"){return(-1)}
         me char: prevCH <- " "
-        while(txtItr != NULL and txtItr.status==bfOK){
-            me char: ch <- txtItr.ch()
+        while(txtItr != NULL and txtItr!.status==bfOK){
+            me char: ch <- txtItr!.ch()
             if(!(isdigit(ch) or ((ch=="." or ch=="/") and !sepCharFound))){
                 if(charsUsed==0){return(-1)}
                 else{
@@ -401,7 +401,7 @@ struct strBuf{
             }
             if(ch=="." or ch=="/"){sepCharFound <- true}
             prevCH <- ch
-            txtItr.goNext()
+            txtItr!.goNext()
             charsUsed <+- 1
         }
         return(charsUsed)
@@ -409,13 +409,13 @@ struct strBuf{
     me int64: scrapeAlphaNum_Seq(me int64: pos) <- {
         me int64: charsUsed <- 0
         our strBufItr: txtItr <- getItrAt(pos)
-        while(txtItr != NULL and txtItr.status==bfOK){
-            me char: ch <- txtItr.ch()
+        while(txtItr != NULL and txtItr!.status==bfOK){
+            me char: ch <- txtItr!.ch()
             if (!(isalnum(ch) or ch=="_")){
                 if(charsUsed==0){return(-1)}
                 else{return(charsUsed)}
             }
-            txtItr.goNext()
+            txtItr!.goNext()
             charsUsed <+- 1
         }
         return(charsUsed)
@@ -423,7 +423,7 @@ struct strBuf{
     me int64: scrapeUnicodeWordContinue(me int64: pos) <- {
         me int64: charsUsed <- 0
         our strBufItr: txtItr <- getItrAt(pos)
-        while(txtItr != NULL and txtItr.status==bfOK){
+        while(txtItr != NULL and txtItr!.status==bfOK){
             me int32: ch
             me int64: bytesUsed <- scrapeUTF8Char(pos, ch)
             if(charsUsed==0 and bytesUsed<=0){return(-1)}
@@ -432,7 +432,7 @@ struct strBuf{
                 else{return(charsUsed)}
             }
             pos <+- bytesUsed
-            txtItr.goNext()
+            txtItr!.goNext()
             charsUsed <+- bytesUsed
         }
         if(charsUsed==0){return(-1)}
@@ -441,13 +441,13 @@ struct strBuf{
     me int64: scrapePrintableSeq(me int64: pos) <- {
         me int64: charsUsed <- 0
         our strBufItr: txtItr <- getItrAt(pos)
-        while(txtItr != NULL and txtItr.status==bfOK){
-            me char: ch <- txtItr.ch()
+        while(txtItr != NULL and txtItr!.status==bfOK){
+            me char: ch <- txtItr!.ch()
             if(!isprint(ch)){
                 if(charsUsed==0){return(-1)}
                 else{return(charsUsed)}
             }
-            txtItr.goNext()
+            txtItr!.goNext()
             charsUsed <+- 1
         }
         return(charsUsed)
@@ -485,13 +485,13 @@ struct strBuf{
     me int64: scrapeWS(me int64: pos) <- {
         me int64: charsUsed <- 0
         our strBufItr: txtItr <- getItrAt(pos)
-        while(txtItr != NULL and txtItr.status==bfOK){
-            me char: ch <- txtItr.ch()
+        while(txtItr != NULL and txtItr!.status==bfOK){
+            me char: ch <- txtItr!.ch()
             if(!isspace(ch)){
                 if(charsUsed==0){return(0)}
                 else{return(charsUsed)}
             }
-            txtItr.goNext()
+            txtItr!.goNext()
             charsUsed <+- 1
         }
         return(charsUsed)

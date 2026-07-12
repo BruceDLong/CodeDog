@@ -68,27 +68,27 @@ struct topFocusWidget: inherits=DashboardWidget{
         cr.setLineWidth(1)
         our fontSpec:: titleFont{"Arial", "21"}
         our fontSpec:: bodyFont{"Arial", "15"}
-        renderText(cr, "guiTest_4 top canvas", titleFont, 28, 42)
+        renderText(cr, "guiTest_4 top canvas", titleFont!, 28, 42)
         if(activePane == 1){
-            renderText(cr, "Focus: yes", bodyFont, 28, 72)
+            renderText(cr, "Focus: yes", bodyFont!, 28, 72)
         } else {
-            renderText(cr, "Focus: no", bodyFont, 28, 72)
+            renderText(cr, "Focus: no", bodyFont!, 28, 72)
         }
-        renderText(cr, "Down/up/click/double: " + toString(topDownCount) + " / " + toString(topUpCount) + " / " + toString(topClickCount) + " / " + toString(topDoubleClickCount), bodyFont, 28, 102)
-        renderText(cr, "Drag moves: " + toString(topDragMoveCount) + "   last: " + toString(topDragX) + ", " + toString(topDragY), bodyFont, 28, 132)
-        renderText(cr, "Key typed/down/up: " + toString(topKeyTypedCount) + " / " + toString(topKeyDownCount) + " / " + toString(topKeyUpCount) + "   last: " + toString(topLastKey), bodyFont, 28, 162)
-        renderText(cr, "Click here, type, double-click, then drag through the divider.", bodyFont, 28, 198)
+        renderText(cr, "Down/up/click/double: " + toString(topDownCount) + " / " + toString(topUpCount) + " / " + toString(topClickCount) + " / " + toString(topDoubleClickCount), bodyFont!, 28, 102)
+        renderText(cr, "Drag moves: " + toString(topDragMoveCount) + "   last: " + toString(topDragX) + ", " + toString(topDragY), bodyFont!, 28, 132)
+        renderText(cr, "Key typed/down/up: " + toString(topKeyTypedCount) + " / " + toString(topKeyDownCount) + " / " + toString(topKeyUpCount) + "   last: " + toString(topLastKey), bodyFont!, 28, 162)
+        renderText(cr, "Click here, type, double-click, then drag through the divider.", bodyFont!, 28, 198)
     }
 
     me bool: primaryDn(their GUI_ButtonEvent: event) <- {
         activePane <- 1
         topDragging <- true
         topDownCount <- topDownCount + 1
-        topDragStartX <- event.x
-        topDragStartY <- event.y
-        topDragX <- event.x
-        topDragY <- event.y
-        print("TOP DOWN x:", event.x, " y:", event.y, "\n")
+        topDragStartX <- event!.x
+        topDragStartY <- event!.y
+        topDragX <- event!.x
+        topDragY <- event!.y
+        print("TOP DOWN x:", event!.x, " y:", event!.y, "\n")
         requestRedrawAll()
         return(true)
     }
@@ -97,9 +97,9 @@ struct topFocusWidget: inherits=DashboardWidget{
         activePane <- 1
         topDragging <- false
         topUpCount <- topUpCount + 1
-        topDragX <- event.x
-        topDragY <- event.y
-        print("TOP UP x:", event.x, " y:", event.y, "\n")
+        topDragX <- event!.x
+        topDragY <- event!.y
+        print("TOP UP x:", event!.x, " y:", event!.y, "\n")
         requestRedrawAll()
         return(true)
     }
@@ -107,9 +107,9 @@ struct topFocusWidget: inherits=DashboardWidget{
     me bool: primaryClick(their GUI_ButtonEvent: event) <- {
         activePane <- 1
         topClickCount <- topClickCount + 1
-        topDragX <- event.x
-        topDragY <- event.y
-        print("TOP CLICK x:", event.x, " y:", event.y, "\n")
+        topDragX <- event!.x
+        topDragY <- event!.y
+        print("TOP CLICK x:", event!.x, " y:", event!.y, "\n")
         requestRedrawAll()
         return(true)
     }
@@ -117,9 +117,9 @@ struct topFocusWidget: inherits=DashboardWidget{
     me bool: primaryDblClick(their GUI_ButtonEvent: event) <- {
         activePane <- 1
         topDoubleClickCount <- topDoubleClickCount + 1
-        topDragX <- event.x
-        topDragY <- event.y
-        print("TOP DOUBLE x:", event.x, " y:", event.y, "\n")
+        topDragX <- event!.x
+        topDragY <- event!.y
+        print("TOP DOUBLE x:", event!.x, " y:", event!.y, "\n")
         requestRedrawAll()
         return(true)
     }
@@ -127,8 +127,8 @@ struct topFocusWidget: inherits=DashboardWidget{
     me bool: mouseMoved(their GUI_MotionEvent: event) <- {
         if(topDragging){
             topDragMoveCount <- topDragMoveCount + 1
-            topDragX <- event.x
-            topDragY <- event.y
+            topDragX <- event!.x
+            topDragY <- event!.y
             requestRedrawAll()
         }
         return(true)
@@ -136,7 +136,7 @@ struct topFocusWidget: inherits=DashboardWidget{
 
     me bool: keyTyped(their GUI_KeyboardEvent: event) <- {
         activePane <- 1
-        topLastKey <- event.keyval
+        topLastKey <- event!.keyval
         topKeyTypedCount <- topKeyTypedCount + 1
         print("TOP KEY TYPED key:", topLastKey, "\n")
         requestRedrawAll()
@@ -145,7 +145,7 @@ struct topFocusWidget: inherits=DashboardWidget{
 
     me bool: keyDown(their GUI_KeyboardEvent: event) <- {
         activePane <- 1
-        topLastKey <- event.keyval
+        topLastKey <- event!.keyval
         topKeyDownCount <- topKeyDownCount + 1
         print("TOP KEY DOWN key:", topLastKey, "\n")
         requestRedrawAll()
@@ -154,7 +154,7 @@ struct topFocusWidget: inherits=DashboardWidget{
 
     me bool: keyUp(their GUI_KeyboardEvent: event) <- {
         activePane <- 1
-        topLastKey <- event.keyval
+        topLastKey <- event!.keyval
         topKeyUpCount <- topKeyUpCount + 1
         print("TOP KEY UP key:", topLastKey, "\n")
         requestRedrawAll()
@@ -198,27 +198,27 @@ struct bottomFocusWidget: inherits=DashboardWidget{
         cr.setLineWidth(1)
         our fontSpec:: titleFont{"Arial", "21"}
         our fontSpec:: bodyFont{"Arial", "15"}
-        renderText(cr, "bottom canvas", titleFont, 28, 42)
+        renderText(cr, "bottom canvas", titleFont!, 28, 42)
         if(activePane == 2){
-            renderText(cr, "Focus: yes", bodyFont, 28, 72)
+            renderText(cr, "Focus: yes", bodyFont!, 28, 72)
         } else {
-            renderText(cr, "Focus: no", bodyFont, 28, 72)
+            renderText(cr, "Focus: no", bodyFont!, 28, 72)
         }
-        renderText(cr, "Down/up/click/double: " + toString(bottomDownCount) + " / " + toString(bottomUpCount) + " / " + toString(bottomClickCount) + " / " + toString(bottomDoubleClickCount), bodyFont, 28, 102)
-        renderText(cr, "Drag moves: " + toString(bottomDragMoveCount) + "   last: " + toString(bottomDragX) + ", " + toString(bottomDragY), bodyFont, 28, 132)
-        renderText(cr, "Key typed/down/up: " + toString(bottomKeyTypedCount) + " / " + toString(bottomKeyDownCount) + " / " + toString(bottomKeyUpCount) + "   last: " + toString(bottomLastKey), bodyFont, 28, 162)
-        renderText(cr, "The pane with the green border should receive the next key event.", bodyFont, 28, 198)
+        renderText(cr, "Down/up/click/double: " + toString(bottomDownCount) + " / " + toString(bottomUpCount) + " / " + toString(bottomClickCount) + " / " + toString(bottomDoubleClickCount), bodyFont!, 28, 102)
+        renderText(cr, "Drag moves: " + toString(bottomDragMoveCount) + "   last: " + toString(bottomDragX) + ", " + toString(bottomDragY), bodyFont!, 28, 132)
+        renderText(cr, "Key typed/down/up: " + toString(bottomKeyTypedCount) + " / " + toString(bottomKeyDownCount) + " / " + toString(bottomKeyUpCount) + "   last: " + toString(bottomLastKey), bodyFont!, 28, 162)
+        renderText(cr, "The pane with the green border should receive the next key event.", bodyFont!, 28, 198)
     }
 
     me bool: primaryDn(their GUI_ButtonEvent: event) <- {
         activePane <- 2
         bottomDragging <- true
         bottomDownCount <- bottomDownCount + 1
-        bottomDragStartX <- event.x
-        bottomDragStartY <- event.y
-        bottomDragX <- event.x
-        bottomDragY <- event.y
-        print("BOTTOM DOWN x:", event.x, " y:", event.y, "\n")
+        bottomDragStartX <- event!.x
+        bottomDragStartY <- event!.y
+        bottomDragX <- event!.x
+        bottomDragY <- event!.y
+        print("BOTTOM DOWN x:", event!.x, " y:", event!.y, "\n")
         requestRedrawAll()
         return(true)
     }
@@ -227,9 +227,9 @@ struct bottomFocusWidget: inherits=DashboardWidget{
         activePane <- 2
         bottomDragging <- false
         bottomUpCount <- bottomUpCount + 1
-        bottomDragX <- event.x
-        bottomDragY <- event.y
-        print("BOTTOM UP x:", event.x, " y:", event.y, "\n")
+        bottomDragX <- event!.x
+        bottomDragY <- event!.y
+        print("BOTTOM UP x:", event!.x, " y:", event!.y, "\n")
         requestRedrawAll()
         return(true)
     }
@@ -237,9 +237,9 @@ struct bottomFocusWidget: inherits=DashboardWidget{
     me bool: primaryClick(their GUI_ButtonEvent: event) <- {
         activePane <- 2
         bottomClickCount <- bottomClickCount + 1
-        bottomDragX <- event.x
-        bottomDragY <- event.y
-        print("BOTTOM CLICK x:", event.x, " y:", event.y, "\n")
+        bottomDragX <- event!.x
+        bottomDragY <- event!.y
+        print("BOTTOM CLICK x:", event!.x, " y:", event!.y, "\n")
         requestRedrawAll()
         return(true)
     }
@@ -247,9 +247,9 @@ struct bottomFocusWidget: inherits=DashboardWidget{
     me bool: primaryDblClick(their GUI_ButtonEvent: event) <- {
         activePane <- 2
         bottomDoubleClickCount <- bottomDoubleClickCount + 1
-        bottomDragX <- event.x
-        bottomDragY <- event.y
-        print("BOTTOM DOUBLE x:", event.x, " y:", event.y, "\n")
+        bottomDragX <- event!.x
+        bottomDragY <- event!.y
+        print("BOTTOM DOUBLE x:", event!.x, " y:", event!.y, "\n")
         requestRedrawAll()
         return(true)
     }
@@ -257,8 +257,8 @@ struct bottomFocusWidget: inherits=DashboardWidget{
     me bool: mouseMoved(their GUI_MotionEvent: event) <- {
         if(bottomDragging){
             bottomDragMoveCount <- bottomDragMoveCount + 1
-            bottomDragX <- event.x
-            bottomDragY <- event.y
+            bottomDragX <- event!.x
+            bottomDragY <- event!.y
             requestRedrawAll()
         }
         return(true)
@@ -266,7 +266,7 @@ struct bottomFocusWidget: inherits=DashboardWidget{
 
     me bool: keyTyped(their GUI_KeyboardEvent: event) <- {
         activePane <- 2
-        bottomLastKey <- event.keyval
+        bottomLastKey <- event!.keyval
         bottomKeyTypedCount <- bottomKeyTypedCount + 1
         print("BOTTOM KEY TYPED key:", bottomLastKey, "\n")
         requestRedrawAll()
@@ -275,7 +275,7 @@ struct bottomFocusWidget: inherits=DashboardWidget{
 
     me bool: keyDown(their GUI_KeyboardEvent: event) <- {
         activePane <- 2
-        bottomLastKey <- event.keyval
+        bottomLastKey <- event!.keyval
         bottomKeyDownCount <- bottomKeyDownCount + 1
         print("BOTTOM KEY DOWN key:", bottomLastKey, "\n")
         requestRedrawAll()
@@ -284,7 +284,7 @@ struct bottomFocusWidget: inherits=DashboardWidget{
 
     me bool: keyUp(their GUI_KeyboardEvent: event) <- {
         activePane <- 2
-        bottomLastKey <- event.keyval
+        bottomLastKey <- event!.keyval
         bottomKeyUpCount <- bottomKeyUpCount + 1
         print("BOTTOM KEY UP key:", bottomLastKey, "\n")
         requestRedrawAll()
@@ -340,13 +340,13 @@ struct APP{
         top_canvas <- gui.newCanvas()
         top_canvas.setParent(topPanel)
         gui.setWidgetSize(top_canvas, 900, 300)
-        topPanel.EventDispatcher.registerWidgetForEventDispatcher(top_canvas, topPanel)
+        topPanel!.EventDispatcher.registerWidgetForEventDispatcher(top_canvas, topPanel)
         addToContainer(frame, top_canvas)
 
         bottom_canvas <- gui.newCanvas()
         bottom_canvas.setParent(bottomPanel)
         gui.setWidgetSize(bottom_canvas, 900, 300)
-        bottomPanel.EventDispatcher.registerWidgetForEventDispatcher(bottom_canvas, bottomPanel)
+        bottomPanel!.EventDispatcher.registerWidgetForEventDispatcher(bottom_canvas, bottomPanel)
         drawing_area <- bottom_canvas
         addToContainerAndExpand(frame, bottom_canvas)
     }

@@ -106,7 +106,7 @@ struct animationFrameWidget: inherits=DashboardWidget{
         cr.strokeNow()
 
         cr.setRGB(49, 56, 64)
-        renderText(cr, "frames: " + toString(frameCount), smallFont, 28, canvasH - 24)
+        renderText(cr, "frames: " + toString(frameCount), smallFont!, 28, canvasH - 24)
     }
 }
 
@@ -118,9 +118,9 @@ struct GLOBAL{
 struct APP{
     me void: createAppArea(me GUI_Frame: frame) <- {
         Allocate(animationPanel)
-        drawing_area <- animationPanel.init("animationPanel")
+        drawing_area <- animationPanel!.init("animationPanel")
         gui.setWidgetSize(drawing_area, 900, 560)
         addToContainerAndExpand(frame, drawing_area)
-        animationPanel.requestAnimationFrame()
+        animationPanel!.requestAnimationFrame()
     }
 }

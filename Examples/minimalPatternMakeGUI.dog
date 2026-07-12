@@ -52,9 +52,9 @@ model StaticInfo1: dialogStyle=WizardChild{
 }
 model StaticInfo1_Dialog_GUI{
     bool: isComplete() <- {
-        me string: userNameVal <- UserNameWidget.getValue()
-        me int: genderVal <- GenderWidget.getValue()
-        me timeValue: birthdayVal <- BirthdayWidget.getValue()
+        me string: userNameVal <- UserNameWidget!.getValue()
+        me int: genderVal <- GenderWidget!.getValue()
+        me timeValue: birthdayVal <- BirthdayWidget!.getValue()
         if (userNameVal.size()<1){return(false)}
         if (genderVal==-1){return(false)}
         return(true)
@@ -72,10 +72,10 @@ model StaticInfo2: dialogStyle=WizardChildLast{
 }
 model StaticInfo2_Dialog_GUI{
     bool: isComplete() <- {
-        me int: heightVal         <- HeightWidget.getValue()
-        me int: weightPoundsVal   <- WeightPoundsWidget.getValue()
-        me int: activityLevelVal  <- ActivityLevelWidget.getValue()
-        me int: typeOfDiabetesVal <- TypeOfDiabetesWidget.getValue()
+        me int: heightVal         <- HeightWidget!.getValue()
+        me int: weightPoundsVal   <- WeightPoundsWidget!.getValue()
+        me int: activityLevelVal  <- ActivityLevelWidget!.getValue()
+        me int: typeOfDiabetesVal <- TypeOfDiabetesWidget!.getValue()
         if (50>heightVal or heightVal>84){return(false)}
         if (50>weightPoundsVal or weightPoundsVal>1000){return(false)}
         if (activityLevelVal==-1){return(false)}
@@ -92,13 +92,13 @@ model DisclaimerAgreement: dialogStyle=WizardChildFirst{
 }
 model DisclaimerAgreement_Dialog_GUI{
     bool: isComplete() <- {
-        HealthDogDisclaimerWidget.getValue()
-        me bool: checkMarkState <- HealthDogDisclaimerWidget._data.doesAgree
+        HealthDogDisclaimerWidget!.getValue()
+        me bool: checkMarkState <- HealthDogDisclaimerWidget!._data.doesAgree
         return(checkMarkState)
     }
     void: save() <-{
-        HealthDogDisclaimerWidget.getValue()
-        if (HealthDogDisclaimerWidget._data.doesAgree){}
+        HealthDogDisclaimerWidget!.getValue()
+        if (HealthDogDisclaimerWidget!._data.doesAgree){}
     }
     void: load() <-{}
 }
@@ -107,13 +107,13 @@ model PrivacyAgreement: dialogStyle=WizardChild{
 }
 model PrivacyAgreement_Dialog_GUI{
     bool: isComplete() <- {
-        HealthDogPrivacyPolicyWidget.getValue()
-        me bool: checkMarkState <- HealthDogPrivacyPolicyWidget._data.doesAgree
+        HealthDogPrivacyPolicyWidget!.getValue()
+        me bool: checkMarkState <- HealthDogPrivacyPolicyWidget!._data.doesAgree
         return(checkMarkState)
     }
     void: save() <-{
-        HealthDogPrivacyPolicyWidget.getValue()
-        if (HealthDogPrivacyPolicyWidget._data.doesAgree){}
+        HealthDogPrivacyPolicyWidget!.getValue()
+        if (HealthDogPrivacyPolicyWidget!._data.doesAgree){}
     }
     void: load() <-{}
 }
@@ -129,27 +129,27 @@ model IntroScreens:  dialogStyle=WizardStack{
     our StaticInfo1:         initialInformation1
     our StaticInfo2:         initialInformation2
     void: wizardFinished(me string: wizID) <- {
-        guiMgr.parentGuiMgr.setActiveChild(1)
+        guiMgr!.parentGuiMgr!.setActiveChild(1)
     }
 }
 model appModel_GUI{
     void: onLoaded() <- {
-        if(IntroScreens_GUI_Mgr.DisclaimerAgreement_GUI_Mgr.isComplete()){
-            if(IntroScreens_GUI_Mgr.PrivacyAgreement_GUI_Mgr.isComplete()){
-                if(IntroScreens_GUI_Mgr.StaticInfo1_GUI_Mgr.isComplete()){
-                    showWidget(IntroScreens_GUI_Mgr.StaticInfo2_GUI_Mgr.box)
-                    IntroScreens_GUI_Mgr.wiz.activeScreenIdx <- 3
-                    IntroScreens_GUI_Mgr.wiz.setActiveChild(3)
+        if(IntroScreens_GUI_Mgr!.DisclaimerAgreement_GUI_Mgr!.isComplete()){
+            if(IntroScreens_GUI_Mgr!.PrivacyAgreement_GUI_Mgr!.isComplete()){
+                if(IntroScreens_GUI_Mgr!.StaticInfo1_GUI_Mgr!.isComplete()){
+                    showWidget(IntroScreens_GUI_Mgr!.StaticInfo2_GUI_Mgr!.box)
+                    IntroScreens_GUI_Mgr!.wiz!.activeScreenIdx <- 3
+                    IntroScreens_GUI_Mgr!.wiz!.setActiveChild(3)
                     return()
                 }
-                showWidget(IntroScreens_GUI_Mgr.StaticInfo1_GUI_Mgr.box)
-                IntroScreens_GUI_Mgr.wiz.activeScreenIdx <- 2
-                IntroScreens_GUI_Mgr.wiz.setActiveChild(2)
+                showWidget(IntroScreens_GUI_Mgr!.StaticInfo1_GUI_Mgr!.box)
+                IntroScreens_GUI_Mgr!.wiz!.activeScreenIdx <- 2
+                IntroScreens_GUI_Mgr!.wiz!.setActiveChild(2)
                 return()
             }
-            showWidget(IntroScreens_GUI_Mgr.PrivacyAgreement_GUI_Mgr.box)
-            IntroScreens_GUI_Mgr.wiz.activeScreenIdx <- 1
-            IntroScreens_GUI_Mgr.wiz.setActiveChild(1)
+            showWidget(IntroScreens_GUI_Mgr!.PrivacyAgreement_GUI_Mgr!.box)
+            IntroScreens_GUI_Mgr!.wiz!.activeScreenIdx <- 1
+            IntroScreens_GUI_Mgr!.wiz!.setActiveChild(1)
             return()
         }
     }

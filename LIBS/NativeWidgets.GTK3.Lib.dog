@@ -170,9 +170,15 @@ struct intRangeWidget: COMMAND_addCallProxy=["widgetData:onChanged"]{
     me double: climbRate     <- 1
     me int:    decimalPlaces <- 0
 
-    me int: getValue() <- <%!gtk_spin_button_get_value_as_int ((GtkSpinButton*)%0->dataValue)%>
-    me void: setValue(me int: val) <- <%!gtk_spin_button_set_value ((GtkSpinButton*)%0->box, %1)%>
-    //me void: clear() <- <%{}%>
+    me int: getValue() <- <%{
+        return(gtk_spin_button_get_value_as_int ((GtkSpinButton*)dataValue));
+    }%>
+    me void: setValue(me int: val) <- <%{
+        gtk_spin_button_set_value ((GtkSpinButton*)dataValue, val);
+    }%>
+    me void: clear() <- <%{
+        gtk_spin_button_set_value ((GtkSpinButton*)dataValue, initialValue);
+    }%>
 
     their GUI_Frame: initWidget(me string: name)  <- <%{
         GtkWidget* box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
@@ -257,8 +263,12 @@ struct enumWidget: COMMAND_addCallProxy=["widgetData:onChanged"]{
     their GtkWidget: dataValue
     me List<me string>: options
 
-    me int: getValue() <- <%!gtk_combo_box_get_active((GtkComboBox*)%0->dataValue)%>
-    me void: setValue(me int: val) <- <%!gtk_combo_box_set_active((GtkComboBox*)%0->dataValue, %1)%>
+    me int: getValue() <- <%{
+        return(gtk_combo_box_get_active((GtkComboBox*)dataValue));
+    }%>
+    me void: setValue(me int: val) <- <%{
+        gtk_combo_box_set_active((GtkComboBox*)dataValue, val);
+    }%>
     me void: clear() <- <%{}%>
     their GUI_Frame: initWidget(me string: label, me List<me string>: Options)  <- <%{
         options = Options;
@@ -409,7 +419,7 @@ struct GUI_TextViewer: wraps = GtkWidget ownerMe = their{
     me void: setEditable(me bool: isEditable)                 <- <%!gtk_text_view_set_editable(GTK_TEXT_VIEW(%0), %1)%>
 }
 struct GUI_button: wraps = GtkButton ownerMe = their{
-    me void: setWidgetActive            <- <%!gtk_widget_set_sensitive ((GtkWidget* )%0, %1)%>
+    me void: setWidgetActive(me bool: checkState) <- <%!gtk_widget_set_sensitive ((GtkWidget* )&%0, %1)%>
 }
 /////////////////////////////////  LIST EDITOR WIDGET
 struct ListWidgetManager{
@@ -575,8 +585,9 @@ struct GLOBAL{
     }%>
     their GUI_CompleterBox: makeCompleterBox(me string: label)
         <- <%!%Ggtk_entry_new()%>
-    me void: setLabelWidth(their GtkWidget: labelWidget, me int: width) <- <%!gtk_label_set_width_chars((GtkLabel*)%1, %2)%>
-    me void: setListWidgetSelectionMode(their listWidget: listWidgetView, me string: mode) <- <%!gtk_list_box_set_selection_mode((GtkListBox *)%1, GTK_SELECTION_SINGLE)%>
+    void: setZStackActive(their GUI_ZStack: stack, me string: childName) <- <%!gtk_stack_set_visible_child_name((GtkStack*)%1, %2.data())%>
+    me void: setLabelWidth(their GUI_Label: labelWidget, me int: width) <- <%!gtk_label_set_width_chars((GtkLabel*)%1, %2)%>
+    me void: setListWidgetSelectionMode(their listWidget: listWidgetView, me string: selectionMode) <- <%!gtk_list_box_set_selection_mode((GtkListBox *)%1, GTK_SELECTION_SINGLE)%>
     me int: getListRowIndex() <- <%!%Ggtk_list_box_row_get_index((GtkListBoxRow *)%1)%>
     their GtkWidget: getListRowSelected(their listWidget: listWidgetView) <- <%!%G(GtkWidget*)gtk_list_box_get_selected_row((GtkListBox *)%1)%>
     me void: setTabLabelText() <- <%!%Ggtk_notebook_set_tab_label_text(GTK_NOTEBOOK(%1), %2, %3)%>
@@ -626,12 +637,12 @@ struct GLOBAL{
         listMgr->handleOnListClick(idx);
     } %>
     void: ListEditorHandleAdd(their GtkWidget: wid, their ListWidgetManager: listMgr) <- {
-        listMgr.handleAdd()
+        listMgr!.handleAdd()
     }
     void: ListEditorHandleDelete(their GtkWidget: wid, their ListWidgetManager: listMgr) <- {
-        listMgr.handleDelete()
+        listMgr!.handleDelete()
     }
     void: ListEditorHandleEdit(their GtkWidget: wid, their ListWidgetManager: listMgr) <- {
-        listMgr.handleEdit()
+        listMgr!.handleEdit()
     }
 }

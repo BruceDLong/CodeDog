@@ -19,9 +19,9 @@ struct GLOBAL {
 
     me int: packUTF8Char(me string: str, their int64: pos, their int32: out) <- {
         me char: chr
-        out <- 0
-        chr <- str[pos]
-        pos <+- 1
+        out! <- 0
+        chr <- str[pos!]
+        pos! <+- 1
         if(chr==0){return(0)}
         me int: remaining <- remainingOctets(chr)
         switch(remaining){
@@ -30,15 +30,15 @@ struct GLOBAL {
             case 3: {chr <&- 0x0F}
         }
         if(remaining>3){return(0)} // Too many bytes.
-        out <deep- chr
+        out! <- chr
         withEach count in range 0 .. remaining {
-            chr <- str[pos]
-            pos <+- 1
+            chr <- str[pos!]
+            pos! <+- 1
             if(chr==0){return(0)}
             if(isutf(chr)){return (0)}  // Invalid utf8 octet
             chr <- chr & 0x3f
-            out <<<- 6
-            out <+- chr
+            out! <<<- 6
+            out! <+- chr
         }
         return(1)
     }

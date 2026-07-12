@@ -657,7 +657,7 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
            # if toFieldOwner == 'const': print "Error: Attempt to extract a parse to const field.\n"; exit(1);
             if CODE_RVAL!="":
                 if LHS_IsPointer:
-                    assignerCode+='        '+CODE_LVAR+' <deep- '+CODE_RVAL+"\n"
+                    assignerCode+='        '+CODE_LVAR+'! <- '+CODE_RVAL+"\n"
                 else: assignerCode+='        '+CODE_LVAR+' <- '+CODE_RVAL+"\n"
             elif finalCodeStr!="": assignerCode+=finalCodeStr.replace("<LVL_SUFFIX>", levelSuffix);
 

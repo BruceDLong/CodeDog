@@ -194,7 +194,7 @@ struct Styler{
     }
     me cdColor: color(me string: ID, me cdColor: defaultColor) <- {
         me userColors.iterator: colorItr <- userColors.find(ID)
-        if(colorItr != userColors.end()){return(colorItr.val)}
+        if(colorItr != userColors.end()){return(colorItr.val!)}
         return(defaultColor)
     }
 

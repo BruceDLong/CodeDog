@@ -374,7 +374,7 @@ struct testClass{
      #'actions/arrowlist':     ['struct testClass{me void: runTest()<-{their int: A <- (4)\n print(A)}}', 'PGBR:NULL'],         # Should throw an error
      #'actions/assignVtheir':  ['struct testClass{me void: runTest()<-{me int:V \n their int: A<-V \n print(A)}}', 'PGBR:NULL'],  # Should throw an error
      'actions/assignpVtheir': ['struct testClass{me void: runTest()<-{their int:: pV<-4  \n their int: A<-pV \n print(A)}}', 'PGBR:4'],
-     'actions/assignConstTheir':  ['struct testClass{me void: runTest()<-{const int: A <- 5 \n their int:: B \n B <deep- A \n print(B)}}', 'PGBR:5'],
+     'actions/assignConstTheir':  ['struct testClass{me void: runTest()<-{const int: A <- 5 \n their int:: B \n B! <- A \n print(B)}}', 'PGBR:5'],
      'actions/theirInits':    ['''
 struct testClass{
     me void: runTest()<-{
@@ -394,7 +394,7 @@ struct testClass{
         //assignConstTheir
         const int: A <- 5
         their int:: B
-        B <deep- A
+        B! <- A
         print(B)
     }
 }''', 'PGBR:45',['actions/assignpVtheir','actions/assignConstTheir']],

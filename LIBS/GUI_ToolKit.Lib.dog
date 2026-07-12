@@ -14,9 +14,9 @@ struct cdColor{
     me uint: blue
     me uint: alpha <- 255
     none: cdColor(their cdColor: rgbPart, me uint: Alpha)<-{
-        red   <- rgbPart.red
-        green <- rgbPart.green
-        blue  <- rgbPart.blue
+        red   <- rgbPart!.red
+        green <- rgbPart!.green
+        blue  <- rgbPart!.blue
         alpha <- Alpha
     }
 }
@@ -91,7 +91,9 @@ struct GLOBAL{
     // Call setwindowMetrics() early in the top level draw() to populate window metrics
     void: setwindowMetrics()<-{windowW <- widgetWidth(drawing_area); windowH <- widgetHeight(drawing_area)}
     me int64: guiMonotonicMillis()
+    me int64: getCurrentTimeStamp()
     our string: getClipboardAsText()
+    me string: toString(me GUI_Scalar: arg)
     me deltaSize: getTextSize(me string: text, their fontSpec: font)
     me deltaSize: getTextSizeX1024(me string: text, their fontSpec: font)
     void: displayBackgroundImage(their GUI_ctxt: cr, me string: filename)
@@ -100,6 +102,8 @@ struct GLOBAL{
     me deltaSize: renderText(their GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y)
     me deltaSize: renderTextCentered(their GUI_ctxt: cr, me string: text, their fontSpec: font, me double: x, me double: y)
     me deltaSize: renderTextRotate(their GUI_ctxt: cr, me string: text, their fontSpec: font, me double: x, me double: y, me double: degrees, me string: justify)
+    me void: rotate(their GUI_ctxt: cr, me double: x, me double: y, me int: degrees)
+    me void: restore(their GUI_ctxt: cr)
     me void: showWidget(me GUI_item: widget)
     me void: hideWidget(their GUI_item: widget)
     me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height)
@@ -201,7 +205,7 @@ struct widget{
     }
 
     me bool: checkForMouseOver(their GUI_MotionEvent: event) <- {
-        me bool: isNowOver <- isTouching(event.x, event.y)
+        me bool: isNowOver <- isTouching(event!.x, event!.y)
         if(!mouseIsOver and isNowOver){
             mouseIsOver <- true
             mouseEnter(event)
@@ -293,7 +297,10 @@ struct GUI{
     me void: setListSelectedIndex(me GUI_item: listWidget, me int: index)
     me int: getListSelectedIndex(me GUI_item: listWidget)
     me string: getListSelectedText(me GUI_item: listWidget)
-  //  me void: setCallback() <- {}
+    me void: setCallback()
+    me void: setBtnCallback()
+    me void: setBtnCallback2()
+    me void: setBtnCallback3()
 }
 struct GUI_ctxt {
     //me void: fetchAreaToBeDrawn(me GUI_rect: area)

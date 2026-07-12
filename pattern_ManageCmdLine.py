@@ -48,16 +48,16 @@ def apply(classes, tags):
             me int: recIdx <- -1
             me int: optRec_key <- 0
             withEach optRec in options{
-                if(optRec.optionID==optionID){
+                if(optRec!.optionID==optionID){
                     recIdx <- optRec_key
                     break()
                 }
                 optRec_key <+- 1
             }
             if(recIdx==-1){return("")}
-            me string: shortName <- options[recIdx].shortName
-            me string: longName  <- options[recIdx].longName
-            me string: defaultTxt   <- options[recIdx].defaultVal
+            me string: shortName <- options[recIdx]!.shortName
+            me string: longName  <- options[recIdx]!.longName
+            me string: defaultTxt   <- options[recIdx]!.defaultVal
             me int: scanPos  <- scanner.pos
             me int: foundPos <- scanner.skipPast(shortName)
             me int: startPos <- scanner.skipWS()
@@ -89,9 +89,9 @@ def apply(classes, tags):
         me string: helpText() <- {
             me string: helpTxt <- "\nOPTIONS:\n"
             withEach optRec in options{
-                me string: defaultVal <- "(default: "+optRec.defaultVal+")"
-                if(optRec.defaultVal=="_REQIRED"){defaultVal <- "REQUIRED"}
-                helpTxt <+- "    "+optRec.shortName+" \t"+alignLeft(optRec.longName, 12)+" "+alignLeft(optRec.helpText, 25)+" \t"+defaultVal+"\n"
+                me string: defaultVal <- "(default: "+optRec!.defaultVal+")"
+                if(optRec!.defaultVal=="_REQIRED"){defaultVal <- "REQUIRED"}
+                helpTxt <+- "    "+optRec!.shortName+" \t"+alignLeft(optRec!.longName, 12)+" "+alignLeft(optRec!.helpText, 25)+" \t"+defaultVal+"\n"
             }
             helpTxt <+- "    -h \t"+alignLeft("--help", 12)+" "+alignLeft("Print this help text", 25)+"\n"
             helpTxt <+- "    -?\t"+alignLeft("--help", 12)+" "+alignLeft("Print this help text", 25)+"\n"

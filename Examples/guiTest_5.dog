@@ -144,7 +144,7 @@ struct APP{
 
         entry_field <- gui.newTextField("Type here")
         gui.setWidgetSize(entry_field, 900, 32)
-        entryHandler.EventDispatcher.registerControlForEventDispatcher(entry_field, entryHandler)
+        entryHandler!.EventDispatcher.registerControlForEventDispatcher(entry_field, entryHandler)
         addToContainer(frame, entry_field)
 
         live_label <- gui.newLabel("Entry changes: 0   text: Type here")
@@ -153,17 +153,17 @@ struct APP{
 
         apply_button <- gui.newButton("Apply Entry")
         gui.setWidgetSize(apply_button, 900, 34)
-        applyHandler.EventDispatcher.registerControlForEventDispatcher(apply_button, applyHandler)
+        applyHandler!.EventDispatcher.registerControlForEventDispatcher(apply_button, applyHandler)
         addToContainer(frame, apply_button)
 
         add_button <- gui.newButton("Add Entry To List")
         gui.setWidgetSize(add_button, 900, 34)
-        addHandler.EventDispatcher.registerControlForEventDispatcher(add_button, addHandler)
+        addHandler!.EventDispatcher.registerControlForEventDispatcher(add_button, addHandler)
         addToContainer(frame, add_button)
 
         clear_button <- gui.newButton("Reset List")
         gui.setWidgetSize(clear_button, 900, 34)
-        clearHandler.EventDispatcher.registerControlForEventDispatcher(clear_button, clearHandler)
+        clearHandler!.EventDispatcher.registerControlForEventDispatcher(clear_button, clearHandler)
         addToContainer(frame, clear_button)
 
         list_box <- gui.newListBox()
@@ -171,7 +171,7 @@ struct APP{
         gui.addListItem(list_box, "Alpha")
         gui.addListItem(list_box, "Beta")
         gui.addListItem(list_box, "Gamma")
-        listHandler.EventDispatcher.registerControlForEventDispatcher(list_box, listHandler)
+        listHandler!.EventDispatcher.registerControlForEventDispatcher(list_box, listHandler)
         addToContainer(frame, list_box)
 
         selection_label <- gui.newLabel("Selection: none")

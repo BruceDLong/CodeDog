@@ -21,25 +21,25 @@ struct dash: inherits=widget{
         extC <- extCursor
     }
     void: addDependent(me string: key, their dash: dashPtr) <- {
-        if(dashPtr.dashParent==NULL){dashPtr.dashParent<-self}
-        dashParent.addDependent(key, dashPtr)
+        if(dashPtr!.dashParent==NULL){dashPtr!.dashParent<-self}
+        dashParent!.addDependent(key, dashPtr)
     }
     their dash: dependentIsRegistered(me string: key) <- {
         if(dashParent==NULL){log("In dash.dependentIsRegistered("+key+") dashParent was NULL")}
-        return(dashParent.dependentIsRegistered(key))
+        return(dashParent!.dependentIsRegistered(key))
     }
     void: requestRedraw() <- {
         if(dashParent==NULL){log("In Dash.requestRedraw() dashParent was NULL")}
-        isDirty<-true; dashParent.requestRedraw()
+        isDirty<-true; dashParent!.requestRedraw()
     }
     void: requestRedrawRect(me GUI_Scalar: x, me GUI_Scalar: y, me GUI_Scalar: w, me GUI_Scalar: h) <- {
         if(dashParent==NULL){log("In Dash.requestRedrawRect() dashParent was NULL")}
-        isDirty<-true; dashParent.requestRedrawRect(x, y, w, h)
+        isDirty<-true; dashParent!.requestRedrawRect(x, y, w, h)
     }
     void: activatePropertyEditor() <- {}
     void: addRelation(me string: relationType, their dash: from, their dash: to) <- {
         if(dashParent==NULL){log("In Dash.addRelation() dashParent was NULL")}
-        dashParent.addRelation(relationType, from, to)
+        dashParent!.addRelation(relationType, from, to)
     }
 
     me bool: mouseMoved(their GUI_MotionEvent: event) <- {
@@ -47,7 +47,7 @@ struct dash: inherits=widget{
         return(true)
     }
 
-    their DashboardWidget: getDashBrdMngr()<-{return(dashParent.getDashBrdMngr())}
+    their DashboardWidget: getDashBrdMngr()<-{return(dashParent!.getDashBrdMngr())}
 }
 
 struct Dashboard: inherits=dash{
@@ -66,22 +66,22 @@ struct Dashboard: inherits=dash{
         return(NULL)
     }
 
-    me void: addChild(our dash: child) <- {child.dashParent<-self; dashChildren.append(child)}
+    me void: addChild(our dash: child) <- {child!.dashParent<-self; dashChildren.append(child)}
 
     void: addDependent(me string: key, their dash: dashPtr) <- {
         if(dependentItems.containsKey(key) == false){
-            dashPtr.isHidden <- true
+            dashPtr!.isHidden <- true
             dependentItems[key] <- dashPtr
         }
     }
 
     me void: addArrow(their dash: from, their dash: to) <- {
-        me GUI_Scalar: fromX    <- from.posX+155
-        me GUI_Scalar: fromY    <- from.posY+12
-        me GUI_Scalar: smallToX <- to.posX
-        me GUI_Scalar: largeToX <- to.posX + to.width
-        me GUI_Scalar: smallToY <- to.posY
-        me GUI_Scalar: largeToY <- to.posY + to.height
+        me GUI_Scalar: fromX    <- from!.posX+155
+        me GUI_Scalar: fromY    <- from!.posY+12
+        me GUI_Scalar: smallToX <- to!.posX
+        me GUI_Scalar: largeToX <- to!.posX + to!.width
+        me GUI_Scalar: smallToY <- to!.posY
+        me GUI_Scalar: largeToY <- to!.posY + to!.height
         our arrow: Arrow {fromX, fromY, intersectPoint(fromX, smallToX, largeToX), intersectPoint(fromY, smallToY, largeToY)}
         decorations.append(Arrow)
     }
@@ -95,22 +95,22 @@ struct Dashboard: inherits=dash{
     void: requestRedraw() <- {
         if(dashParent==NULL){log("In Dashboard.requestRedraw() dashParent was NULL")}
         isDirty<-true;
-        dashParent.requestRedraw()
+        dashParent!.requestRedraw()
     }
     void: requestRedrawRect(me GUI_Scalar: x, me GUI_Scalar: y, me GUI_Scalar: w, me GUI_Scalar: h) <- {
         if(dashParent==NULL){log("In Dashboard.requestRedrawRect() dashParent was NULL")}
         isDirty<-true;
-        dashParent.requestRedrawRect(x, y, w, h)
+        dashParent!.requestRedrawRect(x, y, w, h)
     }
 
     me bool: basePrimaryClick(their GUI_ButtonEvent: event) <- {
-        if(! isTouching(event.x, event.y)){return(false)}
+        if(! isTouching(event!.x, event!.y)){return(false)}
         withEach child in dashChildren{
-            child.primaryClick(event)
+            child!.primaryClick(event)
         }
         withEach Dash in dependentItems{
-            if(! Dash.isHidden){
-                Dash.primaryClick(event)
+            if(! Dash!.isHidden){
+                Dash!.primaryClick(event)
             }
         }
         requestRedraw()
@@ -119,13 +119,13 @@ struct Dashboard: inherits=dash{
     me bool: primaryClick(their GUI_ButtonEvent: event) <- {return(basePrimaryClick(event))}
 
     me bool: baseSecondaryClick(their GUI_ButtonEvent: event) <- {
-        if(! isTouching(event.x, event.y)){return(false)}
+        if(! isTouching(event!.x, event!.y)){return(false)}
         withEach child in dashChildren{
-            child.secondaryClick(event)
+            child!.secondaryClick(event)
         }
         withEach Dash in dependentItems{
-            if(! Dash.isHidden){
-                Dash.secondaryClick(event)
+            if(! Dash!.isHidden){
+                Dash!.secondaryClick(event)
             }
         }
         setPos(15, 15, 35)
@@ -135,13 +135,13 @@ struct Dashboard: inherits=dash{
     me bool: secondaryClick(their GUI_ButtonEvent: event) <- {return(baseSecondaryClick(event))}
 
     me bool: basePrimaryDn(their GUI_ButtonEvent: event) <- {
-        if(! isTouching(event.x, event.y)){return(false)}
+        if(! isTouching(event!.x, event!.y)){return(false)}
         withEach child in dashChildren{
-            child.primaryDn(event)
+            child!.primaryDn(event)
         }
         withEach Dash in dependentItems{
-            if(! Dash.isHidden){
-                Dash.primaryDn(event)
+            if(! Dash!.isHidden){
+                Dash!.primaryDn(event)
             }
         }
         return(true)
@@ -149,13 +149,13 @@ struct Dashboard: inherits=dash{
     me bool: primaryDn(their GUI_ButtonEvent: event) <- {return(basePrimaryDn(event))}
 
     me bool: basePrimaryUp(their GUI_ButtonEvent: event) <- {
-        if(! isTouching(event.x, event.y)){return(false)}
+        if(! isTouching(event!.x, event!.y)){return(false)}
         withEach child in dashChildren{
-            child.primaryUp(event)
+            child!.primaryUp(event)
         }
         withEach Dash in dependentItems{
-            if(! Dash.isHidden){
-                Dash.primaryUp(event)
+            if(! Dash!.isHidden){
+                Dash!.primaryUp(event)
             }
         }
         return(true)
@@ -165,11 +165,11 @@ struct Dashboard: inherits=dash{
     me bool: mouseMovedBase(their GUI_MotionEvent: event) <- {
         if(!checkForMouseOver(event)){return(false)}
         withEach child in dashChildren{
-            child.mouseMoved(event)
+            child!.mouseMoved(event)
         }
         withEach Dash in dependentItems{
-            if(! Dash.isHidden){
-                Dash.mouseMoved(event)
+            if(! Dash!.isHidden){
+                Dash!.mouseMoved(event)
             }
         }
         return(true)
@@ -198,20 +198,20 @@ struct Dashboard: inherits=dash{
         width <- 10
         height <- 10
         withEach Dash in dependentItems{
-            Dash.isHidden<-true
-            Dash.posIsSet<-false
+            Dash!.isHidden<-true
+            Dash!.posIsSet<-false
         }
         withEach child in dashChildren{
             extY <- YCursor+25
-            child.setPos(x, YCursor, extY)
-            width<-max(width, child.extX)
-            height<-max(height, child.height+YCursor)
-            YCursor <- child.extY + 30
+            child!.setPos(x, YCursor, extY)
+            width<-max(width, child!.extX)
+            height<-max(height, child!.height+YCursor)
+            YCursor <- child!.extY + 30
         }
         withEach depDash in dependentItems{
-            if(!depDash.isHidden){
-                width<-max(width, depDash.extX)
-                height<-max(height, depDash.extY)
+            if(!depDash!.isHidden){
+                width<-max(width, depDash!.extX)
+                height<-max(height, depDash!.extY)
             }
         }
         width <- width +30
@@ -223,14 +223,14 @@ struct Dashboard: inherits=dash{
         me GUI_Scalar: horizontalOffset <- 0
         if(sizingMode==accomodateContent){}
         if(layoutMode==singleDash){
-            dashChildren[0].width <- width
-            dashChildren[0].height <- height
+            dashChildren[0]!.width <- width
+            dashChildren[0]!.height <- height
         }else if(layoutMode==verticalStack){
             verticalOffset <- 15
             withEach childDash in dashChildren{
-                childDash.setPos(15, verticalOffset, 0)
-                verticalOffset <- childDash.extY+ 10
-                horizontalOffset <- max(horizontalOffset, childDash.extX)
+                childDash!.setPos(15, verticalOffset, 0)
+                verticalOffset <- childDash!.extY+ 10
+                horizontalOffset <- max(horizontalOffset, childDash!.extX)
             }
         }else if(layoutMode==userArranges){
         }
@@ -239,8 +239,8 @@ struct Dashboard: inherits=dash{
     void: baseDraw(their GUI_ctxt: cr) <- {
         if (isHidden){return()}
         layoutChildDashes()
-        me cdColor: bkCol <- styler.bkGndColor
-        me cdColor: fgCol <- styler.frGndColor
+        me cdColor: bkCol <- styler!.bkGndColor
+        me cdColor: fgCol <- styler!.frGndColor
         if(bgImageFilename!=""){
             displayBackgroundImage(cr, bgImageFilename)
         } else {
@@ -251,15 +251,15 @@ struct Dashboard: inherits=dash{
         cr.setLineWidth(2)
         withEach childDash in dashChildren{
             cr.setColor(fgCol)
-            childDash.draw(cr)
+            childDash!.draw(cr)
         }
         withEach depDash in dependentItems{
-            if(!depDash.isHidden){
-                depDash.draw(cr)
+            if(!depDash!.isHidden){
+                depDash!.draw(cr)
             }
         }
         withEach decoration in decorations{
-            decoration.draw(cr)
+            decoration!.draw(cr)
         }
     }
     void: draw(their GUI_ctxt: cr) <- {baseDraw(cr)}
@@ -287,8 +287,8 @@ struct dataField: inherits=dash{
 
     void: draw(their GUI_ctxt: cr) <- {
         if (isHidden){return()}
-        renderText(cr, label, styler.smallFont, posX, posY+15)
-        renderText(cr, value, styler.smallFont, posX+midPos, posY+15)
+        renderText(cr, label, styler!.smallFont!, posX, posY+15)
+        renderText(cr, value, styler!.smallFont!, posX+midPos, posY+15)
     }
 }
 
@@ -313,15 +313,15 @@ struct ptrToItem: inherits=dash{
         height <- header.height
         width <- header.width
         dashPtr <- dependentIsRegistered(symbol)
-        if((!refHidden) and dashPtr!=NULL and dashPtr.isHidden){
-            dashPtr.isHidden<-false
+        if((!refHidden) and dashPtr!=NULL and dashPtr!.isHidden){
+            dashPtr!.isHidden<-false
         }
         extX <- posX+width
         extY <- posY+height
     }
 
     me bool: primaryClick(their GUI_ButtonEvent: event) <- {
-        if(!isTouching(event.x, event.y)){return(false)}
+        if(!isTouching(event!.x, event!.y)){return(false)}
         if(refHidden){refHidden<-false}
         else {refHidden<-true}
         return(true)
@@ -401,8 +401,8 @@ struct listOfItems: inherits=dash{
     }
 
    me bool: primaryClick(their GUI_ButtonEvent: event) <- {
-        me GUI_Scalar: eventX <- event.x
-        me GUI_Scalar: eventY <- event.y
+        me GUI_Scalar: eventX <- event!.x
+        me GUI_Scalar: eventY <- event!.y
         if( header.isTouching(eventX, eventY)){
             if(displayMode==headerOnly){displayMode <- fullDisplay; orientation <- vertical}
             else if(displayMode==fullDisplay and orientation==vertical){
@@ -607,23 +607,23 @@ struct DashboardWidget: inherits=Dashboard{
         return(managedWidget)
     }
     me bool: mouseMoved(their GUI_MotionEvent: event) <- {
-        if(showModalPopUp){return(popUp.mouseMoved(event))}
+        if(showModalPopUp){return(popUp!.mouseMoved(event))}
         return(mouseMovedBase(event))
     }
     me bool: primaryClick(their GUI_ButtonEvent: event) <- {
-        if(showModalPopUp){return(popUp.primaryClick(event))}
+        if(showModalPopUp){return(popUp!.primaryClick(event))}
         return(basePrimaryClick(event))
     }
     me bool: secondaryClick(their GUI_ButtonEvent: event) <- {
-        if(showModalPopUp){return(popUp.secondaryClick(event))}
+        if(showModalPopUp){return(popUp!.secondaryClick(event))}
         return(baseSecondaryClick(event))
     }
     me bool: primaryUp(their GUI_ButtonEvent: event) <- {
-        if(showModalPopUp){return(popUp.primaryUp(event))}
+        if(showModalPopUp){return(popUp!.primaryUp(event))}
         return(basePrimaryUp(event))
     }
     me bool: primaryDn(their GUI_ButtonEvent: event) <- {
-        if(showModalPopUp){return(popUp.primaryDn(event))}
+        if(showModalPopUp){return(popUp!.primaryDn(event))}
         return(basePrimaryDn(event))
     }
     void: activateModalPopup(our Dashboard: popupToShow)<-{

@@ -1107,6 +1107,10 @@ class CodeGenerator(object):
         mode = self.explicitDerefMode()
         return mode in ('warn', 'warning', 'audit', 'strict')
 
+    def explicitDerefErrorsEnabled(self):
+        mode = self.explicitDerefMode()
+        return mode in ('strict', 'error', 'errors')
+
     def typeNeedsExplicitDeref(self, tSpec):
         if not isinstance(tSpec, dict): return False
         if tSpec.get('explicitDerefed'): return False
@@ -1133,9 +1137,11 @@ class CodeGenerator(object):
         owner = progSpec.getOwner(tSpec)
         fType = progSpec.fieldTypeKeyword(tSpec)
         if suggestion == None: suggestion = str(expr) + '!'
-        message = "WARNING: implicit dereference of {} {} '{}' in {}{}; use '{}'.".format(
+        messageBody = "implicit dereference of {} {} '{}' in {}{}; use '{}'.".format(
             owner, fType, expr, context, self.explicitDerefWarningLocation(), suggestion
         )
+        cdErr(messageBody[0].upper() + messageBody[1:])
+        message = "WARNING: " + messageBody
         if not hasattr(self, 'explicitDerefWarningCache'):
             self.explicitDerefWarningCache = set()
         if message in self.explicitDerefWarningCache: return
@@ -1143,19 +1149,32 @@ class CodeGenerator(object):
         print(message)
 
     def warnImplicitBarePointerCondition(self, expr, tSpec, context):
+        return
+
+    def explicitDerefReplacementExpr(self, expr, tSpec):
+        if self.typeNeedsExplicitDeref(tSpec):
+            return str(expr) + '!'
+        return str(expr)
+
+    def warnDeprecatedDeepAssignment(self, LHS, lhsTypeSpec, RHS, rhsTypeSpec):
         if not self.explicitDerefWarningsEnabled(): return
-        if not self.typeNeedsExplicitDeref(tSpec): return
-        owner = progSpec.getOwner(tSpec)
-        fType = progSpec.fieldTypeKeyword(tSpec)
-        message = (
-            "WARNING: bare {} {} '{}' used as {}{}; use '{} != NULL' for a handle check "
-            "or '{}!' for referent truth."
-        ).format(owner, fType, expr, context, self.explicitDerefWarningLocation(), expr, expr)
+        lhsReplacement = self.explicitDerefReplacementExpr(LHS, lhsTypeSpec)
+        rhsReplacement = self.explicitDerefReplacementExpr(RHS, rhsTypeSpec)
+        messageBody = "deprecated '<deep-' assignment{}; use '{} <- {}'.".format(
+            self.explicitDerefWarningLocation(), lhsReplacement, rhsReplacement
+        )
+        message = "WARNING: " + messageBody
         if not hasattr(self, 'explicitDerefWarningCache'):
             self.explicitDerefWarningCache = set()
         if message in self.explicitDerefWarningCache: return
         self.explicitDerefWarningCache.add(message)
         print(message)
+
+    def assignmentAllowsImplicitRhsDeref(self, lhsTypeSpec, rhsTypeSpec, assignTag):
+        if not isinstance(assignTag, str): assignTag = assignTag[0]
+        if assignTag != '': return False
+        if not isinstance(lhsTypeSpec, dict) or not isinstance(rhsTypeSpec, dict): return False
+        return progSpec.getOwner(lhsTypeSpec) == 'me' and self.typeNeedsExplicitDeref(rhsTypeSpec)
 
     def warnImplicitDerefForAssignment(self, LHS, lhsTypeSpec, RHS, rhsTypeSpec, assignTag):
         if not self.explicitDerefWarningsEnabled(): return
@@ -1165,15 +1184,13 @@ class CodeGenerator(object):
         lhsOwner = progSpec.getOwner(lhsTypeSpec) if isinstance(lhsTypeSpec, dict) else None
         rhsOwner = progSpec.getOwner(rhsTypeSpec) if isinstance(rhsTypeSpec, dict) else None
 
-        if rhsNeeds and lhsOwner == 'me':
+        if assignTag == 'deep':
+            self.warnDeprecatedDeepAssignment(LHS, lhsTypeSpec, RHS, rhsTypeSpec)
+            return
+        if rhsNeeds and lhsOwner == 'me' and not self.assignmentAllowsImplicitRhsDeref(lhsTypeSpec, rhsTypeSpec, assignTag):
             self.warnImplicitDeref(RHS, rhsTypeSpec, "assignment to a me value", RHS + '!')
         if lhsNeeds and rhsOwner in ('me', 'literal', 'const'):
             self.warnImplicitDeref(LHS, lhsTypeSpec, "assignment through a pointer-owned LHS", LHS + '!')
-        if assignTag == 'deep':
-            if lhsNeeds:
-                self.warnImplicitDeref(LHS, lhsTypeSpec, "deep assignment LHS", LHS + '!')
-            if rhsNeeds:
-                self.warnImplicitDeref(RHS, rhsTypeSpec, "deep assignment RHS", RHS + '!')
 
     def warnImplicitDerefForArg(self, expr, argTSpec, modelTSpec, argIndex, name):
         if not self.explicitDerefWarningsEnabled(): return
@@ -1183,6 +1200,10 @@ class CodeGenerator(object):
         if modelOwner == 'me':
             callName = name if name else "function call"
             self.warnImplicitDeref(expr, argTSpec, "argument {} to {}".format(argIndex + 1, callName), expr + '!')
+
+    def codeBoolContextOperand(self, expr, tSpec):
+        [expr, tSpec] = self.xlator.adjustConditional(expr, tSpec)
+        return [expr, {'owner': 'me', 'fieldType': 'bool'}]
 
     def codeExplicitDerefSeg(self, tSpecIn):
         if tSpecIn==None or tSpecIn==0 or isinstance(tSpecIn, str) or 'dummyType' in tSpecIn:
@@ -1232,7 +1253,7 @@ class CodeGenerator(object):
             if self.typeNeedsExplicitDeref(tSpecIn):
                 baseExpr = previousSegName if previousSegName else '<container>'
                 indexText = name if isinstance(name, str) else '[...]'
-                self.warnImplicitDeref(baseExpr, tSpecIn, "index access", baseExpr + '!' + indexText)
+                self.warnImplicitDeref(baseExpr, tSpecIn, "index access", str(baseExpr) + '!' + str(indexText))
             idxTSpec = self.xlator.getIdxType(tSpecIn)
             [valOwner, valFType] = self.getContainerValueOwnerAndType(tSpecIn)
             tSpecOut = {'owner':valOwner, 'fieldType': valFType}
@@ -1262,7 +1283,7 @@ class CodeGenerator(object):
                 if self.typeNeedsExplicitDeref(tSpecIn):
                     baseExpr = previousSegName if previousSegName else '<string>'
                     indexText = name if isinstance(name, str) else '[...]'
-                    self.warnImplicitDeref(baseExpr, tSpecIn, "string index access", baseExpr + '!' + indexText)
+                    self.warnImplicitDeref(baseExpr, tSpecIn, "string index access", str(baseExpr) + '!' + str(indexText))
                 tSpecOut={'owner':'me', 'fieldType': 'char'}
                 [S2, idxTypeSpec] = self.codeExpr(name[1], None, None, 'RVAL', genericArgs)
                 S += self.xlator.codeArrayIndex(S2, 'string', LorR_Val, previousSegName, idxTypeSpec)
@@ -1296,17 +1317,6 @@ class CodeGenerator(object):
             name = convertedName
             callAsGlobal=name.find("%G")
             if(callAsGlobal >= 0): namePrefix=''
-
-        if (
-            not hasCodeConverter
-            and not ('dummyType' in tSpecIn)
-            and isinstance(name, str)
-            and len(name) > 0
-            and name[0] != '['
-            and self.typeNeedsExplicitDeref(tSpecIn)
-        ):
-            baseExpr = previousSegName if previousSegName else '<object>'
-            self.warnImplicitDeref(baseExpr, tSpecIn, "member access", baseExpr + '!.' + name)
 
         S+=namePrefix+connector+name
 
@@ -1695,15 +1705,11 @@ class CodeGenerator(object):
     def codeLogicalAnd(self, item, returnType, expectedTypeSpec, LorRorP_Val, genericArgs):
         [S, retTypeSpec] = self.codeBitwiseOr(item[0], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
         if len(item) > 1 and len(item[1])>0:
-            self.warnImplicitDeref(S, retTypeSpec, "logical-and expression", S + '!')
-            [S, isDerefd]=self.xlator.derefPtr(S, retTypeSpec)
+            [S, retTypeSpec] = self.codeBoolContextOperand(S, retTypeSpec)
             for i in item[1]:
                 if (i[0] == 'and'):
-                    S = self.xlator.checkForTypeCastNeed('bool', retTypeSpec, S)
                     [S2, retType2] = self.codeBitwiseOr(i[1], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
-                    S2 = self.xlator.checkForTypeCastNeed('bool', retType2, S2)
-                    self.warnImplicitDeref(S2, retType2, "logical-and expression", S2 + '!')
-                    [S2, isDerefd]=self.xlator.derefPtr(S2, retType2)
+                    [S2, retType2] = self.codeBoolContextOperand(S2, retType2)
                     S+=' && ' + S2
                 else: cdErr("'and' expected in code generator.")
                 retTypeSpec = {'owner': 'me', 'fieldType': 'bool'}
@@ -1712,15 +1718,11 @@ class CodeGenerator(object):
     def codeLogicalOr(self, item, returnType, expectedTypeSpec, LorRorP_Val, genericArgs):
         [S, retTypeSpec] = self.codeLogicalAnd(item[0], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
         if len(item) > 1 and len(item[1])>0:
-            self.warnImplicitDeref(S, retTypeSpec, "logical-or expression", S + '!')
-            [S, isDerefd]=self.xlator.derefPtr(S, retTypeSpec)
+            [S, retTypeSpec] = self.codeBoolContextOperand(S, retTypeSpec)
             for i in item[1]:
                 if (i[0] == 'or'):
-                    S = self.xlator.checkForTypeCastNeed('bool', retTypeSpec, S)
                     [S2, retType2] = self.codeLogicalAnd(i[1], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
-                    self.warnImplicitDeref(S2, retType2, "logical-or expression", S2 + '!')
-                    [S2, isDerefd]=self.xlator.derefPtr(S2, retType2)
-                    S2 = self.xlator.checkForTypeCastNeed('bool', retType2, S2)
+                    [S2, retType2] = self.codeBoolContextOperand(S2, retType2)
                     S+=' || ' + S2
                 else: cdErr("'or' expected in code generator.")
                 retTypeSpec = {'owner': 'me', 'fieldType': 'bool'}

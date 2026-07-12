@@ -25,7 +25,7 @@ def apply(classes, tags, proxyStyle, className, funcName, platformTag):
     funcSpec       = getFieldSpec(funcName, structRef)
     typeSpec       = funcSpec['typeSpec']
     fieldOwner     = typeSpec['owner']
-    argList        = typeSpec['argList']
+    argList        = typeSpec.get('argList', [])
     fieldType      = typeSpec['fieldType']
     if className[0] == '%': className = className[1:]
     callbackName   = className+'_'+funcName+'_CB'
@@ -94,7 +94,7 @@ struct '''+bundleName+''': implements=Runnable{
         CODE =  '''
 struct GLOBAL {
     void: '''+callbackName+'''(their GtkWidget: wid, their '''+className+''': _obj) <- {
-       _obj.'''+funcName+'''()
+       _obj!.'''+funcName+'''()
     }
 }\n'''
 
@@ -107,7 +107,7 @@ struct GLOBAL {
         CODE =  '''
 struct GLOBAL {
     void: '''+callbackName+'''(their GtkWidget: wid, their GdkEvent: event, their '''+className+''': _obj) <- {
-       _obj.'''+funcName+'''()
+       _obj!.'''+funcName+'''()
     }
 }\n'''
 
@@ -117,4 +117,3 @@ struct GLOBAL {
     elif platformTag == "IOS" or platformTag == "MacOS": pass
     else: print("###ERROR: unknown proxyStyle & Platform: ", proxyStyle, platformTag); exit(1)
     #print '==========================================================\n'+CODE
-
