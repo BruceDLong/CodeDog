@@ -9,6 +9,7 @@ from codeGenerator import CodeGenerator
 class Xlator_Java(Xlator):
     codeGen               = CodeGenerator()
     LanguageName          = "Java"
+    supportsBareExplicitDerefLValue = False
     BuildStrPrefix        = "Javac "
     fileExtension         = ".java"
     typeForCounterInt     = "int"
@@ -435,6 +436,9 @@ class Xlator_Java(Xlator):
         [leftMod, rightMod, isDerefd] = self.getTheDerefPtrMods(itemTypeSpec)
         S = leftMod + varRef + rightMod
         return [S, isDerefd]
+
+    def codeExplicitDeref(self, varRef, itemTypeSpec):
+        return varRef
 
     def ChoosePtrDecorationForSimpleCase(self, owner):
         #print("TODO: finish ChoosePtrDecorationForSimpleCase")

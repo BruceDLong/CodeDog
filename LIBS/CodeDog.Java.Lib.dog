@@ -48,7 +48,7 @@ struct GLOBAL{
     me string: trimWS(their string: str) <- {
         trimLeftWS(str);
         trimRightWS(str)
-        return(str)
+        return(str!)
     }
     me bool: doesFileExist(me string: filePath)<- <%{
         File f = new File(filePath);

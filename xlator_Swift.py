@@ -390,6 +390,9 @@ class Xlator_Swift(Xlator):
         S = leftMod + varRef + rightMod
         return [S, isDerefd]
 
+    def codeExplicitDeref(self, varRef, itemTypeSpec):
+        return varRef + "!"
+
     def ChoosePtrDecorationForSimpleCase(self, owner):
         if(owner=='our' or owner=='my' or owner=='their'):
             # OPTIONALS

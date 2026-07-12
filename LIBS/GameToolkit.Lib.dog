@@ -161,15 +161,15 @@ struct GameMode{
     void: init(our GameLooper: ourLooper) <- {looper <- ourLooper}
     void: deInit() <- {}
     void: userEventHandler(their GameEvent: event) <- {
-        switch(event.user.code){
+        switch(event!.user.code){
             case 0:{}
         }
     }
     void: windowEventHandler(their GameEvent: event) <- {
-        switch (event.window.event) {
+        switch (event!.window.event) {
             case WINDOWEVENT_MOVED:{}
             case WINDOWEVENT_SIZE_CHANGED:{
-                resetWindowSize(event.window.data1, event.window.data2)
+                resetWindowSize(event!.window.data1, event!.window.data2)
                 window.requestRedraw()
             }
             case WINDOWEVENT_MINIMIZED:{}    // Stop rendering
@@ -183,7 +183,7 @@ struct GameMode{
         }
     }
     void: keyDownEventHandler(their KeyInfo: event) <- {
-        switch (event.sym){
+        switch (event!.sym){
             case KEY_SPACE:{}
             case KEY_a:{}
             case KEY_z:{}
@@ -204,18 +204,18 @@ struct GameMode{
     void: mouseMotionEventHandler(their MouseMotionEvent: event) <- {
     }
     void: mouseButtonDownEventHandler(their MouseButtonEvent: event) <- {
-        me int: mouseX <- event.x
-        me int: mouseY <- event.y
-        switch (event.type){
+        me int: mouseX <- event!.x
+        me int: mouseY <- event!.y
+        switch (event!.type){
             case BUTTON_LEFT:{}
             case BUTTON_MIDDLE:{}
             case BUTTON_RIGHT:{}
         }
     }
     void: mouseButtonUpEventHandler(their MouseButtonEvent: event) <- {
-        me int: mouseX <- event.x
-        me int: mouseY <- event.y
-        switch (event.type){
+        me int: mouseX <- event!.x
+        me int: mouseY <- event!.y
+        switch (event!.type){
             case BUTTON_LEFT:{}
             case BUTTON_MIDDLE:{}
             case BUTTON_RIGHT:{}
@@ -224,10 +224,10 @@ struct GameMode{
     void: mouseWheelEventHandler(their MouseWheelEvent: event) <- {
     }
     void: quitEventHandler() <- {
-        looper.quitGame()
+        looper!.quitGame()
     }
     void: handleEvent(their GameEvent: event) <- {
-        switch(event.type){
+        switch(event!.type){
             case USEREVENT:{
                 userEventHandler(event)
             }
@@ -235,22 +235,22 @@ struct GameMode{
                 windowEventHandler(event)
             }
             case KEYDOWN:{
-                keyDownEventHandler(event.key.keysym)
+                keyDownEventHandler(event!.key.keysym)
             }
             case KEYUP:{
-                keyUpEventHandler(event.key.keysym)
+                keyUpEventHandler(event!.key.keysym)
             }
             case MOUSEMOTION:{
-                mouseMotionEventHandler(event.motion)
+                mouseMotionEventHandler(event!.motion)
             }
             case MOUSEBUTTONDOWN:{
-                mouseButtonDownEventHandler(event.button)
+                mouseButtonDownEventHandler(event!.button)
             }
             case MOUSEBUTTONUP:{
-                mouseButtonUpEventHandler(event.button)
+                mouseButtonUpEventHandler(event!.button)
             }
             case MOUSEWHEEL:{
-                mouseWheelEventHandler(event.wheel)
+                mouseWheelEventHandler(event!.wheel)
             }
             case QUIT:{
                 quitEventHandler()
@@ -291,7 +291,7 @@ struct GameLooper{
     void: handleEvents() <- {
         their GameEvent:: event
         while(PollForEvent(event)){
-            crntGameMode.handleEvent(event);
+            crntGameMode!.handleEvent(event);
         }
     }
     void: outputFPS() <- {
@@ -306,9 +306,9 @@ struct GameLooper{
     void: runNoWait() <- {
         while(running){
             handleEvents()
-            crntGameMode.update()
+            crntGameMode!.update()
             their GUI_ctxt: cr  <- createGUI_ctxt()
-            crntGameMode.draw(cr, 0)
+            crntGameMode!.draw(cr, 0)
             sleep(1)  // With no sleep CPU will go to 100%
         }
     }
@@ -319,10 +319,10 @@ struct GameLooper{
 
         while(running){
             handleEvents()
-            crntGameMode.update()
+            crntGameMode!.update()
             their GUI_ctxt: cr  <- createGUI_ctxt()
             framesDrawnCount <+- 1
-            crntGameMode.draw(cr, 0)
+            crntGameMode!.draw(cr, 0)
             nextTick <+- ticksToSkip
             timeToSleep <- nextTick - getTickCount()
             if (printFPS) {outputFPS()}
@@ -340,13 +340,13 @@ struct GameLooper{
             loops <- 0
             while(getTickCount() >= nextTick and loops < MAX_FRAMESKIP){
                 handleEvents()
-                crntGameMode.update()
+                crntGameMode!.update()
                 nextTick <- nextTick + ticksToSkip
                 loops <+- 1
             }
             their GUI_ctxt: cr  <- createGUI_ctxt()
             framesDrawnCount <+- 1
-            crntGameMode.draw(cr, 0)
+            crntGameMode!.draw(cr, 0)
             if (printFPS) {outputFPS()}
         }
     }
@@ -361,14 +361,14 @@ struct GameLooper{
             loops <- 0
             while(getTickCount() >= nextTick and loops < MAX_FRAMESKIP){
                 handleEvents()
-                crntGameMode.update()
+                crntGameMode!.update()
                 nextTick <- nextTick + ticksToSkip
                 loops <- loops + 1
             }
             interpolation <- (getTickCount() + ticksToSkip - nextTick) / ticksToSkip
             their GUI_ctxt: cr  <- createGUI_ctxt()
             framesDrawnCount <+- 1
-            crntGameMode.draw(cr, interpolation)
+            crntGameMode!.draw(cr, interpolation)
             if (printFPS) {outputFPS()}
         }
     }
@@ -390,9 +390,9 @@ struct cdColor{
     me uint: blue
     me uint: alpha <- 255
     none: cdColor(their cdColor: rgbPart, me uint: Alpha)<-{
-        red   <- rgbPart.red
-        green <- rgbPart.green
-        blue  <- rgbPart.blue
+        red   <- rgbPart!.red
+        green <- rgbPart!.green
+        blue  <- rgbPart!.blue
         alpha <- Alpha
     }
 }

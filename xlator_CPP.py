@@ -588,6 +588,16 @@ class Xlator_CPP(Xlator):
         S = leftMod + varRef + rightMod
         return [S, isDerefd]
 
+    def codeExplicitDeref(self, varRef, tSpec):
+        return "(*" + varRef + ")"
+
+    def codeExplicitDerefMemberAccess(self, derefExpr, memberSeg):
+        if not memberSeg.startswith('.'):
+            return None
+        if not derefExpr.startswith('(*') or not derefExpr.endswith(')'):
+            return None
+        return derefExpr[2:-1] + "->" + memberSeg[1:]
+
     def ChoosePtrDecorationForSimpleCase(self, owner):
         if(owner=='our' or owner=='my' or owner=='their'):
             return ['','->',  '(*', ')']

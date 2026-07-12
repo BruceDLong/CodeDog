@@ -1090,6 +1090,111 @@ class CodeGenerator(object):
         elif commentType=='//^': return indent + '// ' + commentStr
         else: cdErr("unknown comment type: "+ commentType)
     ################################  C o d e   E x p r e s s i o n s
+
+    def explicitDerefMode(self):
+        envMode = os.environ.get('CODEDOG_EXPLICIT_DEREF') or os.environ.get('CODEDOG_EXPLICIT_DEREF_MODE')
+        if envMode: return str(envMode).strip().lower()
+        tagStores = []
+        if getattr(self, 'tagStore', None) != None: tagStores.append(self.tagStore)
+        if getattr(self, 'buildTags', None) != None: tagStores.append(self.buildTags)
+        mode = progSpec.fetchTagValue(tagStores, 'ExplicitDeref') if tagStores else None
+        if mode == None:
+            mode = progSpec.fetchTagValue(tagStores, 'explicitDeref') if tagStores else None
+        if mode == None: return ''
+        return str(mode).strip().lower()
+
+    def explicitDerefWarningsEnabled(self):
+        mode = self.explicitDerefMode()
+        return mode in ('warn', 'warning', 'audit', 'strict')
+
+    def typeNeedsExplicitDeref(self, tSpec):
+        if not isinstance(tSpec, dict): return False
+        if tSpec.get('explicitDerefed'): return False
+        return progSpec.getOwner(tSpec) in ('our', 'their')
+
+    def isNullLiteralExpr(self, expr, tSpec):
+        if expr == 'NULL': return True
+        if isinstance(tSpec, dict):
+            return progSpec.getOwner(tSpec) == 'PTR'
+        return False
+
+    def explicitDerefWarningLocation(self):
+        parts = []
+        if getattr(self, 'currentObjName', ''):
+            parts.append("object " + self.currentObjName)
+        if getattr(self, 'currentDefinitionLibName', None):
+            parts.append("library " + str(self.currentDefinitionLibName))
+        if not parts: return ""
+        return " while generating " + ", ".join(parts)
+
+    def warnImplicitDeref(self, expr, tSpec, context, suggestion=None):
+        if not self.explicitDerefWarningsEnabled(): return
+        if not self.typeNeedsExplicitDeref(tSpec): return
+        owner = progSpec.getOwner(tSpec)
+        fType = progSpec.fieldTypeKeyword(tSpec)
+        if suggestion == None: suggestion = str(expr) + '!'
+        message = "WARNING: implicit dereference of {} {} '{}' in {}{}; use '{}'.".format(
+            owner, fType, expr, context, self.explicitDerefWarningLocation(), suggestion
+        )
+        if not hasattr(self, 'explicitDerefWarningCache'):
+            self.explicitDerefWarningCache = set()
+        if message in self.explicitDerefWarningCache: return
+        self.explicitDerefWarningCache.add(message)
+        print(message)
+
+    def warnImplicitBarePointerCondition(self, expr, tSpec, context):
+        if not self.explicitDerefWarningsEnabled(): return
+        if not self.typeNeedsExplicitDeref(tSpec): return
+        owner = progSpec.getOwner(tSpec)
+        fType = progSpec.fieldTypeKeyword(tSpec)
+        message = (
+            "WARNING: bare {} {} '{}' used as {}{}; use '{} != NULL' for a handle check "
+            "or '{}!' for referent truth."
+        ).format(owner, fType, expr, context, self.explicitDerefWarningLocation(), expr, expr)
+        if not hasattr(self, 'explicitDerefWarningCache'):
+            self.explicitDerefWarningCache = set()
+        if message in self.explicitDerefWarningCache: return
+        self.explicitDerefWarningCache.add(message)
+        print(message)
+
+    def warnImplicitDerefForAssignment(self, LHS, lhsTypeSpec, RHS, rhsTypeSpec, assignTag):
+        if not self.explicitDerefWarningsEnabled(): return
+        if not isinstance(assignTag, str): assignTag = assignTag[0]
+        lhsNeeds = self.typeNeedsExplicitDeref(lhsTypeSpec)
+        rhsNeeds = self.typeNeedsExplicitDeref(rhsTypeSpec)
+        lhsOwner = progSpec.getOwner(lhsTypeSpec) if isinstance(lhsTypeSpec, dict) else None
+        rhsOwner = progSpec.getOwner(rhsTypeSpec) if isinstance(rhsTypeSpec, dict) else None
+
+        if rhsNeeds and lhsOwner == 'me':
+            self.warnImplicitDeref(RHS, rhsTypeSpec, "assignment to a me value", RHS + '!')
+        if lhsNeeds and rhsOwner in ('me', 'literal', 'const'):
+            self.warnImplicitDeref(LHS, lhsTypeSpec, "assignment through a pointer-owned LHS", LHS + '!')
+        if assignTag == 'deep':
+            if lhsNeeds:
+                self.warnImplicitDeref(LHS, lhsTypeSpec, "deep assignment LHS", LHS + '!')
+            if rhsNeeds:
+                self.warnImplicitDeref(RHS, rhsTypeSpec, "deep assignment RHS", RHS + '!')
+
+    def warnImplicitDerefForArg(self, expr, argTSpec, modelTSpec, argIndex, name):
+        if not self.explicitDerefWarningsEnabled(): return
+        if not self.typeNeedsExplicitDeref(argTSpec): return
+        if not isinstance(modelTSpec, dict): return
+        modelOwner = progSpec.getOwner(modelTSpec)
+        if modelOwner == 'me':
+            callName = name if name else "function call"
+            self.warnImplicitDeref(expr, argTSpec, "argument {} to {}".format(argIndex + 1, callName), expr + '!')
+
+    def codeExplicitDerefSeg(self, tSpecIn):
+        if tSpecIn==None or tSpecIn==0 or isinstance(tSpecIn, str) or 'dummyType' in tSpecIn:
+            cdErr("Cannot explicitly dereference an unresolved expression.")
+        owner = progSpec.getOwner(tSpecIn)
+        if owner!='our' and owner!='their':
+            cdErr("Explicit dereference '!' requires an 'our' or 'their' value, not '{}'.".format(owner))
+        tSpecOut = self.copyTypeSpec(tSpecIn)
+        tSpecOut['owner'] = 'me'
+        tSpecOut['explicitDerefed'] = True
+        return [self.xlator.codeExplicitDeref('%0', tSpecIn), tSpecOut, None, '']
+
     def codeNameSeg(self, segSpec, tSpecIn, connector, LorR_Val, previousSegName, previousTypeSpec, returnType, LorRorP_Val, genericArgs):
         # if tSpecIn has 'dummyType', this is a non-member (or self) and the first segment of the reference.
         # return example: ['getData()', <typeSpec>, <alternate form>, 'OBJVAR']
@@ -1098,8 +1203,11 @@ class CodeGenerator(object):
         namePrefix = ''  # For static_Global vars
         tSpecOut   = {'owner':'', 'fieldType':'void'}
         name       = segSpec[0]
+        hasCodeConverter = False
         if isinstance(name, (ParseResults, list, tuple)) and len(name) == 1 and isinstance(name[0], str):
             name = name[0]
+        if name == '!':
+            return self.codeExplicitDerefSeg(tSpecIn)
         owner      = progSpec.getOwner(tSpecIn)
         fTypeKW    = progSpec.fieldTypeKeyword(tSpecIn)
         progSpec.isOldContainerTempFuncErr(tSpecIn, 'codeNameSeg1 '+self.currentObjName+' ' +str(name))
@@ -1121,6 +1229,10 @@ class CodeGenerator(object):
                 tSpecOut = copy.copy(tmpTypeSpec)
 
         if isCtnr and name[0]=='[':
+            if self.typeNeedsExplicitDeref(tSpecIn):
+                baseExpr = previousSegName if previousSegName else '<container>'
+                indexText = name if isinstance(name, str) else '[...]'
+                self.warnImplicitDeref(baseExpr, tSpecIn, "index access", baseExpr + '!' + indexText)
             idxTSpec = self.xlator.getIdxType(tSpecIn)
             [valOwner, valFType] = self.getContainerValueOwnerAndType(tSpecIn)
             tSpecOut = {'owner':valOwner, 'fieldType': valFType}
@@ -1147,6 +1259,10 @@ class CodeGenerator(object):
                 tSpecOut={'owner':'me', 'fieldType': 'void', 'codeConverter':'flags=0'}
                 # TODO: if flags or modes have a non-zero default this should account for that.
             elif(name[0]=='[' and fTypeKW=='string'):
+                if self.typeNeedsExplicitDeref(tSpecIn):
+                    baseExpr = previousSegName if previousSegName else '<string>'
+                    indexText = name if isinstance(name, str) else '[...]'
+                    self.warnImplicitDeref(baseExpr, tSpecIn, "string index access", baseExpr + '!' + indexText)
                 tSpecOut={'owner':'me', 'fieldType': 'char'}
                 [S2, idxTypeSpec] = self.codeExpr(name[1], None, None, 'RVAL', genericArgs)
                 S += self.xlator.codeArrayIndex(S2, 'string', LorR_Val, previousSegName, idxTypeSpec)
@@ -1173,12 +1289,24 @@ class CodeGenerator(object):
                     else: print("tSpecOut = 0 for: "+previousSegName+"."+name, " fTypeKW:",fTypeKW)
 
         if tSpecOut and 'codeConverter' in tSpecOut and tSpecOut['codeConverter']!=None:
+            hasCodeConverter = True
             reqTagList = progSpec.getReqTagList(tSpecIn)
             [convertedName, argList]=self.convertNameSeg(tSpecOut, name, connector, argList, reqTagList, genericArgs)
             #print("codeConverter ",name,"->",convertedName, tSpecOut)
             name = convertedName
             callAsGlobal=name.find("%G")
             if(callAsGlobal >= 0): namePrefix=''
+
+        if (
+            not hasCodeConverter
+            and not ('dummyType' in tSpecIn)
+            and isinstance(name, str)
+            and len(name) > 0
+            and name[0] != '['
+            and self.typeNeedsExplicitDeref(tSpecIn)
+        ):
+            baseExpr = previousSegName if previousSegName else '<object>'
+            self.warnImplicitDeref(baseExpr, tSpecIn, "member access", baseExpr + '!.' + name)
 
         S+=namePrefix+connector+name
 
@@ -1257,7 +1385,7 @@ class CodeGenerator(object):
                 if(segTSpec): # This is where to detect type of vars not found to determine whether to use '.' or '->'
                     if 'StaticMode' in segTSpec and segTSpec['StaticMode']=='yes':
                         connector = self.xlator.ObjConnector
-                    elif progSpec.wrappedTypeIsPointer(self.classStore, segTSpec, segName):
+                    elif segName != '!' and not (isinstance(segTSpec, dict) and segTSpec.get('explicitDerefed')) and progSpec.wrappedTypeIsPointer(self.classStore, segTSpec, segName):
                         connector = self.xlator.PtrConnector
                         if previousSegName and previousSegName[-1] == ']' and connector=='!.':
                             connector = self.xlator.ObjConnector
@@ -1309,7 +1437,26 @@ class CodeGenerator(object):
                 S=segStr.replace("%0", S)
                 lenConnector = len(connector)
                 if S[:lenConnector]==connector: S=S[lenConnector:]
-            else: S+=segStr
+            else:
+                explicitMemberAccess = None
+                if (
+                    isinstance(previousTypeSpec, dict)
+                    and previousTypeSpec.get('explicitDerefed')
+                    and hasattr(self.xlator, "codeExplicitDerefMemberAccess")
+                ):
+                    explicitMemberAccess = self.xlator.codeExplicitDerefMemberAccess(S, segStr)
+                if explicitMemberAccess != None:
+                    S = explicitMemberAccess
+                    if isinstance(segStr, str) and segStr.startswith('.'):
+                        explicitMemberName = segStr[1:]
+                        for explicitConnector in ('->', '.'):
+                            explicitSuffix = explicitConnector + explicitMemberName
+                            if S.endswith(explicitSuffix):
+                                prevLen = len(S) - len(explicitSuffix)
+                                connector = explicitConnector
+                                break
+                else:
+                    S+=segStr
 
             # Language specific dereferencing of ->[...], etc.
             S = self.xlator.LanguageSpecificDecorations(S, segTSpec, owner, LorRorP_Val)
@@ -1317,30 +1464,38 @@ class CodeGenerator(object):
             previousTypeSpec = segTSpec
             segIDX+=1
 
+        if (
+            LorR_Val == 'LVAL'
+            and isinstance(segTSpec, dict)
+            and segTSpec.get('explicitDerefed')
+            and not getattr(self.xlator, "supportsBareExplicitDerefLValue", True)
+        ):
+            cdErr("Bare explicit dereference cannot be assigned in " + self.xlator.LanguageName + ". Assign a member/index of the referent instead.")
+
         # Handle cases where seg's type is flag or mode
         if segTSpec and LorR_Val=='RVAL' and 'fieldType' in segTSpec:
             fType=progSpec.fieldTypeKeyword(segTSpec)
             if fType=='flag':
-                segName=segStr[len(connector):]
-                prefix = self.staticVarNamePrefix(segName, LHSParentType)
+                bitfieldName = segName if isinstance(segName, str) else segStr[len(connector):]
+                prefix = self.staticVarNamePrefix(bitfieldName, LHSParentType)
                 if hasattr(self.xlator, "codeReadBitField"):
-                    S = self.xlator.codeReadBitField(S, connector, prevLen, prefix, segName, fType)
+                    S = self.xlator.codeReadBitField(S, connector, prevLen, prefix, bitfieldName, fType)
                 elif self.xlator.hasMacros:
-                    S='getFlagBit('+S[0:prevLen]+connector+'flags' + ', ' + prefix+segName+')'
+                    S='getFlagBit('+S[0:prevLen]+connector+'flags' + ', ' + prefix+bitfieldName+')'
                 else:
-                    bitfieldMask=self.xlator.applyTypecast('uint64', prefix+segName)
+                    bitfieldMask=self.xlator.applyTypecast('uint64', prefix+bitfieldName)
                     flagReadCode = '('+S[0:prevLen] + connector + 'flags & ' + bitfieldMask+')'
                     S=self.xlator.applyTypecast('uint64', flagReadCode)
             elif fType=='mode':
-                segName=segStr[len(connector):]
-                prefix = self.staticVarNamePrefix(segName+"Mask", LHSParentType)
+                bitfieldName = segName if isinstance(segName, str) else segStr[len(connector):]
+                prefix = self.staticVarNamePrefix(bitfieldName+"Mask", LHSParentType)
                 if hasattr(self.xlator, "codeReadBitField"):
-                    S = self.xlator.codeReadBitField(S, connector, prevLen, prefix, segName, fType)
+                    S = self.xlator.codeReadBitField(S, connector, prevLen, prefix, bitfieldName, fType)
                 elif self.xlator.hasMacros:
-                    S='getModeBits('+S[0:prevLen]+connector+'flags' + ', ' + prefix+segName+')'
+                    S='getModeBits('+S[0:prevLen]+connector+'flags' + ', ' + prefix+bitfieldName+')'
                 else:
-                    bitfieldMask  =self.xlator.applyTypecast('uint64', prefix+segName+"Mask")
-                    bitfieldOffset=self.xlator.applyTypecast('uint64', prefix+segName+"Offset")
+                    bitfieldMask  =self.xlator.applyTypecast('uint64', prefix+bitfieldName+"Mask")
+                    bitfieldOffset=self.xlator.applyTypecast('uint64', prefix+bitfieldName+"Offset")
                     S="((" + S[0:prevLen] + connector +  "flags&"+bitfieldMask+")"+">>"+bitfieldOffset+')'
                     S=self.xlator.applyTypecast(self.xlator.modeIdxType, S)
 
@@ -1392,6 +1547,7 @@ class CodeGenerator(object):
                 [S2, argTSpec]=self.codeExpr(P[0], None, modelTSpec, 'ARG', genericArgs)
                 paramTypeList.append(argTSpec)
                 if modelTSpec!=None:
+                    self.warnImplicitDerefForArg(S2, argTSpec, modelTSpec, count, name)
                     modelTypeKW   = progSpec.fieldTypeKeyword(modelTSpec)
                     argTypeKW     = progSpec.fieldTypeKeyword(argTSpec)
                     if self.xlator.implOperatorsAsFuncs(modelTypeKW):
@@ -1415,6 +1571,7 @@ class CodeGenerator(object):
     def codeTerm(self, item, returnType, expectedTypeSpec, LorRorP_Val, genericArgs):
         [S, retTypeSpec]=self.xlator.codeFactor(item[0], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
         if (not(isinstance(item, str))) and (len(item) > 1) and len(item[1])>0:
+            self.warnImplicitDeref(S, retTypeSpec, "multiplicative expression", S + '!')
             [S, isDerefd]=self.xlator.derefPtr(S, retTypeSpec)
             fType1 = progSpec.fieldTypeKeyword(retTypeSpec)
             for i in item[1]:
@@ -1425,6 +1582,7 @@ class CodeGenerator(object):
                 [S2, retType2] = self.xlator.codeFactor(i[1], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
 
                 if not self.xlator.implOperatorsAsFuncs(fType1):
+                    self.warnImplicitDeref(S2, retType2, "multiplicative expression", S2 + '!')
                     [S2, isDerefd]=self.xlator.derefPtr(S2, retType2)
                     S+= op + S2
                 else:
@@ -1435,6 +1593,7 @@ class CodeGenerator(object):
     def codePlus(self, item, returnType, expectedTypeSpec, LorRorP_Val, genericArgs):
         [S, retTypeSpec]=self.codeTerm(item[0], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
         if len(item) > 1 and len(item[1])>0:
+            self.warnImplicitDeref(S, retTypeSpec, "additive expression", S + '!')
             [S, isDerefd]=self.xlator.derefPtr(S, retTypeSpec)
             fType1 = progSpec.fieldTypeKeyword(retTypeSpec)
             if isDerefd:
@@ -1442,6 +1601,7 @@ class CodeGenerator(object):
                 retTypeSpec={'owner': 'me', 'fieldType': keyType}
             for  i in item[1]:
                 [S2, retType2] = self.codeTerm(i[1], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
+                self.warnImplicitDeref(S2, retType2, "additive expression", S2 + '!')
                 [S2, isDerefd]=self.xlator.derefPtr(S2, retType2)
                 if self.xlator.implOperatorsAsFuncs(fType1):
                     fType2 = progSpec.fieldTypeKeyword(retType2)
@@ -1461,9 +1621,11 @@ class CodeGenerator(object):
         [S, retTypeSpec]=self.codePlus(item[0], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
         if len(item) > 1 and len(item[1])>0:
             if len(item[1])>1: cdErr("Chained comparisons.\n")
+            self.warnImplicitDeref(S, retTypeSpec, "ordered comparison", S + '!')
             [S, isDerefd]=self.xlator.derefPtr(S, retTypeSpec)
             for i in item[1]:
                 [S2, retType2] = self.codePlus(i[1], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
+                self.warnImplicitDeref(S2, retType2, "ordered comparison", S2 + '!')
                 S = self.xlator.codeComparisonStr(S, S2, retTypeSpec, retType2, i[0])
                 retTypeSpec = {'owner': 'me', 'fieldType': 'bool'}
         return [S, retTypeSpec]
@@ -1475,6 +1637,9 @@ class CodeGenerator(object):
             if (isinstance(retTypeSpec, int)): cdlog(logLvl(), "Invalid item in ==: {}".format(item[0]))
             for i in item[1]:
                 [S2, retType2] = self.codeComparison(i[1], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
+                if i[0] in ('==', '!=') and not self.isNullLiteralExpr(S, retTypeSpec) and not self.isNullLiteralExpr(S2, retType2):
+                    self.warnImplicitDeref(S, retTypeSpec, "equality comparison", S + '!')
+                    self.warnImplicitDeref(S2, retType2, "equality comparison", S2 + '!')
                 S  = self.xlator.codeIdentityCheck(S, S2, retTypeSpec, retType2, i[0])
                 retTypeSpec = {'owner': 'me', 'fieldType': 'bool'}
         return [S, retTypeSpec]
@@ -1483,10 +1648,12 @@ class CodeGenerator(object):
         [S, retTypeSpec] = self.codeIsEQ(item[0], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
         if len(item) > 1 and len(item[1])>0:
             if (isinstance(retTypeSpec, int)): cdlog(logLvl(), "Invalid item in ==: {}".format(item[0]))
+            self.warnImplicitDeref(S, retTypeSpec, "bitwise-and expression", S + '!')
             [S_derefd, isDerefd] = self.xlator.derefPtr(S, retTypeSpec)
             S = self.xlator.convertToInt(S, retTypeSpec)
             for i in item[1]:
                 [S2, retType2] = self.codeIsEQ(i[1], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
+                self.warnImplicitDeref(S2, retType2, "bitwise-and expression", S2 + '!')
                 S2 = self.xlator.convertToInt(S2, retType2)
                 if hasattr(self.xlator, "codeBitwiseOp"):
                     S = self.xlator.codeBitwiseOp(S, S2, "&")
@@ -1499,9 +1666,11 @@ class CodeGenerator(object):
         [S, retTypeSpec]=self.codeBitwiseAnd(item[0], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
         if len(item) > 1 and len(item[1])>0:
             if (isinstance(retTypeSpec, int)): cdlog(logLvl(), "Invalid item in ==: {}".format(item[0]))
+            self.warnImplicitDeref(S, retTypeSpec, "bitwise-xor expression", S + '!')
             [S_derefd, isDerefd] = self.xlator.derefPtr(S, retTypeSpec)
             for i in item[1]:
                 [S2, retType2] = self.codeBitwiseAnd(i[1], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
+                self.warnImplicitDeref(S2, retType2, "bitwise-xor expression", S2 + '!')
                 if hasattr(self.xlator, "codeBitwiseOp"):
                     S = self.xlator.codeBitwiseOp(S, S2, "^")
                 else:
@@ -1512,9 +1681,11 @@ class CodeGenerator(object):
         [S, retTypeSpec] = self.codeBitwiseXOR(item[0], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
         if len(item) > 1 and len(item[1])>0:
             if (isinstance(retTypeSpec, int)): cdlog(logLvl(), "Invalid item in ==: {}".format(item[0]))
+            self.warnImplicitDeref(S, retTypeSpec, "bitwise-or expression", S + '!')
             [S_derefd, isDerefd] = self.xlator.derefPtr(S, retTypeSpec)
             for i in item[1]:
                 [S2, retType2] = self.codeBitwiseXOR(i[1], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
+                self.warnImplicitDeref(S2, retType2, "bitwise-or expression", S2 + '!')
                 if hasattr(self.xlator, "codeBitwiseOp"):
                     S = self.xlator.codeBitwiseOp(S, S2, "|")
                 else:
@@ -1524,13 +1695,15 @@ class CodeGenerator(object):
     def codeLogicalAnd(self, item, returnType, expectedTypeSpec, LorRorP_Val, genericArgs):
         [S, retTypeSpec] = self.codeBitwiseOr(item[0], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
         if len(item) > 1 and len(item[1])>0:
+            self.warnImplicitDeref(S, retTypeSpec, "logical-and expression", S + '!')
             [S, isDerefd]=self.xlator.derefPtr(S, retTypeSpec)
             for i in item[1]:
                 if (i[0] == 'and'):
                     S = self.xlator.checkForTypeCastNeed('bool', retTypeSpec, S)
-                    [S2, retTypeSpec] = self.codeBitwiseOr(i[1], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
-                    S2 = self.xlator.checkForTypeCastNeed('bool', retTypeSpec, S2)
-                    [S2, isDerefd]=self.xlator.derefPtr(S2, retTypeSpec)
+                    [S2, retType2] = self.codeBitwiseOr(i[1], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
+                    S2 = self.xlator.checkForTypeCastNeed('bool', retType2, S2)
+                    self.warnImplicitDeref(S2, retType2, "logical-and expression", S2 + '!')
+                    [S2, isDerefd]=self.xlator.derefPtr(S2, retType2)
                     S+=' && ' + S2
                 else: cdErr("'and' expected in code generator.")
                 retTypeSpec = {'owner': 'me', 'fieldType': 'bool'}
@@ -1539,13 +1712,15 @@ class CodeGenerator(object):
     def codeLogicalOr(self, item, returnType, expectedTypeSpec, LorRorP_Val, genericArgs):
         [S, retTypeSpec] = self.codeLogicalAnd(item[0], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
         if len(item) > 1 and len(item[1])>0:
+            self.warnImplicitDeref(S, retTypeSpec, "logical-or expression", S + '!')
             [S, isDerefd]=self.xlator.derefPtr(S, retTypeSpec)
             for i in item[1]:
                 if (i[0] == 'or'):
                     S = self.xlator.checkForTypeCastNeed('bool', retTypeSpec, S)
-                    [S2, retTypeSpec] = self.codeLogicalAnd(i[1], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
-                    [S2, isDerefd]=self.xlator.derefPtr(S2, retTypeSpec)
-                    S2 = self.xlator.checkForTypeCastNeed('bool', retTypeSpec, S2)
+                    [S2, retType2] = self.codeLogicalAnd(i[1], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
+                    self.warnImplicitDeref(S2, retType2, "logical-or expression", S2 + '!')
+                    [S2, isDerefd]=self.xlator.derefPtr(S2, retType2)
+                    S2 = self.xlator.checkForTypeCastNeed('bool', retType2, S2)
                     S+=' || ' + S2
                 else: cdErr("'or' expected in code generator.")
                 retTypeSpec = {'owner': 'me', 'fieldType': 'bool'}
@@ -1554,11 +1729,13 @@ class CodeGenerator(object):
     def codeExpr(self, item, returnType, expectedTypeSpec, LorRorP_Val, genericArgs):
         [S, retTypeSpec] = self.codeLogicalOr(item[0], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
         if not isinstance(item, str) and len(item) > 1 and len(item[1])>0:
+            self.warnImplicitDeref(S, retTypeSpec, "assignment expression LHS", S + '!')
             [S, isDerefd]=self.xlator.derefPtr(S, retTypeSpec)
             for i in item[1]:
                 if (i[0] == '<-'):
-                    [S2, retTypeSpec] = self.codeLogicalOr(i[1], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
-                    [S2, isDerefd]=self.xlator.derefPtr(S2, retTypeSpec)
+                    [S2, retType2] = self.codeLogicalOr(i[1], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
+                    self.warnImplicitDeref(S2, retType2, "assignment expression RHS", S2 + '!')
+                    [S2, isDerefd]=self.xlator.derefPtr(S2, retType2)
                     S+=' = ' + S2
                 else: cdErr("'<-' expected in code generator.")
                 retTypeSpec = {'owner': 'me', 'fieldType': 'bool'}
@@ -1573,6 +1750,7 @@ class CodeGenerator(object):
             cdErr("While repetition missing whileSpec")
 
         [whileExpr, condType] = self.codeExpr(whileSpec[2], None, None, 'RVAL', genericArgs)
+        self.warnImplicitBarePointerCondition(whileExpr, condType, "while condition")
         [whileExpr, condType] = self.xlator.adjustConditional(whileExpr, condType)
 
         actionText = indent + "while(" + whileExpr + "){\n"
@@ -1729,6 +1907,7 @@ class CodeGenerator(object):
 
     def encodeConditionalStatement(self, action, indent, returnType, genericArgs):
         [S2, conditionTypeSpec] =  self.codeExpr(action['ifCondition'][0], None, None, 'RVAL', genericArgs)
+        self.warnImplicitBarePointerCondition(S2, conditionTypeSpec, "if condition")
         [S2, conditionTypeSpec] =  self.xlator.adjustConditional(S2, conditionTypeSpec)
         ifCondition = S2
         ifBodyText = self.genIfBody(action['ifBody'], indent, returnType, genericArgs)
@@ -1788,6 +1967,7 @@ class CodeGenerator(object):
             if not isinstance(assignTag, str): assignTag=assignTag[0] # compensate for different versions of pyParser
             cdlog(5, "Assignment: {}".format(LHS))
             [S2, rhsTypeSpec]=self.codeExpr(action['RHS'][0], None, lhsTypeSpec, 'RVAL', genericArgs)
+            self.warnImplicitDerefForAssignment(LHS, lhsTypeSpec, S2, rhsTypeSpec, assignTag)
             [LHS_leftMod, LHS_rightMod,  RHS_leftMod, RHS_rightMod]=self.xlator.determinePtrConfigForAssignments(lhsTypeSpec, rhsTypeSpec, assignTag,LHS)
             LHS = LHS_leftMod+LHS+LHS_rightMod
             RHS = RHS_leftMod+S2+RHS_rightMod
@@ -1864,6 +2044,7 @@ class CodeGenerator(object):
             cdlog(5, "If-statement...")
             [S2, conditionTypeSpec] =  self.codeExpr(action['ifCondition'][0], None, None, 'RVAL', genericArgs)
             if conditionTypeSpec==None: cdErr("Found typeSpec None in codeAction():   "+S2)
+            self.warnImplicitBarePointerCondition(S2, conditionTypeSpec, "if condition")
             [S2, conditionTypeSpec] =  self.xlator.adjustConditional(S2, conditionTypeSpec)
             cdlog(5, "If-statement: Condition is ".format(S2))
             ifCondition = S2
@@ -2962,6 +3143,7 @@ class CodeGenerator(object):
         self.isNestedClass = False
         self.ForwardDeclsForGlobalFuncs='\n\n// Forward Declarations of global functions\n'
         self.listOfFuncsWithUnknownArgTypes = {}
+        self.explicitDerefWarningCache = set()
 
     def generate(self, classes, tags, libsToUse, langName):
         self.clearBuild()

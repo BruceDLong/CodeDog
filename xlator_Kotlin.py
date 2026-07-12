@@ -312,6 +312,9 @@ class Xlator_Kotlin(Xlator_Java):
             return "!!"
         return ""
 
+    def codeExplicitDeref(self, varRef, itemTypeSpec):
+        return varRef + "!!"
+
     def codeXlatorAllocater(self, tSpec, genericArgs):
         owner = progSpec.getOwner(tSpec)
         if owner == "const":
