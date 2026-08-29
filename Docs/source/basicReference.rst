@@ -765,3 +765,30 @@ Generating Parsers
 
 Using a Test Harness
 ^^^^^^^^^^^^^^^^^^^^
+
+Set ``testMode='makeTests'`` on a buildSpec to generate and build the CodeDog
+test harness for that build. The buildSpec name remains the output directory:
+CodeDog writes the generated test source, build files, resources, and test
+executable directly into that directory. It does not create a separate test
+folder.
+
+For example:
+
+.. code-block:: codeDog
+
+    LocalBuild: Platform='Local' testMode='makeTests';
+
+    TestSpec = "MyTests.dog"
+
+If ``MyTests.dog`` sets ``FileName = "MyTests"``, a Linux build places the test
+executable at ``LocalBuild/MyTests``. Build and run it from that directory:
+
+.. code-block:: console
+
+    $ codeDog MyProgram.dog
+    $ cd LocalBuild
+    $ ./MyTests
+
+Changing the buildSpec name changes the output directory. For example,
+``LinuxTestBuild: ... testMode='makeTests';`` writes the same test artifacts
+under ``LinuxTestBuild``.

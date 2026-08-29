@@ -92,7 +92,7 @@ class CodeGenerator(object):
                 tSpecOut = progSpec.getTypeSpec(classDef)
                 tSpecOut['owner']='their' # TODO: write test case for containers
                 print("SHOULDNT MATCH:", tSpecOut['owner'],classDef['typeSpec']['owner'])
-            else: tSpecOut={'owner':'their', 'fieldType':retType, 'arraySpec':None, 'paramList':None}
+            else: tSpecOut={'owner':'their', 'fieldType':currentObjName, 'arraySpec':None, 'paramList':None}
         else: tSpecOut={'owner':retOwner, 'fieldType':retType, 'arraySpec':None, 'paramList':None}
         tSpecOut['codeConverter']=code
         return [tSpecOut, 'BUILTIN']
@@ -142,6 +142,159 @@ class CodeGenerator(object):
         if arg=='numeric' or arg=='int' or arg=='int32' or arg=='int64'  or arg=='uint' or arg=='uint32' or arg=='uint64' or arg=='BigInt':
             return True
         return False
+
+    def typeSpecIsNumeric(self, tSpec):
+        if tSpec == None or tSpec == 0:
+            return False
+        fTypeKW = progSpec.fieldTypeKeyword(tSpec)
+        return (fTypeKW in ('numeric', 'flag', 'mode')
+                or self.typeIsInteger(fTypeKW)
+                or self.typeIsRational(fTypeKW))
+
+    def typeSpecIsBoolean(self, tSpec):
+        if tSpec == None or tSpec == 0:
+            return False
+        return progSpec.fieldTypeKeyword(tSpec) in ('bool', 'flag')
+
+    def typeSpecDescription(self, tSpec):
+        if tSpec == None or tSpec == 0 or not isinstance(tSpec, dict):
+            return 'an unresolved type'
+        fTypeKW = progSpec.fieldTypeKeyword(tSpec)
+        if fTypeKW == None and progSpec.getOwner(tSpec) == 'PTR':
+            return 'NULL'
+        if fTypeKW == None:
+            return 'an unresolved type'
+        reqTagList = progSpec.getReqTagList(tSpec)
+        if reqTagList:
+            argDescriptions = []
+            for reqTag in reqTagList:
+                argDescriptions.append(self.typeSpecDescription(reqTag))
+            fTypeKW += '<' + ', '.join(argDescriptions) + '>'
+        owner = progSpec.getOwner(tSpec)
+        if owner in ('literal', ''):
+            return fTypeKW
+        return owner + ' ' + fTypeKW
+
+    def nominalTypeIsKnown(self, typeKW):
+        if typeKW == None:
+            return False
+        if not self.classStore or not isinstance(self.classStore, (list, tuple)):
+            return False
+        objMap = self.classStore[0]
+        return (progSpec.findSpecOf(objMap, typeKW, 'struct') != None
+                or progSpec.findSpecOf(objMap, typeKW, 'model') != None
+                or progSpec.findSpecOf(objMap, typeKW, 'string') != None)
+
+    def directNominalParentTypes(self, typeKW):
+        if not self.classStore or not isinstance(self.classStore, (list, tuple)):
+            return []
+        objMap = self.classStore[0]
+        parentTypes = []
+        for stateType in ('struct', 'model'):
+            typeDef = progSpec.findSpecOf(objMap, typeKW, stateType)
+            if typeDef == None:
+                continue
+            for tagName in ('inherits', 'implements'):
+                relatedTypes = progSpec.searchATagStore(typeDef.get('tags', {}), tagName)
+                if relatedTypes == None:
+                    continue
+                if isinstance(relatedTypes, str):
+                    relatedTypes = [relatedTypes]
+                for relatedType in relatedTypes:
+                    relatedType = progSpec.normalizeClassNameKey(relatedType)
+                    if isinstance(relatedType, str) and relatedType not in parentTypes:
+                        parentTypes.append(relatedType)
+        return parentTypes
+
+    def nominalTypeIsDerivedFrom(self, actualTypeKW, expectedTypeKW, actualTypeSpec=None):
+        actualTypeKW = progSpec.normalizeClassNameKey(actualTypeKW)
+        expectedTypeKW = progSpec.normalizeClassNameKey(expectedTypeKW)
+        if actualTypeKW == expectedTypeKW:
+            return True
+        pending = [actualTypeKW]
+        if isinstance(actualTypeSpec, dict):
+            implementedType = progSpec.getFromImpl(actualTypeSpec)
+            if implementedType:
+                pending.append(progSpec.normalizeClassNameKey(implementedType))
+        visited = set()
+        while pending:
+            candidate = pending.pop()
+            if candidate == expectedTypeKW:
+                return True
+            if candidate in visited:
+                continue
+            visited.add(candidate)
+            pending.extend(self.directNominalParentTypes(candidate))
+        return False
+
+    def typeArgsAreAssignable(self, expectedTypeSpec, actualTypeSpec):
+        expectedArgs = progSpec.getReqTagList(expectedTypeSpec)
+        actualArgs = progSpec.getReqTagList(actualTypeSpec)
+        if expectedArgs == None or actualArgs == None:
+            return True
+        if len(expectedArgs) != len(actualArgs):
+            return False
+        for expectedArg, actualArg in zip(expectedArgs, actualArgs):
+            if not self.typeSpecsAreAssignable(expectedArg, actualArg):
+                return False
+        return True
+
+    def typeSpecsAreAssignable(self, expectedTypeSpec, actualTypeSpec):
+        # Be conservative when type inference has not produced two concrete
+        # type specs.  This check is intended to catch nominal mismatches before
+        # a backend compiler does, not to replace unresolved generic handling.
+        if (expectedTypeSpec == None or expectedTypeSpec == 0
+                or actualTypeSpec == None or actualTypeSpec == 0
+                or not isinstance(expectedTypeSpec, dict)
+                or not isinstance(actualTypeSpec, dict)):
+            return True
+
+        actualTypeKW = progSpec.fieldTypeKeyword(actualTypeSpec)
+        if actualTypeKW == None and progSpec.getOwner(actualTypeSpec) == 'PTR':
+            return True
+        expectedTypeKW = progSpec.fieldTypeKeyword(expectedTypeSpec)
+        if expectedTypeKW == None or actualTypeKW == None:
+            return True
+
+        expectedTypeKW = progSpec.getUnwrappedClassFieldTypeKeyWord(self.classStore, expectedTypeKW)
+        actualTypeKW = progSpec.getUnwrappedClassFieldTypeKeyWord(self.classStore, actualTypeKW)
+
+        expectedContainer = progSpec.getContainerInfo(self.classStore, expectedTypeSpec)
+        actualContainer = progSpec.getContainerInfo(self.classStore, actualTypeSpec)
+        if expectedContainer['isContainer'] or actualContainer['isContainer']:
+            if not expectedContainer['isContainer'] or not actualContainer['isContainer']:
+                if (self.nominalTypeIsKnown(expectedTypeKW)
+                        and self.nominalTypeIsKnown(actualTypeKW)):
+                    return False
+            else:
+                if expectedContainer['category'] != actualContainer['category']:
+                    return False
+                if not self.typeArgsAreAssignable(expectedTypeSpec, actualTypeSpec):
+                    return False
+
+        if expectedTypeKW == actualTypeKW:
+            return True
+        if expectedTypeKW == 'any':
+            return True
+        if self.typeSpecIsBoolean(expectedTypeSpec) and self.typeSpecIsBoolean(actualTypeSpec):
+            return True
+        if self.typeSpecIsNumeric(expectedTypeSpec) and self.typeSpecIsNumeric(actualTypeSpec):
+            return True
+        if self.nominalTypeIsDerivedFrom(actualTypeKW, expectedTypeKW, actualTypeSpec):
+            return True
+
+        # Unknown/native/generic types retain the previous backend behavior.
+        # Reject only when both names are concrete CodeDog types.
+        return not (self.nominalTypeIsKnown(expectedTypeKW)
+                    and self.nominalTypeIsKnown(actualTypeKW))
+
+    def ensureTypeIsAssignable(self, expectedTypeSpec, actualTypeSpec, context):
+        if self.typeSpecsAreAssignable(expectedTypeSpec, actualTypeSpec):
+            return
+        cdErr("Type mismatch in {}: cannot use '{}' where '{}' is required.".format(
+            context,
+            self.typeSpecDescription(actualTypeSpec),
+            self.typeSpecDescription(expectedTypeSpec)))
 
     def doFieldIDsMatch(self, foundFieldID, fullSearchFieldID):
         if(foundFieldID!=fullSearchFieldID):
@@ -1054,9 +1207,19 @@ class CodeGenerator(object):
         if newName == "": cdErr("ERROR: empty codeConverter for: "+name)
         if argList != None:
             count=1
+            modelParams = progSpec.getParamList(tSpec)
             for P in argList:
                 oldTextTag='%'+str(count)
-                [S2, argTSpec]=self.codeExpr(P[0], None, None, 'RVAL', genericArgs)
+                modelTSpec = None
+                if modelParams and len(modelParams) >= count and 'typeSpec' in modelParams[count - 1]:
+                    modelTSpec = progSpec.getTypeSpec(modelParams[count - 1])
+                    modelTSpec = self.getGenericFieldsTypeSpec(genericArgs, modelTSpec)
+                [S2, argTSpec]=self.codeExpr(P[0], None, modelTSpec, 'RVAL', genericArgs)
+                if modelTSpec != None:
+                    self.ensureTypeIsAssignable(
+                        modelTSpec,
+                        argTSpec,
+                        "argument {} to '{}()'".format(count, name))
                 if S2!='self':S2 += self.xlator.makePtrOpt(argTSpec)
                 if(isinstance(newName, str)):
                     newName=newName.replace(oldTextTag, S2)
@@ -1233,7 +1396,7 @@ class CodeGenerator(object):
         fTypeKW    = progSpec.fieldTypeKeyword(tSpecIn)
         progSpec.isOldContainerTempFuncErr(tSpecIn, 'codeNameSeg1 '+self.currentObjName+' ' +str(name))
         isCtnr     = progSpec.isNewContainerTempFunc(tSpecIn)
-        if genericArgs==None and previousTypeSpec!=None: genericArgs = progSpec.getGenericArgsFromTypeSpec(previousTypeSpec)
+        if not genericArgs and previousTypeSpec!=None: genericArgs = progSpec.getGenericArgsFromTypeSpec(previousTypeSpec)
         if(name=='allocate'): cdErr("Deprecated use of allocate()")
 
         argList  = None
@@ -1554,9 +1717,15 @@ class CodeGenerator(object):
                 modelTSpec = None
                 if modelParams and (len(modelParams)>count) and ('typeSpec' in modelParams[count]):
                     modelTSpec = progSpec.getTypeSpec(modelParams[count])
+                    modelTSpec = self.getGenericFieldsTypeSpec(genericArgs, modelTSpec)
                 [S2, argTSpec]=self.codeExpr(P[0], None, modelTSpec, 'ARG', genericArgs)
                 paramTypeList.append(argTSpec)
                 if modelTSpec!=None:
+                    if name == 'return':
+                        typeContext = 'return value'
+                    else:
+                        typeContext = "argument {} to '{}()'".format(count + 1, name)
+                    self.ensureTypeIsAssignable(modelTSpec, argTSpec, typeContext)
                     self.warnImplicitDerefForArg(S2, argTSpec, modelTSpec, count, name)
                     modelTypeKW   = progSpec.fieldTypeKeyword(modelTSpec)
                     argTypeKW     = progSpec.fieldTypeKeyword(argTSpec)
@@ -1969,6 +2138,8 @@ class CodeGenerator(object):
             if not isinstance(assignTag, str): assignTag=assignTag[0] # compensate for different versions of pyParser
             cdlog(5, "Assignment: {}".format(LHS))
             [S2, rhsTypeSpec]=self.codeExpr(action['RHS'][0], None, lhsTypeSpec, 'RVAL', genericArgs)
+            if assignTag in ('', 'deep'):
+                self.ensureTypeIsAssignable(lhsTypeSpec, rhsTypeSpec, "assignment to '{}'".format(LHS))
             self.warnImplicitDerefForAssignment(LHS, lhsTypeSpec, S2, rhsTypeSpec, assignTag)
             [LHS_leftMod, LHS_rightMod,  RHS_leftMod, RHS_rightMod]=self.xlator.determinePtrConfigForAssignments(lhsTypeSpec, rhsTypeSpec, assignTag,LHS)
             LHS = LHS_leftMod+LHS+LHS_rightMod
