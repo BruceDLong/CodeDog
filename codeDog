@@ -129,11 +129,26 @@ def localPlatformBuildName():
         return 'MacBuild'
     cdErr("ERROR: Local platform '{}' is not supported.".format(platformID))
 
-def applyLocalPlatformDefaults(buildSpec):
-    localTags = localPlatformTags()
+WEB_PLATFORM_DEFAULTS = {
+    'Platform': 'Web',
+    'CPU': 'wasm32',
+    'Lang': 'CPP',
+    'LangVersion': 'Emscripten',
+}
+
+def applyBuildSpecificDefaults(buildSpec):
     buildName = buildSpec[0]
     buildTags = buildSpec[1]
     platformTag = progSpec.fetchTagValue([buildTags], 'Platform')
+
+    if isinstance(platformTag, str) and platformTag.lower() == 'web':
+        for tagName, tagValue in WEB_PLATFORM_DEFAULTS.items():
+            if not (tagName in buildTags):
+                buildTags[tagName] = tagValue
+        buildTags['Platform'] = 'Web'
+        return [buildName, buildTags]
+
+    localTags = localPlatformTags()
     if isinstance(platformTag, str) and platformTag.lower() == 'local':
         buildTags['Platform'] = localTags['Platform']
     if not ('Platform' in buildTags):
@@ -149,7 +164,7 @@ def applyLocalPlatformDefaults(buildSpec):
 def normalizeBuildSpecs(buildSpecs):
     if len(buildSpecs) == 0:
         buildSpecs = [[localPlatformBuildName(), localPlatformTags()]]
-    return [applyLocalPlatformDefaults(buildSpec) for buildSpec in buildSpecs]
+    return [applyBuildSpecificDefaults(buildSpec) for buildSpec in buildSpecs]
 
 def tagListItems(tagValue):
     if isinstance(tagValue, list):
