@@ -1,6 +1,7 @@
 /////////// Add routines for C++
 requirements = [
-    [tagOneOf, Lang, [CPP]]
+    [tagOneOf, Lang, [CPP]],
+    [tagOneOf, Platform, [Linux, OS-X_Devices, Windows]]
 ]
 
 interface={
