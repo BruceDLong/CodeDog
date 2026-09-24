@@ -32,33 +32,257 @@ struct stream{
 
 struct FileStream{
     me bool: failureFlag <- false
-    void: copyFile(me InputStream: inStream, me OutputStream: outStream) <- {}
-    me void: open(me string: filename) <- {}
-    me void: openNew(me string: filename) <- {}
-    me void: openAppend(me string: filename) <- {}
+    me string: fileText <- ""
+    me List<me string>: fileLines
+    me int: lineIndex <- 0
+    me int: charIndex <- 0
+    me string: writePath <- ""
+    me bool: charReadMode <- false
+    void: copyFile(me InputStream: inStream, me OutputStream: outStream) <- <%{
+        inStream.open()
+        outStream.open()
+        defer {
+            inStream.close()
+            outStream.close()
+        }
+
+        let bufferSize = 4096
+        var buffer = [UInt8](repeating: 0, count: bufferSize)
+        while inStream.hasBytesAvailable {
+            let bytesRead = buffer.withUnsafeMutableBufferPointer { ptr in
+                inStream.read(ptr.baseAddress!, maxLength: bufferSize)
+            }
+            if bytesRead <= 0 {
+                if bytesRead < 0 { failureFlag = true }
+                break
+            }
+            let bytesWritten = buffer.withUnsafeBufferPointer { ptr in
+                outStream.write(ptr.baseAddress!, maxLength: bytesRead)
+            }
+            if bytesWritten < 0 {
+                failureFlag = true
+                break
+            }
+        }
+    }%>
+    me void: open(me string: filename) <- <%{
+        writePath = filename
+        guard let contents = try? String(contentsOfFile: filename, encoding: .utf8) else {
+            failureFlag = true
+            fileText = ""
+            fileLines = []
+            lineIndex = 0
+            charIndex = 0
+            charReadMode = false
+            return
+        }
+        failureFlag = false
+        fileText = contents
+        fileLines = contents.components(separatedBy: .newlines)
+        lineIndex = 0
+        charIndex = 0
+        charReadMode = false
+    }%>
+    me void: openNew(me string: filename) <- <%{
+        writePath = filename
+        do {
+            try "".write(toFile: filename, atomically: false, encoding: .utf8)
+            failureFlag = false
+        } catch {
+            failureFlag = true
+        }
+        fileText = ""
+        fileLines = [""]
+        lineIndex = 0
+        charIndex = 0
+        charReadMode = false
+    }%>
+    me void: openAppend(me string: filename) <- <%{
+        writePath = filename
+        if !FileManager.default.fileExists(atPath: filename) {
+            failureFlag = !FileManager.default.createFile(atPath: filename, contents: nil)
+        } else {
+            failureFlag = false
+        }
+        fileText = (try? String(contentsOfFile: filename, encoding: .utf8)) ?? ""
+        fileLines = fileText.components(separatedBy: .newlines)
+        lineIndex = fileLines.count
+        charIndex = fileText.utf8.count
+        charReadMode = false
+    }%>
     me void: close() <- {}
-    me int:  getChar() <- {return(0)}
-    me string: getLine() <- {return("")}
-    me void: write(me string: S) <- {}
-    me bool: EOF()  <- {return(false)}
-    me bool: failure() <- {return(false)}
+    me int:  getChar() <- <%{
+        charReadMode = true
+        guard charIndex < fileText.utf8.count else { return -1 }
+        let idx = fileText.utf8.index(fileText.utf8.startIndex, offsetBy: charIndex)
+        let byteValue = fileText.utf8[idx]
+        charIndex += 1
+        return Int(byteValue)
+    }%>
+    me string: getLine() <- <%{
+        charReadMode = false
+        if lineIndex >= fileLines.count { return "" }
+        let line = fileLines[lineIndex]
+        lineIndex += 1
+        return line
+    }%>
+    me string: read(me string: S) <- <%{
+        charReadMode = true
+        guard charIndex < fileText.utf8.count else { return "" }
+        let start = fileText.utf8.index(fileText.utf8.startIndex, offsetBy: charIndex)
+        let result = String(decoding: fileText.utf8[start...], as: UTF8.self)
+        charIndex = fileText.utf8.count
+        return result
+    }%>
+    me void: write(me string: S) <- <%{
+        guard writePath != "" else {
+            failureFlag = true
+            return
+        }
+        guard let data = S.data(using: .utf8) else {
+            failureFlag = true
+            return
+        }
+        if !FileManager.default.fileExists(atPath: writePath) {
+            FileManager.default.createFile(atPath: writePath, contents: nil)
+        }
+        guard let handle = try? FileHandle(forWritingTo: URL(fileURLWithPath: writePath)) else {
+            failureFlag = true
+            return
+        }
+        handle.seekToEndOfFile()
+        handle.write(data)
+        handle.closeFile()
+        failureFlag = false
+        fileText += S
+        fileLines = fileText.components(separatedBy: .newlines)
+    }%>
+    me bool: EOF()  <- <%{
+        if charReadMode {
+            return charIndex >= fileText.utf8.count
+        }
+        return lineIndex >= fileLines.count
+    }%>
+    me bool: failure() <- <%!%0.failureFlag%>
+    me bool: flush() <- <%!true%>
+}
+
+struct sessionFile{
+    me string: sessionPath <- ""
+    me List<me string>: sessionLines
+    me int: readIndex <- 0
+    me void: openSession(me string: filename) <- <%{
+        sessionPath = filename
+        if !FileManager.default.fileExists(atPath: sessionPath) {
+            FileManager.default.createFile(atPath: sessionPath, contents: nil)
+        }
+    }%>
+    me void: closeSession() <- {}
+    me void: writeEntry(me string: entry) <- <%{
+        if sessionPath == "" { return }
+        if let data = (entry + "\n").data(using: .utf8),
+           let handle = try? FileHandle(forWritingTo: URL(fileURLWithPath: sessionPath)) {
+            handle.seekToEndOfFile()
+            handle.write(data)
+            handle.closeFile()
+        }
+    }%>
+    me bool: openToRead(me string: filename) <- <%{
+        sessionPath = filename
+        guard let contents = try? String(contentsOfFile: filename, encoding: .utf8) else {
+            print("ERROR: session file " + filename + "\n", separator:"", terminator:"")
+            sessionLines = []
+            readIndex = 0
+            return true
+        }
+        sessionLines = contents.components(separatedBy: .newlines)
+        readIndex = 0
+        return false
+    }%>
+    me string: readEntry() <- <%{
+        if readIndex >= sessionLines.count { return "" }
+        let line = sessionLines[readIndex]
+        readIndex += 1
+        return line
+    }%>
+    me bool: eof() <- <%!%0.readIndex >= %0.sessionLines.count%>
+    me void: closeReading() <- {}
 }
 
 struct GLOBAL{
     //me string: readAssetAsString(me string: filename)         <- {}
+    me string: readFileAsString(me string: filePath)            <- <%{
+        return (try? String(contentsOfFile: filePath, encoding: .utf8)) ?? ""
+    }%>
+    me string: readAssetAsString(me string: filename)           <- <%{
+        let candidatePaths = [
+            filename,
+            "assets/" + filename,
+            "Resources/" + filename,
+            "../Resources/" + filename,
+            "../../Resources/" + filename
+        ]
+        for path in candidatePaths {
+            if let contents = try? String(contentsOfFile: path, encoding: .utf8) {
+                return contents
+            }
+        }
+        return ""
+    }%>
+    me string: commandLineArgs()                                 <- <%!CommandLine.arguments.dropFirst().joined(separator: " ")%>
+    me string: execCmd(me string: command)                      <- <%{
+        let task = Process()
+        let pipe = Pipe()
+        task.launchPath = "/bin/zsh"
+        task.arguments = ["-lc", command]
+        task.standardOutput = pipe
+        task.standardError = pipe
+        do {
+            try task.run()
+            task.waitUntilExit()
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            return String(data: data, encoding: .utf8) ?? ""
+        } catch {
+            return ""
+        }
+    }%>
     //me string: wideCharToMultibyte(me int:ch)                 <- {}
     void: trimLeftWS(their string: str)                         <- {}
     void: trimRightWS(their string: str)                        <- {}
-    //me string: trimWS(their string: str)                      <- {}
+    me string: trimWS(their string: str)                        <- <%!%1.trimmingCharacters(in: .whitespacesAndNewlines)%>
     me void: endFunc(me int: val)                               <- <%!return(0)%>
-    //me uint: shiftLeft (me uint: bits, me uint: shft)         <- {}
-    //me uint: shiftRight(me uint: bits, me uint: shft)         <- {}
-    //me uint: AndBits(me uint: bits, me uint: shft)            <- {}
-    //me uint: OrBits (me uint: bits, me uint: shft)            <- {}
-    me timeValue: sleep(me timeValue: milliseconds)             <- <%!%Gsleep(UInt32(%1))%>
+    me int: uniqueObjectID(their any: obj)                       <- <%!%G(ObjectIdentifier(%1).hashValue & Int.max)%>
+    me uint: shiftLeft (me uint: bits, me uint: shft)            <- <%!(%1 << Int(%2))%>
+    me uint: shiftRight(me uint: bits, me uint: shft)            <- <%!(%1 >> Int(%2))%>
+    me uint: AndBits(me uint: bits, me uint: shft)               <- <%!(%1 & %2)%>
+    me uint: OrBits (me uint: bits, me uint: shft)               <- <%!(%1 | %2)%>
+    me int64: currentTimeStamp()                                 <- <%!Int64(Date().timeIntervalSince1970)%>
+    me timeValue: sleep(me timeValue: milliseconds)             <- <%{
+        if milliseconds > 0 {
+            Thread.sleep(forTimeInterval: Double(milliseconds) / 1000.0)
+        }
+        return 0
+    }%>
+    me int: sleep(me int: milliseconds)                         <- <%{
+        if milliseconds > 0 {
+            Thread.sleep(forTimeInterval: Double(milliseconds) / 1000.0)
+        }
+        return 0
+    }%>
+    me string: getFilesDirAsString()                            <- <%!"."%>
+    me string: getAssetsDir()                                   <- <%{
+        if FileManager.default.fileExists(atPath: "Resources") { return "Resources" }
+        if FileManager.default.fileExists(atPath: "../Resources") { return "../Resources" }
+        if FileManager.default.fileExists(atPath: "../../Resources") { return "../../Resources" }
+        return "assets"
+    }%>
 }
 struct GLOBAL{  /////////  STRING & CHAR HANDLING  /////////////////////
-    //me int: findString(me string: toSearch, me string: toFind)  <- {}
+    me int: findString(me string: toSearch, me string: toFind)   <- <%{
+        return toSearch.range(of: toFind).map {
+            toSearch.distance(from: toSearch.startIndex, to: $0.lowerBound)
+        } ?? -1
+    }%>
     me bool: isalpha(me char: ch)<- <%{
         switch ch {
             case "a"..."z": return true
@@ -83,18 +307,37 @@ struct GLOBAL{  /////////  STRING & CHAR HANDLING  /////////////////////
     me bool: isspace(me char: ch)<- <%{
         return ch == " " || ch == "\t" || ch == "\n" || ch == "\r"
     }%>
-    //me bool: isxdigit(me char: input)                       <- {}
-    me char: toLower(me char: ch)                               <- <%!%1.lowercased()%>
-    me char: toUpper(me char: ch)                               <- <%!%1.uppercased()%>
+    me bool: isxdigit(me char: input)<- <%{
+        switch input {
+            case "0"..."9": return true
+            case "a"..."f": return true
+            case "A"..."F": return true
+            default: return false
+        }
+    }%>
+    me string: wideCharToMultibyte(me int:ch)                   <- <%{
+        if let scalar = UnicodeScalar(ch) {
+            return String(Character(scalar))
+        }
+        return ""
+    }%>
+    me char: toLower(me char: ch)                               <- <%!Character(%1.lowercased())%>
+    me char: toUpper(me char: ch)                               <- <%!Character(%1.uppercased())%>
 }
 struct GLOBAL{  /////////  MATH HANDLING  //////////////////////////////
     me int: randInt(me int: val)                                <- <%!(rand() % %1)%>
-    //me int: sqrt(me int: val)                                 <- {}
+    me int: min(me int: A, me int: B)                            <- <%!Swift.min(%1, %2)%>
+    me int: max(me int: A, me int: B)                            <- <%!Swift.max(%1, %2)%>
+    me int: sqrt(me int: val)                                    <- <%!Int(Double(%1).squareRoot())%>
 }
 struct GLOBAL{  /////////  TYPE CONVERTERS  ////////////////////////////
     me timeValue: convertToTimeVal()                            <- <%!%G(Double)(%1)%>
     me timeValue: double()                                      <- <%!%G(Double)(%1)%>
     me int64: stoi(me string: str)                              <- <%!Int(%1)!%>
+    me long: stol(me string: str)                                <- <%!Int64(%1)!%>
+    me int: convertToIntVal(me int: val)                         <- <%!%1%>
+    me int: convertToIntVal(me int64: val)                       <- <%!Int(%1)%>
+    me int: convertToIntVal(me double: val)                      <- <%!Int(%1)%>
     me string: toString(me long: val)                           <- <%!String(%1)%>
     me string: toString(me int: val)                            <- <%!String(%1)%>
 }

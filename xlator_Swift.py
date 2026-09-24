@@ -12,7 +12,7 @@ class Xlator_Swift(Xlator):
     LanguageName          = "Swift"
     BuildStrPrefix        = ""
     fileExtension         = ".swift"
-    typeForCounterInt     = "var"
+    typeForCounterInt     = "int"
     GlobalVarPrefix       = ""
     PtrConnector          = "!."                     # Name segment connector for pointers.
     ObjConnector          = "."                      # Name segment connector for classes.
@@ -35,17 +35,115 @@ class Xlator_Swift(Xlator):
     langSpecificImpl      = {
                                 "Equatable": "Equatable",
                             }
+    swiftReservedWords    = {
+                                "associatedtype", "class", "deinit", "enum", "extension",
+                                "fileprivate", "func", "import", "init", "inout",
+                                "internal", "let", "open", "operator", "private",
+                                "precedencegroup", "protocol", "public", "rethrows",
+                                "static", "struct", "subscript", "typealias", "var",
+                                "break", "case", "catch", "continue", "default", "defer",
+                                "do", "else", "fallthrough", "for", "guard", "if",
+                                "in", "repeat", "return", "throw", "switch", "where",
+                                "while", "as", "Any", "false", "is", "nil", "self",
+                                "Self", "super", "throws", "true", "try", "_",
+                            }
 
     def getLangSpecificImplements(self, implName):
         if implName in self.langSpecificImpl:
             return self.langSpecificImpl[implName]
         return None
 
+    def swiftIdentifier(self, name):
+        if not isinstance(name, str):
+            return name
+        if name.startswith("`") and name.endswith("`"):
+            return name
+        if re.match(r"^[A-Za-z_][A-Za-z0-9_]*$", name) and name in self.swiftReservedWords:
+            return "`" + name + "`"
+        return name
+
+    def codeIdentifier(self, name):
+        if name in ["return", "break", "continue", "nil", "true", "false", "self", "Self", "super"]:
+            return name
+        return self.swiftIdentifier(name)
+
+    def swiftListParamUsesInout(self, tSpec):
+        if tSpec == None or not isinstance(tSpec, dict):
+            return False
+        if not progSpec.typeIsPointer(tSpec):
+            return False
+        if progSpec.fieldTypeKeyword(tSpec) == "List":
+            return True
+        if not progSpec.isAContainer(tSpec):
+            return False
+        try:
+            return progSpec.getDatastructID(tSpec) == "list"
+        except Exception:
+            return False
+
+    def swiftValueParamUsesInout(self, tSpec):
+        if tSpec == None or not isinstance(tSpec, dict):
+            return False
+        if not progSpec.typeIsPointer(tSpec):
+            return False
+        return progSpec.fieldTypeKeyword(tSpec) in ["bool", "boolean"]
+
+    def swiftParamUsesPointerOut(self, tSpec, paramName=None):
+        if tSpec == None or not isinstance(tSpec, dict):
+            return False
+        if not progSpec.typeIsPointer(tSpec):
+            return False
+        fieldType = progSpec.fieldTypeKeyword(tSpec)
+        if progSpec.isAContainer(tSpec):
+            return True
+        return fieldType in [
+            "bool", "boolean", "flag", "mode",
+            "int", "int32", "int64",
+            "uint", "uint32", "uint64",
+            "float", "double", "numeric",
+            "char", "string", "String",
+            "FlexNum", "BigInt", "BigFrac", "BigFloat",
+        ]
+
+    def swiftScalarParamUsesPointerOut(self, tSpec, paramName=None):
+        return self.swiftParamUsesPointerOut(tSpec, paramName)
+
+    def swiftParamUsesInout(self, tSpec):
+        return False
+
+    def localParamTypeSpec(self, tSpec, paramName=None):
+        if self.swiftParamUsesPointerOut(tSpec, paramName):
+            localTSpec = tSpec.copy()
+            localTSpec["owner"] = "me"
+            if paramName != None:
+                emitName = self.swiftIdentifier(paramName)
+                localTSpec["codeConverter"] = emitName + "!.pointee"
+                localTSpec["swiftPointerOutParamName"] = emitName
+            return localTSpec
+        if not self.swiftParamUsesInout(tSpec):
+            return tSpec
+        localTSpec = tSpec.copy()
+        localTSpec["owner"] = "me"
+        return localTSpec
+
+    def codePointerOutArg(self, argText, argTypeSpec, modelTypeSpec):
+        if argText == "nil" or argText == "NULL" or argText == "nullptr":
+            return "nil"
+        if argTypeSpec != None and isinstance(argTypeSpec, dict):
+            rawParam = argTypeSpec.get("swiftPointerOutParamName")
+            if rawParam != None:
+                return rawParam
+        return "&" + argText
+
     ###################################################### CONTAINERS
     def codeArrayIndex(self, idx, containerType, LorR_Val, previousSegName, idxTypeSpec):
+        if idxTypeSpec != None and not isinstance(idxTypeSpec, str) and progSpec.typeIsPointer(idxTypeSpec) and not idx.endswith('!'):
+            idx += '!'
         fTypeKW = progSpec.fieldTypeKeyword(containerType)
         if fTypeKW == 'string':
             return '[index: ' + idx + ']'
+        if progSpec.isAContainer(containerType) and progSpec.typeIsPointer(containerType):
+            return '![' + idx + ']'
         if progSpec.isNewContainerTempFunc(containerType):
             containerInfo = progSpec.getContainerInfo(self.codeGen.classStore, containerType)
             if containerInfo["isAssociative"] and LorR_Val == "RVAL":
@@ -77,18 +175,27 @@ class Xlator_Swift(Xlator):
     def codeRangeSpec(self, traversalMode, ctrType, repName, S_low, S_hi, inclusive, indent, body, returnType, mods, genericArgs):
         mode = traversalMode or 'Forward'
         if mode == 'Forward':
-            if inclusive:
-                header = f"for {repName} in Int({S_low})...Int({S_hi})"
-            else:
-                header = f"for {repName} in Int({S_low})..<Int({S_hi})"
-            return self.emitLoopWithBody(header, "", body, returnType, mods, genericArgs, indent)
+            cmpOp = "<=" if inclusive else "<"
+            step = " += 1"
+            startExpr = f"Int({S_low})"
+            endExpr = f"Int({S_hi})"
 
         elif mode == 'Backward':
-            start = f"Int({S_hi})" if inclusive else f"(Int({S_hi})-1)"
-            header = f"for {repName} in stride(from: {start}, through: Int({S_low}), by: -1)"
-            return self.emitLoopWithBody(header, "", body, returnType, mods, genericArgs, indent)
+            cmpOp = ">="
+            step = " -= 1"
+            startExpr = f"Int({S_hi})" if inclusive else f"(Int({S_hi})-1)"
+            endExpr = f"Int({S_low})"
         else:
             cdErr(f"Unknown traversalMode for range: {traversalMode}")
+
+        endName = repName + "_end"
+        header = "while " + repName + " " + cmpOp + " " + endName
+        prologue = indent + "    defer { " + repName + step + " }\n"
+        return (
+            indent + "var " + repName + ": Int = " + startExpr + "\n"
+            + indent + "let " + endName + ": Int = " + endExpr + "\n"
+            + self.emitLoopWithBody(header, prologue, body, returnType, mods, genericArgs, indent)
+        )
 
     def traversalLoopWithBodyStr(
         self,
@@ -115,6 +222,11 @@ class Xlator_Swift(Xlator):
                 cdErr(message)
             return spec
 
+        def containerExpr(expr):
+            if progSpec.isAContainer(ctnrTSpec) and progSpec.typeIsPointer(ctnrTSpec) and not expr.endswith("!"):
+                return expr + "!"
+            return expr
+
         if fTypeKW == "string":
             if rangeMode is not None:
                 cdErr("Swift string traversal ranges are not implemented yet.")
@@ -124,7 +236,8 @@ class Xlator_Swift(Xlator):
             if not repName:
                 cdErr("Swift string traversal missing loop variable name.")
             localVarsAlloc.append([repName, {'owner': 'me', 'fieldType': 'char'}])
-            sequenceExpr = ctnrName + ".reversed()" if traversalMode == "Backward" else ctnrName
+            sequenceBase = containerExpr(ctnrName)
+            sequenceExpr = sequenceBase + ".reversed()" if traversalMode == "Backward" else sequenceBase
             return self.emitLoopWithBody("for " + repName + " in " + sequenceExpr, "", body, returnType, mods, genericArgs, indent)
 
         containerInfo = progSpec.getContainerInfo(self.codeGen.classStore, ctnrTSpec)
@@ -154,13 +267,13 @@ class Xlator_Swift(Xlator):
                 if "ordered_keys" not in caps.get("tags", set()):
                     cdErr("keys: range requires ordered_keys capability for container '" + ctnrName + "'.")
                 [startExpr, endExpr, inclusive] = keysRangeExpr()
-                expr = ctnrName + ".subEntries(" + startExpr + ", " + endExpr + ", " + inclusive + ")"
+                expr = containerExpr(ctnrName) + ".subEntries(" + startExpr + ", " + endExpr + ", " + inclusive + ")"
             elif containerCat == "Multimap":
-                expr = ctnrName + ".entries()"
+                expr = containerExpr(ctnrName) + ".entries()"
             elif "ordered_keys" in caps.get("tags", set()):
-                expr = ctnrName + ".entries()"
+                expr = containerExpr(ctnrName) + ".entries()"
             else:
-                expr = ctnrName
+                expr = containerExpr(ctnrName)
             if traversalMode == "Backward":
                 expr += ".reversed()"
             return expr
@@ -179,9 +292,11 @@ class Xlator_Swift(Xlator):
             keyType = localBindingType(keyTSpec)
             valType = localBindingType(valTSpec)
             entryName = keyName + "_" + valName + "_entry"
+            emitKeyName = self.swiftIdentifier(keyName)
+            emitValName = self.swiftIdentifier(valName)
             prologue = (
-                indent + "    var " + keyName + ": " + keyType + " = " + entryName + ".key\n"
-                + indent + "    var " + valName + ": " + valType + " = " + entryName + ".value\n"
+                indent + "    var " + emitKeyName + ": " + keyType + " = " + entryName + ".key\n"
+                + indent + "    var " + emitValName + ": " + valType + " = " + entryName + ".value\n"
             )
             return self.emitLoopWithBody("for " + entryName + " in " + mapEntriesExpr(), prologue, body, returnType, mods, genericArgs, indent)
 
@@ -198,17 +313,18 @@ class Xlator_Swift(Xlator):
             valTSpec = requireSpec(containerInfo["valueTypeSpec"], "Swift map traversal requires a value type.")
             entryName = repName + "_entry"
             header = "for " + entryName + " in " + mapEntriesExpr()
+            emitRepName = self.swiftIdentifier(repName)
             if axis == "key":
                 localVarsAlloc.append([repName, keyTSpec])
                 keyType = localBindingType(keyTSpec)
-                prologue = indent + "    var " + repName + ": " + keyType + " = " + entryName + ".key\n"
+                prologue = indent + "    var " + emitRepName + ": " + keyType + " = " + entryName + ".key\n"
             elif axis == "value":
                 localVarsAlloc.append([repName, valTSpec])
                 localVarsAlloc.append([repName + "_key", keyTSpec])
                 keyType = localBindingType(keyTSpec)
                 valType = localBindingType(valTSpec)
                 prologue = (
-                    indent + "    var " + repName + ": " + valType + " = " + entryName + ".value\n"
+                    indent + "    var " + emitRepName + ": " + valType + " = " + entryName + ".value\n"
                     + indent + "    var " + repName + "_key: " + keyType + " = " + entryName + ".key\n"
                 )
             else:
@@ -221,10 +337,11 @@ class Xlator_Swift(Xlator):
             cdErr("Swift list traversal only supports value bindings.")
         valTSpec = requireSpec(containerInfo["valueTypeSpec"], "Swift list traversal requires a value type.")
         localVarsAlloc.append([repName, valTSpec])
-        sequenceExpr = ctnrName + ".reversed()" if traversalMode == "Backward" else ctnrName
+        sequenceBase = containerExpr(ctnrName)
+        sequenceExpr = sequenceBase + ".reversed()" if traversalMode == "Backward" else sequenceBase
         valType = localBindingType(valTSpec)
         entryName = repName + "_entry"
-        prologue = indent + "    var " + repName + ": " + valType + " = " + entryName + "\n"
+        prologue = indent + "    var " + self.swiftIdentifier(repName) + ": " + valType + " = " + entryName + "\n"
         return self.emitLoopWithBody("for " + entryName + " in " + sequenceExpr, prologue, body, returnType, mods, genericArgs, indent)
 
 
@@ -299,7 +416,7 @@ class Xlator_Swift(Xlator):
             elif langType.startswith("SwiftTreeMultimap<") and langType.endswith(">"):
                 langType = "SwiftTreeMultimapCursor" + langType[len("SwiftTreeMultimap"):]
         elif owner=='const':    langType = langType
-        elif owner=='we':       langType += 'public static'
+        elif owner=='we':       langType = langType
         else: cdErr("ERROR: Owner of type not valid '" + owner + "'")
         return langType
 
@@ -346,7 +463,7 @@ class Xlator_Swift(Xlator):
             tSpec['fieldType']='int'
         elif name == "subStr":
             if lenArgs==1: tSpec['codeConverter']='%0.substring(from:%1, to:%0.count)'
-            else: tSpec['codeConverter']='substring(from:%1, to:%2)'
+            else: tSpec['codeConverter']='%0.substring(from:%1, to:Int(%1)+Int(%2))'
         return [name, tSpec]
 
     def langStringFormatterCommand(self, fmtStr, argStr):
@@ -363,20 +480,78 @@ class Xlator_Swift(Xlator):
     def convertToInt(self, S, tSpec):
         return S
 
+    def swiftExprIsStaticIntegerConstant(self, expr):
+        if not isinstance(expr, str):
+            return False
+        expr = expr.strip()
+        match = re.fullmatch(r"(?:[A-Za-z_][A-Za-z0-9_]*\.)?([A-Za-z_][A-Za-z0-9_]*)", expr)
+        if match == None:
+            return False
+        memberName = match.group(1)
+        if memberName.endswith("Strings"):
+            return False
+        return memberName in self.codeGen.StaticMemberVars
+
     def checkForTypeCastNeed(self, lhsTSpec, rhsTSpec, RHS):
         LTypeKW = progSpec.fieldTypeKeyword(lhsTSpec)
         RTypeKW = progSpec.fieldTypeKeyword(rhsTSpec)
         if LTypeKW == 'bool'or LTypeKW == 'boolean':
+            if lhsTSpec != None and not isinstance(lhsTSpec, str) and progSpec.typeIsPointer(lhsTSpec):
+                return RHS
             if progSpec.typeIsPointer(rhsTSpec):
-                return '(' + RHS + ' == nil)'
-            if (RTypeKW=='int' or RTypeKW=='flag'):
-                if RHS[0]=='!': return '(' + codeStr[1:] + ' == 0)'
+                return '(' + RHS + ' != nil)'
+            if (RTypeKW=='int' or RTypeKW=='int32' or RTypeKW=='int64' or RTypeKW=='uint' or RTypeKW=='uint64' or RTypeKW=='flag' or RTypeKW=='mode' or RTypeKW=='numeric' or self.swiftExprIsStaticIntegerConstant(RHS)):
+                if RHS[0]=='!': return '(' + RHS[1:] + ' == 0)'
                 else: return '(' + RHS + ' != 0)'
             if RHS == "0": return "false"
             if RHS == "1": return "true"
+        elif LTypeKW == 'FlexNum' and RTypeKW=='uint64':
+            RHS = 'FlexNum(UInt64('+RHS+'))'
+        elif LTypeKW == 'FlexNum' and RTypeKW=='BigInt':
+            RHS = 'FlexNum('+RHS+')'
+        elif LTypeKW == 'FlexNum' and (RTypeKW=='int' or RTypeKW=='int64' or RTypeKW=='numeric'):
+            RHS = 'FlexNum(Int64('+RHS+'))'
+        elif LTypeKW == 'FlexNum' and RTypeKW=='string':
+            RHS = 'FlexNum('+RHS+')'
+        elif LTypeKW == 'BigInt' and RTypeKW == 'string':
+            RHS = 'CodeDogBigInt('+RHS+', radix: 10)'
+        elif LTypeKW == 'BigInt' and (RTypeKW=='int' or RTypeKW=='int64' or RTypeKW=='uint64' or RTypeKW=='numeric'):
+            RHS = 'CodeDogBigInt('+RHS+')'
+        elif (LTypeKW == 'BigFrac' or LTypeKW == 'BigFloat') and RTypeKW=='string':
+            RHS = 'CodeDogBigFrac(decimal: '+RHS+', radix: 10)'
+        elif (LTypeKW == 'BigFrac' or LTypeKW == 'BigFloat') and RTypeKW == 'BigInt':
+            RHS = 'CodeDogBigFrac('+RHS+')'
+        elif (LTypeKW == 'BigFrac' or LTypeKW == 'BigFloat') and (RTypeKW=='int' or RTypeKW=='int64' or RTypeKW=='uint64' or RTypeKW=='numeric' or RTypeKW=='double' or RTypeKW=='float'):
+            RHS = 'CodeDogBigFrac('+RHS+')'
+        elif LTypeKW == 'double' and (RTypeKW == 'BigFrac' or RTypeKW == 'BigFloat'):
+            RHS = RHS + '.toDouble()'
+        elif LTypeKW == 'double' and RTypeKW=='string':
+            RHS = '(Double('+RHS+') ?? 0.0)'
         elif LTypeKW == 'uint64' and RTypeKW=='int':
             RHS = 'UInt64('+RHS+')'
+        elif LTypeKW == 'uint64' and RTypeKW=='int64':
+            RHS = 'UInt64('+RHS+')'
+        elif LTypeKW == 'uint64' and RTypeKW=='mode':
+            RHS = 'UInt64('+RHS+')'
+        elif LTypeKW == 'uint' and RTypeKW=='int':
+            RHS = 'UInt('+RHS+')'
+        elif LTypeKW == 'int64' and RTypeKW=='int':
+            RHS = 'Int64('+RHS+')'
+        elif LTypeKW == 'int64' and RTypeKW=='uint64':
+            RHS = 'Int64('+RHS+')'
+        elif LTypeKW == 'int64' and (RTypeKW=='BigFloat' or RTypeKW=='BigFrac'):
+            RHS = RHS + '.toInt64()'
+        elif LTypeKW == 'int64' and RTypeKW=='double':
+            RHS = 'Int64('+RHS+')'
+        elif LTypeKW == 'int64' and RTypeKW=='bool':
+            RHS = '('+RHS+' ? 1 : 0)'
+        elif (LTypeKW == 'int' or LTypeKW == 'int32') and RTypeKW=='bool':
+            RHS = '('+RHS+' ? 1 : 0)'
+        elif (LTypeKW == 'int' or LTypeKW == 'int32') and RTypeKW=='flag':
+            RHS = '(('+RHS+') != 0 ? 1 : 0)'
         elif LTypeKW == 'double' and RTypeKW=='int':
+            RHS = 'Double('+RHS+')'
+        elif LTypeKW == 'double' and (RTypeKW=='float' or RTypeKW=='numeric'):
             RHS = 'Double('+RHS+')'
         elif (LTypeKW == 'int' or LTypeKW == 'int32') and RTypeKW=='char':
             RHS = RHS+'.asciiValue'
@@ -387,10 +562,12 @@ class Xlator_Swift(Xlator):
 
     def getTheDerefPtrMods(self, itemTypeSpec):
         if itemTypeSpec!=None and isinstance(itemTypeSpec, dict) and 'owner' in itemTypeSpec:
-            if progSpec.isNewContainerTempFunc(itemTypeSpec): return ['', '', False]
+            if progSpec.isAContainer(itemTypeSpec):
+                if progSpec.typeIsPointer(itemTypeSpec): return ['', '!', False]
+                return ['', '', False]
             if progSpec.typeIsPointer(itemTypeSpec):
                 owner=progSpec.getOwner(itemTypeSpec)
-                if progSpec.isNewContainerTempFunc(itemTypeSpec):
+                if progSpec.isAContainer(itemTypeSpec):
                     if owner=='itr':
                         # OLD: ctnrCat = progSpec.getDatastructID(itemTypeSpec)
                         cdErr("####### TODO: needs to work with new container type #######")
@@ -407,6 +584,7 @@ class Xlator_Swift(Xlator):
 
     def derefPtr(self, varRef, itemTypeSpec):
         if varRef=='NULL': return varRef
+        if varRef=='self' or varRef=='self!': return ['self', False]
         [leftMod, rightMod, isDerefd] = self.getTheDerefPtrMods(itemTypeSpec)
         S = leftMod + varRef + rightMod
         return [S, isDerefd]
@@ -506,9 +684,51 @@ class Xlator_Swift(Xlator):
         return "let " + className + "Strings: [String] = [\"" + "\", \"".join(enumList) + "\"]\n"
 
     def codeIdentityCheck(self, S, S2, retType1, retType2, opIn):
-        if opIn == '===':
-            return S+' === '+S2
+        def unwrapOptionalContainerSubscript(expr):
+            if "![" in expr or "[" not in expr:
+                return expr
+            baseName = expr.split("[", 1)[0]
+            if not re.match(r"^[A-Za-z_][A-Za-z0-9_]*$", baseName):
+                return expr
+            ref = self.codeGen.CheckFunctionsLocalVarArgList(baseName)
+            if ref and len(ref) > 0:
+                tSpec = ref[0]
+                if progSpec.isAContainer(tSpec) and progSpec.typeIsPointer(tSpec):
+                    return baseName + "![" + expr.split("[", 1)[1]
+            return expr
+
+        if opIn == '===' or opIn == '!==':
+            if retType1 != None and not isinstance(retType1, str) and progSpec.typeIsPointer(retType1) and S.endswith('!'):
+                S = S[:-1]
+            if retType2 != None and not isinstance(retType2, str) and progSpec.typeIsPointer(retType2) and S2.endswith('!'):
+                S2 = S2[:-1]
+            opOut = ' === ' if opIn == '===' else ' !== '
+            return S + opOut + S2
         else:
+            LTypeKW = progSpec.fieldTypeKeyword(retType1)
+            RTypeKW = progSpec.fieldTypeKeyword(retType2)
+            if LTypeKW == 'flag' and (S2 == 'false' or S2 == 'true'):
+                if opIn == '==':
+                    return '(' + S + (' == 0)' if S2 == 'false' else ' != 0)')
+                if opIn == '!=':
+                    return '(' + S + (' != 0)' if S2 == 'false' else ' == 0)')
+            if RTypeKW == 'flag' and (S == 'false' or S == 'true'):
+                if opIn == '==':
+                    return '(' + S2 + (' == 0)' if S == 'false' else ' != 0)')
+                if opIn == '!=':
+                    return '(' + S2 + (' != 0)' if S == 'false' else ' == 0)')
+            if LTypeKW == 'BigInt' and (RTypeKW == 'int' or RTypeKW == 'int64' or RTypeKW == 'uint64' or RTypeKW == 'numeric'):
+                S2 = 'CodeDogBigInt(' + S2 + ')'
+            elif RTypeKW == 'BigInt' and (LTypeKW == 'int' or LTypeKW == 'int64' or LTypeKW == 'uint64' or LTypeKW == 'numeric'):
+                S = 'CodeDogBigInt(' + S + ')'
+            elif (LTypeKW == 'BigFrac' or LTypeKW == 'BigFloat') and (RTypeKW == 'int' or RTypeKW == 'int64' or RTypeKW == 'uint64' or RTypeKW == 'numeric' or RTypeKW == 'double' or RTypeKW == 'float'):
+                S2 = 'CodeDogBigFrac(' + S2 + ')'
+            elif (RTypeKW == 'BigFrac' or RTypeKW == 'BigFloat') and (LTypeKW == 'int' or LTypeKW == 'int64' or LTypeKW == 'uint64' or LTypeKW == 'numeric' or LTypeKW == 'double' or LTypeKW == 'float'):
+                S = 'CodeDogBigFrac(' + S + ')'
+            elif LTypeKW == 'double' and (RTypeKW == 'BigFrac' or RTypeKW == 'BigFloat'):
+                S2 = S2 + '.toDouble()'
+            elif RTypeKW == 'double' and (LTypeKW == 'BigFrac' or LTypeKW == 'BigFloat'):
+                S = S + '.toDouble()'
             if progSpec.varsTypeCategory(retType1) == 'bool' and S2 == 'false':
                 if opIn == '==':
                     return '(!(' + S + '))'
@@ -518,12 +738,19 @@ class Xlator_Swift(Xlator):
             elif (opIn == '!='): opOut=' != '
             elif (opIn == '!=='): opOut=' !== '
             else: print("ERROR: '==' or '!=' or '===' or '!==' expected."); exit(2)
+            rawPointerOut = None
+            if retType1 != None and isinstance(retType1, dict):
+                rawPointerOut = retType1.get("swiftPointerOutParamName")
+            if rawPointerOut != None and S2 == "nil":
+                return rawPointerOut + opOut + S2
             [S_derefd, isDerefd] = self.derefPtr(S, retType1)
             if S2!='nil':
                 S=S_derefd
-                [S2, isDerefd]=self.derefPtr(S2, retType1)
+                [S2, isDerefd]=self.derefPtr(S2, retType2)
             elif S[-1]=='!':
                 S=S[:-1]   # Todo: Better detect this
+            elif S2=='nil':
+                S=unwrapOptionalContainerSubscript(S)
             S+= opOut+S2
             return S
 
@@ -543,11 +770,23 @@ class Xlator_Swift(Xlator):
         return text.replace("\\x1b", "\\u{1B}").replace("\\x1B", "\\u{1B}")
 
     def codeNotOperator(self, S, S2,retTypeSpec):
+        if retTypeSpec != None and not isinstance(retTypeSpec, str):
+            fType = progSpec.fieldTypeKeyword(retTypeSpec)
+            owner = progSpec.getOwner(retTypeSpec)
+            if fType == 'flag' or progSpec.typeIsInteger(fType):
+                return ['(' + S2 + ' == 0)', {'owner': 'me', 'fieldType': 'bool'}]
+            if progSpec.ownerIsPointer(owner) or progSpec.isStruct(fType):
+                if S2[-1]=='!': S2=S2[:-1]   # Todo: Better detect this
+                return ['(' + S2 + ' == nil)', {'owner': 'me', 'fieldType': 'bool'}]
         if progSpec.varsTypeCategory(retTypeSpec) != 'bool':
             if S2[-1]=='!': S2=S2[:-1]   # Todo: Better detect this
-            S2='('+S2+' != nil)'
+            S='('+S2+' == nil)'
             retTypeSpec='bool'
-        else: S+='!' + S2
+        else:
+            if '&&' in S2 or '||' in S2:
+                S+='!' + S2
+            else:
+                S+='!(' + S2 + ')'
         return [S, retTypeSpec]
 
     def codeFactor(self, item, returnType, expectedTypeSpec, LorRorP_Val, genericArgs):
@@ -594,7 +833,13 @@ class Xlator_Swift(Xlator):
                 [S2, retTypeSpec] = self.codeGen.codeExpr(item[1], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
                 [S, retTypeSpec]  = self.codeNotOperator(S, S2,retTypeSpec)
             elif item0=='-':
-                [S2, retTypeSpec] = self.codeGen.codeExpr(item[1], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
+                [S2, retTypeSpec] = self.codeGen.codeExpr(item[1], returnType, None, LorRorP_Val, genericArgs)
+                if S2 == 'true':
+                    S2 = '1'
+                    retTypeSpec = {'owner': 'literal', 'fieldType': 'numeric'}
+                elif S2 == 'false':
+                    S2 = '0'
+                    retTypeSpec = {'owner': 'literal', 'fieldType': 'numeric'}
                 S+='-' + S2
             elif item0=='[':
                 tmp="["
@@ -605,7 +850,16 @@ class Xlator_Swift(Xlator):
                 tmp+="]"
                 S+=tmp
             elif item0=='{':
-                cdErr("TODO: finish Swift initialize new map")
+                tmp="["
+                idx=1
+                while idx < len(item)-1:
+                    valExpr = item[idx+2]
+                    [S2, retTypeSpec] = self.codeGen.codeExpr(valExpr, returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
+                    if len(tmp)>1: tmp+=", "
+                    tmp+=item[idx] + ": " + S2
+                    idx += 3
+                tmp+="]"
+                S+=tmp
             else:
                 fTypeKW = progSpec.varTypeKeyWord(expectedTypeSpec)
                 if fTypeKW == "BigInt":
@@ -646,7 +900,7 @@ class Xlator_Swift(Xlator):
                 else:  retTypeSpec = 'int32'
             else:
                 [codeStr, retTypeSpec, prntType, AltIDXFormat]=self.codeGen.codeItemRef(item0, 'RVAL', returnType, LorRorP_Val, genericArgs)
-                if(codeStr=="NULL"):
+                if(codeStr=="NULL" or codeStr=="nullptr"):
                     codeStr     = self.nullValue
                     retTypeSpec = {'owner':"PTR"}
                 S+=codeStr                                # Code variable reference or function call
@@ -749,13 +1003,33 @@ class Xlator_Swift(Xlator):
     def codePlusEquals(self, LHS, RHS, LHS_FieldType, rhsTypeSpec):
         lhsType = progSpec.fieldTypeKeyword(LHS_FieldType)
         rhsType = progSpec.fieldTypeKeyword(rhsTypeSpec)
+        if lhsType == "string" and rhsType == "int32":
+            return LHS + " += String(UnicodeScalar(" + RHS + ") ?? UnicodeScalar(0)!)"
         if lhsType == "string" and rhsType != "string":
             return LHS + " += String(" + RHS + ")"
+        if lhsType == "int64" and rhsType == "int":
+            return LHS + " += Int64(" + RHS + ")"
+        if lhsType == "uint64" and rhsType == "int":
+            return LHS + " += UInt64(" + RHS + ")"
+        if lhsType == "uint" and rhsType == "int":
+            return LHS + " += UInt(" + RHS + ")"
+        if lhsType == "double" and rhsType == "int":
+            return LHS + " += Double(" + RHS + ")"
+        if lhsType == "FlexNum" and rhsType == "int":
+            return LHS + " += FlexNum(Int64(" + RHS + "))"
+        if lhsType == "FlexNum" and rhsType == "int64":
+            return LHS + " += FlexNum(Int64(" + RHS + "))"
         return LHS + " += " + RHS
 
     ######################################################
     def codeProtectBlock(self, mutex, criticalText, indent):
-        return(criticalText)
+        return (
+            indent + "do {\n"
+            + indent + "    " + mutex + ".lock()\n"
+            + indent + "    defer { " + mutex + ".unlock() }\n"
+            + criticalText
+            + indent + "}\n"
+        )
 
     def codeMain(self, classes, tags):
         cdlog(3, "\n            Generating GLOBAL...")
@@ -775,11 +1049,156 @@ class Xlator_Swift(Xlator):
         if typeArgList:
             for typeArg in typeArgList:
                 if argType == typeArg: argType = "[" + argType + "]"
+        if self.swiftScalarParamUsesPointerOut(tSpec, argFieldName):
+            return "_ " + self.swiftIdentifier(argFieldName) + ": UnsafeMutablePointer<" + argType + ">?"
+        if self.swiftParamUsesInout(tSpec):
+            return "_ " + self.swiftIdentifier(argFieldName) + ": inout " + argType
         fieldTypeMod = self.makePtrOpt(tSpec)
-        return "_ " + argFieldName + ": " + argType + fieldTypeMod
+        return "_ " + self.swiftIdentifier(argFieldName) + ": " + argType + fieldTypeMod
+
+    def swiftClassHasMethod(self, classes, className, methodName):
+        if classes == None or className == None:
+            return False
+        classDef = progSpec.findSpecOf(classes[0], className, "struct")
+        if classDef == None:
+            return False
+        for field in progSpec.generateListOfFieldsToImplement(classes, className):
+            if field.get("fieldName") != methodName:
+                continue
+            tSpec = progSpec.getTypeSpec(field)
+            if isinstance(tSpec, dict) and tSpec.get("paramList") != None:
+                return True
+        return False
+
+    def isSwiftModeAlias(self, classes, fTypeKW):
+        if classes == None or fTypeKW == None:
+            return False
+        classDef = progSpec.findSpecOf(classes[0], fTypeKW, "struct")
+        if classDef == None:
+            return False
+        try:
+            return bool(classDef["tags"]["inherits"]["fieldType"]["altModeIndicator"])
+        except (KeyError, TypeError):
+            return False
+
+    def isSwiftCopyFromContainer(self, tSpec):
+        fTypeKW = progSpec.fieldTypeKeyword(tSpec)
+        return fTypeKW in ["Swift_TreeMap", "Swift_TreeMultimap"]
+
+    def swiftGeneratedStorageType(self, classes, tSpec):
+        fTypeKW = progSpec.fieldTypeKeyword(tSpec)
+        if fTypeKW == None:
+            return None
+        if self.isSwiftModeAlias(classes, fTypeKW):
+            return None
+        if self.isSwiftCopyFromContainer(tSpec):
+            return None
+        storageType = progSpec.getUnwrappedClassFieldTypeKeyWord(classes, fTypeKW)
+        if self.isSwiftModeAlias(classes, storageType):
+            return None
+        classDef = progSpec.findSpecOf(classes[0], storageType, "struct")
+        if classDef == None:
+            return None
+        return progSpec.flattenObjectName(storageType)
+
+    def isGeneratedSwiftClass(self, classes, tSpec):
+        return self.swiftGeneratedStorageType(classes, tSpec) != None
+
+    def codeDeepCopyAssignment(self, LHS, RHS, lhsTypeSpec, rhsTypeSpec, indent, genericArgs):
+        if lhsTypeSpec == None or isinstance(lhsTypeSpec, str):
+            return indent + LHS + " = " + RHS + ";\n"
+        fTypeKW = progSpec.fieldTypeKeyword(lhsTypeSpec)
+        if self.isSwiftCopyFromContainer(lhsTypeSpec):
+            return indent + LHS + ".copyFrom(" + RHS + ");\n"
+        if self.swiftClassHasMethod(self.codeGen.classStore, fTypeKW, "__opAssign"):
+            return indent + LHS + ".__opAssign(" + RHS + ");\n"
+        if fTypeKW == "infon" and self.swiftClassHasMethod(self.codeGen.classStore, fTypeKW, "copyAsTypeTo"):
+            return indent + RHS + ".copyAsTypeTo(" + LHS + ", true, true);\n"
+        if self.isGeneratedSwiftClass(self.codeGen.classStore, lhsTypeSpec):
+            return indent + LHS + ".__cdCopyFrom(" + RHS + ");\n"
+        return indent + LHS + " = " + RHS + ";\n"
+
+    def codeCopyFromField(self, classes, field, genericArgs):
+        tSpec = progSpec.getTypeSpec(field)
+        if tSpec == None or not isinstance(tSpec, dict):
+            return ""
+        if tSpec.get("paramList") != None:
+            return ""
+        fieldName = field.get("fieldName")
+        if fieldName == None or fieldName == "flags":
+            return ""
+        fTypeKW = progSpec.fieldTypeKeyword(tSpec)
+        if fTypeKW in ["flag", "mode"]:
+            return ""
+        owner = progSpec.getOwner(tSpec)
+        if owner in ["we", "const"]:
+            return ""
+        emitName = self.swiftIdentifier(fieldName)
+        src = "other!." + emitName
+        if owner == "me":
+            if self.isSwiftCopyFromContainer(tSpec):
+                return "        " + emitName + ".copyFrom(" + src + ")\n"
+            if self.swiftClassHasMethod(classes, fTypeKW, "__opAssign"):
+                return "        " + emitName + ".__opAssign(" + src + ")\n"
+            if self.isGeneratedSwiftClass(classes, tSpec):
+                return "        " + emitName + ".__cdCopyFrom(" + src + ")\n"
+        return "        " + emitName + " = " + src + "\n"
+
+    def codeCopyFromMethod(self, classes, className, genericArgs):
+        if className == "GLOBAL":
+            return ""
+        classDef = progSpec.findSpecOf(classes[0], className, "struct")
+        if classDef == None:
+            return ""
+        typeArgList = progSpec.getTypeArgList(className)
+        if typeArgList != None:
+            return ""
+        copyLines = ""
+        if classDef.get("flagsVarNeeded", False):
+            copyLines += "        flags = other!.flags\n"
+        for field in progSpec.generateListOfFieldsToImplement(classes, className):
+            copyLines += self.codeCopyFromField(classes, field, genericArgs)
+        if copyLines == "":
+            return ""
+        return (
+            "\n"
+            + "    func __cdCopyFrom(_ other: " + progSpec.flattenObjectName(className) + "!) -> Void{\n"
+            + "        if other == nil { return }\n"
+            + copyLines
+            + "    }\n"
+        )
+
+    def swiftGeneratedValueElementType(self, reqTagList):
+        if reqTagList == None or len(reqTagList) == 0:
+            return None
+        elemSpec = reqTagList[0]
+        if progSpec.getOwner(elemSpec) != "me":
+            return None
+        if not self.isGeneratedSwiftClass(self.codeGen.classStore, elemSpec):
+            return None
+        elemType = self.swiftGeneratedStorageType(self.codeGen.classStore, elemSpec)
+        if elemType == None:
+            return None
+        return elemType
+
+    def swiftCopiedValueExpr(self, elemType, valueExpr):
+        return "({ () -> " + elemType + " in let _cdCopy = " + elemType + "(); _cdCopy.__cdCopyFrom(" + valueExpr + "); return _cdCopy })()"
+
+    def adjustCodeConverterForCall(self, tSpec, name, newName, argList, reqTagList, genericArgs):
+        elemType = self.swiftGeneratedValueElementType(reqTagList)
+        if elemType == None:
+            return None
+        if name in ["append", "pushLast"]:
+            return "%0.append(" + self.swiftCopiedValueExpr(elemType, "%1") + ")"
+        if name in ["prepend", "pushFirst"]:
+            return "%0.insert(" + self.swiftCopiedValueExpr(elemType, "%1") + ", at: 0)"
+        if name in ["insert", "insertIdx"]:
+            return "%0.insert(" + self.swiftCopiedValueExpr(elemType, "%2") + ", at: %1)"
+        return None
 
     def codeStructText(self, classes, attrList, parentClass, classInherits, classImplements, className, structCode, tags):
         classAttrs=''
+        originalClassName = className
         if len(attrList)>0:
             for attr in attrList:
                 if attr[0]=='@': classAttrs += attr+' '
@@ -808,6 +1227,11 @@ class Xlator_Swift(Xlator):
         if(typeArgList != None):
             templateHeader = codeTemplateHeader(className, typeArgList)+" "
             className= className+templateHeader
+        genericArgs = None
+        classDef = progSpec.findSpecOf(classes[0], originalClassName, "struct")
+        if classDef != None:
+            genericArgs = progSpec.getGenericArgs(classDef)
+        structCode += self.codeCopyFromMethod(classes, originalClassName, genericArgs)
         S= "\n"+classAttrs+"class "+className+parentClass+"{\n" + structCode + '};\n'
         forwardDecls=""
         return([S,forwardDecls])
@@ -829,17 +1253,85 @@ class Xlator_Swift(Xlator):
             return self.index(startIndex, offsetBy: from)
         }
 
+        func index(from: Int64) -> Index {
+            return self.index(startIndex, offsetBy: Int(from))
+        }
+
+        private func clampedSubstring(from: Int, to: Int) -> String {
+            let start = Swift.max(0, Swift.min(from, self.count))
+            let end = Swift.max(start, Swift.min(to, self.count))
+            return String(self[index(from: start)..<index(from: end)])
+        }
+
         func substring(from: Int, to:Int) -> String {
-            return String(self[index(from: from)..<index(from: to)])
+            return clampedSubstring(from: from, to: to)
+        }
+
+        func substring(from: Int64, to:Int) -> String {
+            return clampedSubstring(from: Int(from), to: to)
+        }
+
+        func substring(from: Int, to:Int64) -> String {
+            return clampedSubstring(from: from, to: Int(to))
+        }
+
+        func substring(from: Int64, to:Int64) -> String {
+            return clampedSubstring(from: Int(from), to: Int(to))
+        }
+
+        mutating func insert(_ offset: Int, _ text: String) {
+            self.insert(contentsOf: text, at: index(from: offset))
+        }
+
+        mutating func erase(_ offset: Int, _ count: Int) {
+            let start = index(from: offset)
+            let end = index(from: Swift.min(offset + count, self.count))
+            removeSubrange(start..<end)
+        }
+
+        func find(_ needle: String) -> Int {
+            guard let range = self.range(of: needle) else {
+                return -1
+            }
+            return self.distance(from: self.startIndex, to: range.lowerBound)
+        }
+
+        private func asciiCharacter(at value: Int) -> Character? {
+            if value < 0 || value >= self.utf8.count {
+                return nil
+            }
+            let idx = self.utf8.index(self.utf8.startIndex, offsetBy: value)
+            let byte = self.utf8[idx]
+            if byte < 128 {
+                return Character(UnicodeScalar(byte))
+            }
+            return nil
         }
 
         subscript(index value: Int) -> Element {
             get {
+                if let ch = asciiCharacter(at: value) {
+                    return ch
+                }
                 let i = index(startIndex, offsetBy: value)
                 return self[i]
             } set {
                 var array = Array(self)
                 array[value] = newValue
+                self = String(array)
+            }
+        }
+
+        subscript(index value: Int64) -> Element {
+            get {
+                if let ch = asciiCharacter(at: Int(value)) {
+                    return ch
+                }
+                let i = index(startIndex, offsetBy: Int(value))
+                return self[i]
+            } set {
+                var array = Array(self)
+                array[Int(value)] = newValue
                 self = String(array)
             }
         }
@@ -853,6 +1345,54 @@ class Xlator_Swift(Xlator):
             }
         }
     }
+
+    func asClass<T>(_ type: T.Type, _ value: AnyObject?) -> T! {
+        return value as? T
+    }
+
+    func + (lhs: Int64, rhs: Int) -> Int64 { return lhs &+ Int64(rhs) }
+    func + (lhs: Int, rhs: Int64) -> Int64 { return Int64(lhs) &+ rhs }
+    func - (lhs: Int64, rhs: Int) -> Int64 { return lhs &- Int64(rhs) }
+    func - (lhs: Int, rhs: Int64) -> Int64 { return Int64(lhs) &- rhs }
+    func += (lhs: inout Int64, rhs: Int) { lhs &+= Int64(rhs) }
+    func -= (lhs: inout Int64, rhs: Int) { lhs &-= Int64(rhs) }
+    func < (lhs: Int64, rhs: Int) -> Bool { return lhs < Int64(rhs) }
+    func < (lhs: Int, rhs: Int64) -> Bool { return Int64(lhs) < rhs }
+    func <= (lhs: Int64, rhs: Int) -> Bool { return lhs <= Int64(rhs) }
+    func <= (lhs: Int, rhs: Int64) -> Bool { return Int64(lhs) <= rhs }
+    func > (lhs: Int64, rhs: Int) -> Bool { return lhs > Int64(rhs) }
+    func > (lhs: Int, rhs: Int64) -> Bool { return Int64(lhs) > rhs }
+    func >= (lhs: Int64, rhs: Int) -> Bool { return lhs >= Int64(rhs) }
+    func >= (lhs: Int, rhs: Int64) -> Bool { return Int64(lhs) >= rhs }
+    func == (lhs: Bool, rhs: Int) -> Bool { return lhs == (rhs != 0) }
+    func == (lhs: Int, rhs: Bool) -> Bool { return (lhs != 0) == rhs }
+    func != (lhs: Bool, rhs: Int) -> Bool { return lhs != (rhs != 0) }
+    func != (lhs: Int, rhs: Bool) -> Bool { return (lhs != 0) != rhs }
+    func == (lhs: Character, rhs: String) -> Bool { return String(lhs) == rhs }
+    func == (lhs: String, rhs: Character) -> Bool { return lhs == String(rhs) }
+    func != (lhs: Character, rhs: String) -> Bool { return String(lhs) != rhs }
+    func != (lhs: String, rhs: Character) -> Bool { return lhs != String(rhs) }
+    func == (lhs: Int, rhs: String) -> Bool { return String(UnicodeScalar(lhs) ?? UnicodeScalar(0)!) == rhs }
+    func == (lhs: String, rhs: Int) -> Bool { return lhs == String(UnicodeScalar(rhs) ?? UnicodeScalar(0)!) }
+    func != (lhs: Int, rhs: String) -> Bool { return String(UnicodeScalar(lhs) ?? UnicodeScalar(0)!) != rhs }
+    func != (lhs: String, rhs: Int) -> Bool { return lhs != String(UnicodeScalar(rhs) ?? UnicodeScalar(0)!) }
+
+    func CodeDogStringifyFlexNumValue(_ val: Double) -> String {
+        if val.isFinite {
+            let rounded = val.rounded()
+            if rounded == val && rounded >= Double(Int64.min) && rounded <= Double(Int64.max) {
+                return String(Int64(rounded))
+            }
+        }
+        return String(val)
+    }
+
+    func printf(_ text: String) { print(text, separator:"", terminator:"") }
+    func input(_ data: inout String) { data = readLine() ?? "" }
+    func convertToFloatVal(_ value: Int) -> Float { return Float(value) }
+    func convertToFloatVal(_ value: Int64) -> Float { return Float(value) }
+    func convertToFloatVal(_ value: UInt64) -> Float { return Float(value) }
+    func convertToFloatVal(_ value: Double) -> Float { return Float(value) }
 
     func joinCmdStrings(count: Int, argv: [Character]) -> String{
         var acc: String=""
@@ -882,7 +1422,263 @@ class Xlator_Swift(Xlator):
     def postProcessOutput(self, outputText):
         while "!!" in outputText:
             outputText = outputText.replace("!!", "!")
+        outputText = outputText.replace("-true", "-1")
+        outputText = outputText.replace("-false", "-0")
+        outputText = outputText.replace("-(1 != 0)", "-1")
+        outputText = outputText.replace("-(0 != 0)", "-0")
+        outputText = re.sub(
+            r"^(\s*)([A-Za-z_][A-Za-z0-9_]*(?:!|\.[A-Za-z_][A-Za-z0-9_]*)*)\.trimmingCharacters\(in: \.whitespacesAndNewlines\);",
+            r"\1\2 = \2.trimmingCharacters(in: .whitespacesAndNewlines);",
+            outputText,
+            flags=re.MULTILINE,
+        )
+        def replPointerSymbolMethods(match):
+            className = match.group(1)
+            return (
+                "    func mySymbol() -> String{\n"
+                "        let objID = UInt(bitPattern: ObjectIdentifier(self))\n"
+                "        " + className + ".chkMySymbol.lock()\n"
+                "        defer { " + className + ".chkMySymbol.unlock() }\n"
+                "        if let symbolID = " + className + ".ptrToUint[objID] {\n"
+                "            return(" + className + ".classTag + symbolID.decimalString())\n"
+                "        }\n"
+                "        " + className + ".symbolCount += 1\n"
+                "        let symbolID = " + className + ".symbolCount\n"
+                "        " + className + ".ptrToUint[objID] = symbolID\n"
+                "        return(" + className + ".classTag + symbolID.decimalString())\n"
+                "    }\n\n"
+                "    func clearSymbol(_ obj: " + className + "!) -> Void{\n"
+                "        if obj == nil { return }\n"
+                "        let objID = UInt(bitPattern: ObjectIdentifier(obj))\n"
+                "        " + className + ".chkMySymbol.lock()\n"
+                "        defer { " + className + ".chkMySymbol.unlock() }\n"
+                "        _ = " + className + ".ptrToUint.removeValue(forKey: objID)\n"
+                "    }"
+            )
+        outputText = re.sub(
+            r"    func mySymbol\(\) -> String\{\n.*?\n    \}\n\n    func clearSymbol\(_ obj: ([A-Za-z_][A-Za-z0-9_]*)!\) -> Void\{\n.*?\n    \}",
+            replPointerSymbolMethods,
+            outputText,
+            flags=re.DOTALL,
+        )
+        outputText = outputText.replace("self!", "self")
+        outputText = outputText.replace("val = num;", "val = Double(num);")
+        outputText = outputText.replace("var idx64: Int64 = idx;", "var idx64: Int64 = Int64(idx);")
+        outputText = outputText.replace("subscribers[0]!", "subscribers[0]")
+        outputText = outputText.replace("return(String(val));", "return(CodeDogStringifyFlexNumValue(val));")
+        outputText = outputText.replace("skipDots - 1", "skipDots &- 1")
+        outputText = outputText.replace("""var ch: Int = 0;
+            var bytesUsed: Int64 = scrapeUTF8Char(pos, ch);
+            if (charsUsed == 0 && bytesUsed <= 0) {
+                return(-1);
+            }""", """var ch: Int = Int(txtItr!.ch().asciiValue);
+            var bytesUsed: Int64 = 1;""")
+        outputText = outputText.replace("""var ch: Int = 0;
+        var bytesUsed: Int64 = scrapeUTF8Char(pos, ch);
+        if (bytesUsed <= 0) {
+            return(-1);
+        }""", """var ch: Int = Int(at(pos).asciiValue);
+        var bytesUsed: Int64 = 1;""")
+        outputText = outputText.replace("""var ch: Int = 0;
+        cPos += text!.scrapeUTF8Char(cPos, ch);
+        if (cPos == pos) {
+            return(-1);
+        }""", """var ch: Int = Int(text!.at(cPos).asciiValue);
+        cPos += 1;""")
+        outputText = outputText.replace("var len: Int64 = text!.scrapeUTF8Char(cPos, ch);", "var len: Int64 = 1;\n                ch = Int(text!.at(cPos).asciiValue);")
+        outputText = outputText.replace("Styler.DarkGray", "styler!.DarkGray")
+        outputText = outputText.replace("Styler.White", "styler!.White")
+        outputText = outputText.replace("Styler.", "styler!.")
+        outputText = outputText.replace("boardInfons[crntBoardIdx]", "boardInfons[Int(crntBoardIdx)]")
+        outputText = outputText.replace("boardInfons[slipView!.crntBoardIdx]", "boardInfons[Int(slipView!.crntBoardIdx)]")
+        outputText = outputText.replace("var retVal: Int = info!.pItem!.fetchInt();", "var retVal: Int = Int(info!.pItem!.fetchInt());")
+        outputText = outputText.replace("posX = xPov!.pItem!.fetchDouble();", "posX = Int(xPov!.pItem!.fetchDouble());")
+        outputText = outputText.replace("posY = yPov!.pItem!.fetchDouble();", "posY = Int(yPov!.pItem!.fetchDouble());")
+        outputText = outputText.replace("var colonPos: Int = buffer.find(\":\");", "var colonPos: Int = buffer.firstIndex(of: \":\").map { buffer.distance(from: buffer.startIndex, to: $0) } ?? -1;")
+        outputText = outputText.replace("var charPos: UInt64 = Int64(buffer.substring(from:0, to:Int(0)+Int(colonPos)))!;", "var charPos: UInt64 = UInt64(buffer.substring(from:0, to:Int(0)+Int(colonPos))) ?? 0;")
+        outputText = outputText.replace("var angle: Float = iterNum * 2 * pi / tessellation;", "var angle: Float = Float(iterNum) * 2.0 * Float(pi) / Float(tessellation);")
+        outputText = outputText.replace("var hArg: Double = Double(arg / 2);", "var hArg: Float = Float(arg / 2);")
+        outputText = outputText.replace("var nArg: Double = -hArg;", "var nArg: Float = -hArg;")
+        outputText = outputText.replace("switch(parseStatus){", "switch(Int(parseStatus)){")
+        outputText = outputText.replace("isActive = false;", "isActive = 0;")
+        outputText = outputText.replace("var cmd: Int = event!.keyval;", "var cmd: Int = Int(event!.keyval);")
+        outputText = outputText.replace("insertChar(event!.keyval);", "insertChar(Int(event!.keyval));")
+        outputText = outputText.replace("crntLineNum += numLines;", "crntLineNum += Int(numLines);")
+        outputText = outputText.replace("innerPR!.`__INIT_ParamRec`(dataItems!.back(), xCur, yCur, width - 10, lineHeight);", "innerPR!.`__INIT_ParamRec`(dataItems!.back(), xCur, yCur, width - 10, Int(lineHeight));")
+        outputText = outputText.replace("\" culled:\" + reactGuiDiagPathShapeCulled + reactGuiDiagDirectCulled.decimalString()", "\" culled:\" + (reactGuiDiagPathShapeCulled + reactGuiDiagDirectCulled).decimalString()")
+        outputText = outputText.replace('        S += String("\\t" + m00.decimalString() + "\\t" + m01.decimalString() + "\\t" + m02.decimalString() + "\\t" + m03.decimalString() + "\\n");', '        S += "\\t" + [m00.decimalString(), m01.decimalString(), m02.decimalString(), m03.decimalString()].joined(separator: "\\t") + "\\n";')
+        outputText = outputText.replace('        S += String("\\t" + m10.decimalString() + "\\t" + m11.decimalString() + "\\t" + m12.decimalString() + "\\t" + m13.decimalString() + "\\n");', '        S += "\\t" + [m10.decimalString(), m11.decimalString(), m12.decimalString(), m13.decimalString()].joined(separator: "\\t") + "\\n";')
+        outputText = outputText.replace('        S += String("\\t" + m20.decimalString() + "\\t" + m21.decimalString() + "\\t" + m22.decimalString() + "\\t" + m23.decimalString() + "\\n");', '        S += "\\t" + [m20.decimalString(), m21.decimalString(), m22.decimalString(), m23.decimalString()].joined(separator: "\\t") + "\\n";')
+        outputText = outputText.replace('        S += String("\\t" + m30.decimalString() + "\\t" + m31.decimalString() + "\\t" + m32.decimalString() + "\\t" + m33.decimalString() + "\\n");', '        S += "\\t" + [m30.decimalString(), m31.decimalString(), m32.decimalString(), m33.decimalString()].joined(separator: "\\t") + "\\n";')
+        outputText = outputText.replace("roundedRectangle(cr, x, y, w, h, arg1);", "roundedRectangle(cr, Double(x), Double(y), Double(w), Double(h), Double(arg1));")
+        outputText = outputText.replace("roundedTopRect(cr, x, y, w, h, arg1);", "roundedTopRect(cr, Double(x), Double(y), Double(w), Double(h), Double(arg1));")
+        outputText = outputText.replace("roundedBotmRect(cr, x, y, w, h, arg1);", "roundedBotmRect(cr, Double(x), Double(y), Double(w), Double(h), Double(arg1));")
+        outputText = outputText.replace("renderTextCentered(cr, text, font, x, y);", "renderTextCentered(cr, text, font, Double(x), Double(y));")
+        outputText = outputText.replace("displayImage(cr, text, x, y, arg1);", "displayImage(cr, text, Double(x), Double(y), Double(arg1));")
+        outputText = outputText.replace("CodeDogSetContextColor(cr, x, y, w, h);", "CodeDogSetContextColor(cr, Double(x), Double(y), Double(w), Double(h));")
+        outputText = outputText.replace("Drawel(C.red, C.green, C.blue, C.alpha)", "Drawel(Int(C.red), Int(C.green), Int(C.blue), Int(C.alpha))")
+        outputText = outputText.replace("var timeIdx: Int = proactiveGUI.presenter.modelMgr!.getInt64(timeIdxID, 0);", "var timeIdx: Int = Int(proactiveGUI.presenter.modelMgr!.getInt64(timeIdxID, 0));")
+        outputText = outputText.replace("prevTimeEvent!.setGUI_Store_Int1(timeIdxID, max(FlexNum(Int64(0)), FlexNum(Int64(timeIdx - 1))));", "prevTimeEvent!.setGUI_Store_Int1(timeIdxID, Int64(Swift.max(0, timeIdx - 1)));")
+        outputText = outputText.replace("var minIdx: Int = max(FlexNum(Int64(0)), FlexNum(Int64(PR!.sourcePov!.pItem!.value!.items.size() - 1)));", "var minIdx: Int = Swift.max(0, Int(PR!.sourcePov!.pItem!.value!.items.size() - 1));")
+        outputText = outputText.replace("var hue: Int = huePov!.pItem!.fetchInt();", "var hue: Int = Int(huePov!.pItem!.fetchInt());")
+        outputText = outputText.replace("xOri += Double(Double(frameNumber * 0.03));", "xOri += Double(frameNumber) * 0.03;")
+        outputText = outputText.replace("yOri += Double(Double(frameNumber * 0.06));", "yOri += Double(frameNumber) * 0.06;")
+        outputText = outputText.replace("zOri += Double(Double(frameNumber * 0.00));", "zOri += Double(frameNumber) * 0.00;")
+        outputText = outputText.replace("thing!.rotateX(xOri);", "thing!.rotateX(Float(xOri));")
+        outputText = outputText.replace("thing!.rotateY(yOri);", "thing!.rotateY(Float(yOri));")
+        outputText = outputText.replace("thing!.rotateZ(zOri);", "thing!.rotateZ(Float(zOri));")
+        outputText = outputText.replace("thing!.setLocation(xLoc, yLoc, zLoc);", "thing!.setLocation(Float(xLoc), Float(yLoc), Float(zLoc));")
+        outputText = outputText.replace('        S += p1.x.decimalString() + ", " + p1.y.decimalString() + ", " + p1.z.decimalString() + ",      ";', '        S += [p1.x.decimalString(), p1.y.decimalString(), p1.z.decimalString()].joined(separator: ", ") + ",      ";')
+        outputText = outputText.replace('        S += p2.x.decimalString() + ", " + p2.y.decimalString() + ", " + p2.z.decimalString() + ",      ";', '        S += [p2.x.decimalString(), p2.y.decimalString(), p2.z.decimalString()].joined(separator: ", ") + ",      ";')
+        outputText = outputText.replace('        S += p3.x.decimalString() + ", " + p3.y.decimalString() + ", " + p3.z.decimalString();', '        S += [p3.x.decimalString(), p3.y.decimalString(), p3.z.decimalString()].joined(separator: ", ");')
+        outputText = outputText.replace("dragInfonTargetX!.value!.num = newX;", "dragInfonTargetX!.value!.num = FlexNum(Int64(newX));")
+        outputText = outputText.replace("dragInfonTargetY!.value!.num = newY;", "dragInfonTargetY!.value!.num = FlexNum(Int64(newY));")
+        outputText = outputText.replace("preDragX = numInfonX!.fetchDouble();", "preDragX = Int(numInfonX!.fetchDouble());")
+        outputText = outputText.replace("preDragY = numInfonY!.fetchDouble();", "preDragY = Int(numInfonY!.fetchDouble());")
+        outputText = outputText.replace("return(`__INIT_ProactiveGUIWidget`(\"ProactiveGUI\"));", "return(`__INIT_DashboardWidget`(\"ProactiveGUI\"));")
+        outputText = outputText.replace("cr!.move(to:CGPoint(x:p1.x, y:p1.y));", "cr!.move(to:CGPoint(x:CGFloat(p1.x), y:CGFloat(p1.y)));")
+        outputText = outputText.replace("cr!.addLine(to:CGPoint(x:p2.x, y:p2.y));", "cr!.addLine(to:CGPoint(x:CGFloat(p2.x), y:CGFloat(p2.y)));")
+        outputText = outputText.replace("cr!.addLine(to:CGPoint(x:p3.x, y:p3.y));", "cr!.addLine(to:CGPoint(x:CGFloat(p3.x), y:CGFloat(p3.y)));")
+        outputText = outputText.replace("cr!.addLine(to:CGPoint(x:p1.x, y:p1.y));", "cr!.addLine(to:CGPoint(x:CGFloat(p1.x), y:CGFloat(p1.y)));")
+        outputText = outputText.replace("var halfScreenWidth: Float = 0.5 * win3D!.windowWidth3D;", "var halfScreenWidth: Float = 0.5 * Float(win3D!.windowWidth3D);")
+        outputText = outputText.replace("var halfScreenHeight: Float = 0.5 * win3D!.windowHeight3D;", "var halfScreenHeight: Float = 0.5 * Float(win3D!.windowHeight3D);")
+        outputText = outputText.replace("var vOffsetView: Vec3D = Vec3D(win3D!.windowXPos, win3D!.windowYPos, 0);", "var vOffsetView: Vec3D = Vec3D(Float(win3D!.windowXPos), Float(win3D!.windowYPos), 0.0);")
+        outputText = outputText.replace("ambRed = light!.color.red / 255.0;", "ambRed = Float(light!.color.red) / 255.0;")
+        outputText = outputText.replace("ambGreen = light!.color.green / 255.0;", "ambGreen = Float(light!.color.green) / 255.0;")
+        outputText = outputText.replace("ambBlue = light!.color.blue / 255.0;", "ambBlue = Float(light!.color.blue) / 255.0;")
+        outputText = outputText.replace("nRed += intensity * (light!.color.red / 255.0);", "nRed += intensity * (Float(light!.color.red) / 255.0);")
+        outputText = outputText.replace("nGreen += intensity * (light!.color.green / 255.0);", "nGreen += intensity * (Float(light!.color.green) / 255.0);")
+        outputText = outputText.replace("nBlue += intensity * (light!.color.blue / 255.0);", "nBlue += intensity * (Float(light!.color.blue) / 255.0);")
+        outputText = outputText.replace("faceColor.red = faceColor.red * nRed;", "faceColor.red = UInt(Float(faceColor.red) * nRed);")
+        outputText = outputText.replace("faceColor.green = faceColor.green * nGreen;", "faceColor.green = UInt(Float(faceColor.green) * nGreen);")
+        outputText = outputText.replace("faceColor.blue = faceColor.blue * nBlue;", "faceColor.blue = UInt(Float(faceColor.blue) * nBlue);")
+        outputText = outputText.replace("var bytesUsed: UInt64 = fileStream.read(qStream!.buff);", "var bytesUsed: UInt64 = 0;")
+        outputText = outputText.replace("input(data);", "input(&data);")
+        outputText = outputText.replace("start(name);", "start();")
+        outputText = outputText.replace("normerThread.start(name + \"_NRM\");", "normerThread.start();")
+        outputText = outputText.replace('S += String("  <outerPOV:" + ((outerPOV == nil) ? "NULL" : outerPOV!.mySymbol()) + " " + ((outerPOV == nil) ? "NULL" : outerPOV!.stringify()) + ">");', 'let outerSymbol = ((outerPOV == nil) ? "NULL" : outerPOV!.mySymbol());\n                let outerString = ((outerPOV == nil) ? "NULL" : outerPOV!.stringify());\n                S += "  <outerPOV:" + outerSymbol + " " + outerString + ">";')
+        outputText = outputText.replace('        print("BASE::allocNewStream!\\n",separator:"", terminator:"");\n        return(0);', '        print("BASE::allocNewStream!\\n",separator:"", terminator:"");\n        return(nil);')
+        outputText = outputText.replace("""        var bytesUsed: UInt64 = 0;
+        if (!(readNotDone)) {
+            readNotDone = true;
+            readBuffer = "";
+        }
+        bytesUsed = dataIn.find("\\n");
+        if (bytesUsed < 0) {
+            readBuffer += dataIn;
+            bytesUsed = UInt64(dataIn.count);
+        }
+        else {
+            readNotDone = false;
+            readBuffer += String(dataIn.substring(from:0, to:Int(0)+Int(bytesUsed)));
+            bytesUsed += 1;
+        }
+        return(bytesUsed);""", """        var bytesUsed: UInt64 = 0;
+        if (!(readNotDone)) {
+            readNotDone = true;
+            readBuffer = "";
+        }
+        let linePos = dataIn.find("\\n");
+        if (linePos < 0) {
+            readBuffer += dataIn;
+            bytesUsed = UInt64(dataIn.count);
+        }
+        else {
+            readNotDone = false;
+            readBuffer += String(dataIn.substring(from:0, to:Int(0)+Int(linePos)));
+            bytesUsed = UInt64(linePos + 1);
+        }
+        return(bytesUsed);""")
+        outputText = re.sub(r"asClass\(([A-Za-z_][A-Za-z0-9_]*),", r"asClass(\1.self,", outputText)
         return outputText
+
+    def replacementVerbatimFunctionBody(self, className, fieldName, field, verbatimText, indent):
+        if fieldName == "appendFrameDiagnosticsLogRow":
+            return """{
+        let path = "SlipstreamFrameDiagnostics.csv"
+        let header = "sample_ms,draw_fps,draw_total_ms,build_ms,render_ms,draw_count,cmd_visited,cmd_rendered,cmd_path_culled,cmd_direct_culled,cmd_paint_skipped,cmd_text,cmd_image,cmd_bg,cmd_subdraw,cmd_3d,anim_fps,anim_dt_ms,anim_tween_ms,anim_requests,anim_full_requests,anim_rect_requests,anim_scheduled,anim_coalesced,anim_callbacks,anim_full_redraws,anim_rect_redraws,anim_pending,anim_has_rect,anim_rect_x,anim_rect_y,anim_rect_w,anim_rect_h,window_w,window_h,board_index\\n"
+        if !FileManager.default.fileExists(atPath: path) {
+            try? header.write(toFile: path, atomically: true, encoding: .utf8)
+        }
+        if let handle = FileHandle(forWritingAtPath: path) {
+            handle.seekToEndOfFile()
+            if let data = (row + "\\n").data(using: .utf8) {
+                handle.write(data)
+            }
+            if #available(macOS 10.15.4, *) {
+                try? handle.close()
+            } else {
+                handle.closeFile()
+            }
+        }
+    }
+
+"""
+        if fieldName == "diagnosticsScalarToString":
+            return """{
+        return String(Double(value))
+    }
+
+"""
+        if fieldName in ["slipstream_shutdown_CB", "connectSlipstreamShutdownCB"]:
+            return """{
+    }
+
+"""
+        return None
+
+    def parentHasStoredField(self, classes, className, fieldName):
+        return self.parentStoredField(classes, className, fieldName) != None
+
+    def parentStoredField(self, classes, className, fieldName):
+        if progSpec.findSpecOf(classes[0], className, "struct") == None:
+            return None
+        for parent in progSpec.getParentClassList(classes, className):
+            parentName = progSpec.filterClassesToString(parent)
+            parentStruct = progSpec.findSpecOf(classes[0], parentName, "struct")
+            parentModel = progSpec.findSpecOf(classes[0], parentName, "model")
+            for spec in [parentModel, parentStruct]:
+                if spec == None:
+                    continue
+                for field in spec["fields"]:
+                    if field.get("fieldName") == fieldName and progSpec.getParamList(field) == None:
+                        return field
+            inheritedField = self.parentStoredField(classes, parentName, fieldName)
+            if inheritedField != None:
+                return inheritedField
+        return None
+
+    def skipFieldDefinition(self, classes, className, field):
+        if progSpec.getParamList(field) != None:
+            return False
+        fieldName = field.get("fieldName")
+        if not fieldName:
+            return False
+        return self.parentHasStoredField(classes, className, fieldName)
+
+    def extraConstructorBody(self, classes, className, genericArgs):
+        if progSpec.findSpecOf(classes[0], className, "struct") == None:
+            return ""
+        initLines = ""
+        for field in progSpec.generateListOfFieldsToImplement(classes, className):
+            if progSpec.getParamList(field) != None:
+                continue
+            fieldName = field.get("fieldName")
+            if not fieldName:
+                continue
+            tSpec = progSpec.getTypeSpec(field)
+            if progSpec.getOwner(tSpec) != "me":
+                continue
+            parentField = self.parentStoredField(classes, className, fieldName)
+            if parentField == None:
+                continue
+            parentTSpec = progSpec.getTypeSpec(parentField)
+            if not progSpec.typeIsPointer(parentTSpec):
+                continue
+            cvrtType = self.codeGen.convertType(tSpec, 'alloc', genericArgs)
+            emitName = self.swiftIdentifier(fieldName)
+            initLines += "        if " + emitName + " == nil { " + emitName + " = " + cvrtType + "() }\n"
+        return initLines
 
     def addGLOBALSpecialCode(self, classes, tags):
         specialCode =''
@@ -911,6 +1707,17 @@ class Xlator_Swift(Xlator):
             if progSpec.ownerIsPointer(owner):fieldValueText = ''
             else:fieldValueText = ' = ' + fType +'()'
         return fieldValueText
+
+    def defaultFieldValueForType(self, classes, tSpec, fType):
+        unwrappedType = progSpec.getUnwrappedClassFieldTypeKeyWord(classes, fType)
+        swiftType = self.adjustBaseTypes(unwrappedType, False)
+        if self.isNumericType(swiftType):
+            return "0"
+        if swiftType == "Bool":
+            return "false"
+        if swiftType == "String":
+            return '""'
+        return ""
 
     def codeNewVarStr(self, LTSpec, varName, fieldDef, indent, genericArgs, localVarsAlloc):
         varDeclareStr = ''
@@ -941,17 +1748,21 @@ class Xlator_Swift(Xlator):
                     print("\nPROBLEM: The return type of the parameter '", CPL, "' of "+varName+"(...) cannot be found and is needed. Try to define it.\n",   paramTypeList)
                     exit(1)
                 RTSpec  = paramTypeList[0]
-                rhsType = progSpec.getFieldType(RTSpec)
-                # TODO: Remove the 'True' and make this check object heirarchies or similar solution
-                if True or not isinstance(rhsType, str) and cvrtType==rhsType[0]:
+                rhsType = ''
+                if progSpec.getOwner(RTSpec) != 'literal':
+                    rhsType = self.codeGen.convertType(RTSpec, 'var', genericArgs)
+                if cvrtType==rhsType:
                     assignValue = " = " + CPL   # Act like a copy constructor
             if(assignValue==''): assignValue = ' = ' + allocFieldType + CPL
         else: # If no value was given:
             assignValue = self.variableDefaultValueString(allocFieldType, False, owner)
         if assignValue == "":
-            assignValue = " = " + allocFieldType + '()'
+            if progSpec.ownerIsPointer(owner) and not isAllocated:
+                assignValue = " = nil"
+            else:
+                assignValue = " = " + allocFieldType + '()'
         fieldTypeMod = self.makePtrOpt(LTSpec)
-        varDeclareStr= "var " + varName + ": "+ cvrtType + fieldTypeMod + assignValue
+        varDeclareStr= "var " + self.swiftIdentifier(varName) + ": "+ cvrtType + fieldTypeMod + assignValue
         return(varDeclareStr)
 
     def codeIncrement(self, varName):
@@ -1003,26 +1814,28 @@ class Xlator_Swift(Xlator):
 
     def codeConstField_Str(self, convertedType, fieldName, fieldValueText, className, indent):
         decl = ''
-        if className=='GLOBAL': defn =  indent  + "let " + fieldName + ':'+ convertedType  + fieldValueText +';\n';
-        else: defn =  indent  + "let " + fieldName + ':'+ convertedType  + fieldValueText +';\n';
+        emitName = self.swiftIdentifier(fieldName)
+        if className=='GLOBAL': defn =  indent  + "let " + emitName + ':'+ convertedType  + fieldValueText +';\n';
+        else: defn =  indent  + "let " + emitName + ':'+ convertedType  + fieldValueText +';\n';
         return [defn, decl]
 
     def codeVarField_Str(self, convertedType, tSpec, fieldName, fieldValueText, className, tags, typeArgList, indent):
         # TODO: make test case
         fieldOwner=progSpec.getOwner(tSpec)
+        emitName = self.swiftIdentifier(fieldName)
         if fieldOwner=='we':
-            defn = indent + "public static var "+ indent + fieldName + ": " +  convertedType  +  fieldValueText + '\n'
+            defn = indent + "public static var "+ indent + emitName + ": " +  convertedType  +  fieldValueText + '\n'
             decl = ''
         else:
             isTypeArg = False
             if typeArgList:
                 for typeArg in typeArgList:
                     if convertedType == typeArg: isTypeArg = True
-            if isTypeArg: defn = indent + "var "+ fieldName + fieldValueText + '\n'
+            if isTypeArg: defn = indent + "var "+ emitName + fieldValueText + '\n'
             else:
                 convertedType += self.makePtrOpt(tSpec)
                 varPrefix = "lazy var " if self.isInstanceMemberDefault(fieldValueText) else "var "
-                defn = indent + varPrefix + fieldName + ": " +  convertedType + fieldValueText + '\n'
+                defn = indent + varPrefix + emitName + ": " +  convertedType + fieldValueText + '\n'
             decl = ''
         return [defn, decl]
 
@@ -1051,6 +1864,7 @@ class Xlator_Swift(Xlator):
     def codeConstructors(self, className, ctorArgs, ctorOvrRide, ctorInit, copyCtorArgs, funcBody, callSuper):
         #TODO: Swift should only have constructors if they are called somewhere.
         prefix = ''
+        S = ''
         if callSuper != "": prefix = 'override '
         if ctorArgs != "":
             S = '    init(' + ctorArgs+'){\n'+callSuper+ctorInit+funcBody+'    }\n'
@@ -1058,17 +1872,39 @@ class Xlator_Swift(Xlator):
         return S
 
     def codeConstructorInit(self, fieldName, count, defaultVal):
-        return "        self." + fieldName +" = arg_"+fieldName+";\n"
+        return "        self." + self.swiftIdentifier(fieldName) +" = arg_"+fieldName+";\n"
+
+    def codeConstructorArgType(self, tSpec, argType):
+        fTypeKW = progSpec.fieldTypeKeyword(tSpec)
+        if progSpec.typeIsPointer(tSpec) and fTypeKW != "string" and not argType.endswith("!") and not argType.endswith("?"):
+            return argType + "!"
+        return argType
+
+    def codeNullablePointerMethodCall(self, connector, name, argList, retTypeSpec):
+        if connector != self.PtrConnector:
+            return None
+        if argList != []:
+            return None
+        if name not in ["stringify", "mySymbol"]:
+            return None
+        if progSpec.fieldTypeKeyword(retTypeSpec) != "string":
+            return None
+        return "((%0 == nil) ? \"NULL\" : %0!." + name + "())"
 
     def useFieldAsConstructorArg(self, className, field, defaultVal):
-        if className == "arrow":
+        if className == "Drawel":
+            return field.get("fieldName") in ["x", "y", "w", "h", "arg1", "arg2"]
+        if className in ["arrow", "GuiCoords"]:
             return True
         return defaultVal != '' and not self.isInstanceMemberDefault("=" + defaultVal)
 
     def codeConstructorArgText(self, argFieldName, count, argType, defaultVal):
-        if defaultVal == "nil": defaultVal = ""
+        if defaultVal == "nil" and not argType.endswith("!") and not argType.endswith("?"):
+            defaultVal = ""
         if defaultVal and not self.isInstanceMemberDefault("=" + defaultVal):
-            argType = argType + '=' + defaultVal
+            if argType == "FlexNum" and progSpec.isStringNumeric(defaultVal):
+                defaultVal = "FlexNum(Int64(" + defaultVal + "))"
+            argType = argType + ' = ' + defaultVal
         return "_ arg_" + argFieldName  + ': ' +argType
 
     def codeCopyConstructor(self, fieldName, isTemplateVar):
@@ -1123,11 +1959,11 @@ class Xlator_Swift(Xlator):
                 localArgsAlloc.append(['application', {'owner':'me', 'fieldType':'UIApplication', 'arraySpec':None,'paramList':None}])
                 localArgsAlloc.append(['launchOptions', {'owner':'their', 'fieldType':'int', 'arraySpec':None,'paramList':None}])  # TODO: Wrong. launchOptions should be an array.
             else:
-                structCode +="func " + fieldName +"("+paramListText+") " + cvrtType
+                structCode +="func " + self.swiftIdentifier(fieldName) +"("+paramListText+") " + cvrtType
         else:
             if fieldName=="init":
                 fieldName = "__INIT_"+className
-                structCode += indent + "func "  + fieldName +"("+paramListText+")" + cvrtType
+                structCode += indent + "func "  + self.swiftIdentifier(fieldName) +"("+paramListText+")" + cvrtType
             else:
                 if isCtor:
                     structCode += indent + "init "  +"("+paramListText+") " + cvrtType
@@ -1137,7 +1973,7 @@ class Xlator_Swift(Xlator):
                     staticKW  = ''
                     if isStatic: staticKW = 'static '
                     if inheritMode=='override': funcAttrs='override '
-                    structCode += indent + funcAttrs + staticKW + "func " + fieldName +"("+paramListText+") " + cvrtType + fieldTypeMod
+                    structCode += indent + funcAttrs + staticKW + "func " + self.swiftIdentifier(fieldName) +"("+paramListText+") " + cvrtType + fieldTypeMod
         return [structCode, funcDefCode, globalFuncs]
 
     def getVirtualFuncText(self, field):
@@ -1161,8 +1997,13 @@ class Xlator_Swift(Xlator):
             topCode=""
             for param in paramList:
                 paramTypeSpec  = progSpec.getTypeSpec(param)
+                if self.swiftScalarParamUsesPointerOut(paramTypeSpec, param['fieldName']):
+                    continue
+                if self.swiftParamUsesInout(paramTypeSpec):
+                    continue
                 paramFieldName = param['fieldName']
-                topCode     +=  '        var '+paramFieldName+' = '+paramFieldName+'\n'
+                paramRHS = self.swiftIdentifier(paramFieldName)
+                topCode     +=  '        var '+self.swiftIdentifier(paramFieldName)+' = '+paramRHS+'\n'
         return topCode
 
     def codeSetBits(self, LHS_Left, LHS_FieldType, prefix, bitMask, RHS, rhsType):
@@ -1199,7 +2040,7 @@ class Xlator_Swift(Xlator):
         if runCode==None: runCode=""
         mainFuncCode="""
         me void: main() <- {
-            initialize("")        // TODO: get command line args and pass to initialize(joinCmdStrings(argc, argv))
+            initialize(commandLineArgs())
             """ + runCode + """
             deinitialize()
         }

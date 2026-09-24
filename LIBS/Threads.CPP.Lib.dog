@@ -71,7 +71,11 @@ struct Threads{
     me string: name // The threads name if it was set; max 15 chars
     void: setName(me string: N)  <- <%{name=N.substr(0,15);
 #ifndef _WIN32
+#ifdef __APPLE__
+        pthread_setname_np(name.data());
+#else
         pthread_setname_np(T.native_handle(), name.data());
+#endif
 #endif
     }%>
     bool: isActive()             <- {return(true);}     // TODO: Finish Thread::ID(), Thread::isActive() and make active threads automatically join() in destructor.

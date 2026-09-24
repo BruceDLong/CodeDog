@@ -15,7 +15,451 @@ LibDescription ={
     description = 'Built in routines for Swift'
 }
 
+embedVeryHigh = `
+struct CodeDogBigInt: Comparable, Equatable, CustomStringConvertible {
+    var sign: Int = 1
+    var digits: String = "0"
+
+    init() {}
+    init(_ value: Int) { self.init(Int64(value)) }
+    init(_ value: Int64) {
+        if value == 0 {
+            sign = 1
+            digits = "0"
+        } else if value < 0 {
+            sign = -1
+            digits = String(-value)
+        } else {
+            sign = 1
+            digits = String(value)
+        }
+    }
+    init(_ value: UInt64) {
+        sign = 1
+        digits = String(value)
+        normalize()
+    }
+    init(_ value: Double) {
+        self.init(Int64(value))
+    }
+    init(_ text: String, radix: Int = 10) {
+        set(text, radix: radix)
+    }
+
+    var description: String {
+        if digits == "0" { return "0" }
+        return sign < 0 ? "-" + digits : digits
+    }
+
+    mutating func set(_ text: String, radix: Int = 10) {
+        var s = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        sign = 1
+        if s.hasPrefix("-") {
+            sign = -1
+            s.removeFirst()
+        } else if s.hasPrefix("+") {
+            s.removeFirst()
+        }
+        if radix == 10 {
+            digits = s.filter { $0 >= "0" && $0 <= "9" }
+            normalize()
+            return
+        }
+        var acc = CodeDogBigInt(0)
+        for ch in s {
+            guard let val = Int(String(ch), radix: radix) else { continue }
+            acc = acc * CodeDogBigInt(Int64(radix)) + CodeDogBigInt(Int64(val))
+        }
+        self = acc
+        self.sign *= sign
+        normalize()
+    }
+
+    mutating func normalize() {
+        while digits.count > 1 && digits.first == "0" {
+            digits.removeFirst()
+        }
+        if digits.isEmpty || digits == "0" {
+            digits = "0"
+            sign = 1
+        }
+    }
+
+    func absValue() -> CodeDogBigInt {
+        var out = self
+        out.sign = 1
+        return out
+    }
+
+    func toInt64() -> Int64 {
+        let limited = Int64(digits) ?? Int64.max
+        return sign < 0 ? -limited : limited
+    }
+
+    func toDouble() -> Double {
+        let value = Double(digits) ?? Double.infinity
+        return sign < 0 ? -value : value
+    }
+
+    func isZero() -> Bool { return digits == "0" }
+
+    static func compareAbs(_ lhs: CodeDogBigInt, _ rhs: CodeDogBigInt) -> Int {
+        if lhs.digits.count != rhs.digits.count {
+            return lhs.digits.count < rhs.digits.count ? -1 : 1
+        }
+        if lhs.digits == rhs.digits { return 0 }
+        return lhs.digits < rhs.digits ? -1 : 1
+    }
+
+    static func addAbs(_ a: String, _ b: String) -> String {
+        let aa = Array(a.reversed()).map { Int(String($0))! }
+        let bb = Array(b.reversed()).map { Int(String($0))! }
+        var carry = 0
+        var out: [String] = []
+        let n = max(aa.count, bb.count)
+        for i in 0..<n {
+            let sum = (i < aa.count ? aa[i] : 0) + (i < bb.count ? bb[i] : 0) + carry
+            out.append(String(sum % 10))
+            carry = sum / 10
+        }
+        if carry > 0 { out.append(String(carry)) }
+        return out.reversed().joined()
+    }
+
+    static func subAbs(_ a: String, _ b: String) -> String {
+        let aa = Array(a.reversed()).map { Int(String($0))! }
+        let bb = Array(b.reversed()).map { Int(String($0))! }
+        var borrow = 0
+        var out: [String] = []
+        for i in 0..<aa.count {
+            var diff = aa[i] - borrow - (i < bb.count ? bb[i] : 0)
+            if diff < 0 {
+                diff += 10
+                borrow = 1
+            } else {
+                borrow = 0
+            }
+            out.append(String(diff))
+        }
+        var result = out.reversed().joined()
+        while result.count > 1 && result.first == "0" { result.removeFirst() }
+        return result
+    }
+
+    static func * (lhs: CodeDogBigInt, rhs: CodeDogBigInt) -> CodeDogBigInt {
+        if lhs.isZero() || rhs.isZero() { return CodeDogBigInt(0) }
+        let aa = Array(lhs.digits.reversed()).map { Int(String($0))! }
+        let bb = Array(rhs.digits.reversed()).map { Int(String($0))! }
+        var prod = Array(repeating: 0, count: aa.count + bb.count)
+        for i in 0..<aa.count {
+            for j in 0..<bb.count {
+                prod[i + j] += aa[i] * bb[j]
+            }
+        }
+        for i in 0..<(prod.count - 1) {
+            prod[i + 1] += prod[i] / 10
+            prod[i] %= 10
+        }
+        while prod.count > 1 && prod.last == 0 { prod.removeLast() }
+        var out = CodeDogBigInt()
+        out.sign = lhs.sign * rhs.sign
+        out.digits = prod.reversed().map(String.init).joined()
+        out.normalize()
+        return out
+    }
+
+    static func + (lhs: CodeDogBigInt, rhs: CodeDogBigInt) -> CodeDogBigInt {
+        var out = CodeDogBigInt()
+        if lhs.sign == rhs.sign {
+            out.sign = lhs.sign
+            out.digits = addAbs(lhs.digits, rhs.digits)
+        } else {
+            let cmp = compareAbs(lhs, rhs)
+            if cmp == 0 {
+                return CodeDogBigInt(0)
+            } else if cmp > 0 {
+                out.sign = lhs.sign
+                out.digits = subAbs(lhs.digits, rhs.digits)
+            } else {
+                out.sign = rhs.sign
+                out.digits = subAbs(rhs.digits, lhs.digits)
+            }
+        }
+        out.normalize()
+        return out
+    }
+
+    static prefix func - (value: CodeDogBigInt) -> CodeDogBigInt {
+        var out = value
+        if !out.isZero() { out.sign *= -1 }
+        return out
+    }
+
+    static func - (lhs: CodeDogBigInt, rhs: CodeDogBigInt) -> CodeDogBigInt {
+        return lhs + (-rhs)
+    }
+
+    static func < (lhs: CodeDogBigInt, rhs: CodeDogBigInt) -> Bool {
+        if lhs.sign != rhs.sign { return lhs.sign < rhs.sign }
+        let cmp = compareAbs(lhs, rhs)
+        return lhs.sign > 0 ? cmp < 0 : cmp > 0
+    }
+
+    func dividedBySmall(_ divisor: UInt64) -> CodeDogBigInt {
+        if divisor == 0 { return self }
+        var remainder: UInt64 = 0
+        var out = ""
+        for ch in digits {
+            let digit = UInt64(String(ch))!
+            let value = remainder * 10 + digit
+            out += String(value / divisor)
+            remainder = value % divisor
+        }
+        var result = CodeDogBigInt()
+        result.sign = sign
+        result.digits = out
+        result.normalize()
+        return result
+    }
+
+    func moduloSmall(_ divisor: UInt64) -> UInt64 {
+        if divisor == 0 { return 0 }
+        var remainder: UInt64 = 0
+        for ch in digits {
+            let digit = UInt64(String(ch))!
+            remainder = (remainder * 10 + digit) % divisor
+        }
+        return remainder
+    }
+
+    func toUInt64IfSmall() -> UInt64? {
+        return UInt64(digits)
+    }
+}
+
+struct CodeDogBigFrac: Comparable, Equatable, CustomStringConvertible {
+    var numerator: CodeDogBigInt = CodeDogBigInt(0)
+    var denominator: CodeDogBigInt = CodeDogBigInt(1)
+
+    init() {}
+    init(_ numerator: CodeDogBigInt, _ denominator: CodeDogBigInt = CodeDogBigInt(1)) {
+        self.numerator = numerator
+        self.denominator = denominator.isZero() ? CodeDogBigInt(1) : denominator
+    }
+    init(_ value: Int) { self.init(CodeDogBigInt(value)) }
+    init(_ value: Int64) { self.init(CodeDogBigInt(value)) }
+    init(_ value: UInt64) { self.init(CodeDogBigInt(value)) }
+    init(_ value: Double) {
+        if value.isFinite {
+            self.init(CodeDogBigInt(Int64(value)))
+        } else {
+            self.init()
+        }
+    }
+    init(_ value: Float) {
+        self.init(Double(value))
+    }
+    init(decimal text: String, radix: Int = 10) {
+        let parts = text.split(separator: "/", maxSplits: 1).map(String.init)
+        if parts.count == 2 {
+            numerator = CodeDogBigInt(parts[0], radix: radix)
+            denominator = CodeDogBigInt(parts[1], radix: radix)
+            normalize()
+        } else if text.contains(".") && radix == 10 {
+            var cleaned = text
+            var sign = 1
+            if cleaned.hasPrefix("-") {
+                sign = -1
+                cleaned.removeFirst()
+            }
+            let decParts = cleaned.split(separator: ".", maxSplits: 1).map(String.init)
+            let whole = decParts.count > 0 ? decParts[0] : "0"
+            let frac = decParts.count > 1 ? decParts[1] : ""
+            numerator = CodeDogBigInt(whole + frac, radix: 10)
+            numerator.sign *= sign
+            denominator = CodeDogBigInt("1" + String(repeating: "0", count: frac.count), radix: 10)
+            if frac.isEmpty { denominator = CodeDogBigInt(1) }
+            normalize()
+        } else {
+            numerator = CodeDogBigInt(text, radix: radix)
+            denominator = CodeDogBigInt(1)
+        }
+    }
+
+    var description: String {
+        if denominator == CodeDogBigInt(1) { return numerator.description }
+        return numerator.description + "/" + denominator.description
+    }
+
+    mutating func normalize() {
+        if numerator.isZero() {
+            denominator = CodeDogBigInt(1)
+            return
+        }
+        if denominator.sign < 0 {
+            denominator.sign = 1
+            numerator.sign *= -1
+        }
+        guard let den = denominator.toUInt64IfSmall(), den > 1 else { return }
+        var a = numerator.moduloSmall(den)
+        var b = den
+        while b != 0 {
+            let t = a % b
+            a = b
+            b = t
+        }
+        if a > 1 {
+            numerator = numerator.dividedBySmall(a)
+            denominator = denominator.dividedBySmall(a)
+        }
+    }
+
+    func normalized() -> CodeDogBigFrac {
+        var out = self
+        out.normalize()
+        return out
+    }
+
+    func toDouble() -> Double {
+        return numerator.toDouble() / denominator.toDouble()
+    }
+
+    func toInt64() -> Int64 {
+        return Int64(toDouble())
+    }
+
+    func decimalString(precision: Int = 12) -> String {
+        if denominator == CodeDogBigInt(1) { return numerator.description }
+        return CodeDogStringifyFlexNumValue(toDouble())
+    }
+
+    static func + (lhs: CodeDogBigFrac, rhs: CodeDogBigFrac) -> CodeDogBigFrac {
+        return CodeDogBigFrac(lhs.numerator * rhs.denominator + rhs.numerator * lhs.denominator, lhs.denominator * rhs.denominator).normalized()
+    }
+    static func - (lhs: CodeDogBigFrac, rhs: CodeDogBigFrac) -> CodeDogBigFrac {
+        return CodeDogBigFrac(lhs.numerator * rhs.denominator - rhs.numerator * lhs.denominator, lhs.denominator * rhs.denominator).normalized()
+    }
+    static func * (lhs: CodeDogBigFrac, rhs: CodeDogBigFrac) -> CodeDogBigFrac {
+        return CodeDogBigFrac(lhs.numerator * rhs.numerator, lhs.denominator * rhs.denominator).normalized()
+    }
+    static func / (lhs: CodeDogBigFrac, rhs: CodeDogBigFrac) -> CodeDogBigFrac {
+        return CodeDogBigFrac(lhs.numerator * rhs.denominator, lhs.denominator * rhs.numerator).normalized()
+    }
+    static prefix func - (value: CodeDogBigFrac) -> CodeDogBigFrac {
+        return CodeDogBigFrac(-value.numerator, value.denominator)
+    }
+    static func < (lhs: CodeDogBigFrac, rhs: CodeDogBigFrac) -> Bool {
+        return lhs.numerator * rhs.denominator < rhs.numerator * lhs.denominator
+    }
+}
+
+extension Int { func decimalString() -> String { return String(self) } }
+extension Int64 { func decimalString() -> String { return String(self) } }
+extension UInt { func decimalString() -> String { return String(self) } }
+extension UInt64 { func decimalString() -> String { return String(self) } }
+extension Float { func decimalString() -> String { return CodeDogStringifyFlexNumValue(Double(self)) } }
+extension Double { func decimalString() -> String { return CodeDogStringifyFlexNumValue(self) } }
+
+func + (lhs: CodeDogBigFrac, rhs: Int) -> CodeDogBigFrac { return lhs + CodeDogBigFrac(rhs) }
+func - (lhs: CodeDogBigFrac, rhs: Int) -> CodeDogBigFrac { return lhs - CodeDogBigFrac(rhs) }
+func * (lhs: CodeDogBigFrac, rhs: Int) -> CodeDogBigFrac { return lhs * CodeDogBigFrac(rhs) }
+func / (lhs: CodeDogBigFrac, rhs: Int) -> CodeDogBigFrac { return lhs / CodeDogBigFrac(rhs) }
+func + (lhs: Int, rhs: CodeDogBigFrac) -> CodeDogBigFrac { return CodeDogBigFrac(lhs) + rhs }
+func - (lhs: Int, rhs: CodeDogBigFrac) -> CodeDogBigFrac { return CodeDogBigFrac(lhs) - rhs }
+func * (lhs: Int, rhs: CodeDogBigFrac) -> CodeDogBigFrac { return CodeDogBigFrac(lhs) * rhs }
+func / (lhs: Int, rhs: CodeDogBigFrac) -> CodeDogBigFrac { return CodeDogBigFrac(lhs) / rhs }
+
+func < (lhs: FlexNum, rhs: FlexNum) -> Bool { return lhs.val < rhs.val }
+func <= (lhs: FlexNum, rhs: FlexNum) -> Bool { return lhs.val <= rhs.val }
+func > (lhs: FlexNum, rhs: FlexNum) -> Bool { return lhs.val > rhs.val }
+func >= (lhs: FlexNum, rhs: FlexNum) -> Bool { return lhs.val >= rhs.val }
+func == (lhs: FlexNum, rhs: FlexNum) -> Bool { return lhs.val == rhs.val }
+func != (lhs: FlexNum, rhs: FlexNum) -> Bool { return lhs.val != rhs.val }
+prefix func - (value: FlexNum) -> FlexNum { return FlexNum(-value.val) }
+func + (lhs: FlexNum, rhs: FlexNum) -> FlexNum { return FlexNum(lhs.val + rhs.val) }
+func - (lhs: FlexNum, rhs: FlexNum) -> FlexNum { return FlexNum(lhs.val - rhs.val) }
+func * (lhs: FlexNum, rhs: FlexNum) -> FlexNum { return FlexNum(lhs.val * rhs.val) }
+func / (lhs: FlexNum, rhs: FlexNum) -> FlexNum { return FlexNum(lhs.val / rhs.val) }
+func + (lhs: FlexNum, rhs: Int) -> FlexNum { return FlexNum(lhs.val + rhs) }
+func - (lhs: FlexNum, rhs: Int) -> FlexNum { return FlexNum(lhs.val - rhs) }
+func * (lhs: FlexNum, rhs: Int) -> FlexNum { return FlexNum(lhs.val * rhs) }
+func / (lhs: FlexNum, rhs: Int) -> FlexNum { return FlexNum(lhs.val / rhs) }
+func + (lhs: Int, rhs: FlexNum) -> FlexNum { return FlexNum(lhs + rhs.val) }
+func - (lhs: Int, rhs: FlexNum) -> FlexNum { return FlexNum(lhs - rhs.val) }
+func * (lhs: Int, rhs: FlexNum) -> FlexNum { return FlexNum(lhs * rhs.val) }
+func / (lhs: Int, rhs: FlexNum) -> FlexNum { return FlexNum(lhs / rhs.val) }
+func += (lhs: inout FlexNum, rhs: FlexNum) { lhs.val = lhs.val + rhs.val }
+func -= (lhs: inout FlexNum, rhs: FlexNum) { lhs.val = lhs.val - rhs.val }
+func == (lhs: FlexNum, rhs: Int) -> Bool { return lhs.val == CodeDogBigFrac(rhs) }
+func != (lhs: FlexNum, rhs: Int) -> Bool { return lhs.val != CodeDogBigFrac(rhs) }
+func < (lhs: FlexNum, rhs: Int) -> Bool { return lhs.val < CodeDogBigFrac(rhs) }
+func <= (lhs: FlexNum, rhs: Int) -> Bool { return lhs.val <= CodeDogBigFrac(rhs) }
+func > (lhs: FlexNum, rhs: Int) -> Bool { return lhs.val > CodeDogBigFrac(rhs) }
+func >= (lhs: FlexNum, rhs: Int) -> Bool { return lhs.val >= CodeDogBigFrac(rhs) }
+func == (lhs: FlexNum, rhs: Int64) -> Bool { return lhs.val == CodeDogBigFrac(rhs) }
+func != (lhs: FlexNum, rhs: Int64) -> Bool { return lhs.val != CodeDogBigFrac(rhs) }
+func < (lhs: FlexNum, rhs: Int64) -> Bool { return lhs.val < CodeDogBigFrac(rhs) }
+func <= (lhs: FlexNum, rhs: Int64) -> Bool { return lhs.val <= CodeDogBigFrac(rhs) }
+func > (lhs: FlexNum, rhs: Int64) -> Bool { return lhs.val > CodeDogBigFrac(rhs) }
+func >= (lhs: FlexNum, rhs: Int64) -> Bool { return lhs.val >= CodeDogBigFrac(rhs) }
+func + (lhs: Double, rhs: Int) -> Double { return lhs + Double(rhs) }
+func - (lhs: Double, rhs: Int) -> Double { return lhs - Double(rhs) }
+func * (lhs: Double, rhs: Int) -> Double { return lhs * Double(rhs) }
+func / (lhs: Double, rhs: Int) -> Double { return lhs / Double(rhs) }
+func + (lhs: Int, rhs: Double) -> Double { return Double(lhs) + rhs }
+func - (lhs: Int, rhs: Double) -> Double { return Double(lhs) - rhs }
+func * (lhs: Int, rhs: Double) -> Double { return Double(lhs) * rhs }
+func / (lhs: Int, rhs: Double) -> Double { return Double(lhs) / rhs }
+func < (lhs: Int, rhs: Double) -> Bool { return Double(lhs) < rhs }
+func <= (lhs: Int, rhs: Double) -> Bool { return Double(lhs) <= rhs }
+func > (lhs: Int, rhs: Double) -> Bool { return Double(lhs) > rhs }
+func >= (lhs: Int, rhs: Double) -> Bool { return Double(lhs) >= rhs }
+func < (lhs: Double, rhs: Int) -> Bool { return lhs < Double(rhs) }
+func <= (lhs: Double, rhs: Int) -> Bool { return lhs <= Double(rhs) }
+func > (lhs: Double, rhs: Int) -> Bool { return lhs > Double(rhs) }
+func >= (lhs: Double, rhs: Int) -> Bool { return lhs >= Double(rhs) }
+func += (lhs: inout Double, rhs: Int) { lhs += Double(rhs) }
+func -= (lhs: inout Double, rhs: Int) { lhs -= Double(rhs) }
+`
+
+struct GLOBAL{
+    me string: toString(me BigInt: val) <- <%!%1.description%>
+    me string: toString(me BigFrac: val) <- <%!%1.description%>
+    me string: toString(me BigFloat: val) <- <%!%1.decimalString()%>
+}
+
+struct BigInt: wraps = CodeDogBigInt{
+    me int64: convertToIntVal()               <- <%!%0.toInt64()%>
+    me BigInt: hexNumToBigInt(me string: val) <- <%!%0 = CodeDogBigInt(%1, radix: 16)%>
+    me BigInt: binNumToBigInt(me string: val) <- <%!%0 = CodeDogBigInt(%1, radix: 2)%>
+    me BigInt: decNumToBigInt(me string: val) <- <%!%0 = CodeDogBigInt(%1, radix: 10)%>
+}
+
+struct BigFloat: wraps = CodeDogBigFrac{
+    me double: convertToFloat() <- <%!%0.toDouble()%>
+    me int: hexNumToBigFloat(me string: val) <- <%!%0 = CodeDogBigFrac(CodeDogBigInt(%1, radix: 16))%>
+    me int: binNumToBigFloat(me string: val) <- <%!%0 = CodeDogBigFrac(CodeDogBigInt(%1, radix: 2))%>
+    me int: decNumToBigFloat(me string: val) <- <%!%0 = CodeDogBigFrac(decimal: %1, radix: 10)%>
+}
+
+struct BigFrac: wraps = CodeDogBigFrac{
+    me double: convertToFloat() <- <%!%0.toDouble()%>
+    void: normalize() <- <%!%0.normalize()%>
+    me int: hexNumToBigFrac(me string: val) <- <%!%0 = CodeDogBigFrac(CodeDogBigInt(%1, radix: 16))%>
+    me int: binNumToBigFrac(me string: val) <- <%!%0 = CodeDogBigFrac(CodeDogBigInt(%1, radix: 2))%>
+    me int: decNumToBigFrac(me string: val) <- <%!%0 = CodeDogBigFrac(decimal: %1, radix: 10)%>
+}
+
 struct FlexNum{
-    none: FlexNum(me int64:num)  <- {val <- num}
-    none: FlexNum(me uint64:num) <- {val <- num}
+    me double: convertToFloat() <- <%!val.toDouble()%>
+    me int64: convertToInt() <- <%!val.toInt64()%>
+    void: normalize() <- <%!val.normalize()%>
+    void: setNumerator(me string: numerator) <- <%!val.numerator = CodeDogBigInt(%1, radix: 10)%>
+    void: setDenominator(me string: denominator) <- <%!val.denominator = CodeDogBigInt(%1, radix: 10)%>
+    me BigInt: getNumerator() <- <%!val.numerator%>
+    me BigInt: getDenominator() <- <%!val.denominator%>
+    none: FlexNum(me BigInt:num) <- <%{val = CodeDogBigFrac(num)}%>
+    none: FlexNum(me BigFrac:num) <- <%{val = num}%>
+    none: FlexNum(me int64:num)  <- <%{val = CodeDogBigFrac(num)}%>
+    none: FlexNum(me uint64:num) <- <%{val = CodeDogBigFrac(num)}%>
 }

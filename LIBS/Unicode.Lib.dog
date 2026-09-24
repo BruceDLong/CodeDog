@@ -18,7 +18,7 @@ struct GLOBAL {
     me wstring: stringToWString(me string: str)
 
     me int: packUTF8Char(me string: str, their int64: pos, their int32: out) <- {
-        me char: chr
+        me int32: chr
         out <- 0
         chr <- str[pos]
         pos <+- 1

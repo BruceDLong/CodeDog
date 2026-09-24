@@ -25,17 +25,43 @@ func __threadedFunction(pointer: UnsafeMutableRawPointer) -> UnsafeMutableRawPoi
     pxT.run()
     return nil
 }
-class __MutexMngr{
-    // TODO: this should be pthread_mutex_t? but throws error in swift 5.4.1 on Linux
-    var mtx: pthread_mutex_t!
+class __Mutex {
+    private let mutex = NSRecursiveLock()
 
-    init(m: pthread_mutex_t!){
-        mtx = m
-        pthread_mutex_lock(&mtx)
+    func lock() {
+        mutex.lock()
     }
-    deinit{pthread_mutex_unlock(&mtx)}
+
+    func unlock() {
+        mutex.unlock()
+    }
+
+    func tryLock() -> Bool {
+        return mutex.try()
+    }
 }
-class __SyncLock{}
+class __MutexMngr{
+    var mtx: __Mutex
+
+    init(_ m: __Mutex){
+        mtx = m
+        mtx.lock()
+    }
+
+    init(m: __Mutex){
+        mtx = m
+        mtx.lock()
+    }
+
+    deinit{mtx.unlock()}
+}
+class __SyncLock{
+    func wait(_ lock: __MutexMngr) {}
+    func notify_one() {}
+    func notify_all() {}
+    func notifyOne() { notify_one() }
+    func notifyAll() { notify_all() }
+}
 class _pxThread {
     var notDone:Bool = false
     let _id:String = ""
@@ -72,16 +98,20 @@ class _ThreadParameter {
 
 `
 struct Threads: wraps = _pxThread{}
-struct Mutex: wraps = pthread_mutex_t{
-    void: lock()        <- <%!pthread_mutex_lock(%0)%>
-    void: unlock()      <- <%!pthread_mutex_unlock(%0)%>
-    bool: tryLock()     <- <%!pthread_mutex_tryLock(%0)%>
+struct GLOBAL{
+    me string: thisThreadID() <- <%!%GThread.current.description%>
 }
 
-struct MutexMngr: wraps = pthread_mutex_t{
-    void: lock()        <- <%!pthread_mutex_lock(&%0)%>
-    void: unlock()      <- <%!pthread_mutex_unlock(&%0)%>
-    bool: tryLock()     <- <%!pthread_mutex_tryLock(&%0)%>
+struct Mutex: wraps = __Mutex{
+    void: lock()        <- <%!lock()%>
+    void: unlock()      <- <%!unlock()%>
+    bool: tryLock()     <- <%!tryLock()%>
+}
+
+struct MutexMngr: wraps = __MutexMngr{
+    void: lock()        <- <%!mtx.lock()%>
+    void: unlock()      <- <%!mtx.unlock()%>
+    bool: tryLock()     <- <%!mtx.tryLock()%>
 }
 
 struct SyncLock: wraps = __SyncLock{

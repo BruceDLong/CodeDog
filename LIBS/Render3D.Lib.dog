@@ -143,6 +143,7 @@ struct Matrix4{
     }
 
     void: makeIdentity() <- {
+        zero()
         m00 <- 1.0
         m11 <- 1.0
         m22 <- 1.0
@@ -150,6 +151,7 @@ struct Matrix4{
     }
 
     void: makeRotationX(me float: fAngleRad) <- {
+        zero()
         m00 <- 1.0
         m11 <- cosf(fAngleRad)
         m12 <- sinf(fAngleRad)
@@ -159,6 +161,7 @@ struct Matrix4{
     }
 
     void: makeRotationY(me float: fAngleRad) <- {
+        zero()
         m00 <- cosf(fAngleRad)
         m02 <- sinf(fAngleRad)
         m20 <- -sinf(fAngleRad)
@@ -168,6 +171,7 @@ struct Matrix4{
     }
 
     void: makeRotationZ(me float: fAngleRad) <- {
+        zero()
         m00 <- cosf(fAngleRad)
         m01 <- sinf(fAngleRad)
         m10 <- -sinf(fAngleRad)
@@ -177,6 +181,7 @@ struct Matrix4{
     }
 
     void: makeScale(me float: x, me float: y, me float: z) <- {
+        zero()
         m00 <- x
         m11 <- y
         m22 <- z
@@ -184,6 +189,7 @@ struct Matrix4{
     }
 
     void: makeTranslation(me float: x, me float: y, me float: z) <- {
+        zero()
         m00 <- 1.0
         m11 <- 1.0
         m22 <- 1.0
@@ -194,6 +200,7 @@ struct Matrix4{
     }
 
     void: makeInverseTranslation(me float: x, me float: y, me float: z) <- {
+        zero()
         m00 <- 1.0
         m11 <- 1.0
         m22 <- 1.0
@@ -443,7 +450,8 @@ TriXlated.p3.z <+- 3.0
         if (CULL_LZ and Vec_DotProduct(TrianglesNormal, TriXlated.p1) < 0.0){continue()}
 
             // 4. If Lighting, calculate shading
-            me cdColor: faceColor <- color
+            me cdColor: faceColor
+            faceColor <deep- color
             if(RENDER_LIGHTING){
                 me cdColor: ambient_clamp{ 0,0,0 }
                 me cdColor: light_combined{ 0,0,0 }

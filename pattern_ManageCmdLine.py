@@ -40,7 +40,7 @@ def apply(classes, tags):
             me string: argToReturn <- ""
             scanner.initialize(cmdLineText)
             me string: cmdLineTextWS <- " " + cmdLineText + " "
-            if(findString(cmdLineTextWS, " -? ")!=-1 or findString(cmdLineTextWS, " -h ")!=-1 or findString(cmdLineTextWS, " --help ")!=-1){
+            if(findString(cmdLineTextWS, " -? ")>=0 or findString(cmdLineTextWS, " -h ")>=0 or findString(cmdLineTextWS, " --help ")>=0){
                 print(helpText())
                 exit(1)
             }
@@ -64,6 +64,7 @@ def apply(classes, tags):
             me int: endPos   <- 0
             if(foundPos>=0){
                 endPos <- scanner.skipTo(" -")
+                if(endPos<0){endPos <- cmdLineText.size()}
                 argToReturn <- cmdLineText.subStr(startPos, endPos-startPos)
             } else {
                 scanner.pos <- scanPos
@@ -71,6 +72,7 @@ def apply(classes, tags):
                 startPos <- scanner.skipWS()
                 if(foundPos>=0){
                     endPos <- scanner.skipTo(" -")
+                    if(endPos<0){endPos <- cmdLineText.size()}
                     argToReturn <- cmdLineText.subStr(startPos, endPos-startPos)
                 }
             }

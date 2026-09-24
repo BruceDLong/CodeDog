@@ -331,7 +331,8 @@ class CodeGenerator(object):
                             if(parentClassName != ''):
                                 return [retTypeSpec, "STATIC:"+parentClassName]  # 'string' is probably not always correct.
                             else: return [retTypeSpec, "CONST"]
-                        if itemName=='NULL': return [{'owner':'their', 'fieldType':"pointer", 'arraySpec':None}, "CONST"]
+                        if itemName=='NULL' or itemName=='nullptr':
+                            return [{'owner':'their', 'fieldType':"pointer", 'arraySpec':None}, "CONST"]
                         cdlog(logLvl(), "Variable {} could not be found.".format(itemName))
                         return [None, "LIB"]      # TODO: Return correct type
         return [REF['typeSpec'], RefType]   # Example: [{typeSpec}, 'OBJVAR']
@@ -860,6 +861,10 @@ class CodeGenerator(object):
         newName = tSpec['codeConverter']
         fTypeKW = progSpec.fieldTypeKeyword(tSpec)
         if newName == "": cdErr("ERROR: empty codeConverter for: "+name)
+        if hasattr(self.xlator, "adjustCodeConverterForCall"):
+            adjustedName = self.xlator.adjustCodeConverterForCall(tSpec, name, newName, argList, reqTagList, genericArgs)
+            if adjustedName != None:
+                newName = adjustedName
         if argList != None:
             count=1
             for P in argList:
@@ -873,6 +878,8 @@ class CodeGenerator(object):
             argList=None
         if '%0.' in newName and connector==self.xlator.PtrConnector:
             newName = newName.replace('%0.', '%0'+self.xlator.PtrConnector)
+        if '%0[' in newName and connector==self.xlator.PtrConnector:
+            newName = newName.replace('%0[', '%0![')
         if "%T0Type" in newName:
             if(reqTagList != None):
                 T0Type  = progSpec.fieldTypeKeyword(reqTagList[0])
@@ -911,7 +918,7 @@ class CodeGenerator(object):
         owner      = progSpec.getOwner(tSpecIn)
         fTypeKW    = progSpec.fieldTypeKeyword(tSpecIn)
         progSpec.isOldContainerTempFuncErr(tSpecIn, 'codeNameSeg1 '+self.currentObjName+' ' +str(name))
-        isCtnr     = progSpec.isNewContainerTempFunc(tSpecIn)
+        isCtnr     = progSpec.isAContainer(tSpecIn)
         if genericArgs==None and previousTypeSpec!=None: genericArgs = progSpec.getGenericArgsFromTypeSpec(previousTypeSpec)
         if(name=='allocate'): cdErr("Deprecated use of allocate()")
 
@@ -939,6 +946,9 @@ class CodeGenerator(object):
             if name=="return":
                 SRC = "RETURN_TYPE"
                 tSpecOut['paramList'] = [{'typeSpec':returnType}]
+            elif name=="this":
+                name = "self"
+                tSpecOut={'owner':'our', 'fieldType': self.currentObjName, 'arraySpec':None, 'paramList':None}
             elif(name=='resetFlagsAndModes'):
                 tSpecOut={'owner':'me', 'fieldType': 'void', 'codeConverter':'flags=0'}
                 # TODO: if flags or modes have a non-zero default this should account for that.
@@ -1002,7 +1012,15 @@ class CodeGenerator(object):
             callAsGlobal=name.find("%G")
             if(callAsGlobal >= 0): namePrefix=''
 
-        S+=namePrefix+connector+name
+        if argList != None and hasattr(self.xlator, "codeNullablePointerMethodCall"):
+            nullableCall = self.xlator.codeNullablePointerMethodCall(connector, name, argList, tSpecOut)
+            if nullableCall != None:
+                return [nullableCall, tSpecOut, None, SRC]
+
+        emitName = name
+        if hasattr(self.xlator, "codeIdentifier"):
+            emitName = self.xlator.codeIdentifier(name)
+        S+=namePrefix+connector+emitName
 
         # Add parameters if this is a function call
         if(argList != None):
@@ -1029,7 +1047,10 @@ class CodeGenerator(object):
             segConnector = self.xlator.NameSegFuncConnector
         else:
             segConnector = self.xlator.NameSegConnector
-        S += segConnector + segName
+        emitSegName = segName
+        if hasattr(self.xlator, "codeIdentifier"):
+            emitSegName = self.xlator.codeIdentifier(segName)
+        S += segConnector + emitSegName
         if len(segSpec) > 1 and segSpec[1]=='(':
             if(len(segSpec)==2):
                 argList=[]
@@ -1209,11 +1230,23 @@ class CodeGenerator(object):
             for P in argList:
                 if(count>0): S+=', '
                 modelTSpec = None
+                modelParamName = None
                 if modelParams and (len(modelParams)>count) and ('typeSpec' in modelParams[count]):
                     modelTSpec = progSpec.getTypeSpec(modelParams[count])
+                    modelParamName = modelParams[count].get('fieldName')
                 [S2, argTSpec]=self.codeExpr(P[0], None, modelTSpec, 'ARG', genericArgs)
                 paramTypeList.append(argTSpec)
                 if modelTSpec!=None:
+                    if hasattr(self.xlator, "swiftScalarParamUsesPointerOut") and self.xlator.swiftScalarParamUsesPointerOut(modelTSpec, modelParamName):
+                        if hasattr(self.xlator, "codePointerOutArg"):
+                            S += self.xlator.codePointerOutArg(S2, argTSpec, modelTSpec)
+                        else:
+                            S += S2
+                        count+=1
+                        continue
+                    callModelTSpec = modelTSpec
+                    if hasattr(self.xlator, "localParamTypeSpec"):
+                        callModelTSpec = self.xlator.localParamTypeSpec(modelTSpec)
                     modelTypeKW   = progSpec.fieldTypeKeyword(modelTSpec)
                     argTypeKW     = progSpec.fieldTypeKeyword(argTSpec)
                     if self.xlator.implOperatorsAsFuncs(modelTypeKW):
@@ -1222,9 +1255,11 @@ class CodeGenerator(object):
                     if name == 'return' and S2 == 'nil':  # Swift return nil, provide context and make optional
                         S2 = modelTypeKW +"?("+S2+")"
                     else:
-                        [leftMod, rightMod] = self.xlator.chooseVirtualRValOwner(modelTSpec, argTSpec)
+                        [leftMod, rightMod] = self.xlator.chooseVirtualRValOwner(callModelTSpec, argTSpec)
                         S2 = leftMod+S2+rightMod
-                        S2 = self.xlator.checkForTypeCastNeed(modelTSpec,argTSpec,S2)
+                        S2 = self.xlator.checkForTypeCastNeed(callModelTSpec,argTSpec,S2)
+                    if hasattr(self.xlator, "swiftParamUsesInout") and self.xlator.swiftParamUsesInout(modelTSpec):
+                        S2 = '&' + S2
                     S += S2
                 else:
                     self.listOfFuncsWithUnknownArgTypes[(name+'()')]=1
@@ -1652,7 +1687,10 @@ class CodeGenerator(object):
                     actionText = self.xlator.checkIfSpecialAssignmentFormIsNeeded(action, indent, AltIDXFormat, RHS, rhsTypeSpec, LHS, LHSParentType, LHS_FieldType)
                 if actionText=='':     # Handle the normal assignment case
                     if(assignTag=='deep'):
-                        actionText = indent + LHS + " = " + RHS + ";\n"
+                        if hasattr(self.xlator, "codeDeepCopyAssignment"):
+                            actionText = self.xlator.codeDeepCopyAssignment(LHS, RHS, lhsTypeSpec, rhsTypeSpec, indent, genericArgs)
+                        else:
+                            actionText = indent + LHS + " = " + RHS + ";\n"
                     elif(assignTag=='+'):
                         if self.xlator.implOperatorsAsFuncs(LHS_FieldType):
                             actionText = self.xlator.codePlusAsFunc(LHS, RHS, LHS_FieldType, assignTag) + ";\n"
@@ -1823,6 +1861,8 @@ class CodeGenerator(object):
                 elif(fType=="string"):            defaultVal = '""'
                 elif(fType=="bool"):              defaultVal = 'false'
                 else: # handle structs if needed
+                    if hasattr(self.xlator, "defaultFieldValueForType"):
+                        defaultVal = self.xlator.defaultFieldValueForType(self.classStore, tSpec, fType)
                     if 'value' in field and field['value']!=None:
                         [defaultVal, defaultValueTypeSpec] = self.codeExpr(field['value'][0], None, tSpec, 'RVAL', genericArgs)
         return defaultVal
@@ -1851,7 +1891,10 @@ class CodeGenerator(object):
             if useCtorArg:
             #    if count == 0: defaultVal = ''  # uncomment this line to NOT generate a default value for the first constructor argument.
                 if count>0: ctorArgs +=  ', '
-                ctorArgs += self.xlator.codeConstructorArgText(fieldName, count, cvrtType, defaultVal)
+                ctorArgType = cvrtType
+                if hasattr(self.xlator, "codeConstructorArgType"):
+                    ctorArgType = self.xlator.codeConstructorArgType(tSpec, cvrtType)
+                ctorArgs += self.xlator.codeConstructorArgText(fieldName, count, ctorArgType, defaultVal)
                 ctorInit += self.xlator.codeConstructorInit(fieldName, count, defaultVal)
                 count += 1
             copyCtorArgs += self.xlator.codeCopyConstructor(fieldName, isTemplateVar)
@@ -1882,6 +1925,8 @@ class CodeGenerator(object):
         fieldID  = className+'::INIT'
         if(progSpec.doesClassDirectlyImlementThisField(self.classStore[0], className, fieldID)):
             funcBody += self.xlator.codeConstructorCall(className)
+        if hasattr(self.xlator, "extraConstructorBody"):
+            funcBody = self.xlator.extraConstructorBody(self.classStore, className, genericArgs) + funcBody
         if ctorArgs and parentClass:
             ctorArgTypes       = self.getCtorArgTypes(className, genericArgs)
             parentCtorArgTypes = self.getCtorArgTypes(parentClass, genericArgs)
@@ -1931,7 +1976,10 @@ class CodeGenerator(object):
                 )
 
                 # Track for local-arg resolution in expression parsing
-                self.localArgsAllocated.append([paramFieldName, paramTSpec])
+                localParamTSpec = paramTSpec
+                if hasattr(self.xlator, "localParamTypeSpec"):
+                    localParamTSpec = self.xlator.localParamTypeSpec(paramTSpec, paramFieldName)
+                self.localArgsAllocated.append([paramFieldName, localParamTSpec])
 
         #### RETURN TYPE ###########################################
         FirstReturnType = copy.copy(tSpec) # TODO: Un-Hardcode FirstReturnType, typeSpec?
@@ -1968,7 +2016,13 @@ class CodeGenerator(object):
                 extraCodeForTopOfFuntion+="    flags=0;"
             verbatimText=field['value'][1]
             if (verbatimText!=''):                                      # This function body is 'verbatim'.
-                if(verbatimText[0]=='!'): # This is a code conversion pattern. Don't write a function decl or body.
+                replacementFuncText = None
+                if hasattr(self.xlator, "replacementVerbatimFunctionBody"):
+                    replacementFuncText = self.xlator.replacementVerbatimFunctionBody(className, fieldName, field, verbatimText, indent)
+                if replacementFuncText != None:
+                    funcText = replacementFuncText
+                    if globalFuncs!='': self.ForwardDeclsForGlobalFuncs += globalFuncs+";       \t\t // Forward Decl\n"
+                elif(verbatimText[0]=='!'): # This is a code conversion pattern. Don't write a function decl or body.
                     structCode  = ""
                     funcText    = ""
                     funcDefCode = ""
@@ -2080,6 +2134,8 @@ class CodeGenerator(object):
             tSpec   = progSpec.getTypeSpec(field)
             fTypeKW = progSpec.fieldTypeKeyword(tSpec)
             if(fTypeKW=='flag' or fTypeKW=='mode'): continue
+            if hasattr(self.xlator, "skipFieldDefinition") and self.xlator.skipFieldDefinition(self.classStore, className, field):
+                continue
             if 'value' in field and field['value']!=None and len(field['value'])>1:
                 verbatimText=field['value'][1]      # This function body is 'verbatim'.
                 if (verbatimText!='' and verbatimText[0]=='!'): continue  # This is a code conversion pattern. Don't write a function decl or body.

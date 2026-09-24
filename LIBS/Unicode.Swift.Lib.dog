@@ -19,3 +19,119 @@ LibDescription  ={
     Lang        =[Swift]
 }
 
+embedVeryHigh = `
+typealias UnicodeStr = String
+typealias Locale = String
+typealias sysLocale = String
+typealias UDate = Double
+typealias wstring = String
+
+func CodeDogUnicodeScalarValue(_ ch: Character) -> UInt32 {
+    return ch.unicodeScalars.first?.value ?? 0
+}
+
+func CodeDogUnicodeScalarValue(_ ch: Int) -> UInt32 {
+    return UInt32(ch)
+}
+
+func CodeDogIsUTFContinuation(_ ch: Character) -> Bool {
+    let value = CodeDogUnicodeScalarValue(ch)
+    return (value & 0xC0) == 0x80
+}
+
+func CodeDogIsUTFContinuation(_ ch: Int) -> Bool {
+    let value = CodeDogUnicodeScalarValue(ch)
+    return (value & 0xC0) == 0x80
+}
+
+func CodeDogRemainingOctets(_ ch: Character) -> Int {
+    let value = CodeDogUnicodeScalarValue(ch)
+    if value < 0x80 { return 0 }
+    if value < 0xE0 { return 1 }
+    if value < 0xF0 { return 2 }
+    if value < 0xF8 { return 3 }
+    return 0
+}
+
+func CodeDogRemainingOctets(_ ch: Int) -> Int {
+    let value = CodeDogUnicodeScalarValue(ch)
+    if value < 0x80 { return 0 }
+    if value < 0xE0 { return 1 }
+    if value < 0xF0 { return 2 }
+    if value < 0xF8 { return 3 }
+    return 0
+}
+
+func CodeDogIsUnicodeAlpha(_ ch: Character) -> Bool {
+    return ch.unicodeScalars.first?.properties.isAlphabetic ?? false
+}
+
+func CodeDogIsUnicodeAlpha(_ ch: Int) -> Bool {
+    guard let scalar = UnicodeScalar(ch) else { return false }
+    return scalar.properties.isAlphabetic
+}
+
+func CodeDogIsUnicodeAlphaNum(_ ch: Character) -> Bool {
+    guard let scalar = ch.unicodeScalars.first else { return false }
+    return scalar.properties.isAlphabetic || scalar.properties.numericType != nil
+}
+
+func CodeDogIsUnicodeAlphaNum(_ ch: Int) -> Bool {
+    guard let scalar = UnicodeScalar(ch) else { return false }
+    return scalar.properties.isAlphabetic || scalar.properties.numericType != nil
+}
+
+func CodeDogIsUnicodeWordContinue(_ ch: Character) -> Bool {
+    return CodeDogIsUnicodeAlphaNum(ch) || ch == "_" || ch == "-"
+}
+
+func CodeDogIsUnicodeWordContinue(_ ch: Int) -> Bool {
+    return CodeDogIsUnicodeAlphaNum(ch) || ch == 95 || ch == 45
+}
+`
+
+struct UnicodeStr: wraps=String{}
+struct Locale:     wraps=String{}
+struct sysLocale:  wraps=String{}
+struct UDate:      wraps=double{}
+struct wstring:    wraps=String{}
+
+struct GLOBAL {
+    me bool: isutf(me char: ch) <- <%!%GCodeDogIsUTFContinuation(%1)%>
+    me bool: isutf(me int32: ch) <- <%!%GCodeDogIsUTFContinuation(%1)%>
+    me int: remainingOctets(me char: ch) <- <%!%GCodeDogRemainingOctets(%1)%>
+    me int: remainingOctets(me int32: ch) <- <%!%GCodeDogRemainingOctets(%1)%>
+    me wstring: stringToWString(me string: str) <- <%!%1%>
+}
+
+struct UnicodeMgr  {
+    me sysLocale: SetLocale(me string: code) <- <%{
+        let trimmed = code.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? "en_US" : trimmed
+    }%>
+    me string: dateToIntlString(me UDate: date, me UDate: interval, me sysLocale: loc) <- <%{ return String(date) }%>
+    me string: getHour(me UDate: date, me sysLocale: loc) <- <%{ return String(Int(date / 3600000) % 24) }%>
+    me bool: isUnicodeAlpha(me char: ch) <- <%{ return CodeDogIsUnicodeAlpha(ch) }%>
+    me bool: isUnicodeAlpha(me int32: ch) <- <%{ return CodeDogIsUnicodeAlpha(ch) }%>
+    me bool: isUnicodeAlphaNum(me char: ch) <- <%{ return CodeDogIsUnicodeAlphaNum(ch) }%>
+    me bool: isUnicodeAlphaNum(me int32: ch) <- <%{ return CodeDogIsUnicodeAlphaNum(ch) }%>
+    me bool: isUnicodeWordStart(me char: ch) <- <%{ return CodeDogIsUnicodeAlpha(ch) }%>
+    me bool: isUnicodeWordStart(me int32: ch) <- <%{ return CodeDogIsUnicodeAlpha(ch) }%>
+    me bool: isUnicodeWordContinue(me char: ch) <- <%{ return CodeDogIsUnicodeWordContinue(ch) }%>
+    me bool: isUnicodeWordContinue(me int32: ch) <- <%{ return CodeDogIsUnicodeWordContinue(ch) }%>
+    me UnicodeStr: fromUTF8Str(me string: input) <- <%{ return input }%>
+    me string: toUTF8Str(me UnicodeStr: input) <- <%{ return input }%>
+    void: UnicodeStrToUTF8_String(me UnicodeStr: s, their string: out) <- <%!%2 = %1%>
+    me string: normalizeStr(me string: input) <- <%{ return input.precomposedStringWithCompatibilityMapping.folding(options: [.caseInsensitive, .widthInsensitive], locale: Foundation.Locale(identifier: "en_US_POSIX")) }%>
+    me UnicodeStr: getDisplayLanguage(me sysLocale: loc, me string: langNameLangDisplayedIn <- "") <- <%{ return loc }%>
+    me UnicodeStr: getDisplayCountry(me sysLocale: loc, me string: countryNameLangDisplayedIn <- "") <- <%{ return loc }%>
+    me timeValue: epocTimeFromDateTime(me int: year, me int: month, me int: date, me int: hour, me int: minute, me int: second) <- <%{ return 0.0 }%>
+    void: dateTimeFromEpocTime(me timeValue: epocTime, their DateTimeFields: dateTimeFields) <- {}
+    me string: customPatternDateTime(me UDate: dt, me UnicodeStr: pattern, me string: locPat) <- <%{ return String(dt) }%>
+    me string: localeString(their sysLocale: loc) <- <%{ return loc }%>
+    me string: getLocaleBaseName(their sysLocale: loc) <- <%{
+        let trimmed = loc.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? "en_US" : trimmed
+    }%>
+    me sysLocale: getSystemLocale() <- <%{ return "en_US" }%>
+}

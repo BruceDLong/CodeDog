@@ -140,6 +140,14 @@ func CodeDogResolveImagePath(_ filename: String) -> String? {
         candidates.append(rawPath)
         candidates.append("./assets/" + rawPath)
         candidates.append("./assets/" + basename)
+        candidates.append("./Resources/" + rawPath)
+        candidates.append("./Resources/" + basename)
+        candidates.append("../Resources/" + rawPath)
+        candidates.append("../Resources/" + basename)
+        candidates.append("../../Resources/" + rawPath)
+        candidates.append("../../Resources/" + basename)
+        candidates.append("../../../Resources/" + rawPath)
+        candidates.append("../../../Resources/" + basename)
         candidates.append("../../Examples/Resources/" + basename)
         candidates.append("../Examples/Resources/" + basename)
         candidates.append("./Examples/Resources/" + basename)
@@ -351,7 +359,7 @@ extension NSEvent {
         }
         return UInt(keyCode)
     }
-    var state: UInt { UInt(modifierFlags.rawValue) }
+    var state: Int { Int(modifierFlags.rawValue) }
 }
 
 // APP DELEGATE /////////////////////////////////////////////////////
@@ -502,6 +510,117 @@ struct GLOBAL{
     me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!CodeDogAddToContainer(%1, %2, false)%>
     me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <- <%!CodeDogAddToContainer(%1, %2, true)%>
 }
+struct GLOBAL{ // Constants
+    const int: KEY_HOME         <- <%!0xF729%>
+    const int: KEY_END          <- <%!0xF72B%>
+    const int: KEY_ESCAPE       <- <%!27%>
+    const int: KEY_TAB          <- <%!9%>
+    const int: KEY_INSERT       <- <%!0xF727%>
+    const int: KEY_DELETE       <- <%!0xF728%>
+    const int: KEY_PAGEUP       <- <%!0xF72C%>
+    const int: KEY_PAGEDOWN     <- <%!0xF72D%>
+    const int: KEY_PAUSE        <- <%!0xF730%>
+    const int: KEY_RETURN       <- <%!13%>
+    const int: KEY_UP           <- <%!0xF700%>
+    const int: KEY_DOWN         <- <%!0xF701%>
+    const int: KEY_LEFT         <- <%!0xF702%>
+    const int: KEY_RIGHT        <- <%!0xF703%>
+    const int: KEY_BACKSPACE    <- <%!127%>
+    const int: KEY_F1           <- <%!0xF704%>
+    const int: KEY_F2           <- <%!0xF705%>
+    const int: KEY_F3           <- <%!0xF706%>
+    const int: KEY_F4           <- <%!0xF707%>
+    const int: KEY_F5           <- <%!0xF708%>
+    const int: KEY_F6           <- <%!0xF709%>
+    const int: KEY_F7           <- <%!0xF70A%>
+    const int: KEY_F8           <- <%!0xF70B%>
+    const int: KEY_F9           <- <%!0xF70C%>
+    const int: KEY_F10          <- <%!0xF70D%>
+    const int: KEY_F11          <- <%!0xF70E%>
+    const int: KEY_F12          <- <%!0xF70F%>
+    const int: KP_0             <- <%!48%>
+    const int: KP_1             <- <%!49%>
+    const int: KP_2             <- <%!50%>
+    const int: KP_3             <- <%!51%>
+    const int: KP_4             <- <%!52%>
+    const int: KP_5             <- <%!53%>
+    const int: KP_6             <- <%!54%>
+    const int: KP_7             <- <%!55%>
+    const int: KP_8             <- <%!56%>
+    const int: KP_9             <- <%!57%>
+    const int: KP_ENTER         <- <%!13%>
+    const int: KP_PLUS          <- <%!43%>
+    const int: KP_MINUS         <- <%!45%>
+    const int: KP_MULTIPLY      <- <%!42%>
+    const int: KP_DIVIDE        <- <%!47%>
+    const int: KP_PERIOD        <- <%!46%>
+    const int: KP_DELETE        <- <%!0xF728%>
+    const int: KP_UP            <- <%!0xF700%>
+    const int: KP_DOWN          <- <%!0xF701%>
+    const int: KP_LEFT          <- <%!0xF702%>
+    const int: KP_RIGHT         <- <%!0xF703%>
+    const int: KP_HOME          <- <%!0xF729%>
+    const int: KP_END           <- <%!0xF72B%>
+    const int: KP_PAGEUP        <- <%!0xF72C%>
+    const int: KP_PAGEDOWN      <- <%!0xF72D%>
+
+    const int: KEY_a            <- <%!97%>
+    const int: KEY_b            <- <%!98%>
+    const int: KEY_c            <- <%!99%>
+    const int: KEY_d            <- <%!100%>
+    const int: KEY_e            <- <%!101%>
+    const int: KEY_f            <- <%!102%>
+    const int: KEY_g            <- <%!103%>
+    const int: KEY_h            <- <%!104%>
+    const int: KEY_i            <- <%!105%>
+    const int: KEY_j            <- <%!106%>
+    const int: KEY_k            <- <%!107%>
+    const int: KEY_l            <- <%!108%>
+    const int: KEY_m            <- <%!109%>
+    const int: KEY_n            <- <%!110%>
+    const int: KEY_o            <- <%!111%>
+    const int: KEY_p            <- <%!112%>
+    const int: KEY_q            <- <%!113%>
+    const int: KEY_r            <- <%!114%>
+    const int: KEY_s            <- <%!115%>
+    const int: KEY_t            <- <%!116%>
+    const int: KEY_u            <- <%!117%>
+    const int: KEY_v            <- <%!118%>
+    const int: KEY_w            <- <%!119%>
+    const int: KEY_x            <- <%!120%>
+    const int: KEY_y            <- <%!121%>
+    const int: KEY_z            <- <%!122%>
+
+    const int: KEY_A            <- <%!65%>
+    const int: KEY_B            <- <%!66%>
+    const int: KEY_C            <- <%!67%>
+    const int: KEY_D            <- <%!68%>
+    const int: KEY_E            <- <%!69%>
+    const int: KEY_F            <- <%!70%>
+    const int: KEY_G            <- <%!71%>
+    const int: KEY_H            <- <%!72%>
+    const int: KEY_I            <- <%!73%>
+    const int: KEY_J            <- <%!74%>
+    const int: KEY_K            <- <%!75%>
+    const int: KEY_L            <- <%!76%>
+    const int: KEY_M            <- <%!77%>
+    const int: KEY_N            <- <%!78%>
+    const int: KEY_O            <- <%!79%>
+    const int: KEY_P            <- <%!80%>
+    const int: KEY_Q            <- <%!81%>
+    const int: KEY_R            <- <%!82%>
+    const int: KEY_S            <- <%!83%>
+    const int: KEY_T            <- <%!84%>
+    const int: KEY_U            <- <%!85%>
+    const int: KEY_V            <- <%!86%>
+    const int: KEY_W            <- <%!87%>
+    const int: KEY_X            <- <%!88%>
+    const int: KEY_Y            <- <%!89%>
+    const int: KEY_Z            <- <%!90%>
+
+    const int: SHIFT_MASK       <- <%!Int(NSEvent.ModifierFlags.shift.rawValue)%>
+    const int: CONTROL_MASK     <- <%!Int(NSEvent.ModifierFlags.control.rawValue)%>
+}
 /////////////////////////////////  HANDLE EVENTS
 struct GUI_MotionEvent{
     me int: x <- <%!%0!.x%>
@@ -516,6 +635,8 @@ struct GUI_PointerEvent{
     me int: y <- <%!%0!.y%>
 }
 struct GUI_KeyboardEvent{
+    me uint: keyval <- <%!%0!.keyval%>
+    me int: state <- <%!%0!.state%>
 }
 /////////////////////////////////  EVENT DISPATCHER
 struct GUI_eventDispatcher{
@@ -602,13 +723,13 @@ struct GUI{
     me none: GUI() <- {}
     me uint32: GUI_Init() <- <%{
         CodeDogAppDelegate = AppDelegate()
-        NSApplication.shared.delegate = CodeDogAppDelegate
-        _ = NSApplicationMain(CommandLine.argc, CommandLine.unsafeArgv)
+        let app = NSApplication.shared
+        app.delegate = CodeDogAppDelegate
         return(0);
     }%>
     me uint32: GUI_Run() <- <%{
-        let status: UInt32 = 0;
-        return(status);
+        NSApplication.shared.run()
+        return(0);
     }%>
     me void: GUI_Deinit() <- {}
 }
@@ -664,7 +785,12 @@ struct GUI{
 }
 
 struct GUI_ctxt{
-    //me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!%>
+    me void: fetchAreaToBeDrawn(their GUI_ctxt: cr, their GUI_rect: area) <- <%{
+        area.x1 = Double(CodeDogCurrentPaintRect.minX);
+        area.y1 = Double(CodeDogCurrentPaintRect.minY);
+        area.x2 = Double(CodeDogCurrentPaintRect.maxX);
+        area.y2 = Double(CodeDogCurrentPaintRect.maxY);
+    }%>
     //me void: reset()                                  <- <%!%>
     me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!CodeDogSetContextColor(%0, %1, %2, %3, %4)%>
     me void: setRGB (me double: red, me double: green, me double: blue) <- <%!CodeDogSetContextColor(%0, %1, %2, %3, 255.0)%>
@@ -729,6 +855,13 @@ struct GLOBAL: inherits=AppCompatActivity{
     me int: displayWidthPx
 
     // //DRAWING ROUTINES:
+    me void: fetchAreaToBeDrawn(their GUI_ctxt: cr, their GUI_rect: area) <- <%{
+        area.x1 = Double(CodeDogCurrentPaintRect.minX);
+        area.y1 = Double(CodeDogCurrentPaintRect.minY);
+        area.x2 = Double(CodeDogCurrentPaintRect.maxX);
+        area.y2 = Double(CodeDogCurrentPaintRect.maxY);
+    }%>
+
     me deltaSize: renderText(their GUI_ctxt: cr, me string: text, me fontSpec: font, me GUI_Scalar: x, me GUI_Scalar: y) <- <%{
         cr.saveGState()
         let nsFont = CodeDogFont(font)
@@ -789,13 +922,24 @@ struct GLOBAL: inherits=AppCompatActivity{
         return(result);
     }%>
     me deltaSize: getTextSizeX1024(me string: text, their fontSpec: font) <- <%{
-        let result = getTextSize(text, font);
-        result.width = result.width * 1024;
-        result.height = result.height * 1024;
+        let result = deltaSize();
+        let attrs: [NSAttributedString.Key: Any] = [.font: CodeDogFont(font)]
+        let measured = (text as NSString).size(withAttributes: attrs)
+        result.width = Int((measured.width * 1024.0).rounded());
+        result.height = Int((measured.height * 1024.0).rounded());
         return(result);
     }%>
     void: displayBackgroundImage(their GUI_ctxt: cr, me string: filename) <- <%{
-        // TODO: implement image loading for the macOS Swift toolkit.
+        guard let image = CodeDogLoadImage(filename) else {
+            return;
+        }
+        let targetRect = CodeDogCurrentPaintRect.isEmpty
+            ? NSRect(x: 0, y: 0, width: image.size.width, height: image.size.height)
+            : CodeDogCurrentPaintRect
+        cr.saveGState();
+        cr.interpolationQuality = .high;
+        image.draw(in: targetRect, from: .zero, operation: .sourceOver, fraction: 1.0, respectFlipped: true, hints: nil);
+        cr.restoreGState();
     }%>
     me void: displayImage(their GUI_ctxt: cr, me string: filename, me double: x, me double: y, me double: scale) <- <%{
         guard let image = CodeDogLoadImage(filename) else {
@@ -807,7 +951,7 @@ struct GLOBAL: inherits=AppCompatActivity{
             width: image.size.width * CGFloat(scale),
             height: image.size.height * CGFloat(scale)
         );
-        image.draw(in: drawRect, from: .zero, operation: .sourceOver, fraction: 1.0);
+        image.draw(in: drawRect, from: .zero, operation: .sourceOver, fraction: 1.0, respectFlipped: true, hints: nil);
     }%>
 
     // //GUI INTERFACE:

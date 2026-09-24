@@ -16,6 +16,81 @@ LibDescription ={
 }
 
 embedVeryHigh = `
+public final class SwiftHashMap<K: Hashable, V>: Sequence, ExpressibleByDictionaryLiteral {
+    public typealias Element = (key: K, value: V)
+
+    private var data: Dictionary<K, V>
+    private let lock = NSRecursiveLock()
+
+    public init() {
+        self.data = Dictionary<K, V>()
+    }
+
+    public init(dictionaryLiteral elements: (K, V)...) {
+        self.data = Dictionary<K, V>()
+        for (key, value) in elements {
+            self.data[key] = value
+        }
+    }
+
+    public subscript(key: K) -> V? {
+        get {
+            lock.lock()
+            defer { lock.unlock() }
+            return data[key]
+        }
+        set {
+            lock.lock()
+            defer { lock.unlock() }
+            data[key] = newValue
+        }
+    }
+
+    public var values: [V] {
+        lock.lock()
+        defer { lock.unlock() }
+        return Array(data.values)
+    }
+
+    public var isEmpty: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return data.isEmpty
+    }
+
+    public var count: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return data.count
+    }
+
+    public func containsKey(_ key: K) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return data[key] != nil
+    }
+
+    public func removeAll() {
+        lock.lock()
+        defer { lock.unlock() }
+        data.removeAll()
+    }
+
+    @discardableResult
+    public func removeValue(forKey key: K) -> V? {
+        lock.lock()
+        defer { lock.unlock() }
+        return data.removeValue(forKey: key)
+    }
+
+    public func makeIterator() -> IndexingIterator<[Element]> {
+        lock.lock()
+        let snapshot = data.map { (key: $0.key, value: $0.value) }
+        lock.unlock()
+        return snapshot.makeIterator()
+    }
+}
+
 public struct SwiftMapCursor<K: Hashable, V>: Equatable {
     public var key: K?
     public var val: V?
@@ -28,6 +103,18 @@ public struct SwiftMapCursor<K: Hashable, V>: Equatable {
     }
 
     public init(_ map: Dictionary<K, V>, _ lookupKey: K) {
+        if let found = map[lookupKey] {
+            self.key = lookupKey
+            self.val = found
+            self.valid = true
+        } else {
+            self.key = nil
+            self.val = nil
+            self.valid = false
+        }
+    }
+
+    public init(_ map: SwiftHashMap<K, V>, _ lookupKey: K) {
         if let found = map[lookupKey] {
             self.key = lookupKey
             self.val = found
@@ -78,6 +165,18 @@ public struct SwiftTreeMapCursor<K: Comparable, V>: Equatable {
         if let found = map.value(for: lookupKey) {
             self.key = lookupKey
             self.val = found
+            self.valid = true
+        } else {
+            self.key = nil
+            self.val = nil
+            self.valid = false
+        }
+    }
+
+    public init(_ entry: SwiftTreeMapEntry<K, V>?) {
+        if let entry = entry {
+            self.key = entry.key
+            self.val = entry.value
             self.valid = true
         } else {
             self.key = nil
@@ -170,6 +269,16 @@ public final class SwiftTreeMap<K: Comparable, V> {
         size = 0
     }
 
+    public func copyFrom(_ other: SwiftTreeMap<K, V>!) {
+        clear()
+        guard let other = other else {
+            return
+        }
+        for entry in other.entries() {
+            put(entry.key, entry.value)
+        }
+    }
+
     public func isEmpty() -> Bool {
         return size == 0
     }
@@ -194,6 +303,48 @@ public final class SwiftTreeMap<K: Comparable, V> {
 
     public func findCursor(_ key: K) -> SwiftTreeMapCursor<K, V> {
         return SwiftTreeMapCursor<K, V>(self, key)
+    }
+
+    public func lowerBoundEntry(_ key: K) -> SwiftTreeMapEntry<K, V>? {
+        var node = root
+        var candidate: SwiftTreeMapNode<K, V>? = nil
+        while let current = node {
+            if current.key < key {
+                node = current.right
+            } else {
+                candidate = current
+                node = current.left
+            }
+        }
+        if let found = candidate {
+            return SwiftTreeMapEntry(key: found.key, value: found.value)
+        }
+        return nil
+    }
+
+    public func upperBoundEntry(_ key: K) -> SwiftTreeMapEntry<K, V>? {
+        var node = root
+        var candidate: SwiftTreeMapNode<K, V>? = nil
+        while let current = node {
+            if current.key <= key {
+                node = current.right
+            } else {
+                candidate = current
+                node = current.left
+            }
+        }
+        if let found = candidate {
+            return SwiftTreeMapEntry(key: found.key, value: found.value)
+        }
+        return nil
+    }
+
+    public func lowerBoundCursor(_ key: K) -> SwiftTreeMapCursor<K, V> {
+        return SwiftTreeMapCursor<K, V>(lowerBoundEntry(key))
+    }
+
+    public func upperBoundCursor(_ key: K) -> SwiftTreeMapCursor<K, V> {
+        return SwiftTreeMapCursor<K, V>(upperBoundEntry(key))
     }
 
     public func entries() -> [SwiftTreeMapEntry<K, V>] {
@@ -396,7 +547,7 @@ public final class SwiftTreeMap<K: Comparable, V> {
 }
 `
 
-struct Swift_HashMap<keyType, valueType>: implements=Map wraps=Dictionary native=lang specs={insert=constant find=constant at=constant rangeIteration=dontUse}{
+struct Swift_HashMap<keyType, valueType>: implements=Map wraps=SwiftHashMap native=lang specs={insert=constant find=constant at=constant rangeIteration=dontUse}{
     const struct: iterator_Swift_Map(keyType: key, valueType: value): implements=MapItr wraps=SwiftMapCursor native=lang <- {
         me keyType: key()                        <- <%!%0.key!%>
         me valueType: val()                      <- <%!%0.val!%>
@@ -435,5 +586,7 @@ struct Swift_TreeMap<keyType, valueType>: implements=Map wraps=SwiftTreeMap nati
     itr valueType: insert(keyType: key, valueType: value) <- <%!%0.put(%1, %2)%>
     me bool:  isEmpty()                          <- <%!isEmpty()%>
     valueType: last()                            <- <%!%0.lastEntry().value%>
+    itr iterator_Swift_TreeMap: lower_bound(keyType: key) <- <%!%0.lowerBoundCursor(%1)%>
+    itr iterator_Swift_TreeMap: upper_bound(keyType: key) <- <%!%0.upperBoundCursor(%1)%>
     me uint:  size()                             <- <%!size%>
 }

@@ -129,6 +129,19 @@ def localPlatformBuildName():
         return 'MacBuild'
     cdErr("ERROR: Local platform '{}' is not supported.".format(platformID))
 
+def resolveInputFilename(filenameArg):
+    if os.path.isabs(filenameArg):
+        return abspath(filenameArg)
+    return abspath(os.path.join(os.getcwd(), filenameArg))
+
+def shouldUseDogFileFolderAsProjectRoot(filename):
+    codeDogFolder = abspath(os.path.dirname(os.path.realpath(__file__)))
+    dogFileFolder = abspath(os.path.dirname(filename))
+    try:
+        return os.path.commonpath([codeDogFolder, dogFileFolder]) != codeDogFolder
+    except ValueError:
+        return True
+
 def applyLocalPlatformDefaults(buildSpec):
     localTags = localPlatformTags()
     buildName = buildSpec[0]
@@ -237,9 +250,11 @@ def GenerateSystem(classes, buildSpecs, tags, macroDefs):
 #############################################    L o a d / P a r s e   P r o g r a m   S p e c
 def processMainProgram():
     cdlog(0, "\n######################   P R O C E S S I N G   M A I N   P R O G R A M   ######################")
+    filename = resolveInputFilename(arg1)
+    if shouldUseDogFileFolderAsProjectRoot(filename):
+        os.chdir(os.path.dirname(filename))
     libraryMngr.findLibraryFiles()
 
-    filename = abspath(os.getcwd()) + "/" + arg1
     [ProgSpec, objNames, macroDefs] = [ {}, [], {} ]
     [tagStore, buildSpecs, classes, newClasses] = codeGenerator.loadProgSpecFromDogFile(filename, ProgSpec, objNames, {}, macroDefs)
     print("Marker: Parse Successful")

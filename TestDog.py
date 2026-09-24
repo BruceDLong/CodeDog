@@ -35,7 +35,7 @@ def setResultCode():
     '''
     return [testMacros, testResultUtilities]
 
-def setUtilityCode(TestArrayText, SwitchCaseText):
+def setUtilityCode(TestArrayText, SwitchCaseText, programFileName):
 
     testBedUtilities = r'''
 
@@ -176,13 +176,17 @@ def setUtilityCode(TestArrayText, SwitchCaseText):
 
             me string: childSpec <- testName
             if(hasDynamicTest(testName)){childSpec <- dynamicTestsFile + ":" + testName}
-            me string: cmd <- "timeout "+useTimeout+"s ./"+filename+" -t "+childSpec+" -v 0 -T 0 ; echo __RC:$?"
+            me string: executableName <- "<PROGRAM-FILE-NAME>"
+            me string: exeSetup <- "exe=./"+executableName+"; if [ -x .build/debug/"+executableName+" ]; then exe=.build/debug/"+executableName+"; fi; "
+            me string: timeoutCmd <- exeSetup+"timeout "+useTimeout+"s \"$exe\" -t "+childSpec+" -v 0 -T 0"
+            me string: perlTimeoutCmd <- exeSetup+"perl -e 'alarm shift; exec @ARGV' "+useTimeout+" \"$exe\" -t "+childSpec+" -v 0 -T 0"
+            me string: cmd <- "if command -v timeout >/dev/null 2>&1; then "+timeoutCmd+"; else "+perlTimeoutCmd+"; fi ; echo __RC:$?"
             me string: childOut <- execCmd(cmd)
             me int: rc <- parseReturnCode(childOut)
             me int: rcPos <- findString(childOut, "__RC:")
             if(rcPos!=-1){childOut <- childOut.subStr(0, rcPos)}
 
-            if(rc==124){
+            if(rc==124 or rc==142){
                 Tstat <- "T"
                 T_TEST_BUFF <- "\n############################################ TIMEOUT:"+shownName+"\n"
                 T_TEST_BUFF <- T_TEST_BUFF + "Timed out after "+useTimeout+"s.\n"
@@ -269,6 +273,7 @@ def setUtilityCode(TestArrayText, SwitchCaseText):
 '''
     testBedUtilities = testBedUtilities.replace("<TEST-LIST-HERE>", TestArrayText)
     testBedUtilities = testBedUtilities.replace("<TEST-CASES-HERE>", SwitchCaseText)
+    testBedUtilities = testBedUtilities.replace("<PROGRAM-FILE-NAME>", programFileName)
     return testBedUtilities
 
 def generateTestCode(classes, buildTags, tags, macroDefs):
@@ -304,7 +309,10 @@ def generateTestCode(classes, buildTags, tags, macroDefs):
         SwitchCaseText += '    case "'+T+'":{\n'+ T.replace('/', '_') +'(testName);\n    }\n'
     SwitchCaseText += '    default:{Tstat <- "?"}\n'
     SwitchCaseText += '}\n'
-    testBedUtilities = setUtilityCode(TestArrayText, SwitchCaseText)
+    programFileName = progSpec.fetchTagValue([tags, buildTags], 'FileName')
+    if progSpec.fetchTagValue([tags, buildTags], 'testMode') == 'makeTests':
+        programFileName = 'Test' + programFileName
+    testBedUtilities = setUtilityCode(TestArrayText, SwitchCaseText, programFileName)
 
    # print "TEST TEXT:", testBedUtilities
     codeDogParser.AddToObjectFromText(classes[0], classes[1], testBedUtilities, 'Test code' )

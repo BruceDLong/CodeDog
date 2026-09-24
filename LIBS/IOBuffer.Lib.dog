@@ -110,9 +110,13 @@ struct strBuf{
     }
     me char: at(me int64: pos) <- {
         their strInnerBuf: crntInnerBuf <- findInrBufWithPos(pos)
-        if(crntInnerBuf==NULL){return(0)}
+        if(crntInnerBuf==NULL){return("\0")}
         me char: retChar <- crntInnerBuf.buf[pos-crntInnerBuf.myOffset]
         return(retChar)
+    }
+    me char: at(me int: pos) <- {
+        me int64: pos64 <- pos
+        return(at(pos64))
     }
     our strBufItr: getItrAt(me int64: pos) <- {
         their strInnerBuf: crntInnerBuf <- findInrBufWithPos(pos)
@@ -158,7 +162,8 @@ struct strBuf{
             }
             if(bufWithChar.buf[idx] == "\n"){
                 errLineNum <+- 1
-                lastLinePos <- idx
+                me int64: idx64 <- idx
+                lastLinePos <- idx64
             }
         }
         errCharPos <- charPos-(lastLinePos+bufWithChar.myOffset)

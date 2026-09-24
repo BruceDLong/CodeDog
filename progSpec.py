@@ -972,6 +972,48 @@ def _containerCategoryFromRegisteredImplementation(fTypeKW):
             return modelKW
     return None
 
+def getContainerImplementationSpecs(classStore, tSpec):
+    if classStore == None or tSpec == None:
+        return {}
+    if not isinstance(classStore, (list, tuple)) or len(classStore) < 1:
+        return {}
+
+    objMap = classStore[0]
+    fTypeKW = fieldTypeKeyword(tSpec)
+    implementationSpec = findSpecOf(objMap, fTypeKW, "struct")
+    if implementationSpec and "tags" in implementationSpec:
+        specs = implementationSpec["tags"].get("specs", {})
+        if specs != None:
+            return specs
+
+    if not isKnownContainerModelKW(fTypeKW):
+        return {}
+
+    implOptions = getImplementationOptionsFor(fTypeKW)
+    if implOptions == None:
+        return {}
+
+    reqTags = getReqTags(tSpec)
+    hiScoreVal = -1
+    hiScoreSpecs = {}
+    for option in implOptions:
+        optionSpec = findSpecOf(objMap, option, "struct")
+        if optionSpec == None or "tags" not in optionSpec or "specs" not in optionSpec["tags"]:
+            continue
+        optionTags = optionSpec["tags"]
+        optionSpecs = optionTags["specs"]
+        [implScore, _errorMsg] = scoreImplementation(optionSpecs, reqTags)
+        if implScore < 0:
+            continue
+        if "native" in optionTags:
+            nativeTag = optionTags["native"]
+            if nativeTag == "lang": implScore += 6
+            if nativeTag == "platform": implScore += 5
+        if implScore > hiScoreVal:
+            hiScoreVal = implScore
+            hiScoreSpecs = optionSpecs
+    return hiScoreSpecs
+
 def _typeArgToTypeSpec(reqTag):
     if reqTag == None:
         return None
@@ -1046,10 +1088,11 @@ def getContainerInfo(classStore, tSpec):
     info['modelType'] = category
     info['implementationType'] = fTypeKW
     info['reqTagList'] = reqTagList
+    implementationSpecs = getContainerImplementationSpecs(classStore, tSpec)
 
     if category in ('Map', 'Multimap'):
         info['isAssociative'] = True
-        info['isOrdered'] = True
+        info['isOrdered'] = implementationSpecs.get("rangeIteration") != "dontUse"
         info['entryShape'] = 'entry'
         if reqTagList:
             if len(reqTagList) > 0:
@@ -1602,12 +1645,7 @@ def getContainerCapabilities(classes, ctnrTSpec):
     containerInfo = getContainerInfo(classes, ctnrTSpec)
     caps["containerInfo"] = containerInfo
     containerCat = containerInfo["category"]
-    implementationSpecs = {}
-    if classes != None:
-        implementationType = containerInfo.get("implementationType")
-        implementationSpec = findSpecOf(classes[0], implementationType, "struct")
-        if implementationSpec and "tags" in implementationSpec:
-            implementationSpecs = implementationSpec["tags"].get("specs", {})
+    implementationSpecs = getContainerImplementationSpecs(classes, ctnrTSpec)
 
     if containerCat == 'List':
         caps.update({

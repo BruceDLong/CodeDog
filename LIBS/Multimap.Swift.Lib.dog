@@ -101,6 +101,16 @@ public final class SwiftTreeMultimap<K: Comparable, V> {
         size = 0
     }
 
+    public func copyFrom(_ other: SwiftTreeMultimap<K, V>!) {
+        clear()
+        guard let other = other else {
+            return
+        }
+        for entry in other.entries() {
+            put(entry.key, entry.value)
+        }
+    }
+
     public func isEmpty() -> Bool {
         return size == 0
     }

@@ -1,0 +1,70 @@
+//############ Quic Swift stub implementation
+requirements = [
+    [tagOneOf, Lang, [Swift]],
+    [tagOneOf, Platform, [MacOS, IOS]]
+]
+
+interface={
+    provides=[Quic_implementation]
+    libFiles=[]
+    headers=[]
+}
+
+LibDescription ={
+    useStatus   = static
+    description = 'No-op Quic implementation for Swift builds'
+    features    = [Quic]
+    platforms   = [MacOS, IOS]
+    bindings    = [Swift]
+}
+
+embedVeryHigh = `
+func initQuicSystem() {}
+func deinitQuicSystem() {}
+`
+
+struct QuicEngine{
+    void: init(me string: filenameTag, me bool: ServerMode, me string: ipAddr, me int: portNum) <- {
+        isServer <- ServerMode
+    }
+
+    void: start() <- {}
+
+    me bool: setupClientConnection(their QuicConnection: qConn, me string: ipAddr, me string: portNum) <- {
+        return(false)
+    }
+
+    void: stopEngineAndEventLoop() <- {}
+    void: destroy() <- {}
+}
+
+struct QuicConnection{
+    their QuicConnectionID: getConnectionID() <- {
+        their QuicConnectionID:: retval
+        return(retval)
+    }
+
+    void: createNewStream() <- {}
+    void: abort() <- {}
+}
+
+struct QuicStream{
+    me uint64: streamID <- 0
+
+    me uint64: getStreamID() <- {
+        return(streamID)
+    }
+
+    void: nextOpIsRead() <- {}
+    void: nextOpIsWrite() <- {}
+    void: doneReading() <- {}
+    void: doneWriting() <- {}
+    void: close() <- {}
+    me int: read(me string: buf) <- {return(0)}
+    me int: write(me string: buf) <- {return(buf.size())}
+    void: setPriority(me 1..256: priority) <- {}
+    void: flushStream() <- {}
+    void: stopReading() <- {}
+    void: stopWriting() <- {}
+    their QuicConnection: getConnection() <- {return(myConnection)}
+}

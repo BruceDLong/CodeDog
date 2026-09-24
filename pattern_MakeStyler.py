@@ -95,9 +95,12 @@ def stringifyList(theList):
         count = count +1
     return S
 
-def processStylerMap(stylerTags, varOwner, varType, setFunc, defaultVars):
+def processStylerMap(stylerTags, varOwner, varType, setFunc, defaultVars, varAliases=None):
     S=''
+    if varAliases is None:
+        varAliases = {}
     for varName in stylerTags:
+        fieldName = varAliases.get(varName, varName)
         varValue = stylerTags[varName]
         if isinstance(varValue, str):
             RHS=' <- '+varValue
@@ -105,8 +108,8 @@ def processStylerMap(stylerTags, varOwner, varType, setFunc, defaultVars):
             RHS=stringifyList(varValue)
             RHS=' <- '+varType+'('+RHS+')'
         else: cdErr("UNKNOWN RHS type: "+varName)
-        if varName in defaultVars:
-            S = S+'        ' + varName + RHS +'\n'
+        if fieldName in defaultVars:
+            S = S+'        ' + fieldName + RHS +'\n'
         else:
             S = S+'        '+setFunc+'("'+ varName +'", '+ varValue +')\n'
     return S
@@ -116,6 +119,7 @@ def processStyler(stylerTagValue):
     varType  = ''
     S        = ''
     for tag in stylerTagValue:
+        varAliases = {}
         if tag =="colors":
             varOwner = 'me'
             varType  = 'cdColor'
@@ -130,7 +134,16 @@ def processStyler(stylerTagValue):
             varOwner = 'me'
             varType  = 'string'
             setFunc  = 'setCustomFontSize'
-            defaultVars = ['verySmallFontSize', 'smallFontSize', 'normalFontSize', 'largeFontSize', 'veryLargeFontSize']
+            defaultVars = ['verySmallFontSize', 'smallFontSize', 'normalSizeFontSize', 'largeFontSize', 'veryLargeFontSize']
+            varAliases = {
+                'fontSizeVerySmall': 'verySmallFontSize',
+                'fontSizeSmall': 'smallFontSize',
+                'fontSizeNormal': 'normalSizeFontSize',
+                'fontSizeNormalSize': 'normalSizeFontSize',
+                'normalFontSize': 'normalSizeFontSize',
+                'fontSizeLarge': 'largeFontSize',
+                'fontSizeVeryLarge': 'veryLargeFontSize',
+            }
         elif tag =="strs":
             varOwner = 'me'
             varType  = 'string'
@@ -148,9 +161,10 @@ def processStyler(stylerTagValue):
             defaultVars = []
         else:
             print('    tag not found')
+            varAliases = {}
 
         if isinstance(stylerTagValue[tag], dict):
-            S = S + processStylerMap(stylerTagValue[tag], varOwner, varType, setFunc, defaultVars)
+            S = S + processStylerMap(stylerTagValue[tag], varOwner, varType, setFunc, defaultVars, varAliases)
         elif isinstance(stylerTagValue[tag], str):
             S = S + '        ' + varType + RHS +'\n'
         else: print("!!!!!!!!!!!!!!!!!!styler not map or basestring", stylerTagValue[tag])
@@ -258,11 +272,16 @@ struct Styler{
     }
 
     void: INIT()<-{
+        verySmallFontSize <- 5
+        smallFontSize <- 10
+        normalSizeFontSize <- 14
+        largeFontSize <- 20
+        veryLargeFontSize <- 24
         <INITCODE>
-        Allocate(defaultFont, "ariel", "14")
-        Allocate(titleFont, "ariel", "20")
-        Allocate(smallFont, "ariel", "10")
-        Allocate(verySmallFont, "ariel", "5")
+        Allocate(defaultFont, "ariel", toString(normalSizeFontSize))
+        Allocate(titleFont, "ariel", toString(largeFontSize))
+        Allocate(smallFont, "ariel", toString(smallFontSize))
+        Allocate(verySmallFont, "ariel", toString(verySmallFontSize))
     }
 
 

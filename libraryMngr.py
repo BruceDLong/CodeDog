@@ -54,12 +54,14 @@ def collectLibFilenamesFromFolder(folderPath):
         if filename.endswith("Lib.dog"):
             libPaths.append(os.path.join(folderPath, filename))
         elif filename.endswith("Lib.dog.proxy"):
-            line = open(os.path.join(folderPath, filename)).readline()
+            proxyPath = os.path.join(folderPath, filename)
+            line = open(proxyPath).readline()
             line=line.strip()
-            baseName = os.path.basename(line)
+            targetPath = line if os.path.isabs(line) else os.path.join(folderPath, line)
+            baseName = os.path.basename(targetPath)
             #print("baseName: {}".format(baseName))
-            if (filename.strip('.proxy') == baseName):
-                libPaths.append(os.path.realpath(line))
+            if (filename[:-len('.proxy')] == baseName):
+                libPaths.append(os.path.realpath(targetPath))
             else:
                 cdErr("File name "+filename+" does not match path name.")
 

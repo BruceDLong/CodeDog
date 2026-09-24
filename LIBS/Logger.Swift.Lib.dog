@@ -21,17 +21,26 @@ struct logger{
 struct logManager{
     our URL:: logfile // TODO: try making this a me variable type with the ability to run on Linux
 
-    me void: openLogFile() <- <%{}%>
+    me void: openLogFile() <- <%{
+        logfile = URL(fileURLWithPath: logFileName)
+        if !FileManager.default.fileExists(atPath: logfile.path) {
+            FileManager.default.createFile(atPath: logfile.path, contents: nil)
+        }
+    }%>
     me void: writeToLog (me string: txt) <- <%{
         if (useConsole){print(txt+"\n")}
-        if (useLogFile){
-            do {
-                try txt.write(to: logfile, atomically: false, encoding: String.Encoding.utf8)
-            }
-            catch let error as NSError {
-                print("Unable to write to file")
+        if (useLogFile && logfile != nil){
+            if let data = (txt + "\n").data(using: .utf8) {
+                do {
+                    let handle = try FileHandle(forWritingTo: logfile)
+                    handle.seekToEndOfFile()
+                    handle.write(data)
+                    handle.closeFile()
+                }
+                catch {
+                    print("Unable to write to file")
+                }
             }
         }
     }%>
 }
-
