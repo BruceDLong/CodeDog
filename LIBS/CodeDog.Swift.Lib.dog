@@ -338,8 +338,12 @@ struct GLOBAL{  /////////  TYPE CONVERTERS  ////////////////////////////
     me int: convertToIntVal(me int: val)                         <- <%!%1%>
     me int: convertToIntVal(me int64: val)                       <- <%!Int(%1)%>
     me int: convertToIntVal(me double: val)                      <- <%!Int(%1)%>
+    me string: toString(me double: val)                         <- <%!String(%1)%>
     me string: toString(me long: val)                           <- <%!String(%1)%>
+    me string: toString(me int64: val)                          <- <%!String(%1)%>
+    me string: toString(me uint: val)                           <- <%!String(%1)%>
     me string: toString(me int: val)                            <- <%!String(%1)%>
+    me string: toString(me uint64: val)                         <- <%!String(%1)%>
 }
 
 struct _atomic_uint64:wraps=uint64{}

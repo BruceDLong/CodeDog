@@ -129,7 +129,10 @@ struct GLOBAL{
     me int64: currentTimeStamp()
     me int: sleep(me int: milliseconds)
     me int: sleep(me timeValue: milliseconds)
+    me string: commandLineArgs()
     me string: execCmd(me string: command)
+    me string: getFilesDirAsString()
+    me string: getAssetsDir()
 }
 struct GLOBAL{  /////////  STRING & CHAR HANDLING  /////////////////////
     me int: findString(me string: toSearch, me string: toFind)
@@ -141,6 +144,7 @@ struct GLOBAL{  /////////  STRING & CHAR HANDLING  /////////////////////
     me bool: isxdigit(me char: input)
     me char: toLower(me char: ch)
     me char: toUpper(me char: ch)
+    me string: readFileAsString(me string: filePath)
     me string: readAssetAsString(me string: filename)
     me string: wideCharToMultibyte(me int:ch)
     void: trimLeftWS(their string: str)
@@ -149,20 +153,29 @@ struct GLOBAL{  /////////  STRING & CHAR HANDLING  /////////////////////
 }
 struct GLOBAL{  /////////  MATH HANDLING  //////////////////////////////
     me int: randInt(me int: val)
+    me int: min(me int: A, me int: B)
+    me int: max(me int: A, me int: B)
     me int: sqrt(me int: val)
 }
 struct GLOBAL{  /////////  TYPE CONVERTERS  ////////////////////////////
     me float: convertToFloatVal()
     me int: convertToIntVal(me int: val)
+    me int: convertToIntVal(me int64: val)
+    me int: convertToIntVal(me double: val)
     me timeValue: convertToL()
     me timeValue: convertToLongVal()
     me timeValue: convertToTimeVal()
     me timeValue: double()
     me int64: stoi(me string: str)
+    me long: stol(me string: str)
     me double: toDouble(me string: val)
     //me string: toString(me bool: val)
+    me string: toString(me double: val)
+    me string: toString(me int: val)
+    me string: toString(me int64: val)
     me string: toString(me long: val)
-    me string: toString(me number_type: val)
+    me string: toString(me uint: val)
+    me string: toString(me uint64: val)
 }
 
 struct _atomic_uint64{}

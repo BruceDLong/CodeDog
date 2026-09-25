@@ -7,7 +7,7 @@ requirements = [
 interface={
     provides = [CodeDog_implementation]
     libFiles = []
-    headers  = [signal.h, atomic, string, cstring, memory, cstdint, list, deque, map, cstdarg, iostream, fstream, sys/stat.h, math.h, algorithm]
+    headers  = [signal.h, atomic, string, cstring, memory, cstdint, list, deque, map, cstdarg, iostream, fstream, sstream, sys/stat.h, math.h, algorithm]
 }
 
 LibDescription ={
@@ -86,6 +86,13 @@ struct GLOBAL{
         stream->read((char*)S->data(), S->size());
         return(stream->gcount());
     }%>
+    me string: readFileAsString(me string: filePath) <- <%{
+        std::ifstream in(filePath, std::ios::in | std::ios::binary);
+        if (!in) return "";
+        std::ostringstream contents;
+        contents << in.rdbuf();
+        return contents.str();
+    }%>
     me string: readAssetAsString(me string: filename) <- <%{
         string text = "";
         string fileDir = getAssetsDir()+"/"+filename;
@@ -138,20 +145,29 @@ struct GLOBAL{  /////////  STRING & CHAR HANDLING  /////////////////////
 }
 struct GLOBAL{  /////////  MATH HANDLING  //////////////////////////////
     me int: randInt(me int: val)                                <- <%!(rand() % %1)%>
+    me int: min(me int: A, me int: B)                           <- <%!std::min(%1, %2)%>
+    me int: max(me int: A, me int: B)                           <- <%!std::max(%1, %2)%>
     me int: sqrt(me int: val)                                   <- <%!sqrt(%1)%>
 }
 struct GLOBAL{  /////////  TYPE CONVERTERS  ////////////////////////////
     me float: convertToFloatVal()                               <- <%!%G(float)%1%>
     me int: convertToIntVal(me int: val)                        <- <%!%G%1%>
+    me int: convertToIntVal(me int64: val)                      <- <%!%G(int)%1%>
+    me int: convertToIntVal(me double: val)                     <- <%!%G(int)%1%>
     me timeValue: convertToL()                                  <- <%!%G%1%>
     me timeValue: convertToLongVal()                            <- <%!%G%1%>
     me timeValue: convertToTimeVal()                            <- <%!%G%1%>
     me timeValue: double()                                      <- <%!%G%1%>
     me int64: stoi(me string: str)                              <- <%!std::stoi(%1)%>
+    me long: stol(me string: str)                               <- <%!std::stol(%1)%>
     me double: toDouble(me string: val)                         <- <%!std::stoi(%1)%>
     //me string: toString(me bool: val)                          <- <%!%G((%1)?"true":"false")%>
+    me string: toString(me double: val)                         <- <%!std::to_string(%1)%>
+    me string: toString(me int: val)                            <- <%!std::to_string(%1)%>
+    me string: toString(me int64: val)                          <- <%!std::to_string(%1)%>
     me string: toString(me long: val)                           <- <%!std::to_string(%1)%>
-    me string: toString(me number_type: val)                    <- <%!std::to_string(%1)%>
+    me string: toString(me uint: val)                           <- <%!std::to_string(%1)%>
+    me string: toString(me uint64: val)                         <- <%!std::to_string(%1)%>
 }
 
 struct _atomic_uint64: wraps=_atomic_uint64{}

@@ -364,6 +364,22 @@ def appendExtractedStruct(objSpecs, className, newActions):
     for action in newActions:
         fields.append(copy.copy(action['fieldDef']))
 
+def normalizedFieldCompareValue(value):
+    if isinstance(value, ParseResults):
+        return normalizedFieldCompareValue(value.asList())
+    if isinstance(value, dict):
+        return tuple(sorted((key, normalizedFieldCompareValue(val)) for key, val in value.items()))
+    if isinstance(value, (list, tuple)):
+        return tuple(normalizedFieldCompareValue(item) for item in value)
+    if isinstance(value, set):
+        return tuple(sorted(normalizedFieldCompareValue(item) for item in value))
+    return value
+
+def fieldValuesAreEquivalent(existingValue, incomingValue):
+    if existingValue == incomingValue:
+        return True
+    return normalizedFieldCompareValue(existingValue) == normalizedFieldCompareValue(incomingValue)
+
 def addField(objSpecs, className, stateType, packedField):
     global MarkItems
     global MarkedObjects
@@ -405,7 +421,7 @@ def addField(objSpecs, className, stateType, packedField):
                 if not isinstance(fieldIfExists, dict): return
                 if not ('value' in field) or field['value']==None: return
                 if not ('value' in packedField)   or packedField['value']  ==None: return
-                if field['value']==packedField['value']: return
+                if fieldValuesAreEquivalent(field['value'], packedField['value']): return
                 if owner=='const' and fTypeKW=='struct': # append inner struct & extracted struct
                     appendActionList(objSpecs[taggedClassName]["fields"], fieldID, packedField['value'][0])
                     appendExtractedStruct(objSpecs, fieldID.split('::')[1].split('(')[0], packedField['value'][0])

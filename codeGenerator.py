@@ -296,6 +296,36 @@ class CodeGenerator(object):
             self.typeSpecDescription(actualTypeSpec),
             self.typeSpecDescription(expectedTypeSpec)))
 
+    def classDirectlyDeclaresFunction(self, className, fieldID):
+        for specKind in ["model", "struct"]:
+            classSpec = progSpec.findSpecOf(self.classStore[0], className, specKind)
+            if classSpec == None:
+                continue
+            for field in classSpec.get("fields", []):
+                fieldIDInClass = field.get("fieldID")
+                if fieldIDInClass == None or not fieldIDInClass.startswith(className + "::"):
+                    continue
+                if progSpec.fieldOnlyID(fieldIDInClass) == progSpec.fieldOnlyID(fieldID):
+                    return progSpec.fieldIsFunction(progSpec.getTypeSpec(field))
+        return False
+
+    def parentHierarchyDeclaresFunction(self, className, fieldID):
+        for parentClass in progSpec.getParentClassList(self.classStore, className):
+            if self.classDirectlyDeclaresFunction(parentClass, fieldID):
+                return True
+            if self.parentHierarchyDeclaresFunction(parentClass, fieldID):
+                return True
+        return False
+
+    def classDeclaringFunctionInHierarchy(self, className, fieldID):
+        if self.classDirectlyDeclaresFunction(className, fieldID):
+            return className
+        for parentClass in progSpec.getParentClassList(self.classStore, className):
+            declaringClass = self.classDeclaringFunctionInHierarchy(parentClass, fieldID)
+            if declaringClass != None:
+                return declaringClass
+        return None
+
     def doFieldIDsMatch(self, foundFieldID, fullSearchFieldID):
         if(foundFieldID!=fullSearchFieldID):
             [foundClassAndFunc, foundArgs]  = self.disassembleFieldID(foundFieldID)
@@ -1206,6 +1236,8 @@ class CodeGenerator(object):
         newName = tSpec['codeConverter']
         fTypeKW = progSpec.fieldTypeKeyword(tSpec)
         if newName == "": cdErr("ERROR: empty codeConverter for: "+name)
+        if hasattr(self.xlator, "adjustCodeConverterText"):
+            newName = self.xlator.adjustCodeConverterText(newName)
         if hasattr(self.xlator, "adjustCodeConverterForCall"):
             adjustedName = self.xlator.adjustCodeConverterForCall(tSpec, name, newName, argList, reqTagList, genericArgs)
             if adjustedName != None:
@@ -1372,6 +1404,8 @@ class CodeGenerator(object):
             self.warnImplicitDeref(expr, argTSpec, "argument {} to {}".format(argIndex + 1, callName), expr + '!')
 
     def codeBoolContextOperand(self, expr, tSpec):
+        if hasattr(self.xlator, "codeBoolContext"):
+            return self.xlator.codeBoolContext(expr, tSpec)
         [expr, tSpec] = self.xlator.adjustConditional(expr, tSpec)
         return [expr, {'owner': 'me', 'fieldType': 'bool'}]
 
@@ -1379,7 +1413,8 @@ class CodeGenerator(object):
         if tSpecIn==None or tSpecIn==0 or isinstance(tSpecIn, str) or 'dummyType' in tSpecIn:
             cdErr("Cannot explicitly dereference an unresolved expression.")
         owner = progSpec.getOwner(tSpecIn)
-        if owner!='our' and owner!='their':
+        alreadyDerefed = hasattr(self.xlator, "explicitDerefAlreadyApplied") and self.xlator.explicitDerefAlreadyApplied(tSpecIn)
+        if owner!='our' and owner!='their' and not alreadyDerefed:
             cdErr("Explicit dereference '!' requires an 'our' or 'their' value, not '{}'.".format(owner))
         tSpecOut = self.copyTypeSpec(tSpecIn)
         tSpecOut['owner'] = 'me'
@@ -1427,6 +1462,10 @@ class CodeGenerator(object):
             idxTSpec = self.xlator.getIdxType(tSpecIn)
             [valOwner, valFType] = self.getContainerValueOwnerAndType(tSpecIn)
             tSpecOut = {'owner':valOwner, 'fieldType': valFType}
+            if hasattr(self.xlator, "containerIndexElementAlreadyMaterialized") and self.xlator.containerIndexElementAlreadyMaterialized(tSpecIn, tSpecOut):
+                tSpecOut["owner"] = "me"
+                tSpecOut["explicitDerefAlreadyApplied"] = True
+                tSpecOut["explicitDerefed"] = True
             [S2, idxTSpec] = self.codeExpr(name[1], None, None, LorRorP_Val, genericArgs)
             S += self.xlator.codeArrayIndex(S2, tSpecIn, LorR_Val, previousSegName, idxTSpec)
             return [S, tSpecOut, S2,'']
@@ -1442,6 +1481,10 @@ class CodeGenerator(object):
                 # TODO: if flags or modes have a non-zero default this should account for that.
             else:
                 [tSpecOut, SRC]=self.fetchItemsTypeSpec(segSpec, genericArgs) # Possibly adds a codeConversion to tSpecOut
+                if name == 'init' and tSpecOut and 'fieldID' in tSpecOut and '::' in tSpecOut['fieldID']:
+                    initDeclaringClass = self.classDeclaringFunctionInHierarchy(self.currentObjName, tSpecOut['fieldID'])
+                    if initDeclaringClass == None:
+                        initDeclaringClass = tSpecOut['fieldID'].split('::', 1)[0]
                 if tSpecOut: tSpecOut = self.getGenericTypeSpec(genericArgs, tSpecOut)
                 if not self.xlator.doesLangHaveGlobals:
                     if tSpecOut and 'isGlobalEnum' in tSpecOut and tSpecOut['isGlobalEnum']:namePrefix = progSpec.fieldTypeKeyword(tSpecOut)+ '.'
@@ -1486,6 +1529,14 @@ class CodeGenerator(object):
             hasCodeConverter = True
             reqTagList = progSpec.getReqTagList(tSpecIn)
             [convertedName, argList]=self.convertNameSeg(tSpecOut, name, connector, argList, reqTagList, genericArgs)
+            if (
+                hasattr(self.xlator, "codeConverterResultAlreadyMaterialized")
+                and self.xlator.codeConverterResultAlreadyMaterialized(tSpecIn, tSpecOut, name, convertedName)
+            ):
+                tSpecOut = self.copyTypeSpec(tSpecOut)
+                tSpecOut["owner"] = "me"
+                tSpecOut["explicitDerefAlreadyApplied"] = True
+                tSpecOut["explicitDerefed"] = True
             #print("codeConverter ",name,"->",convertedName, tSpecOut)
             name = convertedName
             callAsGlobal=name.find("%G")
@@ -1509,6 +1560,20 @@ class CodeGenerator(object):
                 if not 'dummyType' in tSpecIn:
                     fTypeKW=progSpec.fieldTypeKeyword(tSpecIn)
                 else: fTypeKW=self.currentObjName
+                if initDeclaringClass == None:
+                    initFieldID = fTypeKW + "::init"
+                    if modelParams != None:
+                        initFieldID += "("
+                        count = 0
+                        for param in modelParams:
+                            if count > 0:
+                                initFieldID += ","
+                            initFieldID += progSpec.fieldTypeKeyword(param)
+                            count += 1
+                        initFieldID += ")"
+                    foundDeclaringClass = self.classDeclaringFunctionInHierarchy(fTypeKW, initFieldID)
+                    if foundDeclaringClass != None:
+                        initDeclaringClass = foundDeclaringClass
                 if initDeclaringClass:
                     fTypeKW = initDeclaringClass
                 S=S.replace('init','__INIT_'+fTypeKW)
@@ -2520,14 +2585,11 @@ class CodeGenerator(object):
         #### FUNC HEADER: for both decl and defn. ##################
         inheritMode='normal'
         # TODO: But it should NOT be virtual if there are no calls of the function from a pointer to the base class
-        if not progSpec.doesParentClassImplementFunc(self.classStore, className, fieldID) and progSpec.doesChildClassImplementFunc(self.classStore, className, fieldID):
+        parentDeclaresFunc = self.parentHierarchyDeclaresFunction(className, fieldID)
+        if not parentDeclaresFunc and progSpec.doesChildClassImplementFunc(self.classStore, className, fieldID):
             inheritMode = 'virtual'
-        if self.currentObjName in progSpec.classHeirarchyInfo:
-            classRelationData = progSpec.classHeirarchyInfo[self.currentObjName]
-            if ('parentClass' in classRelationData and classRelationData['parentClass']!=None):
-                parentClassName = classRelationData['parentClass']
-                if progSpec.fieldNameInStructHierachy(self.classStore[0], parentClassName, fieldName):
-                    inheritMode = 'override'
+        if parentDeclaresFunc:
+            inheritMode = 'override'
         abstractFunction = (not('value' in field) or field['value']==None)
         if abstractFunction: # and not 'abstract' in self.classStore[0][className]['attrList']:
             inheritMode = 'pure-virtual'

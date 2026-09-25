@@ -135,6 +135,49 @@ class Xlator_Swift(Xlator):
                 return rawParam
         return "&" + argText
 
+    def explicitDerefAlreadyApplied(self, tSpec):
+        return isinstance(tSpec, dict) and (
+            tSpec.get("swiftPointerOutParamName") != None
+            or tSpec.get("explicitDerefAlreadyApplied") == True
+        )
+
+    def containerIndexElementAlreadyMaterialized(self, containerTSpec, elemTSpec):
+        if not isinstance(containerTSpec, dict):
+            return False
+        containerInfo = progSpec.getContainerInfo(self.codeGen.classStore, containerTSpec)
+        if not containerInfo["isContainer"]:
+            return False
+        if containerInfo["isAssociative"]:
+            return False
+        valueSpec = containerInfo["valueTypeSpec"] or containerInfo["firstElementTypeSpec"]
+        if isinstance(valueSpec, dict) and progSpec.typeIsPointer(valueSpec):
+            return self.isGeneratedSwiftClass(self.codeGen.classStore, valueSpec)
+        if not isinstance(elemTSpec, dict):
+            return False
+        if not progSpec.typeIsPointer(elemTSpec):
+            return False
+        return self.isGeneratedSwiftClass(self.codeGen.classStore, elemTSpec)
+
+    def codeBoolContext(self, expr, tSpec):
+        if tSpec == None or isinstance(tSpec, str):
+            return [expr, {'owner': 'me', 'fieldType': 'bool'}]
+        fType = progSpec.fieldTypeKeyword(tSpec)
+        owner = progSpec.getOwner(tSpec)
+        if fType == 'bool':
+            return [expr, {'owner': 'me', 'fieldType': 'bool'}]
+        if progSpec.ownerIsPointer(owner) or progSpec.isStruct(fType):
+            if expr.endswith('!'):
+                expr = expr[:-1]
+            return ['(' + expr + ' != nil)', {'owner': 'me', 'fieldType': 'bool'}]
+        if fType == 'flag' or progSpec.typeIsInteger(fType):
+            if expr.endswith('!'):
+                expr = expr[:-1]
+            if expr.startswith('!'):
+                return ['(' + expr[1:] + ' == 0)', {'owner': 'me', 'fieldType': 'bool'}]
+            return ['(' + expr + ' != 0)', {'owner': 'me', 'fieldType': 'bool'}]
+        [expr, tSpec] = self.adjustConditional(expr, tSpec)
+        return [expr, {'owner': 'me', 'fieldType': 'bool'}]
+
     ###################################################### CONTAINERS
     def codeArrayIndex(self, idx, containerType, LorR_Val, previousSegName, idxTypeSpec):
         if idxTypeSpec != None and not isinstance(idxTypeSpec, str) and progSpec.typeIsPointer(idxTypeSpec) and not idx.endswith('!'):
@@ -489,7 +532,7 @@ class Xlator_Swift(Xlator):
         if LTypeKW == 'bool'or LTypeKW == 'boolean':
             if lhsTSpec != None and not isinstance(lhsTSpec, str) and progSpec.typeIsPointer(lhsTSpec):
                 return RHS
-            if progSpec.typeIsPointer(rhsTSpec):
+            if rhsTSpec != None and not isinstance(rhsTSpec, str) and progSpec.typeIsPointer(rhsTSpec):
                 return '(' + RHS + ' != nil)'
             if (RTypeKW=='int' or RTypeKW=='int32' or RTypeKW=='int64' or RTypeKW=='uint' or RTypeKW=='uint64' or RTypeKW=='flag' or RTypeKW=='mode' or RTypeKW=='numeric' or self.swiftExprIsStaticIntegerConstant(RHS)):
                 if RHS[0]=='!': return '(' + RHS[1:] + ' == 0)'
@@ -519,6 +562,8 @@ class Xlator_Swift(Xlator):
         elif LTypeKW == 'double' and RTypeKW=='string':
             RHS = '(Double('+RHS+') ?? 0.0)'
         elif LTypeKW == 'uint64' and RTypeKW=='int':
+            RHS = 'UInt64('+RHS+')'
+        elif LTypeKW == 'uint64' and RTypeKW=='uint':
             RHS = 'UInt64('+RHS+')'
         elif LTypeKW == 'uint64' and RTypeKW=='int64':
             RHS = 'UInt64('+RHS+')'
@@ -581,7 +626,29 @@ class Xlator_Swift(Xlator):
         return [S, isDerefd]
 
     def codeExplicitDeref(self, varRef, itemTypeSpec):
+        if self.explicitDerefAlreadyApplied(itemTypeSpec):
+            return varRef
         return varRef + "!"
+
+    def adjustCodeConverterText(self, codeText):
+        if not isinstance(codeText, str):
+            return codeText
+        codeText = re.sub(r"\bthis\b", "self", codeText)
+        codeText = re.sub(r"(%\d+)(?:!)?\.get\(\)\s*==\s*self", r"\1 === self", codeText)
+        codeText = re.sub(r"(%\d+)(?:!)?\.get\(\)\s*!=\s*self", r"\1 !== self", codeText)
+        return codeText
+
+    def codeConverterResultAlreadyMaterialized(self, receiverTSpec, resultTSpec, name, convertedName):
+        if not isinstance(receiverTSpec, dict) or not isinstance(resultTSpec, dict):
+            return False
+        containerInfo = progSpec.getContainerInfo(self.codeGen.classStore, receiverTSpec)
+        if not containerInfo["isContainer"] or containerInfo["isAssociative"]:
+            return False
+        if name not in ("__getAt", "at", "first", "last", "popFirst", "popLast"):
+            return False
+        if not progSpec.typeIsPointer(resultTSpec):
+            return False
+        return self.isGeneratedSwiftClass(self.codeGen.classStore, resultTSpec)
 
     def ChoosePtrDecorationForSimpleCase(self, owner):
         if(owner=='our' or owner=='my' or owner=='their'):
@@ -721,6 +788,10 @@ class Xlator_Swift(Xlator):
                 S2 = S2 + '.toDouble()'
             elif RTypeKW == 'double' and (LTypeKW == 'BigFrac' or LTypeKW == 'BigFloat'):
                 S = S + '.toDouble()'
+            elif LTypeKW == 'double' and (RTypeKW == 'int' or RTypeKW == 'int64' or RTypeKW == 'uint' or RTypeKW == 'uint64' or RTypeKW == 'numeric'):
+                S2 = 'Double(' + S2 + ')'
+            elif RTypeKW == 'double' and (LTypeKW == 'int' or LTypeKW == 'int64' or LTypeKW == 'uint' or LTypeKW == 'uint64' or LTypeKW == 'numeric'):
+                S = 'Double(' + S + ')'
             if progSpec.varsTypeCategory(retType1) == 'bool' and S2 == 'false':
                 if opIn == '==':
                     return '(!(' + S + '))'
@@ -910,7 +981,10 @@ class Xlator_Swift(Xlator):
                 S+=" != nil"
             elif conditionType['owner']=='me' and (conditionType['fieldType']=='flag' or progSpec.typeIsInteger(conditionType['fieldType'])):
                 if S[-1]=='!': S=S[:-1]   # Todo: Better detect this
-                S+=" != 0"
+                if S.startswith('!'):
+                    S = "(" + S[1:] + " == 0)"
+                else:
+                    S+=" != 0"
             conditionType='bool'
         return [S, conditionType]
 
@@ -990,7 +1064,41 @@ class Xlator_Swift(Xlator):
         return [S, retOwner, fType]
 
     def checkIfSpecialAssignmentFormIsNeeded(self, action, indent, AltIDXFormat, RHS, rhsType, LHS, LHSParentType, LHS_FieldType):
+        assignTag = action.get('assignTag', '')
+        if not isinstance(assignTag, str):
+            assignTag = assignTag[0]
+        if (
+            assignTag == '+'
+            and isinstance(AltIDXFormat, list)
+            and len(AltIDXFormat) == 3
+            and isinstance(AltIDXFormat[1], dict)
+        ):
+            containerInfo = progSpec.getContainerInfo(self.codeGen.classStore, AltIDXFormat[1])
+            if containerInfo["isAssociative"]:
+                defaultValue = self.defaultValueForMapPlusAssign(LHS_FieldType)
+                if defaultValue != None:
+                    baseExpr = AltIDXFormat[0]
+                    indexExpr = AltIDXFormat[2]
+                    currentValue = baseExpr + "[" + indexExpr + "]"
+                    return indent + currentValue + " = (" + currentValue + " ?? " + defaultValue + ") + " + RHS + ";\n"
         return ''
+
+    def defaultValueForMapPlusAssign(self, valueTypeKW):
+        if valueTypeKW == 'string' or valueTypeKW == 'String':
+            return '""'
+        if valueTypeKW == 'double':
+            return '0.0'
+        if valueTypeKW == 'float':
+            return 'Float(0)'
+        if valueTypeKW == 'uint64':
+            return 'UInt64(0)'
+        if valueTypeKW == 'uint':
+            return 'UInt(0)'
+        if valueTypeKW == 'int64':
+            return 'Int64(0)'
+        if valueTypeKW == 'int' or valueTypeKW == 'int32' or valueTypeKW == 'numeric':
+            return '0'
+        return None
 
     def codePlusEquals(self, LHS, RHS, LHS_FieldType, rhsTypeSpec):
         lhsType = progSpec.fieldTypeKeyword(LHS_FieldType)
@@ -1150,8 +1258,6 @@ class Xlator_Swift(Xlator):
             copyLines += "        flags = other!.flags\n"
         for field in progSpec.generateListOfFieldsToImplement(classes, className):
             copyLines += self.codeCopyFromField(classes, field, genericArgs)
-        if copyLines == "":
-            return ""
         return (
             "\n"
             + "    func __cdCopyFrom(_ other: " + progSpec.flattenObjectName(className) + "!) -> Void{\n"
@@ -2002,7 +2108,8 @@ class Xlator_Swift(Xlator):
         if (LHS_FieldType =='flag' ):
             item = LHS_Left+"flags"
             mask = prefix+bitMask
-            if (RHS != 'true' and RHS !='false'):
+            rhsTypeKW = progSpec.fieldTypeKeyword(rhsType)
+            if rhsTypeKW != 'bool' and RHS != 'true' and RHS !='false':
                 RHS += ' != 0'
             val = '('+ RHS +') ? '+mask+':0'
         elif (LHS_FieldType =='mode' ):

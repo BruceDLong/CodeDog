@@ -71,6 +71,8 @@ struct GLOBAL{  /////////  MATH HANDLING    ////////////////////////////
 struct GLOBAL{  /////////  TYPE CONVERTERS  ////////////////////////////
     me float: convertToFloatVal()                               <- <%!%G%1.toFloat()%>
     me int: convertToIntVal(me int: val)                        <- <%!%G%1.toInt()%>
+    me int: convertToIntVal(me int64: val)                      <- <%!%G%1.toInt()%>
+    me int: convertToIntVal(me double: val)                     <- <%!%G%1.toInt()%>
     me timeValue: convertToL()                                  <- <%!%G%1.toLong()%>
     me timeValue: convertToLongVal()                            <- <%!%G%1.toLong()%>
     me timeValue: convertToTimeVal()                            <- <%!%G%1.toLong()%>
@@ -80,7 +82,10 @@ struct GLOBAL{  /////////  TYPE CONVERTERS  ////////////////////////////
     me int: toInt(me string: val)                               <- <%!%G%1.toInt()%>
     me string: toString(me double: val)                         <- <%!%G%1.toString()%>
     me string: toString(me long: val)                           <- <%!%G%1.toString()%>
+    me string: toString(me int64: val)                          <- <%!%G%1.toString()%>
+    me string: toString(me uint: val)                           <- <%!%G%1.toString()%>
     me string: toString(me int: val)                            <- <%!%G%1.toString()%>
+    me string: toString(me uint64: val)                         <- <%!%G%1.toString()%>
 }
 
 struct _atomic_uint64: wraps=Long{}

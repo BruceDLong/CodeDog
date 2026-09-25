@@ -15,6 +15,9 @@ struct GLOBAL {
     me UnicodeMgr: unicodeMgr
 
     me bool: isutf(me char: ch)
+    me bool: isutf(me int32: ch)
+    me int: remainingOctets(me char: ch)
+    me int: remainingOctets(me int32: ch)
     me wstring: stringToWString(me string: str)
 
     me int: packUTF8Char(me string: str, their int64: pos, their int32: out) <- {
@@ -56,7 +59,10 @@ struct DateTimeFields{
 }
 
 struct UnicodeStr{}
+struct Locale{}
 struct sysLocale{}
+struct UDate{}
+struct wstring{}
 struct DateFormat:    wraps=SimpleDateFormat{}
 struct Normalizer:    wraps=Normalizer2{}
 struct USpoofChecker: wraps=USpoofChecker{}

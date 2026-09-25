@@ -110,6 +110,8 @@ struct GLOBAL{  /////////  MATH HANDLING    ////////////////////////////
 struct GLOBAL{  /////////  TYPE CONVERTERS  ////////////////////////////
     me float: convertToFloatVal()                               <- <%!%G (%1f)%>
     me int: convertToIntVal(me int: val)                        <- <%!%G (int)(%1)%>
+    me int: convertToIntVal(me int64: val)                      <- <%!%G (int)(%1)%>
+    me int: convertToIntVal(me double: val)                     <- <%!%G (int)(%1)%>
     me timeValue: convertToL()                                  <- <%!%G%1L%>
     me timeValue: convertToLongVal()                            <- <%!%G%1.longValue()%>
     me timeValue: convertToTimeVal()                            <- <%!%G (long)(%1)%>
