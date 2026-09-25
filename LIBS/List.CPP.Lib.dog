@@ -61,7 +61,7 @@ struct CPP_Deque<nodeType>: implements=List wraps=deque native=lang specs={inser
     void: clear()                               <- <%!clear()%>
     void: clipToSize(me int: size)              <- <%!resize(%1)%>
     me iterator: deleteNth(me int: position)    <- <%!%0.erase(%0.begin()+%1)%>
-    me iterator: end()                          <- <%!end()%>           // returns itr to past-the-end element
+    me iterator: end()                          <- <%!end()%>           // returns iterator to past-the-end element
     me iterator: erase(me iterator: position)   <- <%!erase(%1)%>
     me iterator: eraseInterval(me iterator: start, me iterator: end) <- <%!erase(%1, %2)%>
     me iterator: eraseItr(me iterator: pos)     <- <%!erase(%1)%>

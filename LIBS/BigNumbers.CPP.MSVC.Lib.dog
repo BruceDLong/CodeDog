@@ -35,6 +35,8 @@ struct GLOBAL{
         string retVal = "";
         mp_exp_t  exp;
         string digits       = val.get_str(exp,10,12);
+        bool isNegative     = !digits.empty() && digits[0]=='-';
+        if(isNegative){digits.erase(0,1);}
         int64_t digitsGiven = digits.size();
         if(exp <= 0){
             if(digitsGiven==0){
@@ -62,6 +64,7 @@ struct GLOBAL{
                 }
             }
         }
+        if(isNegative && retVal!="0"){retVal="-"+retVal;}
         //logMgr.Mesg.LogEntry("  ", "     exp:"+std::to_string(exp)+ "     digitsGiven:"+std::to_string(digitsGiven)+ "   digits:"+digits);
         return(retVal);
     }%>

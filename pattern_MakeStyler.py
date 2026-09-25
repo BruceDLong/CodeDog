@@ -207,8 +207,8 @@ struct Styler{
         userColors.insert(ID, tmpColor)
     }
     me cdColor: color(me string: ID, me cdColor: defaultColor) <- {
-        itr Map<me string, our cdColor>: colorItr <- userColors.find(ID)
-        if(colorItr != userColors.end()){return(colorItr.val)}
+        me userColors.iterator: colorItr <- userColors.find(ID)
+        if(colorItr != userColors.end()){return(colorItr.val!)}
         return(defaultColor)
     }
 

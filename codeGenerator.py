@@ -35,6 +35,8 @@ class CodeGenerator(object):
     localVarsAllocated = []   # Format: [varName, typeSpec]
     localArgsAllocated = []   # Format: [varName, typeSpec]
     currentObjName     = ''
+    currentDefinitionLibLevel = 1
+    currentDefinitionLibName = None
     inheritedEnums     = {}
     constFieldAccs     = {}
     modeStringsAcc     = ''
@@ -90,7 +92,7 @@ class CodeGenerator(object):
                 tSpecOut = progSpec.getTypeSpec(classDef)
                 tSpecOut['owner']='their' # TODO: write test case for containers
                 print("SHOULDNT MATCH:", tSpecOut['owner'],classDef['typeSpec']['owner'])
-            else: tSpecOut={'owner':'their', 'fieldType':retType, 'arraySpec':None, 'paramList':None}
+            else: tSpecOut={'owner':'their', 'fieldType':currentObjName, 'arraySpec':None, 'paramList':None}
         else: tSpecOut={'owner':retOwner, 'fieldType':retType, 'arraySpec':None, 'paramList':None}
         tSpecOut['codeConverter']=code
         return [tSpecOut, 'BUILTIN']
@@ -141,6 +143,159 @@ class CodeGenerator(object):
             return True
         return False
 
+    def typeSpecIsNumeric(self, tSpec):
+        if tSpec == None or tSpec == 0:
+            return False
+        fTypeKW = progSpec.fieldTypeKeyword(tSpec)
+        return (fTypeKW in ('numeric', 'flag', 'mode')
+                or self.typeIsInteger(fTypeKW)
+                or self.typeIsRational(fTypeKW))
+
+    def typeSpecIsBoolean(self, tSpec):
+        if tSpec == None or tSpec == 0:
+            return False
+        return progSpec.fieldTypeKeyword(tSpec) in ('bool', 'flag')
+
+    def typeSpecDescription(self, tSpec):
+        if tSpec == None or tSpec == 0 or not isinstance(tSpec, dict):
+            return 'an unresolved type'
+        fTypeKW = progSpec.fieldTypeKeyword(tSpec)
+        if fTypeKW == None and progSpec.getOwner(tSpec) == 'PTR':
+            return 'NULL'
+        if fTypeKW == None:
+            return 'an unresolved type'
+        reqTagList = progSpec.getReqTagList(tSpec)
+        if reqTagList:
+            argDescriptions = []
+            for reqTag in reqTagList:
+                argDescriptions.append(self.typeSpecDescription(reqTag))
+            fTypeKW += '<' + ', '.join(argDescriptions) + '>'
+        owner = progSpec.getOwner(tSpec)
+        if owner in ('literal', ''):
+            return fTypeKW
+        return owner + ' ' + fTypeKW
+
+    def nominalTypeIsKnown(self, typeKW):
+        if typeKW == None:
+            return False
+        if not self.classStore or not isinstance(self.classStore, (list, tuple)):
+            return False
+        objMap = self.classStore[0]
+        return (progSpec.findSpecOf(objMap, typeKW, 'struct') != None
+                or progSpec.findSpecOf(objMap, typeKW, 'model') != None
+                or progSpec.findSpecOf(objMap, typeKW, 'string') != None)
+
+    def directNominalParentTypes(self, typeKW):
+        if not self.classStore or not isinstance(self.classStore, (list, tuple)):
+            return []
+        objMap = self.classStore[0]
+        parentTypes = []
+        for stateType in ('struct', 'model'):
+            typeDef = progSpec.findSpecOf(objMap, typeKW, stateType)
+            if typeDef == None:
+                continue
+            for tagName in ('inherits', 'implements'):
+                relatedTypes = progSpec.searchATagStore(typeDef.get('tags', {}), tagName)
+                if relatedTypes == None:
+                    continue
+                if isinstance(relatedTypes, str):
+                    relatedTypes = [relatedTypes]
+                for relatedType in relatedTypes:
+                    relatedType = progSpec.normalizeClassNameKey(relatedType)
+                    if isinstance(relatedType, str) and relatedType not in parentTypes:
+                        parentTypes.append(relatedType)
+        return parentTypes
+
+    def nominalTypeIsDerivedFrom(self, actualTypeKW, expectedTypeKW, actualTypeSpec=None):
+        actualTypeKW = progSpec.normalizeClassNameKey(actualTypeKW)
+        expectedTypeKW = progSpec.normalizeClassNameKey(expectedTypeKW)
+        if actualTypeKW == expectedTypeKW:
+            return True
+        pending = [actualTypeKW]
+        if isinstance(actualTypeSpec, dict):
+            implementedType = progSpec.getFromImpl(actualTypeSpec)
+            if implementedType:
+                pending.append(progSpec.normalizeClassNameKey(implementedType))
+        visited = set()
+        while pending:
+            candidate = pending.pop()
+            if candidate == expectedTypeKW:
+                return True
+            if candidate in visited:
+                continue
+            visited.add(candidate)
+            pending.extend(self.directNominalParentTypes(candidate))
+        return False
+
+    def typeArgsAreAssignable(self, expectedTypeSpec, actualTypeSpec):
+        expectedArgs = progSpec.getReqTagList(expectedTypeSpec)
+        actualArgs = progSpec.getReqTagList(actualTypeSpec)
+        if expectedArgs == None or actualArgs == None:
+            return True
+        if len(expectedArgs) != len(actualArgs):
+            return False
+        for expectedArg, actualArg in zip(expectedArgs, actualArgs):
+            if not self.typeSpecsAreAssignable(expectedArg, actualArg):
+                return False
+        return True
+
+    def typeSpecsAreAssignable(self, expectedTypeSpec, actualTypeSpec):
+        # Be conservative when type inference has not produced two concrete
+        # type specs.  This check is intended to catch nominal mismatches before
+        # a backend compiler does, not to replace unresolved generic handling.
+        if (expectedTypeSpec == None or expectedTypeSpec == 0
+                or actualTypeSpec == None or actualTypeSpec == 0
+                or not isinstance(expectedTypeSpec, dict)
+                or not isinstance(actualTypeSpec, dict)):
+            return True
+
+        actualTypeKW = progSpec.fieldTypeKeyword(actualTypeSpec)
+        if actualTypeKW == None and progSpec.getOwner(actualTypeSpec) == 'PTR':
+            return True
+        expectedTypeKW = progSpec.fieldTypeKeyword(expectedTypeSpec)
+        if expectedTypeKW == None or actualTypeKW == None:
+            return True
+
+        expectedTypeKW = progSpec.getUnwrappedClassFieldTypeKeyWord(self.classStore, expectedTypeKW)
+        actualTypeKW = progSpec.getUnwrappedClassFieldTypeKeyWord(self.classStore, actualTypeKW)
+
+        expectedContainer = progSpec.getContainerInfo(self.classStore, expectedTypeSpec)
+        actualContainer = progSpec.getContainerInfo(self.classStore, actualTypeSpec)
+        if expectedContainer['isContainer'] or actualContainer['isContainer']:
+            if not expectedContainer['isContainer'] or not actualContainer['isContainer']:
+                if (self.nominalTypeIsKnown(expectedTypeKW)
+                        and self.nominalTypeIsKnown(actualTypeKW)):
+                    return False
+            else:
+                if expectedContainer['category'] != actualContainer['category']:
+                    return False
+                if not self.typeArgsAreAssignable(expectedTypeSpec, actualTypeSpec):
+                    return False
+
+        if expectedTypeKW == actualTypeKW:
+            return True
+        if expectedTypeKW == 'any':
+            return True
+        if self.typeSpecIsBoolean(expectedTypeSpec) and self.typeSpecIsBoolean(actualTypeSpec):
+            return True
+        if self.typeSpecIsNumeric(expectedTypeSpec) and self.typeSpecIsNumeric(actualTypeSpec):
+            return True
+        if self.nominalTypeIsDerivedFrom(actualTypeKW, expectedTypeKW, actualTypeSpec):
+            return True
+
+        # Unknown/native/generic types retain the previous backend behavior.
+        # Reject only when both names are concrete CodeDog types.
+        return not (self.nominalTypeIsKnown(expectedTypeKW)
+                    and self.nominalTypeIsKnown(actualTypeKW))
+
+    def ensureTypeIsAssignable(self, expectedTypeSpec, actualTypeSpec, context):
+        if self.typeSpecsAreAssignable(expectedTypeSpec, actualTypeSpec):
+            return
+        cdErr("Type mismatch in {}: cannot use '{}' where '{}' is required.".format(
+            context,
+            self.typeSpecDescription(actualTypeSpec),
+            self.typeSpecDescription(expectedTypeSpec)))
+
     def doFieldIDsMatch(self, foundFieldID, fullSearchFieldID):
         if(foundFieldID!=fullSearchFieldID):
             [foundClassAndFunc, foundArgs]  = self.disassembleFieldID(foundFieldID)
@@ -168,7 +323,7 @@ class CodeGenerator(object):
                     count += 1
             return True
 
-    def CheckObjectVars(self, className, itemName, fieldIDArgList):
+    def CheckObjectVars(self, className, itemName, fieldIDArgList, receiverTypeSpec=None):
         # also used to fetch codeConverter
         # if returning wrong overloaded codeConverter check fieldIDArgList
         className = progSpec.normalizeClassNameKey(className)
@@ -181,7 +336,6 @@ class CodeGenerator(object):
             progSpec.setCurrentCheckObjectVars(message)
             return 0
         retVal=None
-        #if("libLevel" in classDef and classDef["libLevel"] == 2 and not 'implements' in classDef): if(classDef["libLevel"] == 2): cdErr(searchFieldID+ " is not defined in parent library of "+str(classDef["libName"]))
 
         wrappedTypeSpec = progSpec.isWrappedType(self.classStore, className)
         if(wrappedTypeSpec != None):
@@ -212,14 +366,21 @@ class CodeGenerator(object):
             fieldName=field['fieldName']
             if fullSearchFieldID== field['fieldID']:
                 #print("fullSearchFieldID:",fullSearchFieldID)
+                self.ensureFieldVisibleFromCurrentContext(className, field, receiverTypeSpec, classDef)
                 return field
             if fieldName==itemName and 'number_type' in field['fieldID']:
                 num_typeFieldID = self.convertFieldIDType(fullSearchFieldID, "number_type")
                 if(field['fieldID'] == num_typeFieldID):
+                    self.ensureFieldVisibleFromCurrentContext(className, field, receiverTypeSpec, classDef)
                     return field
             if fieldName==itemName:
-                foundFieldID = field
+                if self.fieldVisibleFromCurrentContext(className, field, receiverTypeSpec, classDef):
+                    foundFieldID = field
+                elif foundFieldID == 'None':
+                    foundFieldID = ['hidden', field]
         if foundFieldID != 'None':
+            if isinstance(foundFieldID, list) and foundFieldID[0] == 'hidden':
+                self.reportImplementationVisibilityError("member", foundFieldID[1]['fieldID'], foundFieldID[1].get('libName', classDef.get('libName')))
             #doIDsMatch = self.doFieldIDsMatch(foundFieldID['fieldID'], fullSearchFieldID)
             #print ("Found", itemName)
             return foundFieldID
@@ -242,7 +403,135 @@ class CodeGenerator(object):
         classDef = progSpec.findSpecOf(self.classStore[0], itemName, "struct")
         if classDef==None:
             return None
+        if self.classIsImplementationOnly(itemName) and not self.currentCodeMayUseImplementationSymbols():
+            self.reportImplementationVisibilityError("class", itemName, classDef.get('libName'))
         return [{'owner':'me', 'fieldType':[itemName], 'StaticMode':'yes'}, "CLASS:"+itemName]
+
+    def currentCodeMayUseImplementationSymbols(self):
+        return getattr(self, 'currentDefinitionLibLevel', 1) == 2
+
+    def findVisibilityClassDef(self, className):
+        classDef = progSpec.findSpecOf(self.classStore[0], className, "struct")
+        if classDef == None:
+            classDef = progSpec.findSpecOf(self.classStore[0], className, "model")
+        if classDef == None:
+            classDef = progSpec.findSpecOf(self.classStore[0], className, "string")
+        return classDef
+
+    def fieldLibLevel(self, field, classDef=None):
+        if isinstance(field, dict) and 'libLevel' in field:
+            return field['libLevel']
+        if classDef != None and 'libLevel' in classDef:
+            return classDef['libLevel']
+        return 1
+
+    def classIsImplementationOnly(self, className):
+        classDef = self.findVisibilityClassDef(className)
+        return classDef != None and classDef.get('libLevel', 1) == 2
+
+    def fieldDeclaredInTopLevelSurface(self, className, field):
+        if not isinstance(field, dict) or 'fieldID' not in field:
+            return False
+        targetFieldID = progSpec.fieldOnlyID(field['fieldID'])
+        surfaceNames = [className]
+        visitedSurfaceNames = set()
+        searchIdx = 0
+        while searchIdx < len(surfaceNames):
+            surfaceName = surfaceNames[searchIdx]
+            searchIdx += 1
+            if surfaceName in visitedSurfaceNames:
+                continue
+            visitedSurfaceNames.add(surfaceName)
+            classDef = progSpec.findSpecOf(self.classStore[0], surfaceName, "struct")
+            if classDef == None:
+                classDef = progSpec.findSpecOf(self.classStore[0], surfaceName, "model")
+            if classDef == None:
+                continue
+            for tagName in ["inherits", "implements"]:
+                relatedSurfaces = progSpec.searchATagStore(classDef.get("tags", {}), tagName)
+                if relatedSurfaces == None:
+                    continue
+                if isinstance(relatedSurfaces, str):
+                    relatedSurfaces = [relatedSurfaces]
+                for relatedSurface in relatedSurfaces:
+                    if isinstance(relatedSurface, str) and relatedSurface not in surfaceNames:
+                        surfaceNames.append(relatedSurface)
+        if isinstance(className, str):
+            nestedSuffix = "." + className
+            for storedName in self.classStore[1]:
+                normalizedName = storedName
+                if isinstance(normalizedName, str) and len(normalizedName) > 0 and normalizedName[0] in ["%", "$"]:
+                    normalizedName = normalizedName[1:]
+                if isinstance(normalizedName, str) and normalizedName.endswith(nestedSuffix) and normalizedName not in surfaceNames:
+                    surfaceNames.append(normalizedName)
+        for surfaceName in surfaceNames:
+            for stateType in ["struct", "model"]:
+                classDef = progSpec.findSpecOf(self.classStore[0], surfaceName, stateType)
+                if classDef == None:
+                    continue
+                for candidate in classDef.get("fields", []):
+                    if self.fieldLibLevel(candidate, classDef) == 2:
+                        continue
+                    if 'fieldID' in candidate and progSpec.fieldOnlyID(candidate['fieldID']) == targetFieldID:
+                        return True
+        return False
+
+    def implementedSurfaceNames(self, classDef):
+        if classDef == None or 'tags' not in classDef:
+            return []
+        implements = progSpec.searchATagStore(classDef['tags'], 'implements')
+        if implements == None:
+            return []
+        if isinstance(implements, str):
+            return [implements]
+        names = []
+        for surfaceName in implements:
+            if isinstance(surfaceName, str):
+                names.append(surfaceName)
+            elif isinstance(surfaceName, (ParseResults, list, tuple)) and len(surfaceName) > 0 and isinstance(surfaceName[0], str):
+                names.append(surfaceName[0])
+        return names
+
+    def fieldVisibleFromCurrentContext(self, className, field, receiverTypeSpec=None, classDef=None):
+        if self.currentCodeMayUseImplementationSymbols():
+            return True
+        if self.fieldLibLevel(field, classDef) != 2:
+            return True
+        if self.fieldDeclaredInTopLevelSurface(className, field):
+            return True
+        if isinstance(receiverTypeSpec, dict):
+            fromImplemented = progSpec.getFromImpl(receiverTypeSpec)
+            if fromImplemented and self.fieldDeclaredInTopLevelSurface(fromImplemented, field):
+                return True
+        for surfaceName in self.implementedSurfaceNames(classDef):
+            if self.fieldDeclaredInTopLevelSurface(surfaceName, field):
+                return True
+        return False
+
+    def ensureFieldVisibleFromCurrentContext(self, className, field, receiverTypeSpec=None, classDef=None):
+        if not self.fieldVisibleFromCurrentContext(className, field, receiverTypeSpec, classDef):
+            self.reportImplementationVisibilityError("member", field['fieldID'], field.get('libName', classDef.get('libName') if classDef else None))
+
+    def typeSpecUsesGeneratedImplementation(self, tSpec):
+        return isinstance(tSpec, dict) and progSpec.getFromImpl(tSpec) != None
+
+    def ensureTypeSpecVisibleFromCurrentContext(self, tSpec):
+        if self.currentCodeMayUseImplementationSymbols() or tSpec == None:
+            return
+        fTypeKW = progSpec.fieldTypeKeyword(tSpec)
+        if isinstance(fTypeKW, str) and self.classIsImplementationOnly(fTypeKW) and not self.typeSpecUsesGeneratedImplementation(tSpec):
+            classDef = self.findVisibilityClassDef(fTypeKW)
+            self.reportImplementationVisibilityError("class", fTypeKW, classDef.get('libName') if classDef else None)
+        reqTagList = progSpec.getReqTagList(tSpec)
+        if reqTagList:
+            for reqTag in reqTagList:
+                self.ensureTypeSpecVisibleFromCurrentContext(reqTag)
+
+    def reportImplementationVisibilityError(self, symbolKind, symbolName, libName):
+        source = ""
+        if libName:
+            source = " from " + str(libName)
+        cdErr("Implementation-only {} '{}'{} cannot be used from non-implementation code. Declare it in the top-level library API first.".format(symbolKind, symbolName, source))
 
     StaticMemberVars={} # Used to find parent-class of const and enums
 
@@ -354,7 +643,7 @@ class CodeGenerator(object):
 
     def checkForReservedWord(self, identifier, currentObjName):
         # TODO: other cases such as class names and enum values are not checked.
-        if identifier in ['auto', 'and', 'or', 'const', 'me', 'my', 'our', 'their', 'we', 'itr', 'while', 'withEach'
+        if identifier in ['auto', 'and', 'or', 'const', 'me', 'my', 'our', 'their', 'we', 'while', 'withEach'
                 'do', 'else', 'flag', 'mode', 'for', 'if', 'model', 'struct', 'switch', 'typedef', 'void']:
             if currentObjName!="": currentObjName = " in "+currentObjName
             cdErr("Reserved word '"+identifier+"' cannot be used as an identifier"+ currentObjName)
@@ -539,9 +828,7 @@ class CodeGenerator(object):
             tSpec = self.copyTypeSpec(tSpec)
             genericType = genericArgs[fTypeKW]
             fTypeOut    = progSpec.fieldTypeKeyword(genericType)
-            ownerIn     = progSpec.getOwner(tSpec)
             ownerOut    = progSpec.getOwner(genericType)
-            if ownerIn=='itr': ownerOut = 'itr'
             tSpec['fieldType'] = fTypeOut
             tSpec['owner']     = ownerOut
             tSpec['generic']   = fTypeKW
@@ -583,7 +870,7 @@ class CodeGenerator(object):
         valueSpec  = containerInfo['valueTypeSpec'] or containerInfo['firstElementTypeSpec']
         reqTagList = progSpec.getReqTagList(tSpec)
         implTArgs  = progSpec.getImplementationTypeArgs(tSpec)
-        fDefAt     = self.CheckObjectVars(fTypeKW, "at", "")
+        fDefAt     = self.CheckObjectVars(fTypeKW, "at", "", tSpec)
         if implTArgs and fDefAt:
             atOwner  = progSpec.getOwner(fDefAt)
             atTypeKW = progSpec.fieldTypeKeyword(fDefAt)
@@ -597,16 +884,58 @@ class CodeGenerator(object):
         cdErr("Could not determine container value type for " + str(tSpec))
 
     ########################################################################
-    def getUnwrappedIteratorTypeKW(self, owner, fTypeKW):
-        itrTypeKW   = None
-        if owner=='itr' and not progSpec.isItrType(fTypeKW):
-            itrTypeKW   = progSpec.convertItrType(self.classStore, owner, fTypeKW)
-            itrTypeKW   = progSpec.getUnwrappedClassFieldTypeKeyWord(self.classStore, itrTypeKW)
-            # Qualified nested keys are internal lookup keys; iterator suffixes in
-            # generated code should use the local nested class identifier.
-            if isinstance(itrTypeKW, str) and ("::" in itrTypeKW or "." in itrTypeKW):
-                itrTypeKW = re.split(r"::|\.", itrTypeKW)[-1]
+    def getUnwrappedIteratorTypeKW(self, iteratorTypeKW):
+        if iteratorTypeKW == None:
+            return None
+        itrTypeKW = progSpec.getUnwrappedClassFieldTypeKeyWord(self.classStore, iteratorTypeKW)
+        # Qualified nested keys are internal lookup keys; iterator suffixes in
+        # generated code should use the local nested class identifier.
+        if isinstance(itrTypeKW, str) and ("::" in itrTypeKW or "." in itrTypeKW):
+            itrTypeKW = re.split(r"::|\.", itrTypeKW)[-1]
         return itrTypeKW
+
+    def getIteratorContainerTypeSpec(self, tSpec, fTypeKW):
+        if isinstance(tSpec, dict) and 'iteratorOfTypeSpec' in tSpec:
+            return tSpec['iteratorOfTypeSpec']
+
+        outerKW = self.getNestedOutter(fTypeKW)
+        if outerKW == None:
+            return None
+
+        containerTSpec = {'owner':'me', 'fieldType':[outerKW], 'arraySpec':None, 'paramList':None}
+        reqTagList = progSpec.getReqTagList(tSpec)
+        if reqTagList != None:
+            containerTSpec['reqTagList'] = copy.deepcopy(reqTagList)
+            containerTSpec['fieldType'].append(copy.deepcopy(reqTagList))
+        if isinstance(tSpec, dict):
+            for prop in ['fromImplemented', 'containerCategory', 'implTypeArgs']:
+                if prop in tSpec:
+                    containerTSpec[prop] = copy.copy(tSpec[prop])
+        return containerTSpec
+
+    def convertIteratorType(self, tSpec, fTypeKW, ownerOut, varMode, genericArgs):
+        containerTSpec = self.getIteratorContainerTypeSpec(tSpec, fTypeKW)
+        if containerTSpec == None:
+            return None
+
+        iteratorTypeKW = fTypeKW
+        containerTypeKW = progSpec.fieldTypeKeyword(containerTSpec)
+        unwrappedKW = progSpec.getUnwrappedClassFieldTypeKeyWord(self.classStore, containerTypeKW)
+        reqTagList = progSpec.getReqTagList(containerTSpec)
+        reqTagStr = self.xlator.getReqTagString(self.classStore, containerTSpec)
+
+        if self.xlator.renderGenerics=='True':
+            if reqTagList and not progSpec.isWrappedType(self.classStore, containerTypeKW) and not progSpec.isAbstractStruct(self.classStore[0], containerTypeKW):
+                unwrappedKW = self.generateGenericStructName(containerTypeKW, reqTagList, genericArgs)
+            else:
+                unwrappedKW += reqTagStr
+        else:
+            unwrappedKW += reqTagStr
+
+        langType = self.xlator.adjustBaseTypes(unwrappedKW, progSpec.isNewContainerTempFunc(containerTSpec))
+        langType = self.xlator.applyIterator(langType, self.getUnwrappedIteratorTypeKW(iteratorTypeKW), varMode)
+        langType = self.xlator.applyOwner(ownerOut, langType, varMode)
+        return langType
 
     def getNestedOutter(self, innerKW):
         outerKW = None
@@ -678,9 +1007,9 @@ class CodeGenerator(object):
                 resolvedKW = pathSeg
                 continue
 
-            # Compatibility shorthand: containerOrType.iterator
+            # Shorthand: containerOrType.iterator
             if pathSeg == "iterator":
-                itrTypeKW = progSpec.convertItrType(self.classStore, 'itr', resolvedKW)
+                itrTypeKW = progSpec.findContainerIteratorType(self.classStore, resolvedKW)
                 if itrTypeKW != None:
                     resolvedKW = itrTypeKW
                     continue
@@ -735,31 +1064,45 @@ class CodeGenerator(object):
             return fTypeKW
 
         containerKW = progSpec.normalizeClassNameKey(containerKW)
+
+        iteratorOfTypeSpec = {'owner':'me', 'fieldType':[containerKW], 'arraySpec':None, 'paramList':None}
+        if containerTSpec != None:
+            iteratorOfTypeSpec = self.copyTypeSpec(containerTSpec)
+        else:
+            reqTagList = progSpec.getReqTagList(tSpec)
+            if reqTagList != None:
+                iteratorOfTypeSpec['reqTagList'] = copy.deepcopy(reqTagList)
+                iteratorOfTypeSpec['fieldType'].append(copy.deepcopy(reqTagList))
+
+        if progSpec.isKnownContainerModelKW(containerKW):
+            self.applyStructImplemetation(iteratorOfTypeSpec, self.currentObjName, 'iterator')
+            containerKW = progSpec.fieldTypeKeyword(iteratorOfTypeSpec)
+
+        iteratorKW = progSpec.findContainerIteratorType(self.classStore, containerKW)
+        if iteratorKW == None:
+            return fTypeKW
+
+        reqTagList = progSpec.getReqTagList(iteratorOfTypeSpec)
+        if reqTagList != None:
+            tSpec['reqTagList'] = copy.deepcopy(reqTagList)
+            if 'fieldType' in tSpec and not isinstance(tSpec['fieldType'], str):
+                if len(tSpec['fieldType']) > 1:
+                    tSpec['fieldType'][1] = copy.deepcopy(reqTagList)
+                else:
+                    tSpec['fieldType'].append(copy.deepcopy(reqTagList))
+
+        for prop in ['fromImplemented', 'containerCategory', 'implTypeArgs']:
+            if prop in iteratorOfTypeSpec:
+                tSpec[prop] = copy.copy(iteratorOfTypeSpec[prop])
+
         if 'fieldType' in tSpec:
             fType = tSpec['fieldType']
             if isinstance(fType, str):
-                tSpec['fieldType'] = containerKW
+                tSpec['fieldType'] = iteratorKW
             elif len(fType) > 0:
-                tSpec['fieldType'][0] = containerKW
-
-        if containerTSpec != None:
-            reqTagList = progSpec.getReqTagList(containerTSpec)
-            if reqTagList != None:
-                tSpec['reqTagList'] = copy.deepcopy(reqTagList)
-                if 'fieldType' in tSpec and not isinstance(tSpec['fieldType'], str):
-                    if len(tSpec['fieldType']) > 1:
-                        tSpec['fieldType'][1] = copy.deepcopy(reqTagList)
-                    else:
-                        tSpec['fieldType'].append(copy.deepcopy(reqTagList))
-
-            if 'fromImplemented' in containerTSpec:
-                tSpec['fromImplemented'] = copy.copy(containerTSpec['fromImplemented'])
-            if 'containerCategory' in containerTSpec:
-                tSpec['containerCategory'] = copy.copy(containerTSpec['containerCategory'])
-            if 'implTypeArgs' in containerTSpec:
-                tSpec['implTypeArgs'] = copy.copy(containerTSpec['implTypeArgs'])
-        tSpec['owner'] = 'itr'
-        return containerKW
+                tSpec['fieldType'][0] = iteratorKW
+        tSpec['iteratorOfTypeSpec'] = iteratorOfTypeSpec
+        return iteratorKW
 
     def convertType(self, tSpec, varMode, genericArgs):
         # varMode is 'var' or 'arg' or 'alloc' or 'func' for function Header. Large items are passed as pointers
@@ -784,15 +1127,17 @@ class CodeGenerator(object):
                 elif len(fType) > 0:
                     tSpec['fieldType'][0] = resolvedTypeKW
             fTypeKW = resolvedTypeKW
+        self.ensureTypeSpecVisibleFromCurrentContext(tSpec)
         ownerIn  = progSpec.getOwner(tSpec)
         ownerOut = self.xlator.getUnwrappedClassOwner(self.classStore, tSpec, fTypeKW, varMode, ownerIn)
+        iteratorLangType = self.convertIteratorType(tSpec, fTypeKW, ownerOut, varMode, genericArgs)
+        if iteratorLangType != None:
+            return iteratorLangType
         unwrappedKW = progSpec.getUnwrappedClassFieldTypeKeyWord(self.classStore, fTypeKW)
         reqTagList  = progSpec.getReqTagList(tSpec)
-        itrTypeKW   = self.getUnwrappedIteratorTypeKW(ownerOut, fTypeKW)
         reqTagStr = self.xlator.getReqTagString(self.classStore, tSpec)
         if self.xlator.renderGenerics=='True':
             if reqTagList and not progSpec.isWrappedType(self.classStore, fTypeKW) and not progSpec.isAbstractStruct(self.classStore[0], fTypeKW):
-                if itrTypeKW: fTypeKW = itrTypeKW
                 unwrappedKW = self.generateGenericStructName(fTypeKW, reqTagList, genericArgs)
             else: unwrappedKW += reqTagStr
         else:
@@ -820,7 +1165,7 @@ class CodeGenerator(object):
                 else: unwrappedKW += reqTagStr
             else: unwrappedKW += reqTagStr
         langType = self.xlator.adjustBaseTypes(unwrappedKW, progSpec.isNewContainerTempFunc(tSpec))
-        langType = self.xlator.applyIterator(langType, itrTypeKW, varMode)
+        langType = self.xlator.applyIterator(langType, None, varMode)
         langType = self.xlator.applyOwner(ownerOut, langType, varMode)
         return langType
 
@@ -867,9 +1212,19 @@ class CodeGenerator(object):
                 newName = adjustedName
         if argList != None:
             count=1
+            modelParams = progSpec.getParamList(tSpec)
             for P in argList:
                 oldTextTag='%'+str(count)
-                [S2, argTSpec]=self.codeExpr(P[0], None, None, 'RVAL', genericArgs)
+                modelTSpec = None
+                if modelParams and len(modelParams) >= count and 'typeSpec' in modelParams[count - 1]:
+                    modelTSpec = progSpec.getTypeSpec(modelParams[count - 1])
+                    modelTSpec = self.getGenericFieldsTypeSpec(genericArgs, modelTSpec)
+                [S2, argTSpec]=self.codeExpr(P[0], None, modelTSpec, 'RVAL', genericArgs)
+                if modelTSpec != None:
+                    self.ensureTypeIsAssignable(
+                        modelTSpec,
+                        argTSpec,
+                        "argument {} to '{}()'".format(count, name))
                 if S2!='self':S2 += self.xlator.makePtrOpt(argTSpec)
                 if(isinstance(newName, str)):
                     newName=newName.replace(oldTextTag, S2)
@@ -905,6 +1260,132 @@ class CodeGenerator(object):
         elif commentType=='//^': return indent + '// ' + commentStr
         else: cdErr("unknown comment type: "+ commentType)
     ################################  C o d e   E x p r e s s i o n s
+
+    def explicitDerefMode(self):
+        envMode = os.environ.get('CODEDOG_EXPLICIT_DEREF') or os.environ.get('CODEDOG_EXPLICIT_DEREF_MODE')
+        if envMode: return str(envMode).strip().lower()
+        tagStores = []
+        if getattr(self, 'tagStore', None) != None: tagStores.append(self.tagStore)
+        if getattr(self, 'buildTags', None) != None: tagStores.append(self.buildTags)
+        mode = progSpec.fetchTagValue(tagStores, 'ExplicitDeref') if tagStores else None
+        if mode == None:
+            mode = progSpec.fetchTagValue(tagStores, 'explicitDeref') if tagStores else None
+        if mode == None: return ''
+        return str(mode).strip().lower()
+
+    def explicitDerefWarningsEnabled(self):
+        mode = self.explicitDerefMode()
+        return mode in ('warn', 'warning', 'audit', 'strict')
+
+    def explicitDerefErrorsEnabled(self):
+        mode = self.explicitDerefMode()
+        return mode in ('strict', 'error', 'errors')
+
+    def typeNeedsExplicitDeref(self, tSpec):
+        if not isinstance(tSpec, dict): return False
+        if tSpec.get('explicitDerefed'): return False
+        return progSpec.getOwner(tSpec) in ('our', 'their')
+
+    def isNullLiteralExpr(self, expr, tSpec):
+        if expr == 'NULL': return True
+        if isinstance(tSpec, dict):
+            return progSpec.getOwner(tSpec) == 'PTR'
+        return False
+
+    def explicitDerefWarningLocation(self):
+        parts = []
+        if getattr(self, 'currentObjName', ''):
+            parts.append("object " + self.currentObjName)
+        if getattr(self, 'currentDefinitionLibName', None):
+            parts.append("library " + str(self.currentDefinitionLibName))
+        if not parts: return ""
+        return " while generating " + ", ".join(parts)
+
+    def warnImplicitDeref(self, expr, tSpec, context, suggestion=None):
+        if not self.explicitDerefWarningsEnabled(): return
+        if not self.typeNeedsExplicitDeref(tSpec): return
+        owner = progSpec.getOwner(tSpec)
+        fType = progSpec.fieldTypeKeyword(tSpec)
+        if suggestion == None: suggestion = str(expr) + '!'
+        messageBody = "implicit dereference of {} {} '{}' in {}{}; use '{}'.".format(
+            owner, fType, expr, context, self.explicitDerefWarningLocation(), suggestion
+        )
+        cdErr(messageBody[0].upper() + messageBody[1:])
+        message = "WARNING: " + messageBody
+        if not hasattr(self, 'explicitDerefWarningCache'):
+            self.explicitDerefWarningCache = set()
+        if message in self.explicitDerefWarningCache: return
+        self.explicitDerefWarningCache.add(message)
+        print(message)
+
+    def warnImplicitBarePointerCondition(self, expr, tSpec, context):
+        return
+
+    def explicitDerefReplacementExpr(self, expr, tSpec):
+        if self.typeNeedsExplicitDeref(tSpec):
+            return str(expr) + '!'
+        return str(expr)
+
+    def warnDeprecatedDeepAssignment(self, LHS, lhsTypeSpec, RHS, rhsTypeSpec):
+        if not self.explicitDerefWarningsEnabled(): return
+        lhsReplacement = self.explicitDerefReplacementExpr(LHS, lhsTypeSpec)
+        rhsReplacement = self.explicitDerefReplacementExpr(RHS, rhsTypeSpec)
+        messageBody = "deprecated '<deep-' assignment{}; use '{} <- {}'.".format(
+            self.explicitDerefWarningLocation(), lhsReplacement, rhsReplacement
+        )
+        message = "WARNING: " + messageBody
+        if not hasattr(self, 'explicitDerefWarningCache'):
+            self.explicitDerefWarningCache = set()
+        if message in self.explicitDerefWarningCache: return
+        self.explicitDerefWarningCache.add(message)
+        print(message)
+
+    def assignmentAllowsImplicitRhsDeref(self, lhsTypeSpec, rhsTypeSpec, assignTag):
+        if not isinstance(assignTag, str): assignTag = assignTag[0]
+        if assignTag != '': return False
+        if not isinstance(lhsTypeSpec, dict) or not isinstance(rhsTypeSpec, dict): return False
+        return progSpec.getOwner(lhsTypeSpec) == 'me' and self.typeNeedsExplicitDeref(rhsTypeSpec)
+
+    def warnImplicitDerefForAssignment(self, LHS, lhsTypeSpec, RHS, rhsTypeSpec, assignTag):
+        if not self.explicitDerefWarningsEnabled(): return
+        if not isinstance(assignTag, str): assignTag = assignTag[0]
+        lhsNeeds = self.typeNeedsExplicitDeref(lhsTypeSpec)
+        rhsNeeds = self.typeNeedsExplicitDeref(rhsTypeSpec)
+        lhsOwner = progSpec.getOwner(lhsTypeSpec) if isinstance(lhsTypeSpec, dict) else None
+        rhsOwner = progSpec.getOwner(rhsTypeSpec) if isinstance(rhsTypeSpec, dict) else None
+
+        if assignTag == 'deep':
+            self.warnDeprecatedDeepAssignment(LHS, lhsTypeSpec, RHS, rhsTypeSpec)
+            return
+        if rhsNeeds and lhsOwner == 'me' and not self.assignmentAllowsImplicitRhsDeref(lhsTypeSpec, rhsTypeSpec, assignTag):
+            self.warnImplicitDeref(RHS, rhsTypeSpec, "assignment to a me value", RHS + '!')
+        if lhsNeeds and rhsOwner in ('me', 'literal', 'const'):
+            self.warnImplicitDeref(LHS, lhsTypeSpec, "assignment through a pointer-owned LHS", LHS + '!')
+
+    def warnImplicitDerefForArg(self, expr, argTSpec, modelTSpec, argIndex, name):
+        if not self.explicitDerefWarningsEnabled(): return
+        if not self.typeNeedsExplicitDeref(argTSpec): return
+        if not isinstance(modelTSpec, dict): return
+        modelOwner = progSpec.getOwner(modelTSpec)
+        if modelOwner == 'me':
+            callName = name if name else "function call"
+            self.warnImplicitDeref(expr, argTSpec, "argument {} to {}".format(argIndex + 1, callName), expr + '!')
+
+    def codeBoolContextOperand(self, expr, tSpec):
+        [expr, tSpec] = self.xlator.adjustConditional(expr, tSpec)
+        return [expr, {'owner': 'me', 'fieldType': 'bool'}]
+
+    def codeExplicitDerefSeg(self, tSpecIn):
+        if tSpecIn==None or tSpecIn==0 or isinstance(tSpecIn, str) or 'dummyType' in tSpecIn:
+            cdErr("Cannot explicitly dereference an unresolved expression.")
+        owner = progSpec.getOwner(tSpecIn)
+        if owner!='our' and owner!='their':
+            cdErr("Explicit dereference '!' requires an 'our' or 'their' value, not '{}'.".format(owner))
+        tSpecOut = self.copyTypeSpec(tSpecIn)
+        tSpecOut['owner'] = 'me'
+        tSpecOut['explicitDerefed'] = True
+        return [self.xlator.codeExplicitDeref('%0', tSpecIn), tSpecOut, None, '']
+
     def codeNameSeg(self, segSpec, tSpecIn, connector, LorR_Val, previousSegName, previousTypeSpec, returnType, LorRorP_Val, genericArgs):
         # if tSpecIn has 'dummyType', this is a non-member (or self) and the first segment of the reference.
         # return example: ['getData()', <typeSpec>, <alternate form>, 'OBJVAR']
@@ -913,13 +1394,16 @@ class CodeGenerator(object):
         namePrefix = ''  # For static_Global vars
         tSpecOut   = {'owner':'', 'fieldType':'void'}
         name       = segSpec[0]
+        hasCodeConverter = False
         if isinstance(name, (ParseResults, list, tuple)) and len(name) == 1 and isinstance(name[0], str):
             name = name[0]
+        if name == '!':
+            return self.codeExplicitDerefSeg(tSpecIn)
         owner      = progSpec.getOwner(tSpecIn)
         fTypeKW    = progSpec.fieldTypeKeyword(tSpecIn)
         progSpec.isOldContainerTempFuncErr(tSpecIn, 'codeNameSeg1 '+self.currentObjName+' ' +str(name))
-        isCtnr     = progSpec.isAContainer(tSpecIn)
-        if genericArgs==None and previousTypeSpec!=None: genericArgs = progSpec.getGenericArgsFromTypeSpec(previousTypeSpec)
+        isCtnr     = progSpec.isNewContainerTempFunc(tSpecIn)
+        if not genericArgs and previousTypeSpec!=None: genericArgs = progSpec.getGenericArgsFromTypeSpec(previousTypeSpec)
         if(name=='allocate'): cdErr("Deprecated use of allocate()")
 
         argList  = None
@@ -936,6 +1420,10 @@ class CodeGenerator(object):
                 tSpecOut = copy.copy(tmpTypeSpec)
 
         if isCtnr and name[0]=='[':
+            if self.typeNeedsExplicitDeref(tSpecIn):
+                baseExpr = previousSegName if previousSegName else '<container>'
+                indexText = name if isinstance(name, str) else '[...]'
+                self.warnImplicitDeref(baseExpr, tSpecIn, "index access", str(baseExpr) + '!' + str(indexText))
             idxTSpec = self.xlator.getIdxType(tSpecIn)
             [valOwner, valFType] = self.getContainerValueOwnerAndType(tSpecIn)
             tSpecOut = {'owner':valOwner, 'fieldType': valFType}
@@ -965,6 +1453,10 @@ class CodeGenerator(object):
                 tSpecOut={'owner':'me', 'fieldType': 'void', 'codeConverter':'flags=0'}
                 # TODO: if flags or modes have a non-zero default this should account for that.
             elif(name[0]=='[' and fTypeKW=='string'):
+                if self.typeNeedsExplicitDeref(tSpecIn):
+                    baseExpr = previousSegName if previousSegName else '<string>'
+                    indexText = name if isinstance(name, str) else '[...]'
+                    self.warnImplicitDeref(baseExpr, tSpecIn, "string index access", str(baseExpr) + '!' + str(indexText))
                 tSpecOut={'owner':'me', 'fieldType': 'char'}
                 [S2, idxTypeSpec] = self.codeExpr(name[1], None, None, 'RVAL', genericArgs)
                 S += self.xlator.codeArrayIndex(S2, 'string', LorR_Val, previousSegName, idxTypeSpec)
@@ -972,24 +1464,10 @@ class CodeGenerator(object):
             elif(name[0]=='[' and (fTypeKW=='uint' or fTypeKW=='int')):
                 cdErr("Error: integers can't be indexed: "+previousSegName+":"+name)
 
-            elif owner=="itr" and 'fromRep' in tSpecIn:
-                reqTagList = tSpecIn['reqTagList']
-                if name=="key":
-                    keyOwner  = progSpec.getOwner(reqTagList[0])
-                    keyTypeKW = progSpec.fieldTypeKeyword(reqTagList[0])
-                    tSpecOut={'owner':keyOwner, 'fieldType': keyTypeKW}
-                    name = "first"
-                elif name=="val":
-                    valOwner  = progSpec.getOwner(reqTagList[1])
-                    valTypeKW = progSpec.fieldTypeKeyword(reqTagList[1])
-                    tSpecOut={'owner':valOwner, 'fieldType': valTypeKW}
-                    name = "second"
             else:
                 if fTypeKW!="string":
-                    itrTypeKW = progSpec.convertItrType(self.classStore, owner, fTypeKW)
-                    if itrTypeKW!=None: fTypeKW = itrTypeKW
                     [argListStr, fieldIDArgList] = self.getFieldIDArgList(segSpec, genericArgs)
-                    tSpecOut = self.CheckObjectVars(fTypeKW, name, fieldIDArgList)
+                    tSpecOut = self.CheckObjectVars(fTypeKW, name, fieldIDArgList, tSpecIn)
                     if tSpecOut!=0:
                         if name == 'init' and 'fieldID' in tSpecOut and '::' in tSpecOut['fieldID']:
                             initDeclaringClass = tSpecOut['fieldID'].split('::', 1)[0]
@@ -998,13 +1476,14 @@ class CodeGenerator(object):
                             segTypeKeyWord = progSpec.fieldTypeKeyword(tSpecOut)
                             segTypeOwner   = progSpec.getOwner(tSpecOut)
                             [innerTypeOwner, innerTypeKeyWord] = progSpec.queryTagFunction(self.classStore, fTypeKW, "__getAt", segTypeKeyWord, tSpecIn)
-                            if(innerTypeOwner and segTypeOwner != 'itr'):
+                            if(innerTypeOwner):
                                 tSpecOut['owner'] = innerTypeOwner
                             if(innerTypeKeyWord): tSpecOut['fieldType'][0] = innerTypeKeyWord
                         tSpecOut = self.copyTypeSpec(tSpecOut)
                     else: print("tSpecOut = 0 for: "+previousSegName+"."+name, " fTypeKW:",fTypeKW)
 
         if tSpecOut and 'codeConverter' in tSpecOut and tSpecOut['codeConverter']!=None:
+            hasCodeConverter = True
             reqTagList = progSpec.getReqTagList(tSpecIn)
             [convertedName, argList]=self.convertNameSeg(tSpecOut, name, connector, argList, reqTagList, genericArgs)
             #print("codeConverter ",name,"->",convertedName, tSpecOut)
@@ -1100,7 +1579,7 @@ class CodeGenerator(object):
                 if(segTSpec): # This is where to detect type of vars not found to determine whether to use '.' or '->'
                     if 'StaticMode' in segTSpec and segTSpec['StaticMode']=='yes':
                         connector = self.xlator.ObjConnector
-                    elif progSpec.wrappedTypeIsPointer(self.classStore, segTSpec, segName):
+                    elif segName != '!' and not (isinstance(segTSpec, dict) and segTSpec.get('explicitDerefed')) and progSpec.wrappedTypeIsPointer(self.classStore, segTSpec, segName):
                         connector = self.xlator.PtrConnector
                         if previousSegName and previousSegName[-1] == ']' and connector=='!.':
                             connector = self.xlator.ObjConnector
@@ -1148,11 +1627,30 @@ class CodeGenerator(object):
 
             # Should this be called C style?
             if(segStr.find("%0") >= 0):
-        #        if connector=='->' and owner!='itr': S="*("+S+")"
+        #        if connector=='->': S="*("+S+")"
                 S=segStr.replace("%0", S)
                 lenConnector = len(connector)
                 if S[:lenConnector]==connector: S=S[lenConnector:]
-            else: S+=segStr
+            else:
+                explicitMemberAccess = None
+                if (
+                    isinstance(previousTypeSpec, dict)
+                    and previousTypeSpec.get('explicitDerefed')
+                    and hasattr(self.xlator, "codeExplicitDerefMemberAccess")
+                ):
+                    explicitMemberAccess = self.xlator.codeExplicitDerefMemberAccess(S, segStr)
+                if explicitMemberAccess != None:
+                    S = explicitMemberAccess
+                    if isinstance(segStr, str) and segStr.startswith('.'):
+                        explicitMemberName = segStr[1:]
+                        for explicitConnector in ('->', '.'):
+                            explicitSuffix = explicitConnector + explicitMemberName
+                            if S.endswith(explicitSuffix):
+                                prevLen = len(S) - len(explicitSuffix)
+                                connector = explicitConnector
+                                break
+                else:
+                    S+=segStr
 
             # Language specific dereferencing of ->[...], etc.
             S = self.xlator.LanguageSpecificDecorations(S, segTSpec, owner, LorRorP_Val)
@@ -1160,30 +1658,38 @@ class CodeGenerator(object):
             previousTypeSpec = segTSpec
             segIDX+=1
 
+        if (
+            LorR_Val == 'LVAL'
+            and isinstance(segTSpec, dict)
+            and segTSpec.get('explicitDerefed')
+            and not getattr(self.xlator, "supportsBareExplicitDerefLValue", True)
+        ):
+            cdErr("Bare explicit dereference cannot be assigned in " + self.xlator.LanguageName + ". Assign a member/index of the referent instead.")
+
         # Handle cases where seg's type is flag or mode
         if segTSpec and LorR_Val=='RVAL' and 'fieldType' in segTSpec:
             fType=progSpec.fieldTypeKeyword(segTSpec)
             if fType=='flag':
-                segName=segStr[len(connector):]
-                prefix = self.staticVarNamePrefix(segName, LHSParentType)
+                bitfieldName = segName if isinstance(segName, str) else segStr[len(connector):]
+                prefix = self.staticVarNamePrefix(bitfieldName, LHSParentType)
                 if hasattr(self.xlator, "codeReadBitField"):
-                    S = self.xlator.codeReadBitField(S, connector, prevLen, prefix, segName, fType)
+                    S = self.xlator.codeReadBitField(S, connector, prevLen, prefix, bitfieldName, fType)
                 elif self.xlator.hasMacros:
-                    S='getFlagBit('+S[0:prevLen]+connector+'flags' + ', ' + prefix+segName+')'
+                    S='getFlagBit('+S[0:prevLen]+connector+'flags' + ', ' + prefix+bitfieldName+')'
                 else:
-                    bitfieldMask=self.xlator.applyTypecast('uint64', prefix+segName)
+                    bitfieldMask=self.xlator.applyTypecast('uint64', prefix+bitfieldName)
                     flagReadCode = '('+S[0:prevLen] + connector + 'flags & ' + bitfieldMask+')'
                     S=self.xlator.applyTypecast('uint64', flagReadCode)
             elif fType=='mode':
-                segName=segStr[len(connector):]
-                prefix = self.staticVarNamePrefix(segName+"Mask", LHSParentType)
+                bitfieldName = segName if isinstance(segName, str) else segStr[len(connector):]
+                prefix = self.staticVarNamePrefix(bitfieldName+"Mask", LHSParentType)
                 if hasattr(self.xlator, "codeReadBitField"):
-                    S = self.xlator.codeReadBitField(S, connector, prevLen, prefix, segName, fType)
+                    S = self.xlator.codeReadBitField(S, connector, prevLen, prefix, bitfieldName, fType)
                 elif self.xlator.hasMacros:
-                    S='getModeBits('+S[0:prevLen]+connector+'flags' + ', ' + prefix+segName+')'
+                    S='getModeBits('+S[0:prevLen]+connector+'flags' + ', ' + prefix+bitfieldName+')'
                 else:
-                    bitfieldMask  =self.xlator.applyTypecast('uint64', prefix+segName+"Mask")
-                    bitfieldOffset=self.xlator.applyTypecast('uint64', prefix+segName+"Offset")
+                    bitfieldMask  =self.xlator.applyTypecast('uint64', prefix+bitfieldName+"Mask")
+                    bitfieldOffset=self.xlator.applyTypecast('uint64', prefix+bitfieldName+"Offset")
                     S="((" + S[0:prevLen] + connector +  "flags&"+bitfieldMask+")"+">>"+bitfieldOffset+')'
                     S=self.xlator.applyTypecast(self.xlator.modeIdxType, S)
 
@@ -1233,10 +1739,16 @@ class CodeGenerator(object):
                 modelParamName = None
                 if modelParams and (len(modelParams)>count) and ('typeSpec' in modelParams[count]):
                     modelTSpec = progSpec.getTypeSpec(modelParams[count])
+                    modelTSpec = self.getGenericFieldsTypeSpec(genericArgs, modelTSpec)
                     modelParamName = modelParams[count].get('fieldName')
                 [S2, argTSpec]=self.codeExpr(P[0], None, modelTSpec, 'ARG', genericArgs)
                 paramTypeList.append(argTSpec)
                 if modelTSpec!=None:
+                    if name == 'return':
+                        typeContext = 'return value'
+                    else:
+                        typeContext = "argument {} to '{}()'".format(count + 1, name)
+                    self.ensureTypeIsAssignable(modelTSpec, argTSpec, typeContext)
                     if hasattr(self.xlator, "swiftScalarParamUsesPointerOut") and self.xlator.swiftScalarParamUsesPointerOut(modelTSpec, modelParamName):
                         if hasattr(self.xlator, "codePointerOutArg"):
                             S += self.xlator.codePointerOutArg(S2, argTSpec, modelTSpec)
@@ -1244,6 +1756,7 @@ class CodeGenerator(object):
                             S += S2
                         count+=1
                         continue
+                    self.warnImplicitDerefForArg(S2, argTSpec, modelTSpec, count, name)
                     callModelTSpec = modelTSpec
                     if hasattr(self.xlator, "localParamTypeSpec"):
                         callModelTSpec = self.xlator.localParamTypeSpec(modelTSpec)
@@ -1272,6 +1785,7 @@ class CodeGenerator(object):
     def codeTerm(self, item, returnType, expectedTypeSpec, LorRorP_Val, genericArgs):
         [S, retTypeSpec]=self.xlator.codeFactor(item[0], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
         if (not(isinstance(item, str))) and (len(item) > 1) and len(item[1])>0:
+            self.warnImplicitDeref(S, retTypeSpec, "multiplicative expression", S + '!')
             [S, isDerefd]=self.xlator.derefPtr(S, retTypeSpec)
             fType1 = progSpec.fieldTypeKeyword(retTypeSpec)
             for i in item[1]:
@@ -1282,6 +1796,7 @@ class CodeGenerator(object):
                 [S2, retType2] = self.xlator.codeFactor(i[1], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
 
                 if not self.xlator.implOperatorsAsFuncs(fType1):
+                    self.warnImplicitDeref(S2, retType2, "multiplicative expression", S2 + '!')
                     [S2, isDerefd]=self.xlator.derefPtr(S2, retType2)
                     S+= op + S2
                 else:
@@ -1292,6 +1807,7 @@ class CodeGenerator(object):
     def codePlus(self, item, returnType, expectedTypeSpec, LorRorP_Val, genericArgs):
         [S, retTypeSpec]=self.codeTerm(item[0], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
         if len(item) > 1 and len(item[1])>0:
+            self.warnImplicitDeref(S, retTypeSpec, "additive expression", S + '!')
             [S, isDerefd]=self.xlator.derefPtr(S, retTypeSpec)
             fType1 = progSpec.fieldTypeKeyword(retTypeSpec)
             if isDerefd:
@@ -1299,6 +1815,7 @@ class CodeGenerator(object):
                 retTypeSpec={'owner': 'me', 'fieldType': keyType}
             for  i in item[1]:
                 [S2, retType2] = self.codeTerm(i[1], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
+                self.warnImplicitDeref(S2, retType2, "additive expression", S2 + '!')
                 [S2, isDerefd]=self.xlator.derefPtr(S2, retType2)
                 if self.xlator.implOperatorsAsFuncs(fType1):
                     fType2 = progSpec.fieldTypeKeyword(retType2)
@@ -1318,9 +1835,11 @@ class CodeGenerator(object):
         [S, retTypeSpec]=self.codePlus(item[0], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
         if len(item) > 1 and len(item[1])>0:
             if len(item[1])>1: cdErr("Chained comparisons.\n")
+            self.warnImplicitDeref(S, retTypeSpec, "ordered comparison", S + '!')
             [S, isDerefd]=self.xlator.derefPtr(S, retTypeSpec)
             for i in item[1]:
                 [S2, retType2] = self.codePlus(i[1], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
+                self.warnImplicitDeref(S2, retType2, "ordered comparison", S2 + '!')
                 S = self.xlator.codeComparisonStr(S, S2, retTypeSpec, retType2, i[0])
                 retTypeSpec = {'owner': 'me', 'fieldType': 'bool'}
         return [S, retTypeSpec]
@@ -1332,6 +1851,9 @@ class CodeGenerator(object):
             if (isinstance(retTypeSpec, int)): cdlog(logLvl(), "Invalid item in ==: {}".format(item[0]))
             for i in item[1]:
                 [S2, retType2] = self.codeComparison(i[1], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
+                if i[0] in ('==', '!=') and not self.isNullLiteralExpr(S, retTypeSpec) and not self.isNullLiteralExpr(S2, retType2):
+                    self.warnImplicitDeref(S, retTypeSpec, "equality comparison", S + '!')
+                    self.warnImplicitDeref(S2, retType2, "equality comparison", S2 + '!')
                 S  = self.xlator.codeIdentityCheck(S, S2, retTypeSpec, retType2, i[0])
                 retTypeSpec = {'owner': 'me', 'fieldType': 'bool'}
         return [S, retTypeSpec]
@@ -1340,10 +1862,12 @@ class CodeGenerator(object):
         [S, retTypeSpec] = self.codeIsEQ(item[0], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
         if len(item) > 1 and len(item[1])>0:
             if (isinstance(retTypeSpec, int)): cdlog(logLvl(), "Invalid item in ==: {}".format(item[0]))
+            self.warnImplicitDeref(S, retTypeSpec, "bitwise-and expression", S + '!')
             [S_derefd, isDerefd] = self.xlator.derefPtr(S, retTypeSpec)
             S = self.xlator.convertToInt(S, retTypeSpec)
             for i in item[1]:
                 [S2, retType2] = self.codeIsEQ(i[1], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
+                self.warnImplicitDeref(S2, retType2, "bitwise-and expression", S2 + '!')
                 S2 = self.xlator.convertToInt(S2, retType2)
                 if hasattr(self.xlator, "codeBitwiseOp"):
                     S = self.xlator.codeBitwiseOp(S, S2, "&")
@@ -1356,9 +1880,11 @@ class CodeGenerator(object):
         [S, retTypeSpec]=self.codeBitwiseAnd(item[0], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
         if len(item) > 1 and len(item[1])>0:
             if (isinstance(retTypeSpec, int)): cdlog(logLvl(), "Invalid item in ==: {}".format(item[0]))
+            self.warnImplicitDeref(S, retTypeSpec, "bitwise-xor expression", S + '!')
             [S_derefd, isDerefd] = self.xlator.derefPtr(S, retTypeSpec)
             for i in item[1]:
                 [S2, retType2] = self.codeBitwiseAnd(i[1], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
+                self.warnImplicitDeref(S2, retType2, "bitwise-xor expression", S2 + '!')
                 if hasattr(self.xlator, "codeBitwiseOp"):
                     S = self.xlator.codeBitwiseOp(S, S2, "^")
                 else:
@@ -1369,9 +1895,11 @@ class CodeGenerator(object):
         [S, retTypeSpec] = self.codeBitwiseXOR(item[0], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
         if len(item) > 1 and len(item[1])>0:
             if (isinstance(retTypeSpec, int)): cdlog(logLvl(), "Invalid item in ==: {}".format(item[0]))
+            self.warnImplicitDeref(S, retTypeSpec, "bitwise-or expression", S + '!')
             [S_derefd, isDerefd] = self.xlator.derefPtr(S, retTypeSpec)
             for i in item[1]:
                 [S2, retType2] = self.codeBitwiseXOR(i[1], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
+                self.warnImplicitDeref(S2, retType2, "bitwise-or expression", S2 + '!')
                 if hasattr(self.xlator, "codeBitwiseOp"):
                     S = self.xlator.codeBitwiseOp(S, S2, "|")
                 else:
@@ -1381,13 +1909,11 @@ class CodeGenerator(object):
     def codeLogicalAnd(self, item, returnType, expectedTypeSpec, LorRorP_Val, genericArgs):
         [S, retTypeSpec] = self.codeBitwiseOr(item[0], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
         if len(item) > 1 and len(item[1])>0:
-            [S, isDerefd]=self.xlator.derefPtr(S, retTypeSpec)
+            [S, retTypeSpec] = self.codeBoolContextOperand(S, retTypeSpec)
             for i in item[1]:
                 if (i[0] == 'and'):
-                    S = self.xlator.checkForTypeCastNeed('bool', retTypeSpec, S)
-                    [S2, retTypeSpec] = self.codeBitwiseOr(i[1], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
-                    S2 = self.xlator.checkForTypeCastNeed('bool', retTypeSpec, S2)
-                    [S2, isDerefd]=self.xlator.derefPtr(S2, retTypeSpec)
+                    [S2, retType2] = self.codeBitwiseOr(i[1], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
+                    [S2, retType2] = self.codeBoolContextOperand(S2, retType2)
                     S+=' && ' + S2
                 else: cdErr("'and' expected in code generator.")
                 retTypeSpec = {'owner': 'me', 'fieldType': 'bool'}
@@ -1396,13 +1922,11 @@ class CodeGenerator(object):
     def codeLogicalOr(self, item, returnType, expectedTypeSpec, LorRorP_Val, genericArgs):
         [S, retTypeSpec] = self.codeLogicalAnd(item[0], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
         if len(item) > 1 and len(item[1])>0:
-            [S, isDerefd]=self.xlator.derefPtr(S, retTypeSpec)
+            [S, retTypeSpec] = self.codeBoolContextOperand(S, retTypeSpec)
             for i in item[1]:
                 if (i[0] == 'or'):
-                    S = self.xlator.checkForTypeCastNeed('bool', retTypeSpec, S)
-                    [S2, retTypeSpec] = self.codeLogicalAnd(i[1], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
-                    [S2, isDerefd]=self.xlator.derefPtr(S2, retTypeSpec)
-                    S2 = self.xlator.checkForTypeCastNeed('bool', retTypeSpec, S2)
+                    [S2, retType2] = self.codeLogicalAnd(i[1], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
+                    [S2, retType2] = self.codeBoolContextOperand(S2, retType2)
                     S+=' || ' + S2
                 else: cdErr("'or' expected in code generator.")
                 retTypeSpec = {'owner': 'me', 'fieldType': 'bool'}
@@ -1411,11 +1935,13 @@ class CodeGenerator(object):
     def codeExpr(self, item, returnType, expectedTypeSpec, LorRorP_Val, genericArgs):
         [S, retTypeSpec] = self.codeLogicalOr(item[0], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
         if not isinstance(item, str) and len(item) > 1 and len(item[1])>0:
+            self.warnImplicitDeref(S, retTypeSpec, "assignment expression LHS", S + '!')
             [S, isDerefd]=self.xlator.derefPtr(S, retTypeSpec)
             for i in item[1]:
                 if (i[0] == '<-'):
-                    [S2, retTypeSpec] = self.codeLogicalOr(i[1], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
-                    [S2, isDerefd]=self.xlator.derefPtr(S2, retTypeSpec)
+                    [S2, retType2] = self.codeLogicalOr(i[1], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
+                    self.warnImplicitDeref(S2, retType2, "assignment expression RHS", S2 + '!')
+                    [S2, isDerefd]=self.xlator.derefPtr(S2, retType2)
                     S+=' = ' + S2
                 else: cdErr("'<-' expected in code generator.")
                 retTypeSpec = {'owner': 'me', 'fieldType': 'bool'}
@@ -1430,6 +1956,7 @@ class CodeGenerator(object):
             cdErr("While repetition missing whileSpec")
 
         [whileExpr, condType] = self.codeExpr(whileSpec[2], None, None, 'RVAL', genericArgs)
+        self.warnImplicitBarePointerCondition(whileExpr, condType, "while condition")
         [whileExpr, condType] = self.xlator.adjustConditional(whileExpr, condType)
 
         actionText = indent + "while(" + whileExpr + "){\n"
@@ -1586,6 +2113,7 @@ class CodeGenerator(object):
 
     def encodeConditionalStatement(self, action, indent, returnType, genericArgs):
         [S2, conditionTypeSpec] =  self.codeExpr(action['ifCondition'][0], None, None, 'RVAL', genericArgs)
+        self.warnImplicitBarePointerCondition(S2, conditionTypeSpec, "if condition")
         [S2, conditionTypeSpec] =  self.xlator.adjustConditional(S2, conditionTypeSpec)
         ifCondition = S2
         ifBodyText = self.genIfBody(action['ifBody'], indent, returnType, genericArgs)
@@ -1645,6 +2173,9 @@ class CodeGenerator(object):
             if not isinstance(assignTag, str): assignTag=assignTag[0] # compensate for different versions of pyParser
             cdlog(5, "Assignment: {}".format(LHS))
             [S2, rhsTypeSpec]=self.codeExpr(action['RHS'][0], None, lhsTypeSpec, 'RVAL', genericArgs)
+            if assignTag in ('', 'deep'):
+                self.ensureTypeIsAssignable(lhsTypeSpec, rhsTypeSpec, "assignment to '{}'".format(LHS))
+            self.warnImplicitDerefForAssignment(LHS, lhsTypeSpec, S2, rhsTypeSpec, assignTag)
             [LHS_leftMod, LHS_rightMod,  RHS_leftMod, RHS_rightMod]=self.xlator.determinePtrConfigForAssignments(lhsTypeSpec, rhsTypeSpec, assignTag,LHS)
             LHS = LHS_leftMod+LHS+LHS_rightMod
             RHS = RHS_leftMod+S2+RHS_rightMod
@@ -1724,6 +2255,7 @@ class CodeGenerator(object):
             cdlog(5, "If-statement...")
             [S2, conditionTypeSpec] =  self.codeExpr(action['ifCondition'][0], None, None, 'RVAL', genericArgs)
             if conditionTypeSpec==None: cdErr("Found typeSpec None in codeAction():   "+S2)
+            self.warnImplicitBarePointerCondition(S2, conditionTypeSpec, "if condition")
             [S2, conditionTypeSpec] =  self.xlator.adjustConditional(S2, conditionTypeSpec)
             cdlog(5, "If-statement: Condition is ".format(S2))
             ifCondition = S2
@@ -2130,33 +2662,49 @@ class CodeGenerator(object):
             ################################################################
             ### extracting FIELD data
             ################################################################
+            prevDefinitionLibLevel = self.currentDefinitionLibLevel
+            prevDefinitionLibName = self.currentDefinitionLibName
+            self.currentDefinitionLibLevel = self.fieldLibLevel(field, classDef)
+            self.currentDefinitionLibName = field.get('libName', classDef.get('libName'))
             self.localArgsAllocated = []
-            tSpec   = progSpec.getTypeSpec(field)
-            fTypeKW = progSpec.fieldTypeKeyword(tSpec)
-            if(fTypeKW=='flag' or fTypeKW=='mode'): continue
-            if hasattr(self.xlator, "skipFieldDefinition") and self.xlator.skipFieldDefinition(self.classStore, className, field):
-                continue
-            if 'value' in field and field['value']!=None and len(field['value'])>1:
-                verbatimText=field['value'][1]      # This function body is 'verbatim'.
-                if (verbatimText!='' and verbatimText[0]=='!'): continue  # This is a code conversion pattern. Don't write a function decl or body.
-            if(fTypeKW=='model' or fTypeKW=='struct'):
-                [structCode, funcDefCode, globalFuncs, topFuncDefCode] = self.codeSpaceSeq(className, field, indent)
-            else:
-                [structCode, funcDefCode, globalFuncs, topFuncDefCode] = self.codeTimeSeq(className, classDef, field, typeArgList, genericArgs, tags, indent)
-            if 'comment' in field:
-                comment = field['comment']
-                commentStr = self.codeComment(comment[0], comment[1], indent)
-                structCode = commentStr + "\n" + structCode
-            ## Accumulate field code
-            structCodeAcc     += structCode
-            funcDefCodeAcc    += funcDefCode
-            globalFuncsAcc    += globalFuncs
-            topFuncDefCodeAcc += topFuncDefCode
+            try:
+                tSpec   = progSpec.getTypeSpec(field)
+                fTypeKW = progSpec.fieldTypeKeyword(tSpec)
+                if(fTypeKW=='flag' or fTypeKW=='mode'): continue
+                if hasattr(self.xlator, "skipFieldDefinition") and self.xlator.skipFieldDefinition(self.classStore, className, field):
+                    continue
+                if 'value' in field and field['value']!=None and len(field['value'])>1:
+                    verbatimText=field['value'][1]      # This function body is 'verbatim'.
+                    if (verbatimText!='' and verbatimText[0]=='!'): continue  # This is a code conversion pattern. Don't write a function decl or body.
+                if(fTypeKW=='model' or fTypeKW=='struct'):
+                    [structCode, funcDefCode, globalFuncs, topFuncDefCode] = self.codeSpaceSeq(className, field, indent)
+                else:
+                    [structCode, funcDefCode, globalFuncs, topFuncDefCode] = self.codeTimeSeq(className, classDef, field, typeArgList, genericArgs, tags, indent)
+                if 'comment' in field:
+                    comment = field['comment']
+                    commentStr = self.codeComment(comment[0], comment[1], indent)
+                    structCode = commentStr + "\n" + structCode
+                ## Accumulate field code
+                structCodeAcc     += structCode
+                funcDefCodeAcc    += funcDefCode
+                globalFuncsAcc    += globalFuncs
+                topFuncDefCodeAcc += topFuncDefCode
+            finally:
+                self.currentDefinitionLibLevel = prevDefinitionLibLevel
+                self.currentDefinitionLibName = prevDefinitionLibName
 
         # TODO: Remove this Hard Coded widget. It should apply to any abstract class.
         if self.xlator.MakeConstructors and (className!='GLOBAL')  and (className!='widget'):
-            ctorCode       = self.codeConstructor(className, tags, typeArgList, genericArgs)
-            structCodeAcc += "\n"+ctorCode
+            prevDefinitionLibLevel = self.currentDefinitionLibLevel
+            prevDefinitionLibName = self.currentDefinitionLibName
+            self.currentDefinitionLibLevel = classDef.get('libLevel', 1)
+            self.currentDefinitionLibName = classDef.get('libName')
+            try:
+                ctorCode       = self.codeConstructor(className, tags, typeArgList, genericArgs)
+                structCodeAcc += "\n"+ctorCode
+            finally:
+                self.currentDefinitionLibLevel = prevDefinitionLibLevel
+                self.currentDefinitionLibName = prevDefinitionLibName
         funcDefCodeAcc     = topFuncDefCodeAcc + funcDefCodeAcc
         return [structCodeAcc, funcDefCodeAcc, globalFuncsAcc]
 
@@ -2810,6 +3358,8 @@ class CodeGenerator(object):
         self.localVarsAllocated = []
         self.localArgsAllocated = []
         self.currentObjName=''
+        self.currentDefinitionLibLevel = 1
+        self.currentDefinitionLibName = None
         self.libInterfacesText=''
         self.libInitCodeAcc=''
         self.libDeinitCodeAcc=''
@@ -2822,6 +3372,7 @@ class CodeGenerator(object):
         self.isNestedClass = False
         self.ForwardDeclsForGlobalFuncs='\n\n// Forward Declarations of global functions\n'
         self.listOfFuncsWithUnknownArgTypes = {}
+        self.explicitDerefWarningCache = set()
 
     def generate(self, classes, tags, libsToUse, langName):
         self.clearBuild()

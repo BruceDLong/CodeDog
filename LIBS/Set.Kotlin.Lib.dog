@@ -34,11 +34,11 @@ struct Kotlin_HashSet<nodeType>: implements=Set wraps=HashSet native=lang specs=
     void: add(nodeType: value)                  <- <%!add(%1)%>
     void: clear()                               <- <%!clear()%>
     me bool: contains(nodeType: value)          <- <%!contains(%1)%>
-    itr iterator_Kotlin_Set: end()              <- <%!%GKotlinSetCursor.end<%T0Type>()%>
+    me iterator_Kotlin_Set: end()              <- <%!%GKotlinSetCursor.end<%T0Type>()%>
     void: erase(nodeType: value)                <- <%!remove(%1)%>
-    itr iterator_Kotlin_Set: find(nodeType: value) <- <%!KotlinSetCursor<%T0Type>(if (%0.contains(%1)) %1 else null, %0.contains(%1))%>
+    me iterator_Kotlin_Set: find(nodeType: value) <- <%!KotlinSetCursor<%T0Type>(if (%0.contains(%1)) %1 else null, %0.contains(%1))%>
     nodeType: first()                           <- <%!first()%>
-    itr iterator_Kotlin_Set: front()            <- <%!KotlinSetCursor<%T0Type>(%0.first(), !%0.isEmpty())%>
+    me iterator_Kotlin_Set: front()            <- <%!KotlinSetCursor<%T0Type>(%0.first(), !%0.isEmpty())%>
     void: insert(nodeType: value)               <- <%!add(%1)%>
     me bool: isEmpty()                          <- <%!isEmpty()%>
     me uint: size()                             <- <%!%0.size%>

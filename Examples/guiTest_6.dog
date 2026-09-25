@@ -44,7 +44,7 @@ struct drawingParityWidget: inherits=DashboardWidget{
         cr.setLineWidth(1)
         cr.strokeNow()
         cr.setRGB(28, 32, 36)
-        renderText(cr, title, labelFont, x + 12, y + 24)
+        renderText(cr, title, labelFont!, x + 12, y + 24)
     }
 
     void: draw(their GUI_ctxt: cr) <- {
@@ -62,7 +62,7 @@ struct drawingParityWidget: inherits=DashboardWidget{
         cr.setRGB(24, 27, 31)
         renderTextCentered(cr, "guiTest_6 drawing parity", titleFont, centerX, 34)
         renderTextCentered(cr, "Resize the window: all panels should redraw cleanly.", bodyFont, centerX, 60)
-        renderText(cr, "Canvas: " + toString(canvasW) + " x " + toString(canvasH), smallFont, 24, canvasH - 20)
+        renderText(cr, "Canvas: " + toString(canvasW) + " x " + toString(canvasH), smallFont!, 24, canvasH - 20)
 
         panel(cr, 28, 86, 250, 155, "fillKeep + stroke path")
         cr.setRGB(255, 217, 132)
@@ -72,7 +72,7 @@ struct drawingParityWidget: inherits=DashboardWidget{
         cr.setLineWidth(5)
         cr.strokeNow()
         cr.setRGB(55, 61, 68)
-        renderText(cr, "Same rounded path fills then strokes.", smallFont, 48, 224)
+        renderText(cr, "Same rounded path fills then strokes.", smallFont!, 48, 224)
 
         panel(cr, 306, 86, 250, 155, "line caps")
         cr.setLineWidth(18)
@@ -88,7 +88,7 @@ struct drawingParityWidget: inherits=DashboardWidget{
         cr.strokeNow()
         cr.setLineWidth(1)
         cr.setRGB(55, 61, 68)
-        renderText(cr, "Round cap above, edged cap below.", smallFont, 326, 224)
+        renderText(cr, "Round cap above, edged cap below.", smallFont!, 326, 224)
 
         panel(cr, 584, 86, 250, 155, "rotate + restore")
         rotate(cr, 708, 166, 24)
@@ -102,7 +102,7 @@ struct drawingParityWidget: inherits=DashboardWidget{
         renderTextCentered(cr, "rotated box", bodyFont, 710, 164)
         restore(cr)
         cr.setRGB(55, 61, 68)
-        renderText(cr, "Text below should be unrotated.", smallFont, 606, 224)
+        renderText(cr, "Text below should be unrotated.", smallFont!, 606, 224)
 
         panel(cr, 28, 274, 250, 185, "setOffset + setScale")
         rotate(cr, 0, 0, 0)
@@ -121,10 +121,10 @@ struct drawingParityWidget: inherits=DashboardWidget{
         cr.lineTo(0, 70)
         cr.strokeNow()
         cr.setRGB(18, 40, 72)
-        renderText(cr, "scaled", smallFont, 33, 42)
+        renderText(cr, "scaled", smallFont!, 33, 42)
         restore(cr)
         cr.setRGB(55, 61, 68)
-        renderText(cr, "The blue shape is drawn in transformed coordinates.", smallFont, 48, 444)
+        renderText(cr, "The blue shape is drawn in transformed coordinates.", smallFont!, 48, 444)
 
         panel(cr, 306, 274, 250, 185, "renderTextRotate")
         cr.setRGB(44, 55, 66)
@@ -132,13 +132,13 @@ struct drawingParityWidget: inherits=DashboardWidget{
         cr.setRGB(136, 64, 150)
         renderTextRotate(cr, "rotated text", bodyFont, 432, 400, -34, "center")
         cr.setRGB(55, 61, 68)
-        renderText(cr, "Both helpers should preserve later drawing.", smallFont, 326, 444)
+        renderText(cr, "Both helpers should preserve later drawing.", smallFont!, 326, 444)
 
         panel(cr, 584, 274, 250, 185, "displayImage")
         displayImage(cr, "ship1.png", 620, 332, 1)
         displayImage(cr, "greenAlien.png", 718, 338, 1.35)
         cr.setRGB(55, 61, 68)
-        renderText(cr, "Two PNGs should appear above.", smallFont, 606, 444)
+        renderText(cr, "Two PNGs should appear above.", smallFont!, 606, 444)
     }
 }
 
@@ -153,7 +153,7 @@ struct APP{
         drawing_area <- gui.newCanvas()
         drawing_area.setParent(drawingPanel)
         gui.setWidgetSize(drawing_area, 900, 560)
-        drawingPanel.EventDispatcher.registerWidgetForEventDispatcher(drawing_area, drawingPanel)
+        drawingPanel!.EventDispatcher.registerWidgetForEventDispatcher(drawing_area, drawingPanel)
         addToContainerAndExpand(frame, drawing_area)
     }
 }

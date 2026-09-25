@@ -109,7 +109,7 @@ def setUtilityCode(TestArrayText, SwitchCaseText, programFileName):
                 if(tail=="DONE" or tail=="PASSED"){return()}
             }
             line <+- "\n"
-            outTxt <+- line
+            outTxt! <+- line
         }
         me string: sanitizeChildFailureOutput(me string: output) <- {
             me string: cleaned <- ""

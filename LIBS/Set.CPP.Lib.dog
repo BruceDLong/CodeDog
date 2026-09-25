@@ -23,11 +23,11 @@ struct CPP_HashSet<nodeType>: implements=Set wraps=unordered_set native=lang spe
     void: add(nodeType: value)                  <- <%!insert(%1)%>
     void: clear()                               <- <%!clear()%>
     me bool: contains(nodeType: value)          <- <%!count(%1)>0%>
-    itr iterator_CPP_HashSet: end()             <- <%!end()%>
+    me iterator_CPP_HashSet: end()             <- <%!end()%>
     void: erase(nodeType: value)                <- <%!erase(%1)%>
-    itr iterator_CPP_HashSet: find(nodeType: value) <- <%!find(%1)%>
+    me iterator_CPP_HashSet: find(nodeType: value) <- <%!find(%1)%>
     nodeType: first()                           <- <%!*begin()%>
-    itr iterator_CPP_HashSet: front()           <- <%!%0.begin()%>
+    me iterator_CPP_HashSet: front()           <- <%!%0.begin()%>
     void: insert(nodeType: value)               <- <%!insert(%1)%>
     me bool: isEmpty()                          <- <%!empty()%>
     me uint: size()                             <- <%!size()%>

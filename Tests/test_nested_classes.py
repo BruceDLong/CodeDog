@@ -55,6 +55,10 @@ struct Outer{
         parsed = codeDogParser.fieldDef.parse_string("me Outer.Inner: item", parse_all=True)
         self.assertTrue(bool(parsed))
 
+    def test_parser_rejects_legacy_itr_owner(self):
+        with self.assertRaises(Exception):
+            codeDogParser.fieldDef.parse_string("itr Map<me int, me string>: item", parse_all=True)
+
     def test_nested_class_angle_bracket_type_args(self):
         src = """
 struct OuterAngle{
@@ -170,7 +174,7 @@ struct GLOBAL{
         self.assertEqual(code_gen.resolveDottedTypeKW("Bag.iterator", None), "Bag.iterator_Bag")
         self.assertEqual(code_gen.resolveDottedTypeKW("bag.iterator", None), "Bag.iterator_Bag")
 
-    def test_rewrite_dotted_iterator_to_itr_owner(self):
+    def test_rewrite_dotted_iterator_to_actual_iterator_type(self):
         src = """
 struct Bag{
     const struct: iterator_Bag() <- {
@@ -194,14 +198,25 @@ struct GLOBAL{
 
         t_spec = {"owner": "me", "fieldType": ["bag.iterator"]}
         rewritten = code_gen.rewriteDottedIteratorTypeSpec(t_spec, None)
-        self.assertEqual(rewritten, "Bag")
-        self.assertEqual(t_spec["owner"], "itr")
-        self.assertEqual(t_spec["fieldType"][0], "Bag")
+        self.assertEqual(rewritten, "Bag.iterator_Bag")
+        self.assertEqual(t_spec["owner"], "me")
+        self.assertEqual(t_spec["fieldType"][0], "Bag.iterator_Bag")
+        self.assertEqual(t_spec["iteratorOfTypeSpec"]["fieldType"][0], "Bag")
 
     def test_rewrite_dotted_iterator_copies_container_req_tags(self):
+        src = """
+struct CPP_Deque<nodeType>: implements=List{
+    const struct: iteratorD(nodeType: node): implements=iterator wraps=iterator_CPP_Deque native=lang <- {
+        me nodeType: val
+    }
+}
+"""
+        classes, new_classes = self._parse_classes(src)
+
         code_gen = CodeGenerator()
         code_gen.clearBuild()
-        code_gen.classStore = [{}, []]
+        code_gen.classStore = classes
+        code_gen.extractNestedClasses(classes, new_classes)
         code_gen.currentObjName = "GLOBAL"
 
         req_tags = [{"tArgOwner": "me", "tArgType": "int"}]
@@ -224,13 +239,14 @@ struct GLOBAL{
         t_spec = {"owner": "me", "fieldType": ["data.iterator"], "paramList": None}
         rewritten = code_gen.rewriteDottedIteratorTypeSpec(t_spec, None)
 
-        self.assertEqual(rewritten, "CPP_Deque")
-        self.assertEqual(t_spec["owner"], "itr")
-        self.assertEqual(t_spec["fieldType"][0], "CPP_Deque")
+        self.assertEqual(rewritten, "CPP_Deque.iteratorD")
+        self.assertEqual(t_spec["owner"], "me")
+        self.assertEqual(t_spec["fieldType"][0], "CPP_Deque.iteratorD")
         self.assertEqual(t_spec["reqTagList"][0]["tArgType"], "int")
         self.assertEqual(t_spec["fieldType"][1][0]["tArgType"], "int")
         self.assertEqual(t_spec["fromImplemented"], "List")
         self.assertEqual(t_spec["containerCategory"], "List")
+        self.assertEqual(t_spec["iteratorOfTypeSpec"]["fieldType"][0], "CPP_Deque")
 
     def test_find_spec_accepts_wrapped_class_name_key(self):
         obj_map = {"Outer": {"name": "Outer"}}

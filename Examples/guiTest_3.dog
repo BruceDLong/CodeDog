@@ -53,14 +53,14 @@ struct topPanelWidget: inherits=DashboardWidget{
         cr.setLineWidth(1)
         our fontSpec:: titleFont{"Arial", "20"}
         our fontSpec:: bodyFont{"Arial", "15"}
-        renderText(cr, "guiTest_3 fixed top canvas", titleFont, 24, 36)
-        renderText(cr, "addToContainer fixed height: " + toString(panelW) + " x " + toString(panelH), bodyFont, 24, 66)
-        renderText(cr, "Top clicks: " + toString(topClickCount), bodyFont, 24, 94)
+        renderText(cr, "guiTest_3 fixed top canvas", titleFont!, 24, 36)
+        renderText(cr, "addToContainer fixed height: " + toString(panelW) + " x " + toString(panelH), bodyFont!, 24, 66)
+        renderText(cr, "Top clicks: " + toString(topClickCount), bodyFont!, 24, 94)
     }
 
     me bool: primaryClick(their GUI_ButtonEvent: event) <- {
         topClickCount <- topClickCount + 1
-        print("TOP CLICK x:", event.x, " y:", event.y, "\n")
+        print("TOP CLICK x:", event!.x, " y:", event!.y, "\n")
         requestRedraw()
         return(true)
     }
@@ -84,8 +84,8 @@ struct scrollPanelWidget: inherits=DashboardWidget{
         cr.setLineWidth(1)
         our fontSpec:: titleFont{"Arial", "19"}
         our fontSpec:: rowFont{"Arial", "15"}
-        renderText(cr, "scrolling child canvas", titleFont, 28, 42)
-        renderText(cr, "Wheel events: " + toString(scrollWheelCount) + "   clicks: " + toString(scrollClickCount), rowFont, 28, 72)
+        renderText(cr, "scrolling child canvas", titleFont!, 28, 42)
+        renderText(cr, "Wheel events: " + toString(scrollWheelCount) + "   clicks: " + toString(scrollClickCount), rowFont!, 28, 72)
         withEach row in range 0 .. 24 {
             me int: y <- 116 + row * 32
             if(row / 2 * 2 == row){
@@ -94,20 +94,20 @@ struct scrollPanelWidget: inherits=DashboardWidget{
                 cr.fillNow()
             }
             cr.setRGB(20, 20, 20)
-            renderText(cr, "Scrollable row " + toString(row) + " - wheel or drag the scrollbar", rowFont, 40, y)
+            renderText(cr, "Scrollable row " + toString(row) + " - wheel or drag the scrollbar", rowFont!, 40, y)
         }
     }
 
     me bool: primaryClick(their GUI_ButtonEvent: event) <- {
         scrollClickCount <- scrollClickCount + 1
-        print("SCROLL CONTENT CLICK x:", event.x, " y:", event.y, "\n")
+        print("SCROLL CONTENT CLICK x:", event!.x, " y:", event!.y, "\n")
         requestRedraw()
         return(true)
     }
 
     me bool: mouseWheel(their GUI_MotionEvent: event) <- {
         scrollWheelCount <- scrollWheelCount + 1
-        print("SCROLL WHEEL x:", event.x, " y:", event.y, "\n")
+        print("SCROLL WHEEL x:", event!.x, " y:", event!.y, "\n")
         requestRedraw()
         return(true)
     }
@@ -138,22 +138,22 @@ struct mainPanelWidget: inherits=DashboardWidget{
         cr.setLineWidth(1)
         our fontSpec:: titleFont{"Arial", "20"}
         our fontSpec:: bodyFont{"Arial", "15"}
-        renderText(cr, "expanding bottom canvas", titleFont, 32, 48)
-        renderText(cr, "addToContainerAndExpand size: " + toString(canvasW) + " x " + toString(canvasH), bodyFont, 32, 78)
-        renderText(cr, "Main clicks: " + toString(mainClickCount) + "   dirty requests: " + toString(mainDirtyCount), bodyFont, 32, 108)
-        renderText(cr, "Last key: " + toString(lastKey) + "   key down/up: " + toString(keyDownCount) + " / " + toString(keyUpCount), bodyFont, 32, 138)
-        renderText(cr, "Click here, type, resize the window, and use the middle scrollbar.", bodyFont, 32, 168)
+        renderText(cr, "expanding bottom canvas", titleFont!, 32, 48)
+        renderText(cr, "addToContainerAndExpand size: " + toString(canvasW) + " x " + toString(canvasH), bodyFont!, 32, 78)
+        renderText(cr, "Main clicks: " + toString(mainClickCount) + "   dirty requests: " + toString(mainDirtyCount), bodyFont!, 32, 108)
+        renderText(cr, "Last key: " + toString(lastKey) + "   key down/up: " + toString(keyDownCount) + " / " + toString(keyUpCount), bodyFont!, 32, 138)
+        renderText(cr, "Click here, type, resize the window, and use the middle scrollbar.", bodyFont!, 32, 168)
     }
 
     me bool: primaryClick(their GUI_ButtonEvent: event) <- {
         mainClickCount <- mainClickCount + 1
-        print("MAIN CLICK x:", event.x, " y:", event.y, "\n")
+        print("MAIN CLICK x:", event!.x, " y:", event!.y, "\n")
         requestRedraw()
         return(true)
     }
 
     me bool: keyDown(their GUI_KeyboardEvent: event) <- {
-        lastKey <- event.keyval
+        lastKey <- event!.keyval
         keyDownCount <- keyDownCount + 1
         print("MAIN KEY DOWN key:", lastKey, "\n")
         requestRedraw()
@@ -161,7 +161,7 @@ struct mainPanelWidget: inherits=DashboardWidget{
     }
 
     me bool: keyUp(their GUI_KeyboardEvent: event) <- {
-        lastKey <- event.keyval
+        lastKey <- event!.keyval
         keyUpCount <- keyUpCount + 1
         print("MAIN KEY UP key:", lastKey, "\n")
         requestRedraw()
@@ -197,7 +197,7 @@ struct APP{
         top_canvas <- gui.newCanvas()
         top_canvas.setParent(topPanel)
         gui.setWidgetSize(top_canvas, 900, 130)
-        topPanel.EventDispatcher.registerWidgetForEventDispatcher(top_canvas, topPanel)
+        topPanel!.EventDispatcher.registerWidgetForEventDispatcher(top_canvas, topPanel)
         addToContainer(frame, top_canvas)
 
         scroller <- gui.newScrollingWindow()
@@ -207,13 +207,13 @@ struct APP{
         scroll_canvas <- gui.newCanvas()
         scroll_canvas.setParent(scrollPanel)
         gui.setWidgetSize(scroll_canvas, 900, 900)
-        scrollPanel.EventDispatcher.registerWidgetForEventDispatcher(scroll_canvas, scrollPanel)
+        scrollPanel!.EventDispatcher.registerWidgetForEventDispatcher(scroll_canvas, scrollPanel)
         addToContainer(scroller, scroll_canvas)
 
         main_canvas <- gui.newCanvas()
         main_canvas.setParent(mainPanel)
         gui.setWidgetSize(main_canvas, 900, 260)
-        mainPanel.EventDispatcher.registerWidgetForEventDispatcher(main_canvas, mainPanel)
+        mainPanel!.EventDispatcher.registerWidgetForEventDispatcher(main_canvas, mainPanel)
         drawing_area <- main_canvas
         addToContainerAndExpand(frame, main_canvas)
     }

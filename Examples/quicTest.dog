@@ -56,7 +56,7 @@ struct PingProtocol: inherits=QProtocol {
     }
     our QProtocol: createClone() <- {
         our PingProtocol:: retval
-        retval <deep- self
+        retval! <- self!
         return(retval)
     }
     void: INIT() <- {
@@ -95,7 +95,7 @@ struct FetchFile: inherits=QProtocol {
     void: init() <- {}
     our QProtocol: createClone() <- {
         our FetchFile:: retval
-        //retval <deep- self
+        //retval! <- self!
         return(retval)
     }
     void: INIT() <- {

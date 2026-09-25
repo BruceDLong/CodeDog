@@ -87,7 +87,7 @@ struct Kotlin_TreeMultimap<keyType, valueType>: implements=Multimap wraps=Kotlin
     void: erase(keyType: key)                     <- <%!remove(%1)%>
     valueType: find(keyType: key)                 <- <%!%0[%1]%>
     valueType: first()                            <- <%!%0.firstEntry().value%>
-    itr valueType: insert(keyType: key, valueType: value) <- <%!put(%1, %2)%>
+    me valueType: insert(keyType: key, valueType: value) <- <%!put(%1, %2)%>
     me bool:  isEmpty()                           <- <%!isEmpty()%>
     valueType: last()                             <- <%!%0.lastEntry().value%>
     valueType: popFirst()                         <- <%!popFirst()%>

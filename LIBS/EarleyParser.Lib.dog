@@ -276,7 +276,7 @@ struct EGrammar{
     }
 
     me int: incProductionCount(me int: prodID, their Map<me int, me int>: prod2TimesUsed) <- {
-        itr Map<me int, me int>: it <- prod2TimesUsed.find(prodID)
+        me prod2TimesUsed.iterator: it <- prod2TimesUsed.find(prodID)
         if(it == prod2TimesUsed.end()){
             prod2TimesUsed[prodID]<-1
         } else {prod2TimesUsed[prodID] <+- 1}

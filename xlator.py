@@ -42,6 +42,9 @@ class Xlator(object):
     def derefPtr(self, varRef, itemTypeSpec):
         cdErr("In base class Xlator::derefPtr.")
 
+    def codeExplicitDeref(self, varRef, itemTypeSpec):
+        cdErr("In base class Xlator::codeExplicitDeref.")
+
     def ChoosePtrDecorationForSimpleCase(self, owner):
         cdErr("In base class Xlator::ChoosePtrDecorationForSimpleCase.")
 

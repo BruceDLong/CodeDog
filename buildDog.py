@@ -1025,6 +1025,9 @@ def build(debugMode, minLangVersion, fileName, labelName, launchIconName, libFil
         [workingDirectory, buildStr, runStr] = buildMac.macBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
     elif platform == 'IOS':
         [workingDirectory, buildStr, runStr] = iOSBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
+    elif platform == 'Web':
+        import buildWeb
+        [workingDirectory, buildStr, runStr] = buildWeb.WebBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData, tools, buildTags)
     else:
         print("buildDog.py error: build string not generated for "+ buildName)
         exit(2)
@@ -1077,6 +1080,10 @@ def getBuildSting (fileName, buildStr_libs, platform, buildName):
         fileExtension = '.kt'
         buildStr = kotlinCompilerCommand() + " " + fileName + fileExtension + " -include-runtime -d " + fileName + ".jar"
     elif platform == 'Windows':
+        codeDogPath = os.path.dirname(os.path.realpath(__file__))
+        pythonExe = '"' + sys.executable + '"'
+        buildStr = f"{pythonExe} {codeDogPath}/Scons/scons.py -Q -f "+fileName+".scons"
+    elif platform == 'Web':
         codeDogPath = os.path.dirname(os.path.realpath(__file__))
         pythonExe = '"' + sys.executable + '"'
         buildStr = f"{pythonExe} {codeDogPath}/Scons/scons.py -Q -f "+fileName+".scons"

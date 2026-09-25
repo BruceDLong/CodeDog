@@ -156,7 +156,7 @@ reservedWordSet = set([
    # "keys", "index", "iters", "key", "value", "entry", "index", "iter", "FILE",
    # "void", "bool", "int32", "int64", "double", "char", "uint32", "uint64", "string", "int",
     #"list", "opt", "map", "multimap", "tree", "graph", "iterableList",
-    "const", "me", "my", "our", "their", "we", "itr", "id_our", "id_their",
+    "const", "me", "my", "our", "their", "we",
     #"model", "struct", "string"
 ])
 
@@ -212,7 +212,8 @@ classDefID  = Group(className + Optional(typeArgList))("classDefID")
 arrayRef    = Group('[' + expr('startOffset') + Optional(( ':' + expr('endOffset')) | ('..' + expr('itemLength'))) + ']')
 firstRefSeg = NotAny(owners) + Group((CID | arrayRef) + Optional(arguments))
 secondRefSeg= Group((Suppress('.') + CID | arrayRef) + Optional(arguments))
-varRef = Group(firstRefSeg + ZeroOrMore(secondRefSeg))
+derefRefSeg = Group(Literal("!")("deref") + ~FollowedBy(Literal("=").leaveWhitespace()))
+varRef = Group(firstRefSeg + ZeroOrMore(derefRefSeg | secondRefSeg))
 lValue = varRef("lValue")
 incDecPrefixExpr  = Group((Literal("++") | Literal("--"))("incDecOp") + varRef("incDecTarget"))("incDecPrefixExpr")
 incDecPostfixExpr = Group(varRef("incDecTarget") + (Literal("++") | Literal("--"))("incDecOp"))("incDecPostfixExpr")
@@ -347,7 +348,7 @@ coFactualEl  = Group("(" + Group(fieldDef + "<=>" + Group(OneOrMore(SetFieldStmt
 sequenceEl   = "{" - fieldDefs + "}"
 alternateEl  = "[" - Group(OneOrMore((coFactualEl | fieldDef) + Optional("|").suppress()))("fieldDefs") + "]"
 anonModel    = sequenceEl("sequenceEl") | alternateEl("alternateEl")
-owners     <<= Keyword("const") | Keyword("me") | Keyword("my") | Keyword("our") | Keyword("their") | Keyword("we") | Keyword("itr") | Keyword("id_our") | Keyword("id_their")
+owners     <<= Keyword("const") | Keyword("me") | Keyword("my") | Keyword("our") | Keyword("their") | Keyword("we")
 fullFieldDef <<= Optional('>')('isNext') + Optional(owners)('owner') + Group(baseType | altModeSpec | classSpec | Group(anonModel) | datastructID)('fieldType') + Optional(arraySpec) + Optional(nameAndVal)
 fieldDef   <<= Group(flagDef('flagDef') | modeSpec('modeDef') | (quotedString('constStr') + Optional("[opt]") + Optional(":"+CID)) | intNum('constNum') | nameAndVal('nameVal') | fullFieldDef('fullFieldDef'))("fieldDef")
 
@@ -1002,12 +1003,15 @@ def extractFuncBody(funcName, funcBodyIn):
         exit(1)
     return funcBodyOut, funcTextVerbatim
 
-def extractFieldDefs(ProgSpec, className, stateType, fieldResults):
+def extractFieldDefs(ProgSpec, className, stateType, fieldResults, libName=None):
     cdlog(logLvl(), "EXTRACTING {}".format(className))
     for fieldResult in fieldResults:
         comment = None
         if(fieldResult[0][0]=='/*^' or fieldResult[0][0]=='//^' ): comment = fieldResult[0]
         fieldDef=packFieldDef(fieldResult.fieldDef, className, '', comment)
+        if libName != None:
+            fieldDef['libName'] = libName
+            fieldDef['libLevel'] = progSpec.getLibLevel(libName)
         progSpec.addField(ProgSpec, className, stateType, fieldDef)
 
 def extractBuildSpecs(buildSpecResults):    # buildSpecResults is sometimes a parseResult, often an empty string
@@ -1036,7 +1040,7 @@ def extractObjectSpecs(ProgSpec, classNames, spec, stateType,description, commen
     else: objTags = {}
     taggedName = progSpec.addClass(ProgSpec, classNames, className, stateType, configType,description, comments)
     progSpec.addObjTags(ProgSpec, className, stateType, objTags)
-    extractFieldDefs(ProgSpec, className, stateType, spec.fieldDefs)
+    extractFieldDefs(ProgSpec, className, stateType, spec.fieldDefs, description)
     ############Grab optional typeArgList
     if 'typeArgList' in spec[1]:
         typeArgList = extractTypeArgList(spec[1].typeArgList)

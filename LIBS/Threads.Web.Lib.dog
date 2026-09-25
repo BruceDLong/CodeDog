@@ -1,0 +1,106 @@
+// Emscripten pthread implementation of the CodeDog Threads interface.
+
+requirements = [
+    [tagOneOf, Lang, [CPP]],
+    [tagOneOf, Platform, [Web]]
+]
+
+interface={
+    provides=[threads_implementation]
+    libFiles=[pthread]
+    headers=[thread, mutex, condition_variable, atomic, sstream]
+}
+
+LibDescription ={
+    useStatus   = dynamic
+    description ='Emscripten pthread implementation for WebBuild'
+    features    =[Threads]
+    Lang        =[CPP]
+    platforms   =[Web]
+}
+
+embedVeryHigh = `
+typedef std::unique_lock<std::mutex> Unique_Lock_Mutex;
+typedef std::unique_lock<std::recursive_mutex> Nested_Lock_Mutex;
+
+class __webSemaphore{
+public:
+    __webSemaphore(unsigned int count=1) : m_count(count) {}
+    __webSemaphore(const __webSemaphore&&) = delete;
+    __webSemaphore(__webSemaphore&&) = delete;
+    __webSemaphore& operator = (const __webSemaphore&) = delete;
+    __webSemaphore& operator = (__webSemaphore&&) = delete;
+    ~__webSemaphore() = default;
+
+    void post(){
+        std::unique_lock<std::mutex> lock(m_mutex);
+        ++m_count;
+        m_cv.notify_one();
+    }
+
+    void wait(){
+        std::unique_lock<std::mutex> lock(m_mutex);
+        m_cv.wait(lock, [&]{ return m_count > 0; });
+        --m_count;
+    }
+
+private:
+    std::mutex m_mutex;
+    std::condition_variable m_cv;
+    unsigned int m_count;
+};
+`
+
+struct GLOBAL{
+    me string: thisThreadID() <- <%{
+        std::ostringstream idStream;
+        idStream << std::this_thread::get_id();
+        return(idStream.str());
+    }%>
+}
+
+struct Threads{
+    me string: name
+    void: setName(me string: N)  <- <%{name = N.substr(0, 15);}%>
+    bool: isActive()             <- {return(true)}
+    void: start()                <- <%{T = std::thread(&Threads::run, this);}%>
+    void: start(me string: Name) <- <%{T = std::thread(&Threads::run, this); setName(Name);}%>
+    void: waitForExit()          <- <%{if(T.joinable()){T.join();}}%>
+
+    me thread: T
+}
+
+struct Mutex: wraps=mutex{
+    void: lock()    <- <%!lock()%>
+    void: unlock()  <- <%!unlock()%>
+    bool: tryLock() <- <%!try_lock()%>
+}
+
+struct NestableMutex: wraps=recursive_mutex{
+    void: lock()    <- <%!lock()%>
+    void: unlock()  <- <%!unlock()%>
+    bool: tryLock() <- <%!try_lock()%>
+}
+
+struct MutexMngr: wraps=Unique_Lock_Mutex{
+    void: lock()    <- <%!lock()%>
+    void: unlock()  <- <%!unlock()%>
+    bool: tryLock() <- <%!try_lock()%>
+}
+
+struct NestedMutexMngr: wraps=Nested_Lock_Mutex{
+    void: lock()    <- <%!lock()%>
+    void: unlock()  <- <%!unlock()%>
+    bool: tryLock() <- <%!try_lock()%>
+}
+
+struct SyncLock: wraps=condition_variable{
+    void: wait(me MutexMngr: lock) <- <%!wait(%1)%>
+    void: notifyOne()              <- <%!notify_one()%>
+    void: notifyAll()              <- <%!notify_all()%>
+}
+
+struct Semaphore: wraps=__webSemaphore{
+    void: post() <- <%!post()%>
+    void: wait() <- <%!wait()%>
+}

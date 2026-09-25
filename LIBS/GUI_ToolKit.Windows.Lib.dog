@@ -1837,7 +1837,7 @@ struct GUI_ctxt {
         { GetCurrentPositionEx(%0, &_tagPOINT); POINT bezierPts[3] = {{_tagPOINT.x + (LONG)(%1), _tagPOINT.y + (LONG)(%2)}, {_tagPOINT.x + (LONG)(%3), _tagPOINT.y + (LONG)(%4)}, {_tagPOINT.x + (LONG)(%5), _tagPOINT.y + (LONG)(%6)}}; PolyBezierTo(%0, bezierPts, 3); }
     %>
     me void: closePath() <- <%!CloseFigure(%0)%>
-    me void: rectangle() <- <%!Rectangle(%0, (int)(%1), (int)(%2), (int)(%1+%3), (int)(%2+%4))%>
+    me void: rectangle(me double: x, me double: y, me double: w, me double: h) <- <%!Rectangle(%0, (int)(%1), (int)(%2), (int)(%1+%3), (int)(%2+%4))%>
     me void: paintNow() <- <%!
         RECT clientSize;
         HBRUSH backgroundBrush;

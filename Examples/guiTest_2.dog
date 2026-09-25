@@ -72,17 +72,17 @@ struct guiTestWidget: inherits=DashboardWidget{
         cr.setLineWidth(1)
         our fontSpec:: headerFont{"Arial", "22"}
         our fontSpec:: bodyFont{"Arial", "16"}
-        renderText(cr, "guiTest_2", headerFont, 40, 58)
-        renderText(cr, "Canvas: " + toString(canvasW) + " x " + toString(canvasH), bodyFont, 40, 90)
-        renderText(cr, "Key typed/down/up: " + toString(keyTypedCount) + " / " + toString(keyDownCount) + " / " + toString(keyUpCount), bodyFont, 40, 255)
-        renderText(cr, "Last key: " + toString(lastKey) + "   state: " + toString(lastKeyState), bodyFont, 40, 285)
-        renderText(cr, "Mouse clicks: " + toString(mouseClickCount) + "   last: " + toString(lastMouseX) + ", " + toString(lastMouseY), bodyFont, 40, 315)
-        renderText(cr, "Resize the window, click the canvas, then type.", bodyFont, 40, 350)
+        renderText(cr, "guiTest_2", headerFont!, 40, 58)
+        renderText(cr, "Canvas: " + toString(canvasW) + " x " + toString(canvasH), bodyFont!, 40, 90)
+        renderText(cr, "Key typed/down/up: " + toString(keyTypedCount) + " / " + toString(keyDownCount) + " / " + toString(keyUpCount), bodyFont!, 40, 255)
+        renderText(cr, "Last key: " + toString(lastKey) + "   state: " + toString(lastKeyState), bodyFont!, 40, 285)
+        renderText(cr, "Mouse clicks: " + toString(mouseClickCount) + "   last: " + toString(lastMouseX) + ", " + toString(lastMouseY), bodyFont!, 40, 315)
+        renderText(cr, "Resize the window, click the canvas, then type.", bodyFont!, 40, 350)
     }
 
     me bool: keyTyped(their GUI_KeyboardEvent: event) <- {
-        lastKey <- event.keyval
-        lastKeyState <- event.state
+        lastKey <- event!.keyval
+        lastKeyState <- event!.state
         keyTypedCount <- keyTypedCount + 1
         print("KEY TYPED key:", lastKey, " state:", lastKeyState, "\n")
         requestRedraw()
@@ -90,8 +90,8 @@ struct guiTestWidget: inherits=DashboardWidget{
     }
 
     me bool: keyDown(their GUI_KeyboardEvent: event) <- {
-        lastKey <- event.keyval
-        lastKeyState <- event.state
+        lastKey <- event!.keyval
+        lastKeyState <- event!.state
         keyDownCount <- keyDownCount + 1
         print("KEY DOWN key:", lastKey, " state:", lastKeyState, "\n")
         requestRedraw()
@@ -99,8 +99,8 @@ struct guiTestWidget: inherits=DashboardWidget{
     }
 
     me bool: keyUp(their GUI_KeyboardEvent: event) <- {
-        lastKey <- event.keyval
-        lastKeyState <- event.state
+        lastKey <- event!.keyval
+        lastKeyState <- event!.state
         keyUpCount <- keyUpCount + 1
         print("KEY UP key:", lastKey, " state:", lastKeyState, "\n")
         requestRedraw()
@@ -108,15 +108,15 @@ struct guiTestWidget: inherits=DashboardWidget{
     }
 
     me bool: primaryDn(their GUI_ButtonEvent: event) <- {
-        lastMouseX <- event.x
-        lastMouseY <- event.y
+        lastMouseX <- event!.x
+        lastMouseY <- event!.y
         requestRedraw()
         return(true)
     }
 
     me bool: primaryClick(their GUI_ButtonEvent: event) <- {
-        lastMouseX <- event.x
-        lastMouseY <- event.y
+        lastMouseX <- event!.x
+        lastMouseY <- event!.y
         mouseClickCount <- mouseClickCount + 1
         print("PRIMARY CLICK x:", lastMouseX, " y:", lastMouseY, "\n")
         requestRedraw()
@@ -124,8 +124,8 @@ struct guiTestWidget: inherits=DashboardWidget{
     }
 
     me bool: secondaryClick(their GUI_ButtonEvent: event) <- {
-        lastMouseX <- event.x
-        lastMouseY <- event.y
+        lastMouseX <- event!.x
+        lastMouseY <- event!.y
         mouseClickCount <- mouseClickCount + 1
         print("SECONDARY CLICK x:", lastMouseX, " y:", lastMouseY, "\n")
         requestRedraw()
@@ -133,8 +133,8 @@ struct guiTestWidget: inherits=DashboardWidget{
     }
 
     me bool: mouseMoved(their GUI_MotionEvent: event) <- {
-        lastMouseX <- event.x
-        lastMouseY <- event.y
+        lastMouseX <- event!.x
+        lastMouseY <- event!.y
         return(true)
     }
 }
@@ -158,7 +158,7 @@ struct APP{
         drawing_area <- gui.newCanvas()
         drawing_area.setParent(tester)
         gui.setWidgetSize(drawing_area, 900, 620)
-        tester.EventDispatcher.registerWidgetForEventDispatcher(drawing_area, tester)
+        tester!.EventDispatcher.registerWidgetForEventDispatcher(drawing_area, tester)
         addToContainerAndExpand(frame, drawing_area)
     }
 }

@@ -1,0 +1,32 @@
+// Browser-console logger implementation for WebBuild.
+
+requirements = [
+    [tagOneOf, Lang, [CPP]],
+    [tagOneOf, Platform, [Web]]
+]
+
+interface={
+    provides=[Logger_implementation]
+    libFiles=[]
+    headers=[]
+}
+
+LibDescription ={
+    useStatus   = dynamic
+    description ='Browser console Logger for WebBuild'
+    Lang        =[CPP]
+    platforms   =[Web]
+}
+
+struct logger{
+    me void: Route(me string: routeSpec) <- <%{cout << routeSpec << "\n";}%>
+}
+
+struct logManager{
+    // Logger.Lib defaults to OFile.  A browser has no durable native log file,
+    // so both configured routes remain visible through browser stdout.
+    me void: openLogFile() <- {}
+    me void: writeToLog(me string: txt) <- <%{
+        if (useConsole || useLogFile){cout << txt << "\n";}
+    }%>
+}

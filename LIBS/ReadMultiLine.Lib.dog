@@ -226,8 +226,8 @@ struct linesMngr {
     void: doTab()       <- {}
     void: clearAll()    <- {}
     void: clearToEOL()  <- {
-        itr List<me charX>: first <- crntLine().front()+charsToCur
-        itr List<me charX>: last  <- crntLine().end()
+        me List.iterator<me charX>: first <- crntLine().front()+charsToCur
+        me List.iterator<me charX>: last  <- crntLine().end()
         crntLine().eraseInterval(first, last)
         entries[currentLine.entriesIdx].lines[currentLine.linesIdx].dirty <- true
     }
@@ -370,10 +370,10 @@ struct readMultiLine {
                     mgr.totalLines <- mgr.totalLines + 1
                 } else {
                     if(text.colorCodes){
-                        itr Map<me int, me posRec>: posRecsItr <- text.ps.find(q)
+                        me text.ps.iterator: posRecsItr <- text.ps.find(q)
                         if(posRecsItr!=text.ps.end()){ // We need to change colors.
                             pr<-posRecsItr.val
-                            itr Map<their void, me int>: colorCodeItr <- text.colorCodes.find(pr.itemParsed)
+                            me text.colorCodes.iterator: colorCodeItr <- text.colorCodes.find(pr.itemParsed)
                             me bool: colorCodeExists <- colorCodeItr!=text.colorCodes.end()
                             if(colorCodeExists){
                                 if(pr.isStart) {

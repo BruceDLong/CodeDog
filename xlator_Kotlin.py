@@ -301,9 +301,7 @@ class Xlator_Kotlin(Xlator_Java):
         langType = self._cleanType(langType)
         if owner in ("me", "const", "we"):
             return langType
-        if owner == "itr":
-            return langType
-        if owner in ("my", "our", "their", "id_their", "id_our"):
+        if owner in ("my", "our", "their"):
             if not langType.endswith("?"):
                 return langType + "?"
             return langType
@@ -313,6 +311,9 @@ class Xlator_Kotlin(Xlator_Java):
         if isinstance(tSpec, dict) and progSpec.typeIsPointer(tSpec):
             return "!!"
         return ""
+
+    def codeExplicitDeref(self, varRef, itemTypeSpec):
+        return varRef + "!!"
 
     def codeXlatorAllocater(self, tSpec, genericArgs):
         owner = progSpec.getOwner(tSpec)

@@ -1,7 +1,8 @@
 // CodeDog Threads Library
 
 requirements = [
-   [tagOneOf, Lang, [CPP]]
+   [tagOneOf, Lang, [CPP]],
+   [tagOneOf, Platform, [Linux, OS-X_Devices, Windows]]
 ]
 
 interface={
@@ -18,7 +19,7 @@ LibDescription  ={
 }
 embedVeryHigh = `
 typedef  std::unique_lock<std::mutex> Unique_Lock_Mutex;
-typedef  std::unique_lock<std::mutex> Nested_Lock_Mutex;
+typedef  std::unique_lock<std::recursive_mutex> Nested_Lock_Mutex;
 
 class __semaphore{
 public:

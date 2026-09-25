@@ -175,11 +175,11 @@ struct Java_TreeMultimap<keyType, valueType>: implements=Multimap wraps=JavaTree
     valueType: __index(keyType: key)             <- <%!%0.get(%1)%>
     void: clear()                                <- <%!clear()%>
     me bool: containsKey(keyType: key)           <- <%!containsKey(%1)%>
-    itr iterator_Java_Multimap: end()            <- <%!JavaMultimapCursor.<%T0Type, %T1Type>endFor(%0)%>
+    me iterator_Java_Multimap: end()            <- <%!JavaMultimapCursor.<%T0Type, %T1Type>endFor(%0)%>
     void: erase(keyType: key)                    <- <%!remove(%1)%>
-    itr iterator_Java_Multimap: find(keyType: key) <- <%!new JavaMultimapCursor<%T0Type, %T1Type>(%0, %1)%>
+    me iterator_Java_Multimap: find(keyType: key) <- <%!new JavaMultimapCursor<%T0Type, %T1Type>(%0, %1)%>
     valueType: first()                           <- <%!%0.firstEntry().getValue()%>
-    itr valueType: insert(keyType: key, valueType: value) <- <%!put(%1, %2)%>
+    me valueType: insert(keyType: key, valueType: value) <- <%!put(%1, %2)%>
     me bool:  isEmpty()                          <- <%!isEmpty()%>
     valueType: last()                            <- <%!%0.lastEntry().getValue()%>
     valueType: popFirst()                        <- <%!popFirst()%>

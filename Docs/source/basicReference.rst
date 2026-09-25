@@ -303,7 +303,7 @@ In CodeDog memory releasing is done for you, so you won't be manually releasing 
     **their** - the "their" element is a small piece of memory that points to a location in memory on the heap that is managed by another class. In CodeDog "their" is less commonly used than "me" and "our", it is used primarily for pointers received from an API or another class. Analogous to an unmanaged pointer in C++.
     Advanced ownership types
 
-The ownership types of "my", "we" and "itr" are intended for more advanced use cases and will be explained later.
+The ownership types of "my" and "we" are intended for more advanced use cases and will be explained later.
 
 Basic Data Types
 ****************
@@ -445,7 +445,8 @@ Compound assignments can be made by inserting an operator in the middle of an as
     <|-
     <&-
     <^-
-    <deep-              // copy the contents even if there is a pointer
+
+Legacy code may still contain ``<deep-`` for referent-to-referent assignment through pointer-owned values. Prefer explicit dereference with normal assignment, such as ``lhs! <- rhs!`` when both sides are pointer-owned.
 
 Function call Actions
 ^^^^^^^^^^^^^^^^^^^^^
@@ -764,3 +765,30 @@ Generating Parsers
 
 Using a Test Harness
 ^^^^^^^^^^^^^^^^^^^^
+
+Set ``testMode='makeTests'`` on a buildSpec to generate and build the CodeDog
+test harness for that build. The buildSpec name remains the output directory:
+CodeDog writes the generated test source, build files, resources, and test
+executable directly into that directory. It does not create a separate test
+folder.
+
+For example:
+
+.. code-block:: codeDog
+
+    LocalBuild: Platform='Local' testMode='makeTests';
+
+    TestSpec = "MyTests.dog"
+
+If ``MyTests.dog`` sets ``FileName = "MyTests"``, a Linux build places the test
+executable at ``LocalBuild/MyTests``. Build and run it from that directory:
+
+.. code-block:: console
+
+    $ codeDog MyProgram.dog
+    $ cd LocalBuild
+    $ ./MyTests
+
+Changing the buildSpec name changes the output directory. For example,
+``LinuxTestBuild: ... testMode='makeTests';`` writes the same test artifacts
+under ``LinuxTestBuild``.

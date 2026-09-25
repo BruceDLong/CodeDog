@@ -7,10 +7,15 @@ TestsToRun = `
     flexTest/parseDec2
     flexTest/parseDec3
     flexTest/parseDec4
+    flexTest/parseNegativeDec
     flexMath/add1
     flexMath/add2
     flexMath/minus1
     flexMath/minus2
+    flexMath/minusNegativeOne
+    flexMath/minusNegativeTen
+    flexMath/minusNegativeDecimal
+    flexMath/minusNegativeFraction
     flexMath/multi1
     flexMath/multi2
     flexMath/multi3
@@ -49,10 +54,15 @@ struct GLOBAL {
     FLEX_TEST(flexTest/parseDec2, "78945.0",  "",  "78945")
     FLEX_TEST(flexTest/parseDec3, "5.1",  "",  "5.1")
     FLEX_TEST(flexTest/parseDec4, "14.85",  "",  "14.85")
+    FLEX_TEST(flexTest/parseNegativeDec, "-10.24",  "",  "-10.24")
     FLEX_MATH(flexMath/add1,      "22.10",  "23.01", "+",  "45.11")
     FLEX_MATH(flexMath/add2,      "22.10",  "23.90", "+",  "46")
     FLEX_MATH(flexMath/minus1,    "30.00",  "20.00", "-",  "10")
     FLEX_MATH(flexMath/minus2,    "30.56",  "20.32", "-",  "10.24")
+    FLEX_MATH(flexMath/minusNegativeOne, "5", "6", "-", "-1")
+    FLEX_MATH(flexMath/minusNegativeTen, "20", "30", "-", "-10")
+    FLEX_MATH(flexMath/minusNegativeDecimal, "20.32", "30.56", "-", "-10.24")
+    FLEX_MATH(flexMath/minusNegativeFraction, "0.1", "0.2", "-", "-0.1")
     FLEX_MATH(flexMath/multi1,    "2.0",    "3.0",   "*",  "6")
     FLEX_MATH(flexMath/multi2,    "3.3",    "5.5",   "*",  "18.15")
     FLEX_MATH(flexMath/multi3,    "3.3",    "0",   "*",  "0")

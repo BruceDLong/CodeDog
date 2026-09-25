@@ -9,6 +9,7 @@ from codeGenerator import CodeGenerator
 class Xlator_Java(Xlator):
     codeGen               = CodeGenerator()
     LanguageName          = "Java"
+    supportsBareExplicitDerefLValue = False
     BuildStrPrefix        = "Javac "
     fileExtension         = ".java"
     typeForCounterInt     = "int"
@@ -60,7 +61,7 @@ class Xlator_Java(Xlator):
                 else: S= '.charAt(' + idx + ')'    # '.substring(' + idx + ', '+ idx + '+1' +')'
             else:
                 containerInfo = progSpec.getContainerInfo(self.codeGen.classStore, containerType)
-                fieldDefAt = self.codeGen.CheckObjectVars(ctnrTypeKW, "at", "")
+                fieldDefAt = self.codeGen.CheckObjectVars(ctnrTypeKW, "at", "", containerType)
                 if fieldDefAt:
                     if 'typeSpec' in fieldDefAt and 'codeConverter' in fieldDefAt['typeSpec']:
                         S = fieldDefAt['typeSpec']['codeConverter']
@@ -71,7 +72,7 @@ class Xlator_Java(Xlator):
         else:
             containerInfo = progSpec.getContainerInfo(self.codeGen.classStore, containerType)
             if containerInfo["isContainer"] and containerInfo["category"] != 'string':
-                fieldDefIdx = self.codeGen.CheckObjectVars(ctnrTypeKW, "__index", "")
+                fieldDefIdx = self.codeGen.CheckObjectVars(ctnrTypeKW, "__index", "", containerType)
                 if fieldDefIdx and 'typeSpec' in fieldDefIdx:
                     if 'codeConverter' in fieldDefIdx['typeSpec']:
                         S = fieldDefIdx['typeSpec']['codeConverter']
@@ -333,7 +334,6 @@ class Xlator_Java(Xlator):
         elif owner=='my':       langType = langType
         elif owner=='our':      langType = langType
         elif owner=='their':    langType = langType
-        elif owner=='itr':      langType = langType
         elif owner=='const':    langType = "final "+langType
         elif owner=='we':       langType = 'static '+langType
         else: cdErr("ERROR: Owner of type not valid '" + owner + "'")
@@ -436,6 +436,9 @@ class Xlator_Java(Xlator):
         [leftMod, rightMod, isDerefd] = self.getTheDerefPtrMods(itemTypeSpec)
         S = leftMod + varRef + rightMod
         return [S, isDerefd]
+
+    def codeExplicitDeref(self, varRef, itemTypeSpec):
+        return varRef
 
     def ChoosePtrDecorationForSimpleCase(self, owner):
         #print("TODO: finish ChoosePtrDecorationForSimpleCase")
@@ -833,7 +836,7 @@ class Xlator_Java(Xlator):
             if LHSParentType == 'string' and LHS_FieldType == 'char':
                 S = indent+AltIDXFormat[0]+' = replaceCharAt(' +AltIDXFormat[0]+', '+ AltIDXFormat[2] + ', ' + RHS + ');\n'
             else:
-                fieldDefInsert = self.codeGen.CheckObjectVars(datastructID, 'insert', '')
+                fieldDefInsert = self.codeGen.CheckObjectVars(datastructID, 'insert', '', AltIDXFormat[1])
                 if fieldDefInsert and 'typeSpec' in fieldDefInsert:
                     if 'codeConverter' in fieldDefInsert['typeSpec']:
                         converter = fieldDefInsert['typeSpec']['codeConverter']
@@ -848,7 +851,7 @@ class Xlator_Java(Xlator):
         else:
             assignTag = assignTag[0]
             if(assignTag=='+'):
-                fieldDefSet = self.codeGen.CheckObjectVars(datastructID, 'set', '' )
+                fieldDefSet = self.codeGen.CheckObjectVars(datastructID, 'set', '', AltIDXFormat[1])
                 if fieldDefSet and 'typeSpec' in fieldDefSet:
                     if 'codeConverter' in fieldDefSet['typeSpec']:
                         S = indent+AltIDXFormat[0]+fieldDefIdx['typeSpec']['codeConverter']

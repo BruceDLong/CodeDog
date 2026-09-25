@@ -379,18 +379,38 @@ def addField(objSpecs, className, stateType, packedField):
     else: taggedClassName = className
     if stateType!='string':
         fieldIfExists = doesClassDirectlyImlementThisField(objSpecs, className, fieldID)
+        if fieldIfExists == True:
+            existingField = None
+            for candidate in objSpecs[taggedClassName]["fields"]:
+                if 'fieldID' in candidate and candidate['fieldID'] == fieldID:
+                    existingField = candidate
+                    break
+            existingIsTopLevelDecl = isinstance(existingField, dict) and existingField.get('libLevel', objSpecs[taggedClassName].get('libLevel', 1)) != 2 and (not ('value' in existingField) or existingField['value'] == None)
+            incomingHasImplValue = packedField.get('libLevel', objSpecs[taggedClassName].get('libLevel', 1)) == 2 and 'value' in packedField and packedField['value'] != None
+            if existingIsTopLevelDecl and incomingHasImplValue:
+                fieldIfExists = existingField
+            else:
+                cdlog(2, "Note: The field '" + fieldID + "' already exists. Not re-adding")
+                return
         field=fieldIfExists
         if fieldIfExists:
-            cdlog(2, "Note: The field '" + fieldID + "' already exists. Not re-adding")
-            if not isinstance(fieldIfExists, dict): return
-            if not ('value' in field) or field['value']==None: return
-            if not ('value' in packedField)   or packedField['value']  ==None: return
-            if field['value']==packedField['value']: return
-            if owner=='const' and fTypeKW=='struct': # append inner struct & extracted struct
-                appendActionList(objSpecs[taggedClassName]["fields"], fieldID, packedField['value'][0])
-                appendExtractedStruct(objSpecs, fieldID.split('::')[1].split('(')[0], packedField['value'][0])
-                return
-            cdErr(fieldID+" is being contradictorily redefined.")
+            existingIsImpl = isinstance(fieldIfExists, dict) and fieldIfExists.get('libLevel', objSpecs[taggedClassName].get('libLevel', 1)) == 2
+            incomingIsTopLevelDecl = packedField.get('libLevel', objSpecs[taggedClassName].get('libLevel', 1)) != 2 and (not ('value' in packedField) or packedField['value'] == None)
+            existingIsTopLevelDecl = isinstance(fieldIfExists, dict) and fieldIfExists.get('libLevel', objSpecs[taggedClassName].get('libLevel', 1)) != 2 and (not ('value' in fieldIfExists) or fieldIfExists['value'] == None)
+            incomingHasImplValue = packedField.get('libLevel', objSpecs[taggedClassName].get('libLevel', 1)) == 2 and 'value' in packedField and packedField['value'] != None
+            if existingIsTopLevelDecl and incomingHasImplValue:
+                pass
+            elif not (existingIsImpl and incomingIsTopLevelDecl):
+                cdlog(2, "Note: The field '" + fieldID + "' already exists. Not re-adding")
+                if not isinstance(fieldIfExists, dict): return
+                if not ('value' in field) or field['value']==None: return
+                if not ('value' in packedField)   or packedField['value']  ==None: return
+                if field['value']==packedField['value']: return
+                if owner=='const' and fTypeKW=='struct': # append inner struct & extracted struct
+                    appendActionList(objSpecs[taggedClassName]["fields"], fieldID, packedField['value'][0])
+                    appendExtractedStruct(objSpecs, fieldID.split('::')[1].split('(')[0], packedField['value'][0])
+                    return
+                cdErr(fieldID+" is being contradictorily redefined.")
 
         # Don't override flags and modes in derived Classes
         if fTypeKW=='flag' or fTypeKW=='mode':
@@ -554,6 +574,10 @@ def insertOrReplaceField(fieldListToUpdate, field):
     idx=0
     for F in fieldListToUpdate:
         if field['fieldID']==F['fieldID']:
+            existingIsImpl = isinstance(F, dict) and F.get('libLevel', 1) == 2
+            incomingIsTopLevelDecl = field.get('libLevel', 1) != 2 and (not ('value' in field) or field['value'] == None)
+            if existingIsImpl and incomingIsTopLevelDecl:
+                return
             fieldListToUpdate[idx]=field
             return
         idx+=1
@@ -832,73 +856,76 @@ def getImplementationOptionsFor(fType):
         return classImplementationOptions[fType]
     return None
 ###############  Various Dynamic Type-handling functions
-def isItrType(fTypeKW):
+def isIteratorType(fTypeKW):
     fTypeKW = fieldTypeKeyword(fTypeKW)
+    if fTypeKW == None:
+        return False
     if fTypeKW[:8]=='iterator': return True
     return False
 
-def convertItrType(classStore, owner, fTypeKW):
-    if owner=='itr':
-        classDef = findSpecOf(classStore[0], fTypeKW, "struct")
-        if classDef == None:
-            classDef = findSpecOf(classStore[0], fTypeKW, "model")
-        if classDef == None:
-            return None
+def findContainerIteratorType(classStore, fTypeKW):
+    if classStore == None or fTypeKW == None:
+        return None
+    classDef = findSpecOf(classStore[0], fTypeKW, "struct")
+    if classDef == None:
+        classDef = findSpecOf(classStore[0], fTypeKW, "model")
+    if classDef == None:
+        return None
 
-        def _extract_implements_names(field):
-            implNames = []
-            tags = field.get('tags') if isinstance(field, dict) else None
-            implSpec = searchATagStore(tags, 'implements')
-            if implSpec == None:
-                return implNames
-            implVal = implSpec[0]
-            if isinstance(implVal, str):
-                return [implVal]
-            if isinstance(implVal, ParseResults):
-                implVal = implVal.asList()
-            if isinstance(implVal, list):
-                for item in implVal:
-                    if isinstance(item, ParseResults):
-                        item = item.asList()
-                    if isinstance(item, list):
-                        if len(item) > 0 and isinstance(item[0], str):
-                            implNames.append(item[0])
-                    elif isinstance(item, str):
-                        implNames.append(item)
+    def _extract_implements_names(field):
+        implNames = []
+        tags = field.get('tags') if isinstance(field, dict) else None
+        implSpec = searchATagStore(tags, 'implements')
+        if implSpec == None:
             return implNames
+        implVal = implSpec[0]
+        if isinstance(implVal, str):
+            return [implVal]
+        if isinstance(implVal, ParseResults):
+            implVal = implVal.asList()
+        if isinstance(implVal, list):
+            for item in implVal:
+                if isinstance(item, ParseResults):
+                    item = item.asList()
+                if isinstance(item, list):
+                    if len(item) > 0 and isinstance(item[0], str):
+                        implNames.append(item[0])
+                elif isinstance(item, str):
+                    implNames.append(item)
+        return implNames
 
-        bestName = None
-        bestScore = -1
-        for field in classDef['fields']:
-            KW = fieldTypeKeyword(field)
-            if KW!='struct' and KW!='model':
-                continue
-            fieldName = field['fieldName']
-            nestedTypeName = field.get('nestedTypeName') if isinstance(field, dict) else None
-            nestedPath = field.get('nestedPath') if isinstance(field, dict) else None
-            resolvedName = fieldName
-            if isinstance(nestedTypeName, str) and nestedTypeName != "":
-                resolvedName = nestedTypeName
-            elif isinstance(nestedPath, str) and nestedPath != "":
-                resolvedName = nestedPath
-            score = 0
-            if isItrType(fieldName):
-                score = 100
-            elif isinstance(fieldName, str) and fieldName.endswith('Itr'):
-                score = 90
+    bestName = None
+    bestScore = -1
+    for field in classDef['fields']:
+        KW = fieldTypeKeyword(field)
+        if KW!='struct' and KW!='model':
+            continue
+        fieldName = field['fieldName']
+        nestedTypeName = field.get('nestedTypeName') if isinstance(field, dict) else None
+        nestedPath = field.get('nestedPath') if isinstance(field, dict) else None
+        resolvedName = fieldName
+        if isinstance(nestedTypeName, str) and nestedTypeName != "":
+            resolvedName = nestedTypeName
+        elif isinstance(nestedPath, str) and nestedPath != "":
+            resolvedName = nestedPath
+        score = 0
+        if isIteratorType(fieldName):
+            score = 100
+        elif isinstance(fieldName, str) and fieldName.endswith('Itr'):
+            score = 90
 
-            implNames = _extract_implements_names(field)
-            for implName in implNames:
-                if isinstance(implName, str) and implName.endswith('Itr'):
-                    score = max(score, 95)
-                    break
+        implNames = _extract_implements_names(field)
+        for implName in implNames:
+            if isinstance(implName, str) and implName.endswith('Itr'):
+                score = max(score, 95)
+                break
 
-            if score > bestScore:
-                bestScore = score
-                bestName = resolvedName
+        if score > bestScore:
+            bestScore = score
+            bestName = resolvedName
 
-        if bestScore >= 90:
-            return bestName
+    if bestScore >= 90:
+        return bestName
     return None
 
 def getGenericArgs(ObjectDef):
@@ -1310,7 +1337,7 @@ def setCurrentCheckObjectVars(message):
     currentCheckObjectVars = message
 
 def ownerIsPointer(owner):
-    if owner == 'their' or owner == 'our' or owner == 'my' or owner == 'itr' or owner == 'id_their' or owner == 'id_our': isPointer=True
+    if owner == 'their' or owner == 'our' or owner == 'my': isPointer=True
     else: isPointer=False
     return isPointer
 

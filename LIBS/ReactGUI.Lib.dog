@@ -33,7 +33,7 @@ struct GLOBAL{
     me string: fetchStringField(our POV: info) <- {
         if(info==NULL){return("")}
         me string: retVal <- info.pItem.fetchString()
-        if(info.pItem.value.format==fUnknown){retVal <- ""}
+        if(info.pItem.value.evalMode==emUnknown){retVal <- ""}
         return(retVal)
     }
     our POV: fetchField(our POV: info, me string: paramName) <- {
@@ -122,7 +122,7 @@ struct ProactEvent{
     }
     void: setInfonEvent(me EventType: evntType, our POV:infon1, our POV:infon2) <- {eventType<-evntType; infonX<-infon1; infonY<-infon2;}
     void: setNormalizeEvent(me EventType: evntType, me string: query) <- {eventType<-evntType; text<-query;}
-    void: setGUI_Event(me EventType: evntType, our infon: target, me GUI_Scalar: a1, me GUI_Scalar: a2, me GUI_Scalar: a3, me GUI_Scalar: a4) <- {
+    void: setGUI_Event(me EventType: evntType, our infonView: target, me GUI_Scalar: a1, me GUI_Scalar: a2, me GUI_Scalar: a3, me GUI_Scalar: a4) <- {
         eventType<-evntType; arg1<-a1; arg2<-a2; arg3<-a3; arg4<-a4; done <- false;
     }
     void: setGUI_CallFunc(me EventType: evntType, me string: dataID)<-{eventType<-evntType; dataIdTag<-dataID; done <- false}
@@ -337,7 +337,7 @@ struct Presenter{
         return(mouseIsOver)
     }
 
-    me bool: itemIsThing(our infon: item) <- {
+    me bool: itemIsThing(our infonView: item) <- {
         return(!item.value.items.isEmpty() and item.value.items.first().type.asGiven =="thing")
     }
 
@@ -363,7 +363,7 @@ struct Presenter{
         }
         if(itemsType!=""){retval<-itemsType}
         else if(PR.dataPov){
-            switch(PR.dataPov.pItem.value.fType){
+            switch(PR.dataPov.pItem.value.overlayType){
                 case LST:{retval<-"genericList"}
                 case STR:{retval<-"genericString"}
                 case NUM:{retval<-"genericNumber"}
@@ -508,7 +508,7 @@ struct GuiModelManager{
     void: setCoords(me string: dataID,  their GuiCoords: val)<- {our GuiDataRec:: GDR; GDR.coordinates<-val; setGuiData(dataID, GDR)}
 
     our GuiDataRec: fetchGuiData(me string: dataID) <-{
-        itr Map<me string, our GuiDataRec>: it <- guiData.find(dataID)
+        me guiData.iterator: it <- guiData.find(dataID)
         if(it == guiData.end()){return(NULL)}
         return(it.val)
     }
@@ -699,8 +699,8 @@ struct ProactiveGUIWidget: inherits=DashboardWidget{
     me GUI_Scalar: primaryButtonDownX
     me GUI_Scalar: primaryButtonDownY
     me bool: currentlyDraggingPointer
-    our infon: dragInfonTargetX
-    our infon: dragInfonTargetY
+    our infonView: dragInfonTargetX
+    our infonView: dragInfonTargetY
     our ProactEvent: pendingDragStartEvent
     me GUI_Scalar: preDragX
     me GUI_Scalar: preDragY
@@ -733,7 +733,7 @@ struct ProactiveGUIWidget: inherits=DashboardWidget{
         }
         //log("DRAG X:"+toString(argA-primaryButtonDownX) + "  Y:"+toString(argB-primaryButtonDownY))
     }
-    void: fetchVariableReference(our infon: numInfonX, our infon: numInfonY) <- {
+    void: fetchVariableReference(our infonView: numInfonX, our infonView: numInfonY) <- {
         dragInfonTargetX <- numInfonX
         dragInfonTargetY <- numInfonY
         preDragX <- numInfonX.fetchDouble()

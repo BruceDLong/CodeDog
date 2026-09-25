@@ -5,6 +5,7 @@ LocalBuild: Platform='Local' optimize='speed';
 //WindowsBuild: Platform='Windows' CPU='amd64' Lang='CPP' LangVersion='MSVC' optimize='speed';
 //JavaBuild:        Platform='Java'        Lang='Java';
 //MacBuild:         Platform='MacOS'    Lang='Swift';
+//WebBuild:         Platform='Web'    Lang='CPP';
 
 
 Title = "Hello World"
