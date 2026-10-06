@@ -1,6 +1,8 @@
 # codeGenerator.py
 import re
 import copy
+import json
+import hashlib
 import platform
 import codeDogParser
 import libraryMngr
@@ -2471,6 +2473,11 @@ class CodeGenerator(object):
 
         #### FUNC HEADER: for both decl and defn. ##################
         inheritMode='normal'
+        # Exported base classes cannot infer their vtable from client subclasses
+        # that were absent when the library was built.
+        virtualMethods = progSpec.searchATagStore(classDef['tags'], 'virtualMethods')
+        if virtualMethods and fieldName in self.tagListItems(virtualMethods[0]):
+            inheritMode = 'virtual'
         # TODO: But it should NOT be virtual if there are no calls of the function from a pointer to the base class
         if not progSpec.doesParentClassImplementFunc(self.classStore, className, fieldID) and progSpec.doesChildClassImplementFunc(self.classStore, className, fieldID):
             inheritMode = 'virtual'
@@ -2489,6 +2496,9 @@ class CodeGenerator(object):
         cvrtType     = self.convertType(tSpec, 'func', genericArgs)
         if(cvrtType=='none'): cvrtType = ''
         [structCode, funcDefCode, globalFuncs]=self.xlator.codeFuncHeaderStr(className, fieldName, field, cvrtType, paramListText, self.localArgsAllocated, inheritMode, typeArgList, self.isNestedClass, overRideOper, isStatic, indent)
+        if className == 'GLOBAL' and self.exportInterface and fieldName in ['initialize', 'deinitialize']:
+            exportName = progSpec.fetchTagValue([self.tagStore, self.buildTags], 'FileName')
+            globalFuncs = globalFuncs.replace(' ' + fieldName + '(', ' ' + exportName + '_' + fieldName + '(')
         #### FUNC BODY #############################################
         if abstractFunction: # i.e., if no function body is given.
             cdlog(5, "Function "+fieldID+" has no implementation defined.")
@@ -2517,6 +2527,16 @@ class CodeGenerator(object):
                 if globalFuncs!='': self.ForwardDeclsForGlobalFuncs += globalFuncs+";       \t\t // Forward Decl\n"
             else: cdErr("ERROR: In codeFields: no funcText or funcTextVerbatim found")
 
+        if className == 'GLOBAL' and self.linkedInterface and fieldName in ['initialize', 'deinitialize']:
+            interface = self.linkedInterface
+            call = interface['name'] + '_' + fieldName + ('(prgArgs);' if fieldName == 'initialize' else '();')
+            if fieldName == 'initialize':
+                call = interface['abi'] + '();\n    ' + call
+            if fieldName == 'initialize':
+                funcText = funcText.replace('{', '{\n    ' + call, 1)
+            else:
+                closing = funcText.rfind('}')
+                funcText = funcText[:closing] + '    ' + call + '\n' + funcText[closing:]
         if self.xlator.funcsDefInClass or self.isNestedClass: structCode += funcText
         elif(className=='GLOBAL'):
             if(fieldName=='main'): funcDefCode += funcText
@@ -2605,6 +2625,9 @@ class CodeGenerator(object):
         typeArgList = progSpec.getTypeArgList(className)
         genericArgs = progSpec.getGenericArgs(classDef)
         for field in progSpec.generateListOfFieldsToImplement(self.classStore, className):
+            if (className == 'GLOBAL' and self.linkedInterface and
+                    field['fieldID'] in self.linkedInterface['globals']):
+                continue
             ################################################################
             ### extracting FIELD data
             ################################################################
@@ -2628,6 +2651,16 @@ class CodeGenerator(object):
                     comment = field['comment']
                     commentStr = self.codeComment(comment[0], comment[1], indent)
                     structCode = commentStr + "\n" + structCode
+                if className == 'GLOBAL' and self.exportInterface:
+                    declaration = ''
+                    if progSpec.getParamList(tSpec) is None:
+                        if progSpec.getOwner(tSpec) == 'const':
+                            declaration = structCode.replace('static ', 'inline ', 1)
+                            structCode = ''
+                        else:
+                            declaration = 'extern ' + self.convertType(tSpec, 'var', genericArgs) + ' ' + field['fieldName'] + ';\n'
+                    if field['fieldName'] not in ['initialize', 'deinitialize']:
+                        self.interfaceGlobals[field['fieldID']] = declaration
                 ## Accumulate field code
                 structCodeAcc     += structCode
                 funcDefCodeAcc    += funcDefCode
@@ -3071,7 +3104,10 @@ class CodeGenerator(object):
         header += "\n// Build Command: " +buildStr+'\n\n'
         header += self.libEmbedAboveIncludes
         header += self.libInterfacesText
-        header += self.xlator.addSpecialCode(filename)
+        if self.linkedInterface:
+            header += '#include "' + os.path.join(self.linkedInterface['directory'], self.linkedInterface['header']) + '"\n'
+        else:
+            header += self.xlator.addSpecialCode(filename)
         return header
 
     [libInitCodeAcc,  libDeinitCodeAcc] = ['', '']
@@ -3107,6 +3143,8 @@ class CodeGenerator(object):
         # TODO: Choose static or dynamic linking based on defaults, license tags, availability, etc.
         if libID in tagsFromLibFiles:
             libFileTags = tagsFromLibFiles[libID]
+            if self.linkedInterface and os.path.basename(libID) in self.linkedInterface['libraries']:
+                return ['', '']
             if 'embedAboveIncludes'in libFileTags: self.libEmbedAboveIncludes+= libFileTags['embedAboveIncludes']
             if 'embedVeryHigh'     in libFileTags: self.libEmbedVeryHigh     += libFileTags['embedVeryHigh']
             if 'embedHigh'         in libFileTags: self.libEmbedCodeHigh     += libFileTags['embedHigh']
@@ -3174,6 +3212,8 @@ class CodeGenerator(object):
 
     def appendGLOBALInitCode(self, tags):
         for field in progSpec.generateListOfFieldsToImplement(self.classStore, "GLOBAL"):
+            if self.linkedInterface and field['fieldID'] in self.linkedInterface['globals']:
+                continue
             isAllocated = field['isAllocated']
             if isAllocated:
                 fieldName =field['fieldName']
@@ -3223,6 +3263,12 @@ class CodeGenerator(object):
         for className in structsToImplement:
             typeArgList = progSpec.getTypeArgList(className)
             if(not self.xlator.doesLangHaveGlobals or className != 'GLOBAL') and (self.xlator.renderGenerics=='False' or typeArgList == None):
+                if self.linkedInterface and className in self.linkedInterface['classes']:
+                    expected = self.linkedInterface['classes'][className]
+                    actual = classRecords.get(className)
+                    if not isinstance(actual, list) or actual[2] != expected:
+                        cdErr('Linked library declaration changed for ' + className + '. Rebuild the library interface first; client extensions of exported classes require an explicit API.')
+                    continue
                 if className in classRecords and not isinstance(classRecords[className],str): # if not 'skip'
                     classRecord    = classRecords[className]
                     constsEnums   += classRecord[0]
@@ -3248,6 +3294,29 @@ class CodeGenerator(object):
                     )
                 )
                 oneFileTF = True
+
+        if self.exportInterface:
+            if progSpec.fetchTagValue(tags, 'Lang') != 'CPP':
+                cdErr('ExportInterface currently requires C++.')
+            name = progSpec.fetchTagValue(tags, 'FileName')
+            headerFilename = name + '.hpp'
+            header = self.makeFileHeader(tags, headerFilename)
+            public = ('#pragma once\n' + self.makeHeaderSafeDefinitions(header) + constsEnums +
+                      forwardDecls + self.funcDeclAcc + self.makeHeaderSafeDefinitions(self.libEmbedVeryHigh) +
+                      structCodeAcc + self.ForwardDeclsForGlobalFuncs +
+                      ''.join(self.interfaceGlobals.values()))
+            abi = name + '_abi_' + hashlib.sha256(public.encode()).hexdigest()[:20]
+            public += '\nextern "C" void ' + abi + '();\n'
+            manifest = {'name': name, 'header': headerFilename, 'abi': abi,
+                        'libraries': [os.path.basename(lib) for lib in self.interfaceLibraries],
+                        'classes': {key: record[2] for key, record in classRecords.items()
+                                    if isinstance(record, list) and key != 'GLOBAL'},
+                        'globals': self.interfaceGlobals}
+            implementation = ('#include "' + headerFilename + '"\n' + self.libEmbedCodeHigh +
+                              MainTopBottom[0] + funcCodeAcc + self.funcDefnAcc + self.libEmbedCodeLow +
+                              MainTopBottom[1] + '\nextern "C" void ' + abi + '() {}\n')
+            return [[headerFilename, public], [name + '.cpp', implementation],
+                    [name + '.interface.json', json.dumps(manifest, indent=2) + '\n']]
 
         if oneFileTF: # Generate a single source file
             filename = self.makeTagText(tags, 'FileName')+fileExtension
@@ -3299,6 +3368,9 @@ class CodeGenerator(object):
         return classRecordsOut
 
     def clearBuild(self):
+        self.exportInterface = False
+        self.linkedInterface = None
+        self.interfaceGlobals = {}
         self.localVarsAllocated = []
         self.localArgsAllocated = []
         self.currentObjName=''
@@ -3326,7 +3398,25 @@ class CodeGenerator(object):
         self.classStore=classes
         self.tagStore=tags[0]
         self.buildTags=tags[1] if len(tags) > 1 else {}
+        self.exportInterface = progSpec.fetchTagValue(tags, 'ExportInterface') == 'true'
+        self.linkedInterface = None
+        linkedPath = progSpec.fetchTagValue(tags, 'LinkedInterface')
+        if self.exportInterface or linkedPath:
+            if progSpec.fetchTagValue(tags, 'Lang') != 'CPP' or progSpec.fetchTagValue(tags, 'Platform') != 'Linux':
+                cdErr('Shared interfaces currently require Linux C++.')
+        if self.exportInterface:
+            if progSpec.fetchTagValue(tags, 'ProgramOrLibrary') != 'sharedlibrary':
+                cdErr('ExportInterface requires ProgramOrLibrary=sharedlibrary.')
+        if linkedPath:
+            try:
+                with open(linkedPath) as source:
+                    self.linkedInterface = json.load(source)
+            except (OSError, ValueError) as error:
+                cdErr('Cannot read LinkedInterface ' + str(linkedPath) + ': ' + str(error) + '. Build the shared-library target first.')
+            self.linkedInterface['directory'] = os.path.dirname(os.path.abspath(linkedPath))
+        self.interfaceGlobals = {}
         # self.buildStr_libs +=  progSpec.fetchTagValue(tags, "FileName")
+        self.interfaceLibraries = libsToUse
         self.libInterfacesText=self.connectLibraries(tags, libsToUse)
         self.applyPatterns(classes, tags)
         cdlog(0, "\n##############  G E N E R A T I N G   "+langName+"   C O D E . . .")

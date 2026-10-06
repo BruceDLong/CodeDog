@@ -861,6 +861,15 @@ def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
     buildStr = getBuildSting(fileName,libStr,platform,buildName)
     runStr = "./" + fileName
     SconsFileOut += '    )\n'
+    if buildTags and buildTags.get('LinkedInterface'):
+        import json
+        interfacePath = os.path.abspath(buildTags['LinkedInterface'])
+        with open(interfacePath) as source:
+            interface = json.load(source)
+        libraryDirectory = os.path.dirname(interfacePath)
+        sconsConfigs += 'env.Append(LINKFLAGS=["-Wl,-z,now"], LIBPATH=' + repr([libraryDirectory]) + ', RPATH=' + repr([libraryDirectory]) + ', LIBS=' + repr([interface['name']]) + ')\n'
+    if buildTags and buildTags.get('ExportInterface') == 'true':
+        sconsConfigs += 'env.Append(LINKFLAGS=["-Wl,--no-undefined"])\n'
     SconsFile += sconsCppPaths + sconsLibPaths + sconsLibs + sconsConfigs + SconsFileOut + '\n'
     sconsFilename = fileName+".scons"
     buildStatus("Writing SCons build script for {}".format(fileName))
