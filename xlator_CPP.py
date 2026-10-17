@@ -856,6 +856,10 @@ class Xlator_CPP(Xlator):
     def adjustConditional(self, S2, conditionType):
         return [S2, conditionType]
 
+    def codeSharedUseCount(self, value):
+        # Inspect the pointer itself without a temporary shared_ptr copy.
+        return '(' + value + ').use_count()'
+
     def codeSpecialReference(self, segSpec, genericArgs):
         S=''
         fType='void'   # default to void

@@ -1,0 +1,52 @@
+LocalBuild: Platform='Local';
+FileName = "sharedOwnership"
+ProgramOrLibrary = "program"
+featuresNeeded = [CodeDog]
+runCode = `
+    our Token: empty
+    check(sharedUseCount(empty)==0, "empty pointer")
+    our Token:: token
+    check(sharedUseCount(token)==1, "sole owner and no inspection copy")
+    our Token: alias <- token
+    check(sharedUseCount(token)==2 and sharedUseCount(alias)==2, "shared aliases")
+    alias <- NULL
+    check(sharedUseCount(token)==1 and sharedUseCount(alias)==0, "released alias")
+    our Holder:: holder
+    holder!.token <- token
+    check(sharedUseCount(holder!.token)==2, "nested field")
+    our Holder: sameHolder <- holder
+    check(sharedUseCount(token)==2, "holder alias does not copy its token")
+    holder <- NULL
+    check(sharedUseCount(token)==2, "holder remains alive through alias")
+    sameHolder <- NULL
+    check(sharedUseCount(token)==1, "holder destruction releases token")
+    {
+        me Holder: scoped
+        scoped.token <- token
+        check(sharedUseCount(token)==2, "scoped owner")
+    }
+    check(sharedUseCount(token)==1, "scope exit releases token")
+    me List<our Token>: tokens
+    tokens.append(token)
+    check(sharedUseCount(tokens[0])==2, "container element inspection")
+    tokens.clear()
+    check(sharedUseCount(token)==1, "container release")
+    check(sharedUseCount(makeToken())==1, "temporary result")
+    check(calls==1, "argument evaluated once")
+    if(failures!=0){exit(1)}
+    print("PASS: shared ownership\n")
+`
+struct Token {}
+struct Holder {our Token: token}
+struct GLOBAL {
+    me int: failures <- 0
+    me int: calls <- 0
+    void: check(me bool: condition, me string: message) <- {
+        if(!condition){failures <+- 1; print("FAIL: "+message+"\n")}
+    }
+    our Token: makeToken() <- {
+        calls <+- 1
+        our Token:: token
+        return(token)
+    }
+}

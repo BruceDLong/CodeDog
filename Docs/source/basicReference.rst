@@ -322,6 +322,28 @@ In CodeDog memory releasing is done for you, so you won't be manually releasing 
 
 The ownership types of "my" and "we" are intended for more advanced use cases and will be explained later.
 
+Shared ownership count
+~~~~~~~~~~~~~~~~~~~~~~
+
+``sharedUseCount(value)`` returns an ``int64`` count of the shared owners of an
+``our`` value. An empty ``our`` value has count zero. Inspecting an existing
+pointer does not copy it or add an owner; the argument is evaluated once.
+
+.. code-block:: codeDog
+
+    our Widget:: widget
+    our Widget: alias <- widget
+    // Both variables hold the same object, so this is 2.
+    me int64: owners <- sharedUseCount(widget)
+
+The operation currently requires the C++ backend. Other backends, values with
+other ownership types, and a bare ``NULL`` argument are rejected during CodeDog
+generation. To inspect an empty pointer, use a typed ``our`` variable.
+
+The count is an observation, not a synchronization primitive. If decisions such
+as cache eviction depend on it, protect the decision and changes to ownership
+with the appropriate application lock.
+
 Basic Data Types
 ****************
 

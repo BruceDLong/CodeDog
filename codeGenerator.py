@@ -94,7 +94,19 @@ class CodeGenerator(object):
     def CheckBuiltinItems(self, currentObjName, segSpec, genericArgs):
         # Handle print, return, break, etc.
         itemName=segSpec[0]
-        [code, retOwner, retType]=self.xlator.codeSpecialReference(segSpec, genericArgs)
+        if itemName == 'sharedUseCount':
+            argList = segSpec[2] if len(segSpec) > 2 else []
+            if len(argList) != 1:
+                cdErr("sharedUseCount() requires exactly one 'our' argument.")
+            value, valueType = self.codeExpr(argList[0][0], None, None, 'ARG', genericArgs)
+            if not isinstance(valueType, dict) or progSpec.getOwner(valueType) != 'our':
+                cdErr("sharedUseCount() requires an 'our' value.")
+            emitCount = getattr(self.xlator, 'codeSharedUseCount', None)
+            if emitCount is None:
+                cdErr("sharedUseCount() is not supported by the {} backend.".format(self.xlator.LanguageName))
+            code, retOwner, retType = emitCount(value), 'me', 'int64'
+        else:
+            [code, retOwner, retType]=self.xlator.codeSpecialReference(segSpec, genericArgs)
         if code == '': return None
         if itemName=='self':
             classDef =  progSpec.findSpecOf(self.classStore[0], currentObjName, "struct")
