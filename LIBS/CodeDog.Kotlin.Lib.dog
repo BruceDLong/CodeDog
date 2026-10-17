@@ -19,6 +19,8 @@ initCode = ""
 deinitCode = ""
 
 struct GLOBAL{
+    void: throwInvalidArgument(me string: message) <- <%!%Gthrow IllegalArgumentException(%1)%>
+    void: throwOverflowError(me string: message) <- <%!%Gthrow ArithmeticException(%1)%>
     we GLOBAL: static_Global
     me Random: javaRandomVar
 

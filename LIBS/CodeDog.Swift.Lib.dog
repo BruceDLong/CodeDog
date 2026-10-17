@@ -45,6 +45,12 @@ struct FileStream{
 }
 
 struct GLOBAL{
+    void: throwInvalidArgument(me string: message): throws=true <- <%{
+        throw NSError(domain: "CodeDog.InvalidArgument", code: 1, userInfo: [NSLocalizedDescriptionKey: message])
+    }%>
+    void: throwOverflowError(me string: message): throws=true <- <%{
+        throw NSError(domain: "CodeDog.Overflow", code: 2, userInfo: [NSLocalizedDescriptionKey: message])
+    }%>
     //me string: readAssetAsString(me string: filename)         <- {}
     //me string: wideCharToMultibyte(me int:ch)                 <- {}
     void: trimLeftWS(their string: str)                         <- {}

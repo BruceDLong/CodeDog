@@ -734,6 +734,16 @@ class Xlator_Swift(Xlator):
         return LHS + " += " + RHS
 
     ######################################################
+    def codeTryCatch(self, tryText, catchText, errorName, nativeName, indent):
+        code = indent + 'do ' + tryText + indent + 'catch let ' + nativeName + ' '
+        if errorName:
+            binding = indent + '    var ' + errorName + ': String = ' + nativeName + '.localizedDescription\n'
+            catchText = '{\n' + binding + catchText[2:]
+        return code + catchText
+
+    def codeThrowingCall(self, expression):
+        return '(try ' + expression + ')'
+
     def codeProtectBlock(self, mutex, criticalText, indent):
         return(criticalText)
 
@@ -1097,6 +1107,7 @@ class Xlator_Swift(Xlator):
             for typeArg in typeArgList:
                 if cvrtType == typeArg: cvrtType = '['+cvrtType+']'
         if cvrtType!='': cvrtType = '-> '+cvrtType
+        if tSpec.get('throws'): cvrtType = 'throws ' + cvrtType
         if(className=='AppDelegate'):
             if fieldName=='application':
                 structCode += '    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplicationLaunchOptionsKey: Any]?) -> Bool '

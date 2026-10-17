@@ -524,6 +524,73 @@ switch
 
 Switch cases do not need to have a break at the end.
 
+Exception handling
+^^^^^^^^^^^^^^^^^^
+
+Use ``try`` followed by one ``catch`` block to handle exceptions from CodeDog
+functions or native libraries::
+
+    try {
+        throwInvalidArgument("The number is invalid")
+    } catch(error) {
+        print("Could not finish: ", error, "\n")
+    }
+
+``error`` is a string containing the exception message, local to the catch
+block. Choose any identifier for this variable, or omit the parentheses and
+variable with ``catch { ... }``. This first version has one general handler;
+typed catches, ``finally``, and rethrow syntax are not supported.
+
+After an exception, remaining statements in the try block are skipped. If the
+handler finishes normally, execution continues after it. Exceptions raised by
+the handler propagate to an enclosing try block or the caller. Blocks may be
+nested, and ``return``, ``break``, and ``continue`` keep their normal meaning.
+Handling an exception does not roll back changes already made.
+
+The implementations use C++ ``try/catch``, Java and Kotlin ``try/catch``, and
+Swift ``do/catch``. C++ catches ``std::exception`` using ``what()`` and also
+catches other thrown values with the message ``Unknown native exception``.
+Java and Kotlin catch ``Exception`` (including checked and runtime exceptions),
+but do not catch JVM ``Error`` subclasses. Swift catches Swift ``Error`` values
+and exposes their localized descriptions; it does not catch Objective-C
+``NSException``, fatal errors, or runtime traps. Process termination and memory
+faults are not portable catchable exceptions.
+
+See :doc:`backendIssues` for the current full-build and synchronization
+limitations of the backend libraries.
+
+Throwing functions and native bindings
+*************************************
+
+``throwInvalidArgument(message)`` and ``throwOverflowError(message)`` are
+available on all four backends. For a function that propagates exceptions to
+its caller, use the function tag ``throws=true``::
+
+    void: validate(): throws=true <- {
+        throwInvalidArgument("Invalid input")
+    }
+
+    void: run() <- {
+        try {validate()} catch(error) {print(error)}
+    }
+
+This tag generates Java's ``throws Exception`` declaration and Swift's
+``throws`` declaration. Swift calls to tagged functions receive ``try``
+automatically, including native conversion bindings and calls in expressions.
+C++ and Kotlin need no corresponding declaration. A function which catches
+all its errors locally does not need the tag. Java and Swift's compilers
+enforce handling or propagation; ``throws=true`` is not a proof that no other
+native failure can occur on other backends.
+
+Tag native Swift bindings which invoke throwing APIs as well. For example,
+this binding returns the contents of a UTF-8 file::
+
+    me string: readNativeText(me string: path): throws=true <-
+        <%!%GString(contentsOfFile: %1, encoding: .utf8)%>
+
+For a verbatim Swift function body, write native ``try`` inside the body as
+usual; CodeDog only generates ``try`` for its own call expressions.
+
 Repetition Actions
 ^^^^^^^^^^^^^^^^^^
 

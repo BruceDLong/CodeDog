@@ -27,8 +27,8 @@ struct ErrorProbe {
     }
 }
 '''
-        # CodeDog has no catch syntax. Observe its generated methods from the
-        # native caller boundary without adding native CodeDog assertion bodies.
+        # Observe uncaught errors at the native caller boundary independently
+        # of CodeDog handlers, including the original exception type/message.
         driver = r'''
 #define main generatedMain
 #include "LocalBuild/standardErrors.cpp"

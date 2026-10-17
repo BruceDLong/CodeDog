@@ -767,6 +767,13 @@ class Xlator_Kotlin(Xlator_Java):
         return S
 
     ###################################################### STATEMENTS / MISC
+    def codeTryCatch(self, tryText, catchText, errorName, nativeName, indent):
+        code = indent + 'try ' + tryText + indent + 'catch (' + nativeName + ': Exception) '
+        if errorName:
+            binding = indent + '    var ' + errorName + ': String = ' + nativeName + '.message ?: ' + nativeName + '.toString()\n'
+            catchText = '{\n' + binding + catchText[2:]
+        return code + catchText
+
     def codeSetBits(self, LHS_Left, LHS_FieldType, prefix, bitMask, RHS, rhsType):
         item = LHS_Left + "flags"
         if LHS_FieldType == "flag":

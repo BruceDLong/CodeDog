@@ -962,6 +962,17 @@ class Xlator_CPP(Xlator):
         return ''
 
     ############################################
+    def codeTryCatch(self, tryText, catchText, errorName, nativeName, indent):
+        code = indent + 'try ' + tryText
+        if errorName:
+            binding = indent + '    std::string ' + errorName + ' = ' + nativeName + '.what();\n'
+            code += indent + 'catch (const std::exception& ' + nativeName + ') {\n' + binding + catchText[2:]
+            binding = indent + '    std::string ' + errorName + ' = "Unknown native exception";\n'
+            code += indent + 'catch (...) {\n' + binding + catchText[2:]
+        else:
+            code += indent + 'catch (...) ' + catchText
+        return code
+
     def codeProtectBlock(self, mutex, criticalText, indent):
         S = indent+'{\n'
         # Infer the lockable type, including recursive mutexes and dereferenced pointers.

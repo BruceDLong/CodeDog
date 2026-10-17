@@ -151,7 +151,7 @@ reservedWordSet = set([
     "and", "or", "true", "false",
     "if", "else", "but", "switch", "case", "default", "void",
     "while", "withEach", "where", "until",
-    "protect", "do", "mode", "flag",
+    "protect", "try", "catch", "do", "mode", "flag",
    # "Forward", "Backward", "Preorder", "Inorder", "Postorder", "BreadthFirst", "DF_Iterative",
    # "keys", "index", "iters", "key", "value", "entry", "index", "iter", "FILE",
    # "void", "bool", "int32", "int64", "double", "char", "uint32", "uint64", "string", "int",
@@ -274,6 +274,11 @@ conditionalAction <<= Group(
             + Optional(Group((Keyword("else") | Keyword("but")) + Group(actionSeq | conditionalAction)("elseBody"))("optionalElse"))
         )("conditionalAction")
 protectAction  = Group(Keyword("protect")("protectStmt") - "(" + rValue("mutex") + ")" + actionSeq("criticalSection"))("protectAction")
+tryAction = Group(
+    Keyword("try")("tryStmt") - actionSeq("tryBody")
+    + Keyword("catch") - Optional(Suppress("(") + ~FollowedBy(Word(nums)) + identifier("errorName") + Suppress(")"))
+    + actionSeq("catchBody")
+)("tryAction")
 
 ########################################   R E P E A T E D   A C T I O N S
 # "withEach n in range startExpr ..= endExpr"
@@ -317,7 +322,7 @@ withEachAction = Group(
 
 action         = Group((assign("assign") | swap('swap') | incDecAction("incDecAction") | varRef("funcCall") | fieldDef('fieldDef'))) + Optional(";").suppress()
 actComment     = Group(Combine(r"//:"- Word(alphanums + r"/")("filterTag") + r"::")("actComment") + action)
-actionSeq    <<= Group(Literal("{")("actSeqID") + (ZeroOrMore(switchStmt | conditionalAction | withEachAction | whileAction | protectAction | actionSeq | action | actComment))("actionList") + "}")("actionSeq").setName("loop body '{ ... }'")
+actionSeq    <<= Group(Literal("{")("actSeqID") + (ZeroOrMore(switchStmt | conditionalAction | withEachAction | whileAction | protectAction | tryAction | actionSeq | action | actComment))("actionList") + "}")("actionSeq").setName("loop body '{ ... }'")
 funcBody       = Group(actionSeq | rValueVerbatim)("funcBody")
 
 #########################################   F I E L D   D E S C R I P T I O N S
@@ -327,7 +332,7 @@ nameAndVal   = Group(
         | (":" + CID("fieldName") + nameTypeArgList + Group(initArgs)("arguments"))
         | (":" + CID("fieldName") + nameTypeArgList + "<-" + (rValue("givenValue") | funcBody))
         | (":" + "<-" - (rValue("givenValue") | funcBody))
-        | (":" + CID("fieldName") + nameTypeArgList + Optional("(" + paramList + Literal(")")('paramListTag')) - ~Word("{"))
+        | (":" + CID("fieldName") + nameTypeArgList + Optional("(" + paramList + Literal(")")('paramListTag')) - ~Word("{") + Optional(Literal(":")("optionalTag") + tagDefList))
         | (Literal("::")('allocDoubleColon') + CID("fieldName") + Group(initArgs)("arguments"))
         | (Literal("::")('allocDoubleColon') + CID("fieldName") + "<-" - (rValue("givenValue")))
         | (Literal("::")('deprecateDoubleColon') + CID("fieldName") + Group(arguments)("arguments"))# deprecated
@@ -382,6 +387,7 @@ withEachAction.set_name("withEach loop")
 actionSeq.set_name("action sequence block")
 conditionalAction.set_name("if/else conditional")
 protectAction.set_name("protected block")
+tryAction.set_name("try/catch statement")
 funcBody.set_name("function body")
 classDef.set_name("class definition")
 action.setName("action statement")
@@ -758,6 +764,11 @@ def packFieldDef(fieldResult, className, indent, comment=None):
     if len(innerDefs)>0:   fieldDef['innerDefs']  = innerDefs
     if coFactuals!=None:   fieldDef['coFactuals'] = coFactuals
     if optionalTags!=None: fieldDef['tags']       = optionalTags
+    if optionalTags is not None and 'throws' in optionalTags:
+        throws = optionalTags['throws']
+        if throws not in ('true', 'false') or paramList is None:
+            cdErr("The throws tag must be true or false and may only annotate a function.")
+        fieldDef['typeSpec']['throws'] = throws == 'true'
     if nameTypeArgs!=None: fieldDef['nameTypeArgs'] = nameTypeArgs
     if packedReqTags!=None: fieldDef['typeSpec']['reqTags'] = packedReqTags
     if comment!=None:      fieldDef['comment']    = comment
@@ -955,6 +966,13 @@ def extractActItem(funcName, actionItem):
 
         progSpec.appendToFuncsCalled(calledFuncName, calledFuncParams)
 # Function Call
+    elif actionItem.tryStmt:
+        thisActionItem = {
+            'typeOfAction': 'try',
+            'tryBody': extractActSeq(funcName, actionItem.tryBody),
+            'errorName': actionItem.errorName or None,
+            'catchBody': extractActSeq(funcName, actionItem.catchBody),
+        }
     elif actionItem.protectStmt:
         protectStmt     = actionItem.protectStmt
         mutex           = actionItem.mutex

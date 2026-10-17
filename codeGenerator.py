@@ -36,6 +36,7 @@ class CodeGenerator(object):
     tagStore           = None
     localVarsAllocated = []   # Format: [varName, typeSpec]
     localArgsAllocated = []   # Format: [varName, typeSpec]
+    throwingCallCount = 0
     currentObjName     = ''
     currentDefinitionLibLevel = 1
     currentDefinitionLibName = None
@@ -1655,6 +1656,9 @@ class CodeGenerator(object):
 
             # Language specific dereferencing of ->[...], etc.
             S = self.xlator.LanguageSpecificDecorations(S, segTSpec, owner, LorRorP_Val)
+            if len(segSpec) > 1 and segSpec[1] == '(' and isinstance(segTSpec, dict) and segTSpec.get('throws'):
+                self.throwingCallCount += 1
+                S = self.xlator.codeThrowingCall(S)
             previousSegName = segName
             previousTypeSpec = segTSpec
             segIDX+=1
@@ -1899,9 +1903,13 @@ class CodeGenerator(object):
             [S, retTypeSpec] = self.codeBoolContextOperand(S, retTypeSpec)
             for i in item[1]:
                 if (i[0] == 'and'):
+                    throwsBefore = self.throwingCallCount
                     [S2, retType2] = self.codeBitwiseOr(i[1], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
                     [S2, retType2] = self.codeBoolContextOperand(S2, retType2)
                     S+=' && ' + S2
+                    # Swift's short-circuit operator rethrows its RHS autoclosure.
+                    if self.throwingCallCount != throwsBefore:
+                        S = self.xlator.codeThrowingCall(S)
                 else: cdErr("'and' expected in code generator.")
                 retTypeSpec = {'owner': 'me', 'fieldType': 'bool'}
         return [S, retTypeSpec]
@@ -1912,9 +1920,12 @@ class CodeGenerator(object):
             [S, retTypeSpec] = self.codeBoolContextOperand(S, retTypeSpec)
             for i in item[1]:
                 if (i[0] == 'or'):
+                    throwsBefore = self.throwingCallCount
                     [S2, retType2] = self.codeLogicalAnd(i[1], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
                     [S2, retType2] = self.codeBoolContextOperand(S2, retType2)
                     S+=' || ' + S2
+                    if self.throwingCallCount != throwsBefore:
+                        S = self.xlator.codeThrowingCall(S)
                 else: cdErr("'or' expected in code generator.")
                 retTypeSpec = {'owner': 'me', 'fieldType': 'bool'}
         return [S, retTypeSpec]
@@ -2299,6 +2310,31 @@ class CodeGenerator(object):
                 actionListText += actionListOut
             blockPrefix = self.xlator.blockPrefix
             actionText += indent + blockPrefix + "{\n" + actionListText + indent + '}\n'
+        elif typeOfAction == 'try':
+            tryText = self.codeActionSeq(action['tryBody'], indent, returnType, genericArgs)
+            errorName = action['errorName']
+            # The catch variable belongs only to its handler, not to the try or
+            # following statements. Restore the scope even on a diagnostic.
+            scopeStart = len(self.localVarsAllocated)
+            occupiedNames = repr(action) + repr(self.localVarsAllocated) + repr(self.localArgsAllocated)
+            messageName = 'cdCatchMessage'
+            while messageName in occupiedNames:
+                messageName += '_'
+            if errorName:
+                self.localVarsAllocated.append([errorName, {
+                    'owner': 'me', 'fieldType': 'string', 'arraySpec': None, 'paramList': None,
+                    'codeConverter': messageName,
+                }])
+            try:
+                catchText = self.codeActionSeq(action['catchBody'], indent, returnType, genericArgs)
+            finally:
+                del self.localVarsAllocated[scopeStart:]
+            # Choose an internal name absent from both generated blocks so it
+            # cannot shadow user variables or another catch parameter.
+            nativeName = 'cdCaughtException'
+            while nativeName in occupiedNames + tryText + catchText:
+                nativeName += '_'
+            actionText = self.xlator.codeTryCatch(tryText, catchText, messageName if errorName else None, nativeName, indent)
         elif (typeOfAction =='protect'):
             cdlog(5, "Protect Statement")
             mutex           = action['mutex'][0]
@@ -3395,6 +3431,7 @@ class CodeGenerator(object):
         self.interfaceGlobals = {}
         self.localVarsAllocated = []
         self.localArgsAllocated = []
+        self.throwingCallCount = 0
         self.currentObjName=''
         self.currentDefinitionLibLevel = 1
         self.currentDefinitionLibName = None

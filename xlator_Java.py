@@ -861,6 +861,14 @@ class Xlator_Java(Xlator):
         return S
 
     ############################################
+    def codeTryCatch(self, tryText, catchText, errorName, nativeName, indent):
+        code = indent + 'try ' + tryText + indent + 'catch (Exception ' + nativeName + ') '
+        if errorName:
+            binding = indent + '    String ' + errorName + ' = ' + nativeName + '.getMessage();\n'
+            binding += indent + '    if (' + errorName + ' == null) ' + errorName + ' = ' + nativeName + '.toString();\n'
+            catchText = '{\n' + binding + catchText[2:]
+        return code + catchText
+
     def codeProtectBlock(self, mutex, criticalText, indent):
         S = indent+'{\n'
         S += indent+'    MutexMngr mtxMgr = new MutexMngr('+mutex+');\n'
@@ -1132,7 +1140,8 @@ class Xlator_Java(Xlator):
         else:
             if inheritMode=='pure-virtual': cvrtType = 'abstract '+cvrtType
             structCode += indent + "public " + cvrtType +' ' + fieldName +"("+paramListText+")"
-            if inheritMode=='pure-virtual': structCode += ";\n"
+        if tSpec.get('throws') and structCode.strip(): structCode += ' throws Exception'
+        if className != 'GLOBAL' and inheritMode=='pure-virtual': structCode += ";\n"
         if inheritMode=='override': pass
         return [structCode, funcDefCode, globalFuncs]
 

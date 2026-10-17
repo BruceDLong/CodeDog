@@ -123,6 +123,12 @@ class Xlator(object):
     def codeMain(self, classes, tags):
         cdErr("In base class Xlator::codeMain.")
 
+    def codeTryCatch(self, tryText, catchText, errorName, nativeName, indent):
+        cdErr("In base class Xlator::codeTryCatch.")
+
+    def codeThrowingCall(self, expression):
+        return expression
+
     def codeArgText(self, argFieldName, argType, argOwner, tSpec, makeConst, typeArgList):
         cdErr("In base class Xlator::codeArgText.")
 
