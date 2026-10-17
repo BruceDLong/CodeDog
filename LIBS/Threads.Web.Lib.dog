@@ -8,7 +8,7 @@ requirements = [
 interface={
     provides=[threads_implementation]
     libFiles=[pthread]
-    headers=[thread, mutex, condition_variable, atomic, sstream]
+    headers=[thread, type_traits, mutex, condition_variable, atomic, sstream]
 }
 
 LibDescription ={

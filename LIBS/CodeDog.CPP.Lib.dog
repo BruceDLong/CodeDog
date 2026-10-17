@@ -7,7 +7,7 @@ requirements = [
 interface={
     provides = [CodeDog_implementation]
     libFiles = []
-    headers  = [signal.h, atomic, string, cstring, memory, cstdint, list, deque, map, cstdarg, iostream, fstream, sys/stat.h, math.h, algorithm]
+    headers  = [stdexcept, signal.h, atomic, string, cstring, memory, cstdint, list, deque, map, cstdarg, iostream, fstream, sys/stat.h, math.h, algorithm]
 }
 
 LibDescription ={
@@ -47,7 +47,7 @@ struct FileStream{
     me void: close()     <- <%!close()%>
     me int:  getChar()   <- <%!get()%>
     me string: getLine() <- <%!_strm_getLine(&%0)%>
-    me void: write(me string: S) <- <%!write(%1.data(), %1.size())%>
+    me void: write(me string: S) <- <%!_strm_write(&%0, %1)%>
     me bool: EOF() <- <%!eof()%>
     me bool: failure() <- <%!fail()%>
     me bool: flush() <- <%!flush()%>
@@ -77,6 +77,9 @@ struct sessionFile{
     me void: closeReading() <- {session.close()}
 }
 struct GLOBAL{
+    void: _strm_write(their ostream: stream, me string: text) <- <%{
+        stream->write(text.data(), text.size());
+    }%>
     me string: _strm_getLine(their istream: strm) <- <%{
         string S;
         getline(*strm, S);
@@ -159,3 +162,11 @@ struct timeValue: wraps=int64{}
 struct DateValue: wraps=int64{}
 struct timeOfDay: wraps=int64{}
 struct DateTime:  wraps=int64{}
+
+struct UInt64Parser{
+    me bool: parseDigits(me string: text) <- <%{
+        try {value = std::stoull(text); return true;}
+        catch(const std::invalid_argument&) {return false;}
+        catch(const std::out_of_range&) {return false;}
+    }%>
+}

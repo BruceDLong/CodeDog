@@ -960,7 +960,8 @@ class Xlator_CPP(Xlator):
     ############################################
     def codeProtectBlock(self, mutex, criticalText, indent):
         S = indent+'{\n'
-        S += indent+'    Unique_Lock_Mutex mtxMgr('+mutex+');\n'
+        # Infer the lockable type, including recursive mutexes and dereferenced pointers.
+        S += indent+'    std::unique_lock<std::remove_reference<decltype('+mutex+')>::type> mtxMgr('+mutex+');\n'
         S += criticalText
         S += indent+'}\n'
         return(S)

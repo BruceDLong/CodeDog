@@ -131,3 +131,10 @@ struct DateValue: wraps=long{}
 struct timeOfDay: wraps=long{}
 struct DateTime:  wraps=long{}
 struct random:    wraps=Random{}
+
+struct UInt64Parser{
+    me bool: parseDigits(me string: text) <- <%{
+        try {value = Long.parseUnsignedLong(text); return true;}
+        catch(NumberFormatException e) {return false;}
+    }%>
+}

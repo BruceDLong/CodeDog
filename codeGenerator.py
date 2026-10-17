@@ -52,6 +52,14 @@ class CodeGenerator(object):
 
     def appendGlobalFuncAcc(self, decl, defn):
         if decl!="":
+            if not hasattr(self, 'globalFuncDefinitions'):
+                self.globalFuncDefinitions = {}
+            signature = decl.strip()
+            if signature in self.globalFuncDefinitions:
+                if self.globalFuncDefinitions[signature] != defn:
+                    cdErr("Conflicting generated callback: " + signature)
+                return
+            self.globalFuncDefinitions[signature] = defn
             self.funcDeclAcc+=decl+';      \t// Forward function declaration\n'
             self.funcDefnAcc+=decl+defn
 
@@ -3233,7 +3241,9 @@ class CodeGenerator(object):
         if 'initCode'   in tags[0]: initCode  = tags[0]['initCode']
         if 'deinitCode' in tags[0]: deinitCode= tags[0]['deinitCode']
         initCode += self.libInitCodeAcc
-        deinitCode = self.libDeinitCodeAcc + deinitCode
+        # Applications may need to stop workers before supporting libraries close.
+        # Keep the existing deinitCode ordering for programs without this hook.
+        deinitCode = tags[0].get('preDeinitCode', '') + '\n' + self.libDeinitCodeAcc + deinitCode
 
         GLOBAL_CODE="""
     struct GLOBAL{
@@ -3382,6 +3392,7 @@ class CodeGenerator(object):
         self.StaticMemberVars={}
         self.funcDeclAcc=''
         self.funcDefnAcc=''
+        self.globalFuncDefinitions = {}
         self.nestedClasses = {}
         self.nestedClassQualifiedNames = {}
         self.nestedClassByQualifiedName = {}

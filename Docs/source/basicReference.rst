@@ -120,6 +120,23 @@ There are several different types for tags.
  * A Map: ``defaultStyle = { bgColor=red font="times new roman" }``.  Note that a map is really just a list of tag definitions So they can contain other lists and maps as well.
 
 
+Application shutdown
+~~~~~~~~~~~~~~~~~~~~
+
+The top-level ``preDeinitCode`` tag runs at the start of generated
+``deinitialize()``, before library cleanup. Use it to stop application workers
+that still depend on networking or other library resources:
+
+.. code-block:: codeDog
+
+    preDeinitCode = `CORE.shutdown()`
+
+The existing ``deinitCode`` tag keeps its original position after local library
+cleanup. A linked shared library is deinitialized after the client's cleanup.
+These tags contain ordinary CodeDog statements and apply to every translator;
+they do not install platform window callbacks.
+
+
 Write your classes and apply any patterns
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 The third section of a CodeDog program is where classes for the program are defined.

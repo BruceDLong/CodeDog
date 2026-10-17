@@ -101,3 +101,11 @@ struct GLOBAL{  /////////  TYPE CONVERTERS  ////////////////////////////
 
 struct _atomic_uint64:wraps=uint64{}
 struct timeValue: wraps=Double{}
+
+struct UInt64Parser{
+    me bool: parseDigits(me string: text) <- <%{
+        guard let parsed = UInt64(text) else {return false}
+        value = parsed
+        return true
+    }%>
+}

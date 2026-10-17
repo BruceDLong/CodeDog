@@ -84,3 +84,10 @@ struct GLOBAL{  /////////  TYPE CONVERTERS  ////////////////////////////
 }
 
 struct _atomic_uint64: wraps=Long{}
+
+struct UInt64Parser{
+    me bool: parseDigits(me string: text) <- <%{
+        return try {value = java.lang.Long.parseUnsignedLong(arg_text); true}
+        catch(e: NumberFormatException) {false}
+    }%>
+}

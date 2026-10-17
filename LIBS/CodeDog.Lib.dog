@@ -165,6 +165,19 @@ struct GLOBAL{  /////////  TYPE CONVERTERS  ////////////////////////////
     me string: toString(me number_type: val)
 }
 
+// Strict ASCII decimal parsing over the full uint64 range. Failure leaves value
+// unchanged. A result object also works on targets without scalar out parameters.
+// JVM targets store uint64 in a signed long, preserving its unsigned bit pattern.
+struct UInt64Parser{
+    me uint64: value
+    me bool: parse(me string: text) <- {
+        if(text.size()==0){return(false)}
+        withEach ch in text{if(ch<"0" or ch>"9"){return(false)}}
+        return(parseDigits(text))
+    }
+    me bool: parseDigits(me string: text)
+}
+
 struct _atomic_uint64{}
 struct timeValue{}
 
