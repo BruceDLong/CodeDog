@@ -1,0 +1,81 @@
+LocalBuild: Platform='Local';
+FileName = "fileStreamModes"
+ProgramOrLibrary = "program"
+featuresNeeded = [CodeDog]
+runCode = `
+    checkMode("r"); checkMode("rb"); checkMode("r+"); checkMode("r+b"); checkMode("rb+")
+    checkMode("w"); checkMode("wb"); checkMode("w+"); checkMode("w+b"); checkMode("wb+")
+    checkMode("a"); checkMode("ab"); checkMode("a+"); checkMode("a+b"); checkMode("ab+")
+    invalidMode(""); invalidMode("x"); invalidMode("rw"); invalidMode("br")
+    invalidMode("r++"); invalidMode("wbb"); invalidMode("w+b+"); invalidMode("a ")
+    invalidMode("wt"); invalidMode("w+bjunk")
+    me FileStream: readOnly
+    readOnly.open("readonly.txt", "r")
+    check(!readOnly.failure() and readOnly.getLine()=="readonly", "read-only permissions")
+    readOnly.close()
+    me FileStream: noWrites
+    noWrites.open("readonly.txt", "r")
+    noWrites.write("changed")
+    check(noWrites.failure(), "read-only mode rejects writes")
+    noWrites.close()
+    me FileStream: legacy
+    legacy.open("legacy.txt")
+    check(!legacy.failure() and legacy.getLine()=="base", "legacy open can read")
+    legacy.write("tail\n"); check(!legacy.failure(), "legacy open can write")
+    legacy.close()
+    legacy.open("legacy-missing.txt")
+    check(legacy.failure(), "legacy open does not create missing file")
+    me FileStream: oldNew
+    oldNew.openNew("old-new.txt"); oldNew.write("new\n"); oldNew.close()
+    me FileStream: oldAppend
+    oldAppend.openAppend("old-append.txt"); oldAppend.write("tail\n"); oldAppend.close()
+    me FileStream: once
+    once.open(nextPath(), nextMode()); once.close()
+    check(pathCalls==1 and modeCalls==1, "open arguments evaluated once")
+    me FileStream: reopen
+    reopen.open("readonly.txt", "r")
+    reopen.getLine(); reopen.getLine()
+    check(reopen.EOF(), "reach EOF")
+    reopen.close(); reopen.open("readonly.txt", "r")
+    check(!reopen.failure() and reopen.getLine()=="readonly", "reopen clears previous EOF")
+    reopen.close()
+    if(failures!=0){exit(1)}
+    print("PASS: file stream modes\n")
+`
+struct GLOBAL {
+    me int: failures <- 0
+    me int: pathCalls <- 0
+    me int: modeCalls <- 0
+    void: check(me bool: condition, me string: message) <- {
+        if(!condition){failures <+- 1; print("FAIL: "+message+"\n")}
+    }
+    me string: nextPath() <- {pathCalls <+- 1; return("once.txt")}
+    me string: nextMode() <- {modeCalls <+- 1; return("r")}
+    void: invalidMode(me string: openMode) <- {
+        me FileStream: file
+        file.open("invalid.txt", openMode)
+        check(file.failure(), "invalid mode: "+openMode)
+    }
+    void: checkMode(me string: openMode) <- {
+        me bool: update <- openMode.size()>1 and (openMode[1]=="+" or (openMode.size()>2 and openMode[2]=="+"))
+        me FileStream: file
+        file.open("existing-"+openMode+".txt", openMode)
+        check(!file.failure(), "open existing: "+openMode)
+        if(openMode[0]=="r" and !update){
+            check(file.getLine()=="base", "read existing: "+openMode)
+        }else{
+            if(openMode[0]=="a" and update){check(file.getLine()=="base", "read append stream: "+openMode)}
+            file.write("new!\n")
+            check(!file.failure(), "write existing: "+openMode)
+        }
+        file.close()
+        me FileStream: missing
+        missing.open("missing-"+openMode+".txt", openMode)
+        if(openMode[0]=="r"){
+            check(missing.failure(), "read requires existing file: "+openMode)
+        }else{
+            check(!missing.failure(), "create file: "+openMode)
+            missing.write("created\n"); missing.close()
+        }
+    }
+}

@@ -7,7 +7,7 @@ requirements = [
 interface={
     provides = [CodeDog_implementation]
     libFiles = []
-    headers  = [stdexcept, signal.h, atomic, string, cstring, memory, cstdint, list, deque, map, cstdarg, iostream, fstream, sys/stat.h, math.h, algorithm]
+    headers  = [stdexcept, climits, signal.h, atomic, string, cstring, memory, cstdint, list, deque, map, cstdarg, iostream, fstream, sys/stat.h, math.h, algorithm]
 }
 
 LibDescription ={
@@ -42,6 +42,7 @@ embedVeryHigh = `
 struct FileStream{
     me fstream: FileStream
     me void: open(me string: filename) <- <%!open(%1)%>
+    me void: open(me string: filename, me string: openMode) <- <%!_strm_open(&%0, %1, %2)%>
     me void: openNew(me string: filename) <- <%!open(%1, std::ios::out|std::ios::trunc)%>
     me void: openAppend(me string: filename) <- <%!open(%1, ios_base::in | ios_base::out | ios_base::app)%>
     me void: close()     <- <%!close()%>
@@ -77,6 +78,29 @@ struct sessionFile{
     me void: closeReading() <- {session.close()}
 }
 struct GLOBAL{
+    // These bindings preserve recoverable errors and normal stack unwinding.
+    void: throwInvalidArgument(me string: message) <- <%!throw std::invalid_argument(%1)%>
+    void: throwOverflowError(me string: message) <- <%!throw std::overflow_error(%1)%>
+
+    void: _strm_open(their fstream: stream, me string: filename, me string: openMode) <- <%{
+        std::ios_base::openmode flags{};
+        if(openMode.empty()) {stream->setstate(std::ios::failbit); return;}
+        switch(openMode[0]) {
+            case 'r': flags = std::ios::in; break;
+            case 'w': flags = std::ios::out | std::ios::trunc; break;
+            case 'a': flags = std::ios::out | std::ios::app; break;
+            default: stream->setstate(std::ios::failbit); return;
+        }
+        bool update = false, binary = false;
+        for(size_t pos=1; pos<openMode.size(); ++pos) {
+            if(openMode[pos]=='+' && !update) update = true;
+            else if(openMode[pos]=='b' && !binary) binary = true;
+            else {stream->setstate(std::ios::failbit); return;}
+        }
+        if(update) flags |= std::ios::in | std::ios::out;
+        if(binary) flags |= std::ios::binary;
+        stream->open(filename, flags);
+    }%>
     void: _strm_write(their ostream: stream, me string: text) <- <%{
         stream->write(text.data(), text.size());
     }%>

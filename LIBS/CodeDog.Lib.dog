@@ -9,6 +9,8 @@ featuresNeeded = [List, Map, Logger, Multimap, Set]
 struct GLOBAL{
     const double: pi <- 3.1415926535897
     const int64: INT64_MAX
+    void: throwInvalidArgument(me string: message)
+    void: throwOverflowError(me string: message)
 
     me string: toString(me bool: tf) <- {
         if(tf){return("true")} else {return("false")}
@@ -269,6 +271,7 @@ struct stringScanner{
 
 struct FileStream{
     me void: open(me string: filename)
+    me void: open(me string: filename, me string: openMode)
     me void: openNew(me string: filename)
     me void: openAppend(me string: filename)
     me void: close()

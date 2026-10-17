@@ -91,3 +91,10 @@ struct UInt64Parser{
         catch(e: NumberFormatException) {false}
     }%>
 }
+
+// Preserve existing stream operations until explicit modes are implemented here.
+struct FileStream{
+    me void: open(me string: filename, me string: openMode) <- {
+        logFatalError("Explicit FileStream modes are not implemented by this backend")
+    }
+}
