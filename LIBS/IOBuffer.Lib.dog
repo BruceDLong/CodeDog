@@ -404,6 +404,8 @@ struct strBuf{
             txtItr!.goNext()
             charsUsed <+- 1
         }
+        // A separator needs following digits, including at end of input.
+        if(prevCH=="." or prevCH=="/"){return(charsUsed-1)}
         return(charsUsed)
     }
     me int64: scrapeAlphaNum_Seq(me int64: pos) <- {

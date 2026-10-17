@@ -396,6 +396,50 @@ struct InputProducer: inherits=Threads {
             self.assertEqual(result.stdout, '5')
 
 
+    @unittest.skipUnless(shutil.which('g++'), 'C++ compiler required')
+    def test_generated_decimal_input(self):
+        source = r'''
+LocalBuild: Platform='Local';
+FileName = "decimalInputProbe"
+ProgramOrLibrary = "program"
+featuresNeeded = [BigNumbers, IOBuffer]
+runCode = `
+    me FlexNum: number
+    me List<string>: inputs <- ["08", "010", "08/09", "0.25", "-001.25", "+008", "184467440737095516160"]
+    me List<string>: expected <- ["8", "10", "8/9", "0.25", "-1.25", "8", "184467440737095516160"]
+    withEach idx in range 0 .. inputs.size(){
+        if(!number.parseDecimal(inputs[idx]) or toString(number)!=expected[idx]){
+            print("bad conversion: "+inputs[idx]+" -> "+toString(number)+"\n")
+        }
+    }
+    number.parseDecimal("0.25")
+    me List<string>: invalid <- ["", "+", "-", "1/", "1.", ".5", "1/0", "0/0", "1/00", "1.2.3", "1.2/3", "1/-2", "0x10", " 1", "1 ", "1 2", "1a", "１２"]
+    withEach input in invalid{
+        if(number.parseDecimal(input)){print("accepted: "+input+"\n")}
+        if(toString(number)!="0.25" or number.decPlaces!=3){print("failed conversion changed value\n")}
+    }
+    number.parseDecimal("7")
+    if(number.decPlaces!=-1 or toString(number)!="7"){print("integer retained decimal precision\n")}
+    me List<string>: prefixes <- ["1/", "1/\n", "1.", "1. ", "08/09", "08/09 ", "1.25", "1.25 ", "123", "123 "]
+    me List<int>: lengths <- [1, 1, 1, 1, 5, 5, 4, 4, 3, 3]
+    withEach idx in range 0 .. prefixes.size(){
+        me strBuf: buffer; buffer.init("decimal-prefix")
+        buffer.putStr(prefixes[idx]); buffer.close()
+        if(buffer.scrapeFlexNum(0)!=lengths[idx]){print("wrong prefix: "+prefixes[idx]+"\n")}
+    }
+    print("Decimal input passed")
+`
+'''
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root/'Probe.dog').write_text(source)
+            self.run_command([sys.executable, str(ROOT/'codeDog'), 'Probe.dog'], root)
+            result = subprocess.run([str(root/'LocalBuild/decimalInputProbe')], cwd=root,
+                                    capture_output=True, text=True, timeout=10)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stdout, 'Decimal input passed')
+
+
 
 if __name__ == '__main__':
     unittest.main()

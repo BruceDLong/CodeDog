@@ -155,6 +155,36 @@ struct FlexNum{
         me string: S   <- toString(Q)
         return(S)
     }
+    // Parse a base-10 integer, fraction or decimal. Failure preserves this value.
+    me bool: parseDecimal(me string: str) <- {
+        me int: size <- str.size()
+        if(size==0){return(false)}
+        me int: firstDigit <- 0
+        if(str[0]=="+" or str[0]=="-"){firstDigit <- 1}
+        if(firstDigit==size){return(false)}
+        me int: separator <- -1
+        withEach idx in range firstDigit .. size {
+            me char: ch <- str[idx]
+            if(ch=="." or ch=="/"){
+                if(separator!=-1 or idx==firstDigit or idx==size-1){return(false)}
+                separator <- idx
+            } else if(ch<"0" or ch>"9"){return(false)}
+        }
+        me FlexNum: parsed
+        me string: rational <- str
+        if(separator!=-1 and str[separator]=="."){
+            parsed.decPlaces <- size-separator
+            me string: denominator <- "1"
+            withEach n in range 1 .. parsed.decPlaces {denominator <+- "0"}
+            rational <- str.subStr(0,separator)+str.subStr(separator+1,size)+"/"+denominator
+        }
+        if(rational[0]=="+"){rational <- rational.subStr(1,rational.size()-1)}
+        if(parsed.val.decNumToBigFrac(rational)!=0){return(false)}
+        if(parsed.getDenominator()==0){return(false)}
+        val <- parsed.val
+        decPlaces <- parsed.decPlaces
+        return(true)
+    }
     void: fromString(me string: str) <- {
         me int: size <- str.size()
         me int: dotPos <- -1
