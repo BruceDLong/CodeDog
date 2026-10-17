@@ -18,6 +18,10 @@ LibDescription  ={
 }
 
 struct GLOBAL{
+    // Input buffers use this wait so native runtimes can suspend an explicitly
+    // registered outer lock. Without such a scope it is an ordinary wait.
+    void: waitForInput(me SyncLock: condition, me MutexMngr: lock)
+    void: yieldInputLock()
     me string: thisThreadID()
 }
 struct Threads{
@@ -50,3 +54,7 @@ struct Semaphore{
     void: post()
     void: wait()
 }
+
+// Scoped input-lock bindings currently implemented by the C++/Web runtime.
+struct InputLock{}
+struct InputPause{}

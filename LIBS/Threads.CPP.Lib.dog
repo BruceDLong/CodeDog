@@ -8,7 +8,7 @@ requirements = [
 interface={
     provides=[threads_implementation]
     libFiles=[pthread]
-    headers=[thread, type_traits, mutex, condition_variable, atomic, sstream]
+    headers=[thread, type_traits, mutex, condition_variable, atomic, sstream, chrono, vector]
 }
 
 LibDescription  ={
@@ -18,6 +18,8 @@ LibDescription  ={
     Lang        =[CPP]
 }
 embedVeryHigh = `
+#include Threads.InputWait.inc
+
 typedef  std::unique_lock<std::mutex> Unique_Lock_Mutex;
 typedef  std::unique_lock<std::recursive_mutex> Nested_Lock_Mutex;
 
@@ -49,7 +51,12 @@ private:
 };
 `
 
+struct InputLock: wraps=CodeDogInputLock{}
+struct InputPause: wraps=CodeDogInputPause{}
+
 struct GLOBAL{
+    void: waitForInput(me SyncLock: condition, me MutexMngr: lock) <- <%!codeDogWaitForInput(%1, %2)%>
+    void: yieldInputLock() <- <%!CodeDogInputLock::yieldIfDue()%>
     me string: thisThreadID() <- <%{
 #ifdef _WIN32
         std::ostringstream idStream;

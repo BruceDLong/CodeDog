@@ -94,3 +94,8 @@ struct Semaphore: wraps=semaphore {
     void: post()        <- <%!signal()%>
     void: wait()        <- <%!wait()%>
 }
+
+struct GLOBAL{
+    void: waitForInput(me SyncLock: condition, me MutexMngr: lock) <- {condition.wait(lock)}
+    void: yieldInputLock() <- {}
+}

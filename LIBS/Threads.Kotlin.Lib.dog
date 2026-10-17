@@ -52,3 +52,8 @@ struct SyncLock{
 
 struct Semaphore: wraps=Semaphore {
 }
+
+struct GLOBAL{
+    void: waitForInput(me SyncLock: condition, me MutexMngr: lock) <- {condition.wait(lock)}
+    void: yieldInputLock() <- {}
+}

@@ -265,6 +265,137 @@ int main(){
             self.run_command(['g++', '-std=c++14', '-pthread', 'probe.cpp', '-o', 'probe'], root)
             self.run_command([str(root/'probe')], root)
 
+    @unittest.skipUnless(shutil.which('g++'), 'C++ compiler required')
+    def test_input_wait_lock_order_nested_scopes_and_exceptions(self):
+        # Test the native synchronization boundary directly; language integration
+        # is exercised by the generated IOBuffer and Proteus tests.
+        source = '''
+#include <mutex>
+#include <condition_variable>
+#include <thread>
+#include <chrono>
+#include <vector>
+#include <future>
+#include <cassert>
+''' + (ROOT/'LIBS/Threads.InputWait.inc').read_text() + r'''
+bool available(std::recursive_mutex& mutex) {
+    return std::async(std::launch::async, [&]{
+        if(!mutex.try_lock()) return false;
+        mutex.unlock(); return true;
+    }).get();
+}
+struct OrderedWake {
+    std::recursive_mutex& model;
+    std::mutex& buffer;
+    std::thread contender;
+    void wait(std::unique_lock<std::mutex>& lock) {
+        std::promise<void> modelHeld, wakeReturned;
+        auto held = modelHeld.get_future();
+        auto waking = wakeReturned.get_future();
+        lock.unlock();
+        contender = std::thread([&, waking = std::move(waking)]() mutable {
+            std::lock_guard<std::recursive_mutex> outer(model);
+            modelHeld.set_value();
+            waking.wait();
+            std::lock_guard<std::mutex> inner(buffer);
+        });
+        held.wait();
+        lock.lock();
+        wakeReturned.set_value();
+    }
+};
+struct ThrowingWait {
+    void wait(std::unique_lock<std::mutex>&) { throw 42; }
+};
+int main() {
+    std::recursive_mutex model, other;
+    std::mutex buffer;
+    {
+        CodeDogInputLock first(&model), nested(&model), second(&other);
+        assert(!available(model) && !available(other));
+        {
+            CodeDogInputPause pause;
+            assert(available(model) && available(other));
+            { CodeDogInputLock callback(&model); assert(!available(model)); }
+            assert(available(model));
+        }
+        assert(!available(model) && !available(other));
+        std::unique_lock<std::mutex> inner(buffer);
+        OrderedWake wake{model, buffer, {}};
+        codeDogWaitForInput(wake, inner);
+        wake.contender.join();
+        assert(inner.owns_lock() && !available(model) && !available(other));
+        ThrowingWait throws;
+        try { codeDogWaitForInput(throws, inner); assert(false); }
+        catch(int value) { assert(value == 42); }
+        assert(!inner.owns_lock() && !available(model) && !available(other));
+        try { CodeDogInputPause pause; throw 7; } catch(int) {}
+        assert(!available(model) && !available(other));
+    }
+    assert(available(model) && available(other));
+    // Ordinary users need no model lock or registration.
+    {
+        std::condition_variable cv;
+        std::unique_lock<std::mutex> inner(buffer);
+        bool ready = false;
+        std::thread producer([&]{
+            std::lock_guard<std::mutex> held(buffer);
+            ready = true; cv.notify_one();
+        });
+        while(!ready) codeDogWaitForInput(cv, inner);
+        inner.unlock(); producer.join();
+    }
+}
+'''
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root/'probe.cpp').write_text(source)
+            self.run_command(['g++', '-std=c++14', '-pthread', 'probe.cpp', '-o', 'probe'], root)
+            self.run_command([str(root/'probe')], root)
+
+
+    @unittest.skipUnless(shutil.which('g++'), 'C++ compiler required')
+    def test_generated_buffer_wait_releases_input_lock(self):
+        source = r'''
+LocalBuild: Platform='Local';
+FileName = "inputWaitProbe"
+ProgramOrLibrary = "program"
+featuresNeeded = [IOBuffer]
+runCode = `
+    me ProbeMutex: mutex
+    me strBuf: buffer; buffer.init("input-wait")
+    me InputProducer: producer
+    producer.mutex <- mutex; producer.buffer <- buffer
+    if(true){
+        me InputLock: outer{mutex}
+        me InputLock: inner{mutex}
+        producer.start()
+        print(buffer.scrapeCID(0))
+    }
+    producer.waitForExit()
+`
+struct ProbeMutex: wraps=recursive_mutex{}
+struct InputProducer: inherits=Threads {
+    their ProbeMutex: mutex
+    their strBuf: buffer
+    void: run() <- {
+        protect(mutex!){
+            buffer!.putStr("hello")
+            buffer!.close()
+        }
+    }
+}
+'''
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root/'Probe.dog').write_text(source)
+            self.run_command([sys.executable, str(ROOT/'codeDog'), 'Probe.dog'], root)
+            result = subprocess.run([str(root/'LocalBuild/inputWaitProbe')], cwd=root,
+                                    capture_output=True, text=True, timeout=10)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stdout, '5')
+
+
 
 if __name__ == '__main__':
     unittest.main()

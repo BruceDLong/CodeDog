@@ -96,7 +96,7 @@ struct strBuf{
         while(tail==NULL or (tail!.myOffset + tail!.buf.size() <= pos)){
             if(bufferClosed){return(NULL)}
             //log("WAITING(findInrBufWithPos)")
-            bufLock.wait(bufMtxMgr)
+            waitForInput(bufLock, bufMtxMgr)
             //log("DONE_WAITING(findInrBufWithPos)")
         }
         their strInnerBuf: bufr <- tail
