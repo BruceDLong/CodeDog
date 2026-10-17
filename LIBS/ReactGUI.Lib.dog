@@ -338,7 +338,8 @@ struct Presenter{
     }
 
     me bool: itemIsThing(our infonView: item) <- {
-        return(!item.value.items.isEmpty() and item.value.items.first().type.asGiven =="thing")
+        // Record members can arrive in any order, including inherited parts.
+        return(item!=NULL and item.fetchField("thing")!=NULL)
     }
 
     me string: chooseviewStyleTag(our ParamRec: PR) <- {
