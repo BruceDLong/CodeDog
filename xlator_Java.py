@@ -861,6 +861,9 @@ class Xlator_Java(Xlator):
         return S
 
     ############################################
+    def codeRethrow(self, nativeName):
+        return 'throw ' + nativeName
+
     def codeTryCatch(self, tryText, catchText, errorName, nativeName, indent):
         code = indent + 'try ' + tryText + indent + 'catch (Exception ' + nativeName + ') '
         if errorName:

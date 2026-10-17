@@ -962,6 +962,9 @@ class Xlator_CPP(Xlator):
         return ''
 
     ############################################
+    def codeRethrow(self, nativeName):
+        return 'throw'
+
     def codeTryCatch(self, tryText, catchText, errorName, nativeName, indent):
         code = indent + 'try ' + tryText
         if errorName:

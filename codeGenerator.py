@@ -37,6 +37,7 @@ class CodeGenerator(object):
     localVarsAllocated = []   # Format: [varName, typeSpec]
     localArgsAllocated = []   # Format: [varName, typeSpec]
     throwingCallCount = 0
+    catchExceptionNames = ()
     currentObjName     = ''
     currentDefinitionLibLevel = 1
     currentDefinitionLibName = None
@@ -95,6 +96,8 @@ class CodeGenerator(object):
     def CheckBuiltinItems(self, currentObjName, segSpec, genericArgs):
         # Handle print, return, break, etc.
         itemName=segSpec[0]
+        if itemName == 'rethrow':
+            cdErr("rethrow() must be a standalone action inside a catch block.")
         if itemName == 'sharedUseCount':
             argList = segSpec[2] if len(segSpec) > 2 else []
             if len(argList) != 1:
@@ -2272,6 +2275,13 @@ class CodeGenerator(object):
             actionText = self.codeRepetition(action, returnType, indent, genericArgs)
         elif (typeOfAction =='funcCall'):
             calledFunc = action['calledFunc']
+            if len(calledFunc) == 1 and calledFunc[0][0] == 'rethrow':
+                args = calledFunc[0][2] if len(calledFunc[0]) > 2 else []
+                if args:
+                    cdErr("rethrow() takes no arguments.")
+                if not self.catchExceptionNames:
+                    cdErr("rethrow() is only valid inside a catch block.")
+                return indent + self.xlator.codeRethrow(self.catchExceptionNames[-1]) + ';\n'
             if calledFunc[0][0] == 'if' or calledFunc=='withEach' or calledFunc=='until' or calledFunc=='where':
                 cdErr("Function calls cannot be named '"+calledFunc[0][0]+"'")
             cdlog(5, "Function Call: {}()".format(str(calledFunc[0][0])))
@@ -2325,15 +2335,21 @@ class CodeGenerator(object):
                     'owner': 'me', 'fieldType': 'string', 'arraySpec': None, 'paramList': None,
                     'codeConverter': messageName,
                 }])
+            previousExceptions = self.catchExceptionNames
+            exceptionToken = '@CODEDOG_CAUGHT_EXCEPTION@'
+            while exceptionToken in occupiedNames + tryText + repr(previousExceptions):
+                exceptionToken += '@'
+            self.catchExceptionNames += (exceptionToken,)
             try:
                 catchText = self.codeActionSeq(action['catchBody'], indent, returnType, genericArgs)
             finally:
                 del self.localVarsAllocated[scopeStart:]
-            # Choose an internal name absent from both generated blocks so it
-            # cannot shadow user variables or another catch parameter.
+                self.catchExceptionNames = previousExceptions
+            # Avoid names introduced by converters and nested handlers too.
             nativeName = 'cdCaughtException'
             while nativeName in occupiedNames + tryText + catchText:
                 nativeName += '_'
+            catchText = catchText.replace(exceptionToken, nativeName)
             actionText = self.xlator.codeTryCatch(tryText, catchText, messageName if errorName else None, nativeName, indent)
         elif (typeOfAction =='protect'):
             cdlog(5, "Protect Statement")
@@ -3432,6 +3448,7 @@ class CodeGenerator(object):
         self.localVarsAllocated = []
         self.localArgsAllocated = []
         self.throwingCallCount = 0
+        self.catchExceptionNames = ()
         self.currentObjName=''
         self.currentDefinitionLibLevel = 1
         self.currentDefinitionLibName = None

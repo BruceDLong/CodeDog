@@ -539,13 +539,29 @@ functions or native libraries::
 ``error`` is a string containing the exception message, local to the catch
 block. Choose any identifier for this variable, or omit the parentheses and
 variable with ``catch { ... }``. This first version has one general handler;
-typed catches, ``finally``, and rethrow syntax are not supported.
+typed catches and ``finally`` are not supported.
 
 After an exception, remaining statements in the try block are skipped. If the
 handler finishes normally, execution continues after it. Exceptions raised by
 the handler propagate to an enclosing try block or the caller. Blocks may be
 nested, and ``return``, ``break``, and ``continue`` keep their normal meaning.
 Handling an exception does not roll back changes already made.
+
+Use ``rethrow()`` as a standalone action inside a catch block to propagate the
+original exception after cleanup::
+
+    try {
+        startOperation()
+    } catch {
+        releaseResources()
+        rethrow()
+    }
+
+Rethrowing preserves the native exception and its type, including nonstandard
+C++ exceptions. It takes no arguments and refers to the innermost enclosing
+catch, even after a nested handler finishes. The catch message is only a string;
+changing it does not change the rethrown exception. A function that lets the
+exception escape needs ``throws=true`` on Java and Swift, as described below.
 
 The implementations use C++ ``try/catch``, Java and Kotlin ``try/catch``, and
 Swift ``do/catch``. C++ catches ``std::exception`` using ``what()`` and also

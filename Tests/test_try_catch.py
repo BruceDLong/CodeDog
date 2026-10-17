@@ -9,6 +9,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from pyparsing import ParseBaseException
 
@@ -73,6 +74,16 @@ struct Probe {
     me bool: nativeBool(): throws=true <- <%{''' + native + '''}%>
     me string: nativeConverted(): throws=true <- <%!%G''' + converter + '''%>
     me string: propagate(): throws=true <- {return(nativeFailure())}
+    void: namedRethrow(): throws=true <- {
+        try {nativeFailure()} catch(error) {
+            error <- "changed"
+            try {throwOverflowError("nested")} catch {}
+            rethrow()
+        }
+    }
+    void: bareRethrow(): throws=true <- {
+        try {namedRethrow()} catch {rethrow()}
+    }
     me string: echo(me string: text) <- {return(text)}
     me string: successfulReturn() <- {
         try {return("ok")} catch(error) {return(error)}
@@ -122,6 +133,12 @@ struct Probe {
         while(true) {try {nativeFailure()} catch {break()}}
         trace <+- error
         trace <+- failedReturn()
+        try {bareRethrow()} catch(error) {trace <+- error}
+        try {
+            try {nativeFailure()} catch {
+                try {throwOverflowError("innerRethrow")} catch {rethrow()}
+            }
+        } catch(error) {trace <+- error}
         return(trace)
     }
 }'''
@@ -151,6 +168,34 @@ class TryCatchParserTests(unittest.TestCase):
                 _, generator = generate(source, language)
                 self.assertEqual(generator.CheckFunctionsLocalVarArgList('error'), 0)
 
+    def test_rethrow_scope_arguments_and_expression_diagnostics(self):
+        bodies = [
+            ('rethrow()', 'only valid inside'),
+            ('try {rethrow()} catch {}', 'only valid inside'),
+            ('try {} catch {} rethrow()', 'only valid inside'),
+            ('try {} catch {rethrow(1)}', 'takes no arguments'),
+            ('try {} catch {print(rethrow())}', 'standalone action'),
+        ]
+        for language in TRANSLATORS:
+            for body, message in bodies:
+                with self.subTest(language=language, body=body):
+                    with patch('codeGenerator.cdErr', side_effect=SystemExit) as error:
+                        with self.assertRaises(SystemExit):
+                            generate('struct Probe {void: run() <- {' + body + '}}', language)
+                        self.assertIn(message, error.call_args.args[0])
+
+    def test_rethrow_scope_restored_after_generation_error(self):
+        generator = CodeGenerator()
+        generator.clearBuild()
+        generator.xlator = Xlator_CPP()
+        generator.xlator.codeGen = generator
+        action = {'typeOfAction': 'try', 'tryBody': [], 'errorName': 'error',
+                  'catchBody': [{'typeOfAction': 'funcCall', 'calledFunc': [['rethrow', '(', [1]]]}]}
+        with redirect_stdout(io.StringIO()), self.assertRaises(SystemExit):
+            generator.codeAction(action, '', None, None)
+        self.assertEqual(generator.catchExceptionNames, ())
+        self.assertEqual(generator.localVarsAllocated, [])
+
     def test_throwing_declaration_and_invalid_tags(self):
         _, _, classes, _ = codeDogParser.parseCodeDogString(
             'struct Probe {void: external(): throws=true}', {}, [], {}, 'throwing declaration')
@@ -174,7 +219,7 @@ class TryCatchParserTests(unittest.TestCase):
 
 class TryCatchRuntimeTests(unittest.TestCase):
     expected = ('okinvalidoverflownativenativeconvertedconvertedconvertednative'
-                'shortnativeshortnativeinnernestedinnerouterCatchbareouternative')
+                'shortnativeshortnativeinnernestedinnerouterCatchbareouternativenativeinnerRethrow')
 
     def run_command(self, command, root):
         result = subprocess.run(command, cwd=root, capture_output=True, text=True, timeout=90)
@@ -195,6 +240,51 @@ string nativeValue(){throw runtime_error("converted");}
             (root/'probe.cpp').write_text(source)
             self.run_command(['g++', '-std=c++17', 'probe.cpp', '-o', 'probe'], root)
             self.assertEqual(self.run_command([str(root/'probe')], root), self.expected)
+
+    @unittest.skipUnless(shutil.which('g++'), 'C++ compiler required')
+    def test_cpp_rethrow_preserves_exception_object_and_nonstandard_value(self):
+        dog = r"""struct Probe {
+            void: nativeFailure() <- <%{throw Original("original");}%>
+            void: nonstandard() <- <%{throw 42;}%>
+            void: forward(): throws=true <- {
+                try {nativeFailure()} catch(error) {
+                    error <- "changed"
+                    try {nonstandard()} catch {}
+                    rethrow()
+                }
+            }
+            void: forwardUnknown(): throws=true <- {
+                try {nonstandard()} catch(error) {rethrow()}
+            }
+            void: run() <- {}
+        }"""
+        code, _ = generate(dog, 'CPP')
+        source = r"""#include <string>
+#include <stdexcept>
+#include <cassert>
+using namespace std;
+const void* originalAddress = nullptr;
+struct Original: runtime_error {
+    Original(const char* text): runtime_error(text) {originalAddress = this;}
+    Original(const Original&) = default;
+};
+""" + code + r"""
+int main() {
+    Probe probe;
+    try {probe.forward(); assert(false);}
+    catch(const Original& error) {
+        assert(&error == originalAddress);
+        assert(string(error.what()) == "original");
+    }
+    try {probe.forwardUnknown(); assert(false);}
+    catch(int value) {assert(value == 42);}
+}
+"""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root/'probe.cpp').write_text(source)
+            self.run_command(['g++', '-std=c++17', 'probe.cpp', '-o', 'probe'], root)
+            self.run_command([str(root/'probe')], root)
 
     @unittest.skipUnless(shutil.which('javac') and shutil.which('java'), 'JDK required')
     def test_java(self):

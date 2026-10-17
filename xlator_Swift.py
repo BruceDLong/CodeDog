@@ -734,6 +734,9 @@ class Xlator_Swift(Xlator):
         return LHS + " += " + RHS
 
     ######################################################
+    def codeRethrow(self, nativeName):
+        return 'throw ' + nativeName
+
     def codeTryCatch(self, tryText, catchText, errorName, nativeName, indent):
         code = indent + 'do ' + tryText + indent + 'catch let ' + nativeName + ' '
         if errorName:

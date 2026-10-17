@@ -767,6 +767,9 @@ class Xlator_Kotlin(Xlator_Java):
         return S
 
     ###################################################### STATEMENTS / MISC
+    def codeRethrow(self, nativeName):
+        return 'throw ' + nativeName
+
     def codeTryCatch(self, tryText, catchText, errorName, nativeName, indent):
         code = indent + 'try ' + tryText + indent + 'catch (' + nativeName + ': Exception) '
         if errorName:
